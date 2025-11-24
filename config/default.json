@@ -10,5 +10,8 @@
       "includeSubDomains": true,
       "preload": true
     }
+  },
+  "govukFrontend": {
+    "rebrandEnabled": true
   }
 }

@@ -19,6 +19,7 @@ const { Logger } = require('@hmcts/nodejs-logging');
 
 const env = process.env.NODE_ENV || 'development';
 const developmentMode = env === 'development';
+const rebrandEnabled: boolean = config.get('govukFrontend.rebrandEnabled');
 
 const limiter = RateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -32,12 +33,23 @@ const logger = Logger.getLogger('app');
 
 new PropertiesVolume().enableFor(app);
 new AppInsights().enable();
-new Nunjucks(developmentMode).enableFor(app);
+new Nunjucks(developmentMode, rebrandEnabled).enableFor(app);
 // secure the application by adding various HTTP headers to its responses
 new Helmet(config.get('security')).enableFor(app);
 
+const assetsDirectory = path.join(__dirname, 'public', 'assets');
+const faviconPath = path.join(
+  assetsDirectory,
+  rebrandEnabled ? 'rebrand/images/favicon.ico' : 'images/favicon.ico'
+);
+const fallbackFaviconPath = path.join(assetsDirectory, 'images/favicon.ico');
+
 app.get('/favicon.ico', limiter, (req, res) => {
-  res.sendFile(path.join(__dirname, '/public/assets/images/favicon.ico'));
+  res.sendFile(faviconPath, err => {
+    if (err && faviconPath !== fallbackFaviconPath) {
+      res.sendFile(fallbackFaviconPath);
+    }
+  });
 });
 
 app.use(bodyParser.json());
