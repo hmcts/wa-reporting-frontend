@@ -9,7 +9,7 @@ export default function (app: Router): void {
     infoRequestHandler({
       extraBuildInfo: {
         host: os.hostname(),
-        name: 'expressjs-template',
+        name: 'wa-reporting-frontend',
         uptime: process.uptime(),
       },
       info: {
