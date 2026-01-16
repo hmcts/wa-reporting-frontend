@@ -1,5 +1,4 @@
 import { Server } from 'http';
-import { AddressInfo } from 'net';
 
 import supertest from 'supertest';
 
@@ -10,14 +9,19 @@ const pa11y = require('pa11y');
 let server: Server;
 let port: number;
 
-beforeAll(() => {
-  server = app.listen(0, '127.0.0.1');
-  const address = server.address();
-  if (address && typeof address !== 'string') {
-    port = (address as AddressInfo).port;
-  } else {
-    throw new Error('Server address is not available');
-  }
+beforeAll(async () => {
+  await new Promise<void>((resolve, reject) => {
+    server = app.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (address && typeof address !== 'string') {
+        port = address.port;
+        resolve();
+      } else {
+        reject(new Error('Server address is not available'));
+      }
+    });
+    server.on('error', reject);
+  });
 });
 
 afterAll(() => {
@@ -37,7 +41,7 @@ function ensurePageCallWillSucceed(url: string): Promise<void> {
 function runPa11y(url: string) {
   const fullUrl = `http://localhost:${port}${url}`;
   return pa11y(fullUrl, {
-    hideElements: '.govuk-footer__licence-logo, .govuk-header__logotype-crown',
+    hideElements: '.govuk-footer__licence-logo, .govuk-footer__crown, .govuk-header__logotype-crown',
     timeout: 120000,
     chromeLaunchConfig: { args: ['--no-sandbox', '--disable-setuid-sandbox'] },
   });

@@ -80,6 +80,20 @@ function setHiddenInput(form: HTMLFormElement, name: string, value: string): voi
   input.value = value;
 }
 
+function labelModebarButtons(container: HTMLElement): void {
+  const buttons = container.querySelectorAll<HTMLAnchorElement>('.modebar-btn');
+  buttons.forEach(button => {
+    if (button.getAttribute('aria-label') || button.getAttribute('title')) {
+      return;
+    }
+    const label = button.getAttribute('data-title') || button.getAttribute('title');
+    if (label) {
+      button.setAttribute('title', label);
+      button.setAttribute('aria-label', label);
+    }
+  });
+}
+
 function renderCharts(): void {
   const nodes = document.querySelectorAll<HTMLElement>('[data-chart-config]');
   nodes.forEach(node => {
@@ -96,7 +110,9 @@ function renderCharts(): void {
         ...parsedLayout,
         margin: { ...baseLayout.margin, ...(parsedLayout.margin ?? {}) },
       };
-      Plotly.newPlot(node, parsed.data, layout, { ...baseChartConfig, ...parsedConfig });
+      Plotly.newPlot(node, parsed.data, layout, { ...baseChartConfig, ...parsedConfig }).then(() => {
+        labelModebarButtons(node);
+      });
       if (node.dataset.scrollPan === 'true') {
         bindScrollPan(node, parsed);
       }
