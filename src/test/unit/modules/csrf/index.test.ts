@@ -77,9 +77,9 @@ describe('csrfService', () => {
     }
     expect(configArgs.getSessionIdentifier(req)).toBe('cookie-id');
     expect(configArgs.getSessionIdentifier({ cookies: {} } as Request)).toBe('anonymous');
-    expect(
-      configArgs.getCsrfTokenFromRequest({ body: { _csrf: 'body-token' }, headers: {} } as Request)
-    ).toBe('body-token');
+    expect(configArgs.getCsrfTokenFromRequest({ body: { _csrf: 'body-token' }, headers: {} } as Request)).toBe(
+      'body-token'
+    );
     expect(configArgs.getCsrfTokenFromRequest({ headers: { 'x-csrf-token': 'header-token' } } as Request)).toBe(
       'header-token'
     );
