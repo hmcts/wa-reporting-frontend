@@ -1,5 +1,7 @@
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import config from 'config';
+import { Pool } from 'pg';
 
 function getConfigValue<T>(path: string): T | undefined {
   return config.has(path) ? config.get<T>(path) : undefined;
@@ -23,13 +25,19 @@ function buildDatabaseUrlFromConfig(prefix: string): string | undefined {
   }
 
   const auth = password ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}` : encodeURIComponent(user);
-  const schemaParam = schema ? `?schema=${encodeURIComponent(schema)}` : '';
+  const schemaParam = schema ? `?options=-csearch_path=${encodeURIComponent(schema)}` : '';
 
   return `postgresql://${auth}@${host}:${port}/${database}${schemaParam}`;
 }
 
 export function createPrismaClient(databaseUrl?: string): PrismaClient {
-  return new PrismaClient(databaseUrl ? { datasources: { db: { url: databaseUrl } } } : undefined);
+  if (!databaseUrl) {
+    return new PrismaClient();
+  }
+
+  const pool = new Pool({ connectionString: databaseUrl });
+
+  return new PrismaClient({ adapter: new PrismaPg(pool) });
 }
 
 const tmDatabaseUrl = buildDatabaseUrlFromConfig('database.tm');
