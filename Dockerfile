@@ -24,6 +24,7 @@ COPY --from=deps $WORKDIR/yarn.lock ./yarn.lock
 COPY --chown=hmcts:hmcts . .
 
 RUN yarn build:prod && \
+    yarn build:server && \
     rm -rf webpack/ webpack.config.js
 
 # ---- Runtime image ----
@@ -34,8 +35,7 @@ COPY --from=build $WORKDIR/.yarnrc.yml ./.yarnrc.yml
 COPY --from=build $WORKDIR/.yarn ./.yarn
 COPY --from=build $WORKDIR/package.json ./package.json
 COPY --from=build $WORKDIR/yarn.lock ./yarn.lock
-COPY --from=build $WORKDIR/tsconfig.json ./tsconfig.json
-COPY --from=build $WORKDIR/src/main ./src/main
+COPY --from=build $WORKDIR/dist ./dist
 COPY --from=build $WORKDIR/config ./config
 
 RUN corepack prepare yarn@4.8.1 --activate
