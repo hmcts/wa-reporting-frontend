@@ -6,7 +6,7 @@ nodejs:
   keyVaults:
     wa:
       secrets:
-        - AppInsightsConnectionString
+        - app-insights-connection-string
         # - redis-hostname
         # - redis-port
         # - redis-key

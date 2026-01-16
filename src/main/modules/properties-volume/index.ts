@@ -8,7 +8,7 @@ export class PropertiesVolume {
     if (server.locals.ENV !== 'development') {
       propertiesVolume.addTo(config);
 
-      this.setSecret('secrets.wa.AppInsightsConnectionString', 'appInsights.connectionString');
+      this.setSecret('secrets.wa.app-insights-connection-string', 'appInsights.connectionString');
 
       this.setSecret('secrets.wa.redis-hostname', 'session.redis.host');
       this.setSecret('secrets.wa.redis-port', 'session.redis.port');
