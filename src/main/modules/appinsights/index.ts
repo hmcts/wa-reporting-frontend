@@ -7,7 +7,8 @@ export class AppInsights {
     if (config.get('appInsights.connectionString')) {
       appInsights.setup(config.get('appInsights.connectionString')).setSendLiveMetrics(true).start();
 
-      appInsights.defaultClient.context.tags[appInsights.defaultClient.context.keys.cloudRole] = 'wa-reporting-frontend';
+      appInsights.defaultClient.context.tags[appInsights.defaultClient.context.keys.cloudRole] =
+        'wa-reporting-frontend';
       appInsights.defaultClient.trackTrace({
         message: 'App insights activated',
       });
