@@ -1,0 +1,33 @@
+<div class="govuk-grid-column-one-half">
+  <h2 class="govuk-heading-m">Open tasks priority</h2>
+  <p class="govuk-body">Open tasks due by priority</p>
+  {% set tasksDuePriorityChartHtml %}
+    <div class="analytics-chart" data-chart-config='{{ charts.tasksDueByPriority | safe }}'></div>
+  {% endset %}
+  {% set tasksDuePriorityTableHtml %}
+    <div class="analytics-tab-panel">
+      {{ csvDownloadButton() }}
+      {{ analyticsTable({
+        attributes: { 'data-export-csv': 'true', 'data-export-filename': 'outstanding-open-tasks-priority.csv', 'data-sortable': 'true' },
+        classes: "analytics-table--compact",
+        hasTotals: true,
+        head: [
+          { text: "Due date" },
+          { text: "Total open", format: "numeric" },
+          { text: "Urgent", format: "numeric" },
+          { text: "High", format: "numeric" },
+          { text: "Medium", format: "numeric" },
+          { text: "Low", format: "numeric" }
+        ],
+        rows: tasksDuePriorityRows.concat([tasksDuePriorityTotalsRow])
+      }) }}
+    </div>
+  {% endset %}
+  {{ govukTabs({
+    id: "tasksDuePriorityTabs",
+    items: [
+      { label: "Chart", id: "tasksDuePriorityChart", panel: { html: tasksDuePriorityChartHtml } },
+      { label: "Data table", id: "tasksDuePriorityTable", panel: { html: tasksDuePriorityTableHtml } }
+    ]
+  }) }}
+</div>

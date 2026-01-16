@@ -18,12 +18,12 @@ function gracefulShutdownHandler(signal: string) {
   // stop the server from accepting new connections
   app.locals.shutdown = true;
   app.emit('shutdown');
-  
+
   server.close(() => {
     logger.info('✅ Server closed successfully');
     process.exit(0);
   });
-  
+
   // Force shutdown after timeout
   setTimeout(() => {
     logger.error('❌ Forced shutdown after timeout');

@@ -8,6 +8,7 @@ node_modules/
 
 *swp
 *log
+.env*
 .DS_Store
 
 src/main/public/img/lib/*
@@ -22,6 +23,7 @@ npm-debug.log.*
 .project
 .settings/
 dist/
+build/
 public/
 src/main/views/govuk
 coverage/
@@ -38,3 +40,6 @@ version
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+.codex
+!.codex/prompts

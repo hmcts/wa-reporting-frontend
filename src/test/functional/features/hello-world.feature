@@ -1,5 +1,5 @@
 Feature: Initial Functional test
 
-    Scenario: The home page loads
+    Scenario: The analytics landing page loads
         When I go to '/'
-        Then the page should include 'Default page template' 
+        Then the page should include 'Analytics'

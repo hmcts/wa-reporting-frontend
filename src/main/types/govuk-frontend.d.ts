@@ -1,3 +1,6 @@
 declare module 'govuk-frontend' {
-  export function initAll(): void;
+  export type InitAllConfig = {
+    scope?: Element | Document | null;
+  };
+  export function initAll(config?: InitAllConfig): void;
 }

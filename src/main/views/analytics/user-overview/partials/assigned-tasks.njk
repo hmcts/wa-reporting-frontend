@@ -1,0 +1,66 @@
+{% from "macros/analytics-table.njk" import analyticsTable %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "govuk/components/pagination/macro.njk" import govukPagination %}
+{% from "macros/csv-download.njk" import csvDownloadButton %}
+{% from "macros/case-link.njk" import caseLink %}
+
+<div data-section="user-overview-assigned">
+  <h2 class="govuk-heading-m">Currently assigned tasks</h2>
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-three-quarters">
+      {% set assignedTableHtml %}
+        {% set assignedTableRows = [] %}
+        {% for row in assignedRows %}
+          {% set assignedTableRows = assignedTableRows.concat([[
+            { html: caseLink(row.caseId) },
+            { text: row.createdDate },
+            { text: row.taskName },
+            { text: row.assignedDate },
+            { text: row.dueDate },
+            { text: row.priority },
+            { text: row.totalAssignments },
+            { text: row.assigneeName },
+            { text: row.location }
+          ]]) %}
+        {% endfor %}
+        <div class="analytics-tab-panel analytics-tab-panel--paginated">
+          <div class="analytics-tab-panel__content">
+            {{ csvDownloadButton() }}
+            {{ analyticsTable({
+              attributes: {
+                'data-export-csv': 'true',
+                'data-export-filename': 'user-overview-currently-assigned.csv',
+                'data-sortable': 'true',
+                'data-server-sort': 'true',
+                'data-sort-scope': 'assigned'
+              },
+              classes: "analytics-table--compact",
+              head: assignedHead,
+              boldLastRow: false,
+              rows: assignedTableRows
+            }) }}
+            {% if assignedPagination.show %}
+              <div class="analytics-tab-panel__pagination" data-user-overview-pagination="assigned">
+                {{ govukPagination(assignedPagination.pagination) }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endset %}
+      {{ govukTabs({
+        id: "assignedTasksTabs",
+        items: [
+          { label: "Data table", id: "assignedTasksTable", panel: { html: assignedTableHtml } }
+        ]
+      }) }}
+    </div>
+    <div class="govuk-grid-column-one-quarter">
+      {{ govukSummaryList({
+        classes: "analytics-summary-list--wide",
+        rows: assignedSummaryRows
+      }) }}
+      <div class="analytics-chart analytics-chart--small" data-chart-config='{{ charts.priority | safe }}'></div>
+    </div>
+  </div>
+</div>

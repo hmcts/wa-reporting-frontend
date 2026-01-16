@@ -2,7 +2,15 @@
 src/main/public/main-dev.css
 src/main/public/main*.css
 src/main/public/main*.js
+src/main/public/analytics*.css
+src/main/public/analytics*.js
+dist/
+build/
+coverage/
+node_modules/
 .pnp.*
 src/main/views/govuk
 .yarn/
 catalog-info.yaml
+.codex/
+smoke-output/

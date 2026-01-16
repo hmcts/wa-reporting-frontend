@@ -1,0 +1,152 @@
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/date-input/macro.njk" import govukDateInput %}
+{% from "macros/csrf.njk" import csrfProtection %}
+{% from "macros/multi-select.njk" import analyticsMultiSelect %}
+
+{% if showUserFilter is not defined %}
+  {% set showUserFilter = false %}
+{% endif %}
+{% if showCompletedDateFilters is not defined %}
+  {% set showCompletedDateFilters = false %}
+{% endif %}
+
+<hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
+<p class="govuk-body govuk-!-font-size-24 govuk-!-font-weight-bold">Select filters to apply to dashboard</p>
+<form method="post" data-analytics-filters="true">
+  {{ csrfProtection(csrfToken) }}
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-one-third">
+      {{ analyticsMultiSelect({
+        id: "service",
+        name: "service",
+        label: { text: "Service", classes: "govuk-label--s" },
+        items: serviceOptions | default([{ value: "", text: "All services" }]),
+        values: filters.service | default([]),
+        allText: "All",
+        search: { enabled: true, label: "Filter services", placeholder: "Type to filter services" }
+      }) }}
+    </div>
+    <div class="govuk-grid-column-one-third">
+      {{ analyticsMultiSelect({
+        id: "roleCategory",
+        name: "roleCategory",
+        label: { text: "Role category", classes: "govuk-label--s" },
+        items: roleCategoryOptions | default([{ value: "", text: "All role categories" }]),
+        values: filters.roleCategory | default([]),
+        allText: "All",
+        search: { enabled: true, label: "Filter role categories", placeholder: "Type to filter role categories" }
+      }) }}
+    </div>
+    <div class="govuk-grid-column-one-third">
+      {{ analyticsMultiSelect({
+        id: "region",
+        name: "region",
+        label: { text: "Region", classes: "govuk-label--s" },
+        items: regionOptions | default([{ value: "", text: "All regions" }]),
+        values: filters.region | default([]),
+        allText: "All",
+        search: { enabled: true, label: "Filter regions", placeholder: "Type to filter regions" }
+      }) }}
+    </div>
+  </div>
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-one-third">
+      {{ analyticsMultiSelect({
+        id: "location",
+        name: "location",
+        label: { text: "Location", classes: "govuk-label--s" },
+        items: locationOptions | default([{ value: "", text: "All locations" }]),
+        values: filters.location | default([]),
+        allText: "All",
+        search: { enabled: true, label: "Filter locations", placeholder: "Type to filter locations" }
+      }) }}
+    </div>
+    <div class="govuk-grid-column-one-third">
+      {{ analyticsMultiSelect({
+        id: "taskName",
+        name: "taskName",
+        label: { text: "Task name", classes: "govuk-label--s" },
+        items: taskNameOptions | default([{ value: "", text: "All task names" }]),
+        values: filters.taskName | default([]),
+        allText: "All",
+        search: { enabled: true, label: "Filter task names", placeholder: "Type to filter task names" }
+      }) }}
+    </div>
+    <div class="govuk-grid-column-one-third">
+      {% if showUserFilter %}
+        {{ analyticsMultiSelect({
+          id: "user",
+          name: "user",
+          label: { text: "User", classes: "govuk-label--s" },
+          items: userOptions | default([{ value: "", text: "All users" }]),
+          values: filters.user | default([]),
+          allText: "All",
+          search: { enabled: true, label: "Filter users", placeholder: "Type to filter users" }
+        }) }}
+      {% endif %}
+    </div>
+  </div>
+
+  {% if extraFiltersHtml %}
+    {{ extraFiltersHtml | safe }}
+  {% endif %}
+
+  {% if showCompletedDateFilters %}
+    <div class="govuk-grid-row">
+      <div class="govuk-grid-column-one-third">
+        {{ govukDateInput({
+          id: "completedFrom",
+          namePrefix: "completedFrom",
+          fieldset: {
+            legend: {
+              text: "Completed from",
+              isPageHeading: false,
+              classes: "govuk-fieldset__legend--s"
+            }
+          },
+          items: [
+            { name: "day", classes: "govuk-input--width-2", value: completedFrom.day | default("") },
+            { name: "month", classes: "govuk-input--width-2", value: completedFrom.month | default("") },
+            { name: "year", classes: "govuk-input--width-4", value: completedFrom.year | default("") }
+          ]
+        }) }}
+      </div>
+      <div class="govuk-grid-column-one-third">
+        {{ govukDateInput({
+          id: "completedTo",
+          namePrefix: "completedTo",
+          fieldset: {
+            legend: {
+              text: "Completed to",
+              isPageHeading: false,
+              classes: "govuk-fieldset__legend--s"
+            }
+          },
+          items: [
+            { name: "day", classes: "govuk-input--width-2", value: completedTo.day | default("") },
+            { name: "month", classes: "govuk-input--width-2", value: completedTo.month | default("") },
+            { name: "year", classes: "govuk-input--width-4", value: completedTo.year | default("") }
+          ]
+        }) }}
+      </div>
+      <div class="govuk-grid-column-one-third"></div>
+    </div>
+  {% endif %}
+
+  <div class="govuk-button-group govuk-!-margin-top-2">
+    {{ govukButton({
+      text: "Apply filters",
+      type: "submit"
+    }) }}
+    {{ govukButton({
+      text: "Reset filters",
+      classes: "govuk-button--secondary",
+      href: resetHref,
+      attributes: {
+        "data-analytics-filters-reset": "true"
+      }
+    }) }}
+  </div>
+</form>
+<hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">

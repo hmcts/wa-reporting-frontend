@@ -1,0 +1,26 @@
+<div class="govuk-grid-row govuk-!-margin-bottom-6">
+  <div class="govuk-grid-column-one-quarter">
+    <h2 class="govuk-heading-m govuk-!-margin-bottom-2">Completed tasks (today)</h2>
+    {{ govukSummaryList({
+      classes: "analytics-summary-list--wide",
+      rows: [
+        { key: { text: "Total" }, value: { text: summary.completedToday | formatNumber } }
+      ].concat(complianceTodayRows)
+    }) }}
+  </div>
+  <div class="govuk-grid-column-one-quarter">
+    <div class="analytics-chart--small" data-chart-config='{{ charts.complianceToday | safe }}'></div>
+  </div>
+  <div class="govuk-grid-column-one-quarter">
+    <h2 class="govuk-heading-m govuk-!-margin-bottom-2">Completed tasks within date range</h2>
+    {{ govukSummaryList({
+      classes: "analytics-summary-list--wide",
+      rows: [
+        { key: { text: "Total" }, value: { text: summary.completedInRange | formatNumber } }
+      ].concat(complianceRangeRows)
+    }) }}
+  </div>
+  <div class="govuk-grid-column-one-quarter">
+    <div class="analytics-chart--small" data-chart-config='{{ charts.complianceRange | safe }}'></div>
+  </div>
+</div>

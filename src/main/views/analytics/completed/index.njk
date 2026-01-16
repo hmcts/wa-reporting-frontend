@@ -1,0 +1,20 @@
+{% extends "analytics/layout.njk" %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "macros/analytics-table.njk" import analyticsTable %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+{% from "macros/csv-download.njk" import csvDownloadButton %}
+
+{% block analyticsContent %}
+  <div class="govuk-width-container govuk-width-container--full">
+    <h1 class="govuk-heading-xl">Completed tasks</h1>
+    <p class="govuk-body-l">Details of completed tasks</p>
+
+    {% include "analytics/completed/completed-filters.njk" %}
+    {% include "analytics/completed/partials/completed-summary.njk" %}
+    {% include "analytics/completed/partials/completed-timeline.njk" %}
+    {% include "analytics/completed/partials/completed-by-name.njk" %}
+    {% include "analytics/completed/partials/task-audit.njk" %}
+    {% include "analytics/completed/partials/completed-by-region-location.njk" %}
+    {% include "analytics/completed/partials/processing-handling-time.njk" %}
+  </div>
+{% endblock %}

@@ -1,0 +1,5 @@
+{% macro caseLink(caseId) %}
+  <a href="{{ manageCaseBaseUrl ~ "/cases/case-details/" ~ caseId ~ "/tasks" }}" class="govuk-link govuk-link--no-visited-state" target="_blank" rel="noreferrer noopener">
+    {{ caseId }}
+  </a>
+{% endmacro %}

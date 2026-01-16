@@ -1,0 +1,9 @@
+{% from "govuk/components/button/macro.njk" import govukButton %}
+
+{% macro csvDownloadButton(text="Download CSV") %}
+  {{ govukButton({
+    text: text,
+    classes: "govuk-button--secondary govuk-!-margin-bottom-2",
+    attributes: { "data-export-csv-button": "true" }
+  }) }}
+{% endmacro %}

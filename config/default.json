@@ -1,7 +1,7 @@
 {
   "useCSRFProtection": true,
   "appInsights": {
-    "instrumentationKey": false
+    "connectionString": false
   },
   "security": {
     "referrerPolicy": "same-origin",
@@ -13,5 +13,60 @@
   },
   "govukFrontend": {
     "rebrandEnabled": true
+  },
+  "analytics": {
+    "cacheTtlSeconds": 900,
+    "manageCaseBaseUrl": "https://manage-case.aat.platform.hmcts.net"
+  },
+  "services": {
+    "idam": {
+      "clientID": "",
+      "clientSecret": "",
+      "scope": "",
+      "url": {
+        "wa": "",
+        "public": ""
+      }
+    }
+  },
+  "RBAC": {
+    "access": ""
+  },
+  "session": {
+    "secret": "",
+    "cookie": {
+      "name": ""
+    },
+    "redis": {
+      "host": "",
+      "port": 6379,
+      "key": ""
+    }
+  },
+  "database": {
+    "tm": {
+      "host": "localhost",
+      "port": 5432,
+      "user": "postgres",
+      "password": "password",
+      "db_name": "cft_task_db",
+      "schema": "analytics"
+    },
+    "crd": {
+      "host": "localhost",
+      "port": 5432,
+      "user": "postgres",
+      "password": "password",
+      "db_name": "dbrdcaseworker",
+      "schema": "rdstaffreport"
+    },
+    "lrd": {
+      "host": "localhost",
+      "port": 5432,
+      "user": "postgres",
+      "password": "password",
+      "db_name": "dbrdlocationref",
+      "schema": "locrefdata"
+    }
   }
 }

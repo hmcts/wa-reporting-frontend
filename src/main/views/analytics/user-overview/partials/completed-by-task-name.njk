@@ -1,0 +1,32 @@
+<h2 class="govuk-heading-m">Completed tasks by task name</h2>
+<p class="govuk-body">
+  Number of tasks completed by name with average handling time (days) and average days beyond due date (a negative
+  value indicates completion within due date)
+</p>
+{% set completedByTaskNameTableHtml %}
+  <div class="analytics-tab-panel">
+    {{ csvDownloadButton() }}
+    {{ analyticsTable({
+      attributes: {
+        'data-export-csv': 'true',
+        'data-export-filename': 'user-overview-completed-by-task-name.csv',
+        'data-sortable': 'true'
+      },
+      classes: "analytics-table--compact",
+      hasTotals: true,
+      head: [
+        { text: "Task name" },
+        { text: "Tasks", format: "numeric" },
+        { text: "Average handling time", format: "numeric" },
+        { text: "Average days beyond due date", format: "numeric" }
+      ],
+      rows: completedByTaskNameRows.concat([completedByTaskNameTotalsRow])
+    }) }}
+  </div>
+{% endset %}
+{{ govukTabs({
+  id: "completedByTaskNameTabs",
+  items: [
+    { label: "Data table", id: "completedByTaskNameTable", panel: { html: completedByTaskNameTableHtml } }
+  ]
+}) }}

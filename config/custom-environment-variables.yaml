@@ -1,0 +1,46 @@
+analytics:
+  cacheTtlSeconds: ANALYTICS_CACHE_TTL_SECONDS
+  manageCaseBaseUrl: ANALYTICS_MANAGE_CASE_BASE_URL
+appInsights:
+  connectionString: APPLICATIONINSIGHTS_CONNECTION_STRING
+services:
+  idam:
+    clientID: IDAM_CLIENT_ID
+    clientSecret: IDAM_CLIENT_SECRET
+    scope: IDAM_CLIENT_SCOPE
+    url:
+      wa: WA_BASE_URL
+      public: IDAM_PUBLIC_URL
+database:
+  tm:
+    host: TM_DB_HOST
+    port: TM_DB_PORT
+    user: TM_DB_USER
+    password: TM_DB_PASSWORD
+    db_name: TM_DB_NAME
+    schema: TM_DB_SCHEMA
+    url: TM_DB_URL
+  crd:
+    host: CRD_DB_HOST
+    port: CRD_DB_PORT
+    user: CRD_DB_USER
+    password: CRD_DB_PASSWORD
+    db_name: CRD_DB_NAME
+    schema: CRD_DB_SCHEMA
+  lrd:
+    host: LRD_DB_HOST
+    port: LRD_DB_PORT
+    user: LRD_DB_USER
+    password: LRD_DB_PASSWORD
+    db_name: LRD_DB_NAME
+    schema: LRD_DB_SCHEMA
+session:
+  secret: SESSION_SECRET
+  cookie:
+    name: SESSION_COOKIE_NAME
+  redis:
+    host: REDIS_HOST
+    port: REDIS_PORT
+    key: REDIS_KEY
+RBAC:
+  access: RBAC_ACCESS

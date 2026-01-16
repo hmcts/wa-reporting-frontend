@@ -1,0 +1,7 @@
+{% set resetHref = "/analytics/outstanding" %}
+{% set extraFiltersHtml %}
+  <input type="hidden" name="criticalTasksSortBy" value="{{ criticalTasksSort.by }}">
+  <input type="hidden" name="criticalTasksSortDir" value="{{ criticalTasksSort.dir }}">
+  <input type="hidden" name="criticalTasksPage" value="{{ criticalTasksPagination.page }}">
+{% endset %}
+{% include "analytics/partials/shared-filters.njk" %}

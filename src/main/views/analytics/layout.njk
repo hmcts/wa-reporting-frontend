@@ -1,0 +1,41 @@
+{% extends "layouts/main.njk" %}
+{% from "govuk/components/header/macro.njk" import govukHeader %}
+{% from "govuk/components/service-navigation/macro.njk" import govukServiceNavigation %}
+{% set _rebrand = govukRebrand() if govukRebrand is callable else govukRebrand %}
+
+{% block pageTitle %}Analytics{% endblock %}
+
+{% block header %}
+  {{ govukHeader({ rebrand: _rebrand }) }}
+  {% set qs = ("?" + queryString) if queryString else "" %}
+  {{ govukServiceNavigation({
+    serviceName: "Task Management Report",
+    serviceUrl: "/analytics" + qs,
+    navigation: [
+      {
+        text: "Overview",
+        href: "/analytics/overview" + qs,
+        current: pagePath == "/analytics/overview"
+      },
+      {
+        text: "Tasks outstanding",
+        href: "/analytics/outstanding" + qs,
+        current: pagePath == "/analytics/outstanding"
+      },
+      {
+        text: "Tasks completed",
+        href: "/analytics/completed" + qs,
+        current: pagePath == "/analytics/completed"
+      },
+      {
+        text: "User overview",
+        href: "/analytics/users" + qs,
+        current: pagePath  == "/analytics/users"
+      }
+    ]
+  }) }}
+{% endblock %}
+
+{% block content %}
+  {% block analyticsContent %}{% endblock %}
+{% endblock %}

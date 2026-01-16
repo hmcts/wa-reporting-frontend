@@ -15,4 +15,5 @@
 !webpack/**
 !src/main/**
 !config/**
+!prisma/**
 !webpack.config.js

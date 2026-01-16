@@ -1,0 +1,137 @@
+{% from "macros/csrf.njk" import csrfProtection %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+{% from "macros/analytics-table.njk" import analyticsTable %}
+{% from "macros/csv-download.njk" import csvDownloadButton %}
+
+<div data-section="completed-processing-handling-time">
+  <h2 class="govuk-heading-m">Processing and handling time</h2>
+  <p class="govuk-body">Average days for selected metric with lower and upper range (±1 standard deviation)</p>
+
+  <form
+    method="post"
+    class="govuk-!-margin-bottom-4"
+    data-analytics-filters="true"
+    data-ajax-section="completed-processing-handling-time"
+    data-auto-submit="true"
+  >
+    {{ csrfProtection(csrfToken) }}
+    {% if filters.service %}
+      {% for value in filters.service %}
+        <input type="hidden" name="service" value="{{ value }}">
+      {% endfor %}
+    {% endif %}
+    {% if filters.roleCategory %}
+      {% for value in filters.roleCategory %}
+        <input type="hidden" name="roleCategory" value="{{ value }}">
+      {% endfor %}
+    {% endif %}
+    {% if filters.region %}
+      {% for value in filters.region %}
+        <input type="hidden" name="region" value="{{ value }}">
+      {% endfor %}
+    {% endif %}
+    {% if filters.location %}
+      {% for value in filters.location %}
+        <input type="hidden" name="location" value="{{ value }}">
+      {% endfor %}
+    {% endif %}
+    {% if filters.taskName %}
+      {% for value in filters.taskName %}
+        <input type="hidden" name="taskName" value="{{ value }}">
+      {% endfor %}
+    {% endif %}
+    {% if filters.user %}
+      {% for value in filters.user %}
+        <input type="hidden" name="user" value="{{ value }}">
+      {% endfor %}
+    {% endif %}
+    {% if completedFrom.day %}
+      <input type="hidden" name="completedFrom-day" value="{{ completedFrom.day }}">
+    {% endif %}
+    {% if completedFrom.month %}
+      <input type="hidden" name="completedFrom-month" value="{{ completedFrom.month }}">
+    {% endif %}
+    {% if completedFrom.year %}
+      <input type="hidden" name="completedFrom-year" value="{{ completedFrom.year }}">
+    {% endif %}
+    {% if completedTo.day %}
+      <input type="hidden" name="completedTo-day" value="{{ completedTo.day }}">
+    {% endif %}
+    {% if completedTo.month %}
+      <input type="hidden" name="completedTo-month" value="{{ completedTo.month }}">
+    {% endif %}
+    {% if completedTo.year %}
+      <input type="hidden" name="completedTo-year" value="{{ completedTo.year }}">
+    {% endif %}
+
+    {{ govukRadios({
+      id: "processingHandlingMetric",
+      name: "metric",
+      classes: "govuk-radios--inline",
+      fieldset: {
+        legend: {
+          text: "Metric",
+          isPageHeading: false,
+          classes: "govuk-fieldset__legend--s"
+        }
+      },
+      items: [
+        {
+          value: "handlingTime",
+          text: "Handling time",
+          checked: processingHandlingMetric == "handlingTime",
+          hint: { text: "Handling time is the number of days between task assignment and completion" }
+        },
+        {
+          value: "processingTime",
+          text: "Processing time",
+          checked: processingHandlingMetric == "processingTime",
+          hint: { text: "Processing time is the number of the days between task creation and completion" }
+        }
+      ]
+    }) }}
+  </form>
+
+  {{ govukSummaryList({
+    classes: "govuk-summary-list--no-border",
+    rows: [
+      { key: { text: processingHandlingOverallLabel }, value: { text: processingHandlingOverallAverage } }
+    ]
+  }) }}
+
+  {% set processingHandlingChartHtml %}
+    <div class="analytics-chart" data-chart-config='{{ charts.processingHandlingTime | safe }}'></div>
+  {% endset %}
+  {% set processingHandlingTableHtml %}
+    <div class="analytics-tab-panel">
+      {{ csvDownloadButton() }}
+      {{ analyticsTable({
+        attributes: {
+          'data-export-csv': 'true',
+          'data-export-filename': 'completed-processing-handling-time.csv',
+          'data-sortable': 'true'
+        },
+        classes: "analytics-table--compact",
+        hasTotals: false,
+        head: [
+          { text: "Completed date" },
+          { text: "Tasks", format: "numeric" },
+          { text: "Average selected metric (days)", format: "numeric" },
+          { text: "Upper range (+1 std)", format: "numeric" },
+          { text: "Lower range (-1 std)", format: "numeric" }
+        ],
+        rows: processingHandlingRows
+      }) }}
+    </div>
+  {% endset %}
+
+  {{ govukTabs({
+    id: "processingHandlingTimeTabs",
+    items: [
+      { label: "Chart", id: "processingHandlingTimeChart", panel: { html: processingHandlingChartHtml } },
+      { label: "Data table", id: "processingHandlingTimeTable", panel: { html: processingHandlingTableHtml } }
+    ]
+  }) }}
+</div>

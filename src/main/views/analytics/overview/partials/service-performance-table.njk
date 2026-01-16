@@ -1,0 +1,28 @@
+<h2 class="govuk-heading-m govuk-!-margin-top-6">Open and assigned tasks by service</h2>
+{% set openAssignedTableHtml %}
+  <div class="analytics-tab-panel">
+    {{ csvDownloadButton() }}
+    {{ analyticsTable({
+      attributes: { 'data-export-csv': 'true', 'data-export-filename': 'overview-by-service.csv', 'data-sortable': 'true' },
+      classes: "analytics-table--compact",
+      hasTotals: true,
+      head: [
+        { text: "Service" },
+        { text: "Open", format: "numeric" },
+        { text: "Assigned", format: "numeric" },
+        { text: "Assigned %", format: "numeric" },
+        { text: "Urgent", format: "numeric" },
+        { text: "High", format: "numeric" },
+        { text: "Medium", format: "numeric" },
+        { text: "Low", format: "numeric" }
+      ],
+      rows: tableRows.concat([totalsRow])
+    }) }}
+  </div>
+{% endset %}
+{{ govukTabs({
+  id: "openAssignedTabs",
+  items: [
+    { label: "Data table", id: "openAssignedTable", panel: { html: openAssignedTableHtml } }
+  ]
+}) }}

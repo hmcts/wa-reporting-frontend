@@ -1,21 +1,22 @@
 import * as path from 'path';
 
-import { HTTPError } from './HttpError';
-import { AppInsights } from './modules/appinsights';
-import { Helmet } from './modules/helmet';
-import { Nunjucks } from './modules/nunjucks';
-import { PropertiesVolume } from './modules/properties-volume';
-
 import * as bodyParser from 'body-parser';
+import compression from 'compression';
 import config = require('config');
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import RateLimit from 'express-rate-limit';
 import { glob } from 'glob';
 
-const { setupDev } = require('./development');
+import { HTTPError } from './HttpError';
+import { AppInsights } from './modules/appinsights';
+import { Helmet } from './modules/helmet';
+import { Nunjucks } from './modules/nunjucks';
+import { PropertiesVolume } from './modules/properties-volume';
 
 const { Logger } = require('@hmcts/nodejs-logging');
+
+const { setupDev } = require('./development');
 
 const env = process.env.NODE_ENV || 'development';
 const developmentMode = env === 'development';
@@ -38,10 +39,7 @@ new Nunjucks(developmentMode, rebrandEnabled).enableFor(app);
 new Helmet(config.get('security')).enableFor(app);
 
 const assetsDirectory = path.join(__dirname, 'public', 'assets');
-const faviconPath = path.join(
-  assetsDirectory,
-  rebrandEnabled ? 'rebrand/images/favicon.ico' : 'images/favicon.ico'
-);
+const faviconPath = path.join(assetsDirectory, rebrandEnabled ? 'rebrand/images/favicon.ico' : 'images/favicon.ico');
 const fallbackFaviconPath = path.join(assetsDirectory, 'images/favicon.ico');
 
 app.get('/favicon.ico', limiter, (req, res) => {
@@ -55,6 +53,7 @@ app.get('/favicon.ico', limiter, (req, res) => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(compression());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate, no-store');

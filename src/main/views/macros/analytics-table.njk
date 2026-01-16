@@ -1,0 +1,25 @@
+{% from "govuk/components/table/macro.njk" import govukTable %}
+
+{% macro analyticsTable(params) %}
+  {% set numericColumns = params.numericColumns | default(params.head | extractNumericColumns) %}
+  {% set boldLastRow = params.boldLastRow | default(true) %}
+  {% set hasTotals = params.hasTotals | default(boldLastRow) %}
+  {% set tableClasses = params.classes | default('') %}
+  {% set tableClasses = (tableClasses ~ " analytics-table--sticky-header") | trim %}
+  {% if hasTotals %}
+    {% set tableClasses = (tableClasses ~ " analytics-table--sticky-totals") | trim %}
+  {% endif %}
+  {% set formattedRows = params.rows | decorateNumericRows(numericColumns, {
+    boldLastRow: boldLastRow,
+    boldRows: params.boldRows
+  }) %}
+  {{ govukTable({
+    attributes: params.attributes,
+    classes: tableClasses,
+    head: params.head,
+    rows: formattedRows,
+    caption: params.caption,
+    captionClasses: params.captionClasses,
+    firstCellIsHeader: params.firstCellIsHeader
+  }) }}
+{% endmacro %}

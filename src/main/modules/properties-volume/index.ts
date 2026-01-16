@@ -8,7 +8,14 @@ export class PropertiesVolume {
     if (server.locals.ENV !== 'development') {
       propertiesVolume.addTo(config);
 
-      this.setSecret('secrets.rpe.AppInsightsInstrumentationKey', 'appInsights.instrumentationKey');
+      this.setSecret('secrets.wa.AppInsightsConnectionString', 'appInsights.connectionString');
+
+      this.setSecret('secrets.wa.redis-hostname', 'session.redis.host');
+      this.setSecret('secrets.wa.redis-port', 'session.redis.port');
+      this.setSecret('secrets.wa.redis-key', 'session.redis.key');
+
+      this.setSecret('secrets.wa.idam-client-secret', 'idam.clientSecret');
+      this.setSecret('secrets.wa.session-secret', 'session.secret');
     }
   }
 

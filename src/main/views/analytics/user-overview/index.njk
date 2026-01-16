@@ -1,0 +1,22 @@
+{% extends "analytics/layout.njk" %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "macros/analytics-table.njk" import analyticsTable %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+{% from "macros/csv-download.njk" import csvDownloadButton %}
+
+{% block analyticsContent %}
+  <div class="govuk-width-container">
+    <h1 class="govuk-heading-xl">User overview</h1>
+    <p class="govuk-body-l">Details of current and completed tasks for a specific user</p>
+
+    {% include "analytics/user-overview/user-overview-filters.njk" %}
+
+    {% include "analytics/user-overview/partials/assigned-tasks.njk" %}
+
+    {% include "analytics/user-overview/partials/completed-tasks.njk" %}
+
+    {% include "analytics/user-overview/partials/completed-by-date.njk" %}
+
+    {% include "analytics/user-overview/partials/completed-by-task-name.njk" %}
+  </div>
+{% endblock %}

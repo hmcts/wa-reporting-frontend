@@ -1,1 +1,3 @@
- <script src="/<%= htmlWebpackPlugin.files.js[0].substr(htmlWebpackPlugin.files.publicPath.length) %>"></script>
+<% htmlWebpackPlugin.files.js.forEach(function(file) { %>
+<script src="/<%= file.substr(htmlWebpackPlugin.files.publicPath.length) %>"></script>
+<% }); %>

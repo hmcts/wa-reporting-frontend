@@ -1,0 +1,87 @@
+<div class="govuk-grid-row govuk-!-margin-top-6">
+  <div class="govuk-grid-column-full">
+    <h2 class="govuk-heading-m govuk-!-margin-bottom-1">Tasks completed by region or location</h2>
+    <p class="govuk-body">Use the tabs to switch between grouping options.</p>
+    {% set completedByRegionHtml %}
+      <div class="analytics-tab-panel">
+        {{ csvDownloadButton() }}
+        {{ analyticsTable({
+          attributes: {
+            'data-export-csv': 'true',
+            'data-export-filename': 'completed-by-region.csv',
+            'data-sortable': 'true',
+            'data-sort-default': '0'
+          },
+          classes: "analytics-table--compact",
+          hasTotals: true,
+          head: [
+            { text: "Region" },
+            { text: "Completed tasks", format: "numeric" },
+            { text: "Inside due date", format: "numeric" },
+            { text: "Outside due date", format: "numeric" },
+            { text: "Handling time", format: "numeric" },
+            { text: "Processing time", format: "numeric" }
+          ],
+          rows: completedByRegionRows.concat([completedByRegionTotalsRow])
+        }) }}
+      </div>
+    {% endset %}
+    {% set completedByLocationHtml %}
+      <div class="analytics-tab-panel">
+        {{ csvDownloadButton() }}
+        {{ analyticsTable({
+          attributes: {
+            'data-export-csv': 'true',
+            'data-export-filename': 'completed-by-location.csv',
+            'data-sortable': 'true',
+            'data-sort-default': '0'
+          },
+          classes: "analytics-table--compact",
+          hasTotals: true,
+          head: [
+            { text: "Location" },
+            { text: "Completed tasks", format: "numeric" },
+            { text: "Inside due date", format: "numeric" },
+            { text: "Outside due date", format: "numeric" },
+            { text: "Handling time", format: "numeric" },
+            { text: "Processing time", format: "numeric" }
+          ],
+          rows: completedByLocationRows.concat([completedByLocationTotalsRow])
+        }) }}
+      </div>
+    {% endset %}
+    {% set completedByRegionLocationHtml %}
+      <div class="analytics-tab-panel">
+        {{ csvDownloadButton() }}
+        {{ analyticsTable({
+          attributes: {
+            'data-export-csv': 'true',
+            'data-export-filename': 'completed-by-location-region.csv',
+            'data-sortable': 'true',
+            'data-sort-default': '0'
+          },
+          classes: "analytics-table--compact",
+          hasTotals: true,
+          head: [
+            { text: "Region" },
+            { text: "Location" },
+            { text: "Completed tasks", format: "numeric" },
+            { text: "Inside due date", format: "numeric" },
+            { text: "Outside due date", format: "numeric" },
+            { text: "Handling time", format: "numeric" },
+            { text: "Processing time", format: "numeric" }
+          ],
+          rows: completedByRegionLocationRows.concat([completedByRegionLocationTotalsRow])
+        }) }}
+      </div>
+    {% endset %}
+    {{ govukTabs({
+      id: "completedByRegionLocationTabs",
+      items: [
+        { label: "By region and location", id: "completedByRegionLocation", panel: { html: completedByRegionLocationHtml } },
+        { label: "By region", id: "completedByRegion", panel: { html: completedByRegionHtml } },
+        { label: "By location", id: "completedByLocation", panel: { html: completedByLocationHtml } }
+      ]
+    }) }}
+  </div>
+</div>

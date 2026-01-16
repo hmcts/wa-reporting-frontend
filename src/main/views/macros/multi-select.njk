@@ -1,0 +1,108 @@
+{% macro analyticsMultiSelect(params) %}
+  {% from "govuk/components/label/macro.njk" import govukLabel %}
+  {% from "govuk/components/hint/macro.njk" import govukHint %}
+
+  {% set items = params.items | default([]) %}
+  {% set values = params.values | default([]) %}
+  {% set selectAllText = params.selectAllText | default("Select all") %}
+  {% set search = params.search | default({}) %}
+  {% set searchEnabled = search.enabled | default(false) %}
+  {% set searchLabel = search.label | default("Filter options") %}
+  {% set searchPlaceholder = search.placeholder | default("Type to filter") %}
+  {% set allText = params.allText %}
+  {% if not allText %}
+    {% set allText = "All" %}
+    {% for item in items %}
+      {% if item.value == "" %}
+        {% set allText = item.text %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  <div class="govuk-form-group {{ params.classes | default('') }}">
+    {{ govukLabel({
+      html: params.label.html,
+      text: params.label.text,
+      classes: params.label.classes,
+      attributes: { id: params.id + "-label" }
+    }) }}
+
+    {% if params.hint %}
+      {{ govukHint({
+        html: params.hint.html,
+        text: params.hint.text,
+        classes: params.hint.classes,
+        attributes: { id: params.id + "-hint" }
+      }) }}
+    {% endif %}
+
+    <details
+      class="analytics-multiselect"
+      data-module="analytics-multiselect"
+      data-all-text="{{ allText }}"
+    >
+      <summary
+        class="govuk-select analytics-multiselect__toggle"
+        aria-controls="{{ params.id }}-panel"
+        {% if params.hint %}aria-describedby="{{ params.id }}-hint"{% endif %}
+      >
+        <span class="analytics-multiselect__summary" data-multiselect-summary>{{ allText }}</span>
+      </summary>
+      <div class="analytics-multiselect__panel" id="{{ params.id }}-panel">
+        {% if searchEnabled %}
+          <div class="analytics-multiselect__search">
+            <label class="govuk-label govuk-label--s" for="{{ params.id }}-search">
+              {{ searchLabel }}
+            </label>
+            <input
+              class="govuk-input govuk-!-width-full"
+              id="{{ params.id }}-search"
+              type="text"
+              autocomplete="off"
+              placeholder="{{ searchPlaceholder }}"
+              data-multiselect-search="true"
+            >
+            <div class="govuk-hint" data-multiselect-search-count="true"></div>
+          </div>
+        {% endif %}
+        <div
+          class="govuk-checkboxes govuk-checkboxes--small"
+          role="group"
+          aria-labelledby="{{ params.id }}-label"
+          {% if params.hint %}aria-describedby="{{ params.id }}-hint"{% endif %}
+        >
+          <div class="govuk-checkboxes__item">
+            <input
+              class="govuk-checkboxes__input"
+              id="{{ params.id }}-all"
+              type="checkbox"
+              data-select-all="true"
+            >
+            <label class="govuk-label govuk-checkboxes__label" for="{{ params.id }}-all">
+              {{ selectAllText }}
+            </label>
+          </div>
+          {% for item in items %}
+            {% if item.value != "" %}
+              <div class="govuk-checkboxes__item">
+                <input
+                  class="govuk-checkboxes__input"
+                  id="{{ params.id }}-{{ loop.index }}"
+                  name="{{ params.name }}"
+                  type="checkbox"
+                  value="{{ item.value }}"
+                  data-multiselect-item="true"
+                  data-item-label="{{ item.text }}"
+                  {% if item.value in values %}checked{% endif %}
+                >
+                <label class="govuk-label govuk-checkboxes__label" for="{{ params.id }}-{{ loop.index }}">
+                  {{ item.text }}
+                </label>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </details>
+  </div>
+{% endmacro %}

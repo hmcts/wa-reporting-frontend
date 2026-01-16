@@ -1,0 +1,30 @@
+<div class="govuk-grid-column-one-half">
+  <h2 class="govuk-heading-m">Average wait time</h2>
+  <p class="govuk-body analytics-chart-intro">Average wait time for assigned tasks. Wait time is the number of days between task creation and assignment</p>
+  {% set waitTimeChartHtml %}
+    <div class="analytics-chart" data-chart-config='{{ charts.waitTime | safe }}'></div>
+  {% endset %}
+  {% set waitTimeTableHtml %}
+    <div class="analytics-tab-panel">
+      {{ csvDownloadButton() }}
+      {{ analyticsTable({
+        attributes: { 'data-export-csv': 'true', 'data-export-filename': 'outstanding-wait-time.csv', 'data-sortable': 'true' },
+        classes: "analytics-table--compact",
+        hasTotals: true,
+        head: [
+          { text: "Assigned date" },
+          { text: "Assigned tasks", format: "numeric" },
+          { text: "Average wait time", format: "numeric" }
+        ],
+        rows: waitTimeRows.concat([waitTimeTotalsRow])
+      }) }}
+    </div>
+  {% endset %}
+  {{ govukTabs({
+    id: "waitTimeTabs",
+    items: [
+      { label: "Chart", id: "waitTimeChart", panel: { html: waitTimeChartHtml } },
+      { label: "Data table", id: "waitTimeTable", panel: { html: waitTimeTableHtml } }
+    ]
+  }) }}
+</div>

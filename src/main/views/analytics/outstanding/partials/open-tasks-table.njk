@@ -1,0 +1,33 @@
+<div class="govuk-grid-column-one-half">
+  <h2 class="govuk-heading-m">Open tasks</h2>
+  <p class="govuk-body analytics-chart-intro">Open tasks by created date with current assignment state</p>
+  {% set openTasksChartHtml %}
+    <div class="analytics-chart" data-chart-config='{{ charts.openTasks | safe }}'></div>
+  {% endset %}
+  {% set openTasksTableHtml %}
+    <div class="analytics-tab-panel">
+      {{ csvDownloadButton() }}
+      {{ analyticsTable({
+        attributes: { 'data-export-csv': 'true', 'data-export-filename': 'outstanding-open-tasks.csv', 'data-sortable': 'true' },
+        classes: "analytics-table--compact",
+        hasTotals: true,
+        head: [
+          { text: "Created date" },
+          { text: "Open tasks", format: "numeric" },
+          { text: "Assigned tasks", format: "numeric" },
+          { text: "Assigned %", format: "numeric" },
+          { text: "Unassigned tasks", format: "numeric" },
+          { text: "Unassigned %", format: "numeric" }
+        ],
+        rows: openTasksRows.concat([openTasksTotalsRow])
+      }) }}
+    </div>
+  {% endset %}
+  {{ govukTabs({
+    id: "openTasksTabs",
+    items: [
+      { label: "Chart", id: "openTasksChart", panel: { html: openTasksChartHtml } },
+      { label: "Data table", id: "openTasksTable", panel: { html: openTasksTableHtml } }
+    ]
+  }) }}
+</div>

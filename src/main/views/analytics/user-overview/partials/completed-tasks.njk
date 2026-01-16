@@ -1,0 +1,68 @@
+{% from "macros/analytics-table.njk" import analyticsTable %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "govuk/components/pagination/macro.njk" import govukPagination %}
+{% from "macros/csv-download.njk" import csvDownloadButton %}
+{% from "macros/case-link.njk" import caseLink %}
+
+<div data-section="user-overview-completed">
+  <h2 class="govuk-heading-m">Completed tasks</h2>
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-three-quarters">
+      {% set completedTableHtml %}
+        {% set completedTableRows = [] %}
+        {% for row in completedRows %}
+          {% set completedTableRows = completedTableRows.concat([[
+            { html: caseLink(row.caseId) },
+            { text: row.createdDate },
+            { text: row.taskName },
+            { text: row.assignedDate },
+            { text: row.dueDate },
+            { text: row.completedDate },
+            { text: row.handlingTimeDays },
+            { text: row.withinDue },
+            { text: row.totalAssignments },
+            { text: row.assigneeName },
+            { text: row.location }
+          ]]) %}
+        {% endfor %}
+        <div class="analytics-tab-panel analytics-tab-panel--paginated">
+          <div class="analytics-tab-panel__content">
+            {{ csvDownloadButton() }}
+            {{ analyticsTable({
+              attributes: {
+                'data-export-csv': 'true',
+                'data-export-filename': 'user-overview-completed.csv',
+                'data-sortable': 'true',
+                'data-server-sort': 'true',
+                'data-sort-scope': 'completed'
+              },
+              classes: "analytics-table--compact",
+              head: completedHead,
+              boldLastRow: false,
+              rows: completedTableRows
+            }) }}
+            {% if completedPagination.show %}
+              <div class="analytics-tab-panel__pagination" data-user-overview-pagination="completed">
+                {{ govukPagination(completedPagination.pagination) }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endset %}
+      {{ govukTabs({
+        id: "completedTasksTabs",
+        items: [
+          { label: "Data table", id: "completedTasksTable", panel: { html: completedTableHtml } }
+        ]
+      }) }}
+    </div>
+    <div class="govuk-grid-column-one-quarter">
+      {{ govukSummaryList({
+        classes: "analytics-summary-list--wide",
+        rows: completedSummaryRows
+      }) }}
+      <div class="analytics-chart analytics-chart--small" data-chart-config='{{ charts.completedCompliance | safe }}'></div>
+    </div>
+  </div>
+</div>

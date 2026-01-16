@@ -1,0 +1,30 @@
+<h2 class="govuk-heading-m govuk-!-margin-bottom-2">Open tasks</h2>
+<div class="govuk-grid-row govuk-!-margin-bottom-6">
+  <div class="govuk-grid-column-one-quarter">
+    {{ govukSummaryList({
+      classes: "analytics-summary-list--wide",
+      rows: [
+        { key: { text: "Total" }, value: { text: summary.open | formatNumber } },
+        { key: { text: "Assigned" }, value: { text: summary.assigned | formatNumber } },
+        { key: { text: "Unassigned" }, value: { text: summary.unassigned | formatNumber } }
+      ]
+    }) }}
+  </div>
+  <div class="govuk-grid-column-one-quarter">
+    <div class="analytics-chart--small" data-chart-config='{{ charts.assignmentDonut | safe }}'></div>
+  </div>
+  <div class="govuk-grid-column-one-quarter">
+    {{ govukSummaryList({
+      classes: "analytics-summary-list--wide",
+      rows: [
+        { key: { text: "Urgent" }, value: { text: summary.urgent | formatNumber } },
+        { key: { text: "High" }, value: { text: summary.high | formatNumber } },
+        { key: { text: "Medium" }, value: { text: summary.medium | formatNumber } },
+        { key: { text: "Low" }, value: { text: summary.low | formatNumber } }
+      ]
+    }) }}
+  </div>
+  <div class="govuk-grid-column-one-quarter">
+    <div class="analytics-chart--small" data-chart-config='{{ charts.priorityDonut | safe }}'></div>
+  </div>
+</div>

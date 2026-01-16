@@ -1,0 +1,328 @@
+openapi: 3.0.3
+info:
+  title: Tasks Analytics Portal (mock) APIs
+  version: 0.1.0
+  description: Read-only endpoints providing mock analytics data for dashboards.
+servers:
+  - url: http://localhost:3000
+paths:
+  /analytics/overview:
+    get:
+      summary: Overview aggregates by service
+      parameters:
+        - $ref: '#/components/parameters/service'
+        - $ref: '#/components/parameters/roleCategory'
+        - $ref: '#/components/parameters/region'
+        - $ref: '#/components/parameters/location'
+        - $ref: '#/components/parameters/taskName'
+      responses:
+        '200':
+          description: Overview data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OverviewResponse'
+  /analytics/outstanding:
+    get:
+      summary: Outstanding tasks metrics and charts
+      parameters:
+        - $ref: '#/components/parameters/service'
+        - $ref: '#/components/parameters/roleCategory'
+        - $ref: '#/components/parameters/region'
+        - $ref: '#/components/parameters/location'
+        - $ref: '#/components/parameters/taskName'
+      responses:
+        '200':
+          description: Outstanding data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutstandingResponse'
+  /analytics/completed:
+    get:
+      summary: Completed tasks metrics and charts
+      parameters:
+        - $ref: '#/components/parameters/service'
+        - $ref: '#/components/parameters/roleCategory'
+        - $ref: '#/components/parameters/region'
+        - $ref: '#/components/parameters/location'
+        - $ref: '#/components/parameters/taskName'
+        - $ref: '#/components/parameters/completedFrom'
+        - $ref: '#/components/parameters/completedTo'
+      responses:
+        '200':
+          description: Completed data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompletedResponse'
+  /analytics/users/{userId}:
+    get:
+      summary: User overview metrics and tasks
+      parameters:
+        - $ref: '#/components/parameters/userId'
+        - $ref: '#/components/parameters/service'
+        - $ref: '#/components/parameters/roleCategory'
+        - $ref: '#/components/parameters/region'
+        - $ref: '#/components/parameters/location'
+        - $ref: '#/components/parameters/taskName'
+        - $ref: '#/components/parameters/completedFrom'
+        - $ref: '#/components/parameters/completedTo'
+      responses:
+        '200':
+          description: User metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOverviewResponse'
+  /analytics/task-audit/{caseId}:
+    get:
+      summary: Task audit by case ID
+      parameters:
+        - $ref: '#/components/parameters/caseId'
+      responses:
+        '200':
+          description: Task audit lines for the case
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskAuditResponse'
+
+components:
+  parameters:
+    service:
+      name: service
+      in: query
+      schema: { type: string }
+    roleCategory:
+      name: roleCategory
+      in: query
+      schema: { type: string }
+    region:
+      name: region
+      in: query
+      schema: { type: string }
+    location:
+      name: location
+      in: query
+      schema: { type: string }
+    taskName:
+      name: taskName
+      in: query
+      schema: { type: string }
+    completedFrom:
+      name: completedFrom
+      in: query
+      schema: { type: string, format: date }
+    completedTo:
+      name: completedTo
+      in: query
+      schema: { type: string, format: date }
+    userId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: string }
+    caseId:
+      name: caseId
+      in: path
+      required: true
+      schema: { type: string }
+
+  schemas:
+    OverviewResponse:
+      type: object
+      properties:
+        serviceRows:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceOverviewRow'
+        totals:
+          $ref: '#/components/schemas/ServiceOverviewRow'
+    ServiceOverviewRow:
+      type: object
+      properties:
+        service: { type: string }
+        open: { type: integer }
+        assigned: { type: integer }
+        assignedPct: { type: number, format: float }
+        urgent: { type: integer }
+        high: { type: integer }
+        medium: { type: integer }
+        low: { type: integer }
+
+    OutstandingResponse:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            open: { type: integer }
+            assigned: { type: integer }
+            unassigned: { type: integer }
+            urgent: { type: integer }
+            high: { type: integer }
+            medium: { type: integer }
+            low: { type: integer }
+        timelines:
+          type: object
+          properties:
+            openByCreated:
+              type: array
+              items:
+                $ref: '#/components/schemas/TimeSeriesPoint'
+            waitTimeByAssigned:
+              type: array
+              items:
+                $ref: '#/components/schemas/TimeSeriesPoint'
+            tasksDue:
+              type: array
+              items:
+                $ref: '#/components/schemas/TimeSeriesPoint'
+            tasksDueByPriority:
+              type: array
+              items:
+                $ref: '#/components/schemas/PrioritySeriesPoint'
+        openByName:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriorityBreakdown'
+        criticalTasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/CriticalTask'
+
+    CompletedResponse:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            completedToday: { type: integer }
+            completedInRange: { type: integer }
+            withinDueYes: { type: integer }
+            withinDueNo: { type: integer }
+        timeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompletedPoint'
+        completedByName:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompletedByName'
+        handlingTimeStats:
+          type: object
+          properties:
+            metric: { type: string, enum: [handlingTime, processingTime] }
+            averageDays: { type: number, format: float }
+            lowerRange: { type: number, format: float }
+            upperRange: { type: number, format: float }
+
+    UserOverviewResponse:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            userId: { type: string }
+            email: { type: string, format: email }
+        assigned:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserTaskRow'
+        completed:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserTaskRow'
+        prioritySummary:
+          type: object
+          properties:
+            urgent: { type: integer }
+            high: { type: integer }
+            medium: { type: integer }
+            low: { type: integer }
+
+    TaskAuditResponse:
+      type: object
+      properties:
+        caseId: { type: string }
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskAuditRow'
+
+    TimeSeriesPoint:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        value: { type: number }
+
+    PrioritySeriesPoint:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        urgent: { type: number }
+        high: { type: number }
+        medium: { type: number }
+        low: { type: number }
+
+    PriorityBreakdown:
+      type: object
+      properties:
+        name: { type: string }
+        urgent: { type: integer }
+        high: { type: integer }
+        medium: { type: integer }
+        low: { type: integer }
+
+    CriticalTask:
+      type: object
+      properties:
+        caseId: { type: string }
+        caseType: { type: string }
+        location: { type: string }
+        taskName: { type: string }
+        createdDate: { type: string, format: date }
+        dueDate: { type: string, format: date }
+        priority: { type: string }
+        agentName: { type: string }
+
+    CompletedPoint:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        completed: { type: integer }
+        withinDue: { type: integer }
+        beyondDue: { type: integer }
+
+    CompletedByName:
+      type: object
+      properties:
+        taskName: { type: string }
+        tasks: { type: integer }
+        averageHandlingTimeDays: { type: number, format: float }
+        averageDaysBeyondDue: { type: number, format: float }
+
+    UserTaskRow:
+      type: object
+      properties:
+        caseId: { type: string }
+        taskName: { type: string }
+        createdDate: { type: string, format: date }
+        assignedDate: { type: string, format: date, nullable: true }
+        dueDate: { type: string, format: date, nullable: true }
+        completedDate: { type: string, format: date, nullable: true }
+        priority: { type: string }
+        totalAssignments: { type: integer }
+        location: { type: string }
+        status: { type: string }
+
+    TaskAuditRow:
+      type: object
+      properties:
+        taskName: { type: string }
+        agentName: { type: string }
+        completedDate: { type: string, format: date }
+        totalAssignments: { type: integer }
+        location: { type: string }
+        status: { type: string }

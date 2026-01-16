@@ -1,0 +1,55 @@
+{% from "macros/analytics-table.njk" import analyticsTable %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+{% from "govuk/components/pagination/macro.njk" import govukPagination %}
+{% from "macros/csv-download.njk" import csvDownloadButton %}
+{% from "macros/case-link.njk" import caseLink %}
+
+<div data-section="outstanding-critical-tasks">
+  <h2 class="govuk-heading-m">Critical tasks</h2>
+  <p class="govuk-body">Open tasks ordered by the selected ranking</p>
+  {% set criticalTasksTableHtml %}
+    {% set criticalTasksTableRows = [] %}
+    {% for row in criticalTasks %}
+      {% set criticalTasksTableRows = criticalTasksTableRows.concat([[
+        { html: caseLink(row.caseId) },
+        { text: row.caseType },
+        { text: row.location },
+        { text: row.taskName },
+        { text: row.createdDate },
+        { text: row.dueDate or '-' },
+        { text: row.priority },
+        { text: row.agentName }
+      ]]) %}
+    {% endfor %}
+    <div class="analytics-tab-panel analytics-tab-panel--paginated">
+      <div class="analytics-tab-panel__content">
+        {{ csvDownloadButton() }}
+        {{ analyticsTable({
+          attributes: {
+            'data-export-csv': 'true',
+            'data-export-filename': 'outstanding-critical-tasks.csv',
+            'data-sortable': 'true',
+            'data-server-sort': 'true',
+            'data-sort-scope': 'criticalTasks',
+            'data-sort-section': 'outstanding-critical-tasks'
+          },
+          classes: "analytics-table--compact",
+          head: criticalTasksHead,
+          boldLastRow: false,
+          rows: criticalTasksTableRows
+        }) }}
+        {% if criticalTasksPagination.show %}
+          <div class="analytics-tab-panel__pagination" data-critical-tasks-pagination="true">
+            {{ govukPagination(criticalTasksPagination.pagination) }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endset %}
+  {{ govukTabs({
+    id: "criticalTasksTabs",
+    items: [
+      { label: "Data table", id: "criticalTasksTable", panel: { html: criticalTasksTableHtml } }
+    ]
+  }) }}
+</div>

@@ -1,0 +1,35 @@
+<h2 class="govuk-heading-m">Completed tasks by name</h2>
+<p class="govuk-body">Completed tasks within the selected date range by task name</p>
+{% set completedByNameChartHtml %}
+  <div class="analytics-chart" data-scroll-pan="true" data-chart-config='{{ charts.completedByName | safe }}'></div>
+{% endset %}
+{% set completedByNameTableHtml %}
+  <div class="analytics-tab-panel">
+    {{ csvDownloadButton() }}
+    {{ analyticsTable({
+      attributes: {
+        'data-export-csv': 'true',
+        'data-export-filename': 'completed-by-name.csv',
+        'data-sortable': 'true',
+        'data-sort-default': '0'
+      },
+      classes: "analytics-table--compact",
+      hasTotals: true,
+      head: [
+        { text: "Task name" },
+        { text: "Tasks", format: "numeric" },
+        { text: "Within due date", format: "numeric" },
+        { text: "%", format: "numeric" },
+        { text: "Outside due date", format: "numeric" }
+      ],
+      rows: completedByNameRows.concat([completedByNameTotalsRow])
+    }) }}
+  </div>
+{% endset %}
+{{ govukTabs({
+  id: "completedByNameTabs",
+  items: [
+    { label: "Chart", id: "completedByNameChart", panel: { html: completedByNameChartHtml } },
+    { label: "Data table", id: "completedByNameTable", panel: { html: completedByNameTableHtml } }
+  ]
+}) }}

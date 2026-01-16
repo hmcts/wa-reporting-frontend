@@ -11,7 +11,11 @@ const filename = `[name]${fileNameSuffix}.js`;
 
 module.exports = {
   plugins: [...govukFrontend.plugins, ...scss.plugins, ...HtmlWebpack.plugins],
-  entry: path.resolve(sourcePath, 'index.ts'),
+  entry: {
+    main: path.resolve(sourcePath, 'index.ts'),
+    analytics: path.resolve(sourcePath, 'analytics.ts'),
+  },
+  devtool: devMode ? 'source-map' : false,
   mode: devMode ? 'development' : 'production',
   module: {
     rules: [

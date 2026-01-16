@@ -1,0 +1,31 @@
+{% extends "analytics/layout.njk" %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "macros/analytics-table.njk" import analyticsTable %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+{% from "macros/csv-download.njk" import csvDownloadButton %}
+
+{% block analyticsContent %}
+  <div class="govuk-width-container govuk-width-container--full">
+    <h1 class="govuk-heading-xl">Tasks outstanding</h1>
+    <p class="govuk-body-l">Details of outstanding tasks</p>
+
+    {% include "analytics/outstanding/outstanding-filters.njk" %}
+
+    {% include "analytics/outstanding/partials/open-tasks-summary.njk" %}
+
+    <div class="govuk-grid-row govuk-!-margin-bottom-6">
+      {% include "analytics/outstanding/partials/open-tasks-table.njk" %}
+      {% include "analytics/outstanding/partials/wait-time-table.njk" %}
+    </div>
+
+    {% include "analytics/outstanding/partials/critical-tasks.njk" %}
+
+    <div class="govuk-grid-row govuk-!-margin-top-6">
+      {% include "analytics/outstanding/partials/tasks-due.njk" %}
+      {% include "analytics/outstanding/partials/open-tasks-priority.njk" %}
+    </div>
+
+    {% include "analytics/outstanding/partials/open-by-name.njk" %}
+  </div>
+  {% include "analytics/outstanding/partials/open-by-region-location.njk" %}
+{% endblock %}

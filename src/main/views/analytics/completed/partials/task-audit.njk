@@ -1,0 +1,121 @@
+{% from "macros/csrf.njk" import csrfProtection %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "macros/analytics-table.njk" import analyticsTable %}
+{% from "macros/csv-download.njk" import csvDownloadButton %}
+{% from "macros/case-link.njk" import caseLink %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+
+<div data-section="completed-task-audit">
+  <h2 class="govuk-heading-m">Task audit</h2>
+  <p class="govuk-body">Search by case number to audit tasks on cases.</p>
+
+  <form method="post" class="govuk-!-margin-bottom-4" data-analytics-filters="true" data-ajax-section="completed-task-audit">
+    {{ csrfProtection(csrfToken) }}
+    {% if filters.service %}
+      {% for value in filters.service %}
+        <input type="hidden" name="service" value="{{ value }}">
+      {% endfor %}
+    {% endif %}
+    {% if filters.roleCategory %}
+      {% for value in filters.roleCategory %}
+        <input type="hidden" name="roleCategory" value="{{ value }}">
+      {% endfor %}
+    {% endif %}
+    {% if filters.region %}
+      {% for value in filters.region %}
+        <input type="hidden" name="region" value="{{ value }}">
+      {% endfor %}
+    {% endif %}
+    {% if filters.location %}
+      {% for value in filters.location %}
+        <input type="hidden" name="location" value="{{ value }}">
+      {% endfor %}
+    {% endif %}
+    {% if filters.taskName %}
+      {% for value in filters.taskName %}
+        <input type="hidden" name="taskName" value="{{ value }}">
+      {% endfor %}
+    {% endif %}
+    {% if completedFrom.day %}
+      <input type="hidden" name="completedFrom-day" value="{{ completedFrom.day }}">
+    {% endif %}
+    {% if completedFrom.month %}
+      <input type="hidden" name="completedFrom-month" value="{{ completedFrom.month }}">
+    {% endif %}
+    {% if completedFrom.year %}
+      <input type="hidden" name="completedFrom-year" value="{{ completedFrom.year }}">
+    {% endif %}
+    {% if completedTo.day %}
+      <input type="hidden" name="completedTo-day" value="{{ completedTo.day }}">
+    {% endif %}
+    {% if completedTo.month %}
+      <input type="hidden" name="completedTo-month" value="{{ completedTo.month }}">
+    {% endif %}
+    {% if completedTo.year %}
+      <input type="hidden" name="completedTo-year" value="{{ completedTo.year }}">
+    {% endif %}
+
+    <div class="govuk-grid-row">
+      <div class="govuk-grid-column-one-third">
+        {{ govukInput({
+          id: "taskAuditCaseId",
+          name: "caseId",
+          label: {
+            text: "Case ID",
+            classes: "govuk-label--s"
+          },
+          value: taskAuditCaseId
+        }) }}
+      </div>
+    </div>
+
+    {{ govukButton({
+      text: "Search",
+      classes: "govuk-!-margin-top-2"
+    }) }}
+  </form>
+
+  {% set taskAuditTableRows = [] %}
+  {% for row in taskAuditRows %}
+    {% set taskAuditTableRows = taskAuditTableRows.concat([[
+      { html: caseLink(row.caseId) },
+      { text: row.taskName },
+      { text: row.agentName },
+      { text: row.completedDate },
+      { text: row.totalAssignments | formatNumber },
+      { text: row.location },
+      { text: row.status }
+    ]]) %}
+  {% endfor %}
+  {% set taskAuditTableHtml %}
+    <div class="analytics-tab-panel">
+      {{ csvDownloadButton() }}
+      {{ analyticsTable({
+        attributes: {
+          'data-export-csv': 'true',
+          'data-export-filename': 'completed-task-audit.csv',
+          'data-sortable': 'true'
+        },
+        classes: "analytics-table--compact",
+        boldLastRow: false,
+        head: [
+          { text: "Case ID" },
+          { text: "Task name" },
+          { text: "Agent name" },
+          { text: "Completed date" },
+          { text: "Total assignments", format: "numeric" },
+          { text: "Location" },
+          { text: "Status" }
+        ],
+        rows: taskAuditTableRows
+      }) }}
+    </div>
+  {% endset %}
+  {{ govukTabs({
+    id: "taskAuditTabs",
+    items: [
+      { label: "Data table", id: "taskAuditTable", panel: { html: taskAuditTableHtml } }
+    ]
+  }) }}
+</div>

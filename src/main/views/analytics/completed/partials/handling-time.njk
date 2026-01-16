@@ -1,0 +1,14 @@
+<h2 class="govuk-heading-m">Handling time</h2>
+{% set handlingChartHtml %}
+  <div class="analytics-chart" data-chart-config='{{ charts.handling | safe }}'></div>
+{% endset %}
+{% set handlingTableHtml %}
+  {{ govukSummaryList({ classes: "analytics-summary-list--wide", rows: handlingRows }) }}
+{% endset %}
+{{ govukTabs({
+  id: "handlingTabs",
+  items: [
+    { label: "Chart", id: "handlingChart", panel: { html: handlingChartHtml } },
+    { label: "Data table", id: "handlingTable", panel: { html: handlingTableHtml } }
+  ]
+}) }}

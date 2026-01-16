@@ -1,0 +1,12 @@
+{% set resetHref = "/analytics/users" %}
+{% set showUserFilter = true %}
+{% set showCompletedDateFilters = true %}
+{% set extraFiltersHtml %}
+  <input type="hidden" name="assignedSortBy" value="{{ assignedSort.by }}">
+  <input type="hidden" name="assignedSortDir" value="{{ assignedSort.dir }}">
+  <input type="hidden" name="completedSortBy" value="{{ completedSort.by }}">
+  <input type="hidden" name="completedSortDir" value="{{ completedSort.dir }}">
+  <input type="hidden" name="assignedPage" value="{{ assignedPagination.page }}">
+  <input type="hidden" name="completedPage" value="{{ completedPagination.page }}">
+{% endset %}
+{% include "analytics/partials/shared-filters.njk" %}

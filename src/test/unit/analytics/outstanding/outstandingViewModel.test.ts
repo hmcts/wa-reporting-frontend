@@ -1,0 +1,200 @@
+import { buildOutstandingViewModel } from '../../../../main/modules/analytics/outstanding/viewModel';
+import { getDefaultOutstandingSort } from '../../../../main/modules/analytics/shared/outstandingSort';
+
+describe('buildOutstandingViewModel', () => {
+  test('builds totals rows and chart bindings', () => {
+    const viewModel = buildOutstandingViewModel({
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [{ value: 'North', text: 'North East' }],
+        locations: [{ value: 'Leeds', text: 'Leeds Crown Court' }],
+        taskNames: [],
+        users: [],
+      },
+      sort: getDefaultOutstandingSort(),
+      criticalTasksPage: 1,
+      allTasks: [],
+      summary: {
+        open: 4,
+        assigned: 2,
+        unassigned: 2,
+        assignedPct: 50,
+        unassignedPct: 50,
+        urgent: 1,
+        high: 1,
+        medium: 1,
+        low: 1,
+      },
+      charts: {
+        openTasks: 'open',
+        waitTime: 'wait',
+        tasksDue: 'due',
+        tasksDueByPriority: 'priority',
+        priorityDonut: 'priorityDonut',
+        assignmentDonut: 'assignmentDonut',
+      },
+      openByNameInitial: {
+        breakdown: [{ name: 'Task A', urgent: 1, high: 0, medium: 0, low: 0 }],
+        totals: { name: 'Total', urgent: 1, high: 0, medium: 0, low: 0 },
+        chart: {},
+      },
+      openByCreated: [{ date: '2024-01-01', open: 2, assigned: 1, unassigned: 1, assignedPct: 50, unassignedPct: 50 }],
+      waitTime: [{ date: '2024-01-01', averageWaitDays: 2, assignedCount: 1, totalWaitDays: 2 }],
+      dueByDate: [{ date: '2024-01-01', totalDue: 3, open: 2, completed: 1 }],
+      priorityByDueDate: [{ date: '2024-01-01', urgent: 1, high: 1, medium: 0, low: 0 }],
+      criticalTasks: [],
+      outstandingByLocation: [{ location: 'Leeds', region: 'North', open: 3, urgent: 1, high: 1, medium: 1, low: 0 }],
+      outstandingByRegion: [{ region: 'North', open: 3, urgent: 1, high: 1, medium: 1, low: 0 }],
+      regionDescriptions: { North: 'North East' },
+      locationDescriptions: { Leeds: 'Leeds Crown Court' },
+    });
+
+    expect(viewModel.openTasksTotalsRow[0].text).toBe('Total');
+    expect(viewModel.openByNameTotalsRow[1].text).toBe('1');
+    expect(viewModel.waitTimeTotalsRow[2].text).toBe('2.0');
+    expect(viewModel.charts.openTasks).toBe('open');
+    expect(viewModel.outstandingByLocationRows[0][0].text).toBe('Leeds Crown Court');
+    expect(viewModel.outstandingByRegionRows[0][0].text).toBe('North East');
+    expect(viewModel.criticalTasksHead[0].attributes?.['data-sort-key']).toBe('caseId');
+    expect(viewModel.criticalTasksPagination.page).toBe(1);
+    expect(viewModel.criticalTasksPagination.totalResults).toBe(0);
+    expect(viewModel.criticalTasksPagination.show).toBe(false);
+  });
+
+  test('handles empty timelines and builds region/location rows', () => {
+    const viewModel = buildOutstandingViewModel({
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [{ value: 'North', text: 'North East' }],
+        locations: [{ value: 'Leeds', text: 'Leeds Crown Court' }],
+        taskNames: [],
+        users: [],
+      },
+      sort: getDefaultOutstandingSort(),
+      criticalTasksPage: 1,
+      allTasks: [],
+      summary: {
+        open: 0,
+        assigned: 0,
+        unassigned: 0,
+        assignedPct: 0,
+        unassignedPct: 0,
+        urgent: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+      charts: {
+        openTasks: 'open',
+        waitTime: 'wait',
+        tasksDue: 'due',
+        tasksDueByPriority: 'priority',
+        priorityDonut: 'priorityDonut',
+        assignmentDonut: 'assignmentDonut',
+      },
+      openByNameInitial: {
+        breakdown: [],
+        totals: { name: 'Total', urgent: 0, high: 0, medium: 0, low: 0 },
+        chart: {},
+      },
+      openByCreated: [],
+      waitTime: [],
+      dueByDate: [],
+      priorityByDueDate: [],
+      criticalTasks: [
+        {
+          caseId: 'CASE-1',
+          caseType: 'Service A',
+          location: 'Leeds',
+          taskName: 'Review',
+          createdDate: '2024-01-01',
+          dueDate: undefined,
+          priority: 'urgent',
+          agentName: 'Sam',
+        },
+      ],
+      outstandingByLocation: [{ location: 'Leeds', region: 'North', open: 1, urgent: 1, high: 0, medium: 0, low: 0 }],
+      outstandingByRegion: [{ region: 'North', open: 1, urgent: 1, high: 0, medium: 0, low: 0 }],
+      regionDescriptions: { North: 'North East' },
+      locationDescriptions: { Leeds: 'Leeds Crown Court' },
+    });
+
+    expect(viewModel.openTasksTotalsRow[3].text).toBe('0%');
+    expect(viewModel.outstandingByLocationRows[0][0].text).toBe('Leeds Crown Court');
+    expect(viewModel.outstandingByRegionLocationRows[0][1].text).toBe('North East');
+    expect(viewModel.criticalTasks[0].dueDate).toBeUndefined();
+    expect(viewModel.criticalTasksPagination.totalResults).toBe(1);
+    expect(viewModel.criticalTasksPagination.totalPages).toBe(1);
+  });
+
+  test('sorts region and region-location rows consistently', () => {
+    const viewModel = buildOutstandingViewModel({
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [
+          { value: 'North', text: 'North East' },
+          { value: 'South', text: 'South West' },
+        ],
+        locations: [{ value: 'Leeds', text: 'Leeds Crown Court' }],
+        taskNames: [],
+        users: [],
+      },
+      sort: getDefaultOutstandingSort(),
+      criticalTasksPage: 1,
+      allTasks: [],
+      summary: {
+        open: 2,
+        assigned: 1,
+        unassigned: 1,
+        assignedPct: 50,
+        unassignedPct: 50,
+        urgent: 0,
+        high: 1,
+        medium: 0,
+        low: 1,
+      },
+      charts: {
+        openTasks: '',
+        waitTime: '',
+        tasksDue: '',
+        tasksDueByPriority: '',
+        priorityDonut: '',
+        assignmentDonut: '',
+      },
+      openByNameInitial: {
+        breakdown: [],
+        totals: { name: 'Total', urgent: 0, high: 0, medium: 0, low: 0 },
+        chart: {},
+      },
+      openByCreated: [],
+      waitTime: [],
+      dueByDate: [],
+      priorityByDueDate: [],
+      criticalTasks: [],
+      outstandingByLocation: [
+        { location: 'Leeds', region: 'South', open: 1, urgent: 0, high: 1, medium: 0, low: 0 },
+        { location: 'Leeds', region: 'North', open: 1, urgent: 0, high: 0, medium: 0, low: 1 },
+        { location: 'York', region: 'North', open: 1, urgent: 0, high: 0, medium: 1, low: 0 },
+      ],
+      outstandingByRegion: [
+        { region: 'South', open: 1, urgent: 0, high: 1, medium: 0, low: 0 },
+        { region: 'North', open: 1, urgent: 0, high: 0, medium: 0, low: 1 },
+      ],
+      regionDescriptions: { North: 'North East', South: 'South West' },
+      locationDescriptions: { Leeds: 'Leeds Crown Court' },
+    });
+
+    expect(viewModel.outstandingByRegionRows[0][0].text).toBe('North East');
+    expect(viewModel.outstandingByRegionRows[1][0].text).toBe('South West');
+    expect(viewModel.outstandingByRegionLocationRows[0][1].text).toBe('North East');
+    expect(viewModel.outstandingByRegionLocationRows[1][1].text).toBe('South West');
+    expect(viewModel.outstandingByRegionLocationRows[2][0].text).toBe('York');
+    expect(viewModel.criticalTasksPagination.pageSize).toBe(500);
+  });
+});
