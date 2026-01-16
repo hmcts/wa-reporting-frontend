@@ -1,5 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 
+const prismaPgMock = jest.fn().mockImplementation(pool => ({ pool }));
+const poolMock = jest.fn().mockImplementation(options => ({ options }));
+
+jest.mock('@prisma/adapter-pg', () => ({
+  PrismaPg: prismaPgMock,
+}));
+
+jest.mock('pg', () => ({
+  Pool: poolMock,
+}));
+
 jest.mock('@prisma/client', () => ({
   PrismaClient: jest.fn().mockImplementation(() => ({})),
   Prisma: {
@@ -44,9 +55,12 @@ describe('analytics prisma configuration', () => {
       'database.lrd.url': 'postgres://lrd',
     });
 
-    expect(PrismaClient).toHaveBeenNthCalledWith(1, { datasources: { db: { url: 'postgres://tm' } } });
-    expect(PrismaClient).toHaveBeenNthCalledWith(2, { datasources: { db: { url: 'postgres://crd' } } });
-    expect(PrismaClient).toHaveBeenNthCalledWith(3, { datasources: { db: { url: 'postgres://lrd' } } });
+    expect(poolMock).toHaveBeenNthCalledWith(1, { connectionString: 'postgres://tm' });
+    expect(poolMock).toHaveBeenNthCalledWith(2, { connectionString: 'postgres://crd' });
+    expect(poolMock).toHaveBeenNthCalledWith(3, { connectionString: 'postgres://lrd' });
+    expect(PrismaClient).toHaveBeenNthCalledWith(1, { adapter: prismaPgMock.mock.results[0].value });
+    expect(PrismaClient).toHaveBeenNthCalledWith(2, { adapter: prismaPgMock.mock.results[1].value });
+    expect(PrismaClient).toHaveBeenNthCalledWith(3, { adapter: prismaPgMock.mock.results[2].value });
   });
 
   test('builds a URL from host credentials when direct URL is missing', () => {
@@ -60,10 +74,14 @@ describe('analytics prisma configuration', () => {
     });
 
     expect(PrismaClient).toHaveBeenNthCalledWith(1, {
-      datasources: { db: { url: 'postgresql://user:p%40ss@localhost:5432/tasks?schema=analytics' } },
+      adapter: prismaPgMock.mock.results[0].value,
     });
-    expect(PrismaClient).toHaveBeenNthCalledWith(2, undefined);
-    expect(PrismaClient).toHaveBeenNthCalledWith(3, undefined);
+    expect(PrismaClient).toHaveBeenNthCalledWith(2);
+    expect(PrismaClient).toHaveBeenNthCalledWith(3);
+    expect(poolMock).toHaveBeenCalledWith({
+      connectionString:
+        'postgresql://user:p%40ss@localhost:5432/tasks?schema=analytics&options=-csearch_path%3Danalytics',
+    });
   });
 
   test('builds a URL without password or schema when omitted', () => {
@@ -74,17 +92,21 @@ describe('analytics prisma configuration', () => {
     });
 
     expect(PrismaClient).toHaveBeenNthCalledWith(1, {
-      datasources: { db: { url: 'postgresql://readonly@db.host:5432/tasks' } },
+      adapter: prismaPgMock.mock.results[0].value,
     });
+    expect(poolMock).toHaveBeenCalledWith({ connectionString: 'postgresql://readonly@db.host:5432/tasks' });
   });
 
   test('creates prisma clients with and without urls', () => {
     const { createPrismaClient } = loadModule({});
 
+    jest.clearAllMocks();
+
     createPrismaClient('postgres://test');
     createPrismaClient();
 
-    expect(PrismaClient).toHaveBeenCalledWith({ datasources: { db: { url: 'postgres://test' } } });
-    expect(PrismaClient).toHaveBeenCalledWith(undefined);
+    expect(poolMock).toHaveBeenCalledWith({ connectionString: 'postgres://test' });
+    expect(PrismaClient).toHaveBeenCalledWith({ adapter: prismaPgMock.mock.results[0].value });
+    expect(PrismaClient).toHaveBeenCalledWith();
   });
 });
