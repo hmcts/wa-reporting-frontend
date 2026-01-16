@@ -1,5 +1,6 @@
-import csurf from 'csurf';
 import { Request, Response, Router } from 'express';
+
+import { csrfService } from '../csrf';
 
 import { completedController } from './completed/controller';
 import { outstandingController } from './outstanding/controller';
@@ -8,11 +9,10 @@ import { userOverviewController } from './userOverview/controller';
 
 export function createAnalyticsRouter(): Router {
   const router = Router();
-  const csrfProtection = csurf({ cookie: true });
 
-  router.use(csrfProtection);
+  router.use(csrfService.getProtection());
   router.use((req: Request, res: Response, next) => {
-    res.locals.csrfToken = req.csrfToken();
+    res.locals.csrfToken = csrfService.getToken(req, res);
     next();
   });
 

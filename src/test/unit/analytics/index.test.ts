@@ -1,4 +1,3 @@
-import csurf from 'csurf';
 import { Request, Response, Router } from 'express';
 
 import { createAnalyticsRouter } from '../../../main/modules/analytics';
@@ -6,8 +5,19 @@ import { completedController } from '../../../main/modules/analytics/completed/c
 import { outstandingController } from '../../../main/modules/analytics/outstanding/controller';
 import { overviewController } from '../../../main/modules/analytics/overview/controller';
 import { userOverviewController } from '../../../main/modules/analytics/userOverview/controller';
+import { csrfService } from '../../../main/modules/csrf';
 
-jest.mock('csurf', () => jest.fn(() => (req: { csrfToken: () => string }, res: unknown, next: () => void) => next()));
+jest.mock('../../../main/modules/csrf', () => ({
+  csrfService: {
+    getProtection: jest.fn(() => (req: Request, res: Response, next: () => void) => next()),
+    getToken: jest.fn(),
+  },
+}));
+
+const csrfServiceMock = csrfService as unknown as {
+  getProtection: jest.Mock;
+  getToken: jest.Mock;
+};
 
 jest.mock('../../../main/modules/analytics/overview/controller', () => ({
   overviewController: { registerOverviewRoutes: jest.fn() },
@@ -32,7 +42,7 @@ describe('createAnalyticsRouter', () => {
   test('registers middleware and sub-routes', () => {
     const router = createAnalyticsRouter();
 
-    expect(csurf).toHaveBeenCalledWith({ cookie: true });
+    expect(csrfServiceMock.getProtection).toHaveBeenCalled();
     expect(overviewController.registerOverviewRoutes).toHaveBeenCalledWith(router);
     expect(outstandingController.registerOutstandingRoutes).toHaveBeenCalledWith(router);
     expect(completedController.registerCompletedRoutes).toHaveBeenCalledWith(router);
@@ -43,8 +53,9 @@ describe('createAnalyticsRouter', () => {
     const router = createAnalyticsRouter();
     const middlewareLayers = (router as Router & { stack: RouterLayer[] }).stack.filter(layer => !layer.route);
     const localsHandler = middlewareLayers[1].handle;
-    const req = { csrfToken: jest.fn().mockReturnValue('token') } as unknown as Request;
+    const req = {} as unknown as Request;
     const res = { locals: {}, render: jest.fn() } as unknown as Response;
+    csrfServiceMock.getToken.mockReturnValue('token');
 
     localsHandler(req, res, jest.fn());
 

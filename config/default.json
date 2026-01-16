@@ -1,5 +1,6 @@
 {
   "useCSRFProtection": true,
+  "csrfCookieSecret": "csrf-cookie-secret",
   "appInsights": {
     "connectionString": false
   },
