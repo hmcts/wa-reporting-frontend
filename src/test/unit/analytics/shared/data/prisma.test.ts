@@ -79,8 +79,7 @@ describe('analytics prisma configuration', () => {
     expect(PrismaClient).toHaveBeenNthCalledWith(2);
     expect(PrismaClient).toHaveBeenNthCalledWith(3);
     expect(poolMock).toHaveBeenCalledWith({
-      connectionString:
-        'postgresql://user:p%40ss@localhost:5432/tasks?schema=analytics&options=-csearch_path%3Danalytics',
+      connectionString: 'postgresql://user:p%40ss@localhost:5432/tasks?options=-csearch_path=analytics',
     });
   });
 
