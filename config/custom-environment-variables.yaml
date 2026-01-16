@@ -3,6 +3,7 @@ analytics:
   manageCaseBaseUrl: ANALYTICS_MANAGE_CASE_BASE_URL
 appInsights:
   connectionString: APPLICATIONINSIGHTS_CONNECTION_STRING
+csrfCookieSecret: CSRF_COOKIE_SECRET
 services:
   idam:
     clientID: IDAM_CLIENT_ID

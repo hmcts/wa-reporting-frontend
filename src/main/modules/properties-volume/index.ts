@@ -16,6 +16,8 @@ export class PropertiesVolume {
 
       this.setSecret('secrets.wa.idam-client-secret', 'idam.clientSecret');
       this.setSecret('secrets.wa.session-secret', 'session.secret');
+
+      this.setSecret('secrets.wa.csrf-cookie-secret', 'csrfCookieSecret');
     }
   }
 
