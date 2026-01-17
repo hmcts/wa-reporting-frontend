@@ -1,6 +1,6 @@
 analytics:
   cacheTtlSeconds: ANALYTICS_CACHE_TTL_SECONDS
-  manageCaseBaseUrl: ANALYTICS_MANAGE_CASE_BASE_URL
+  manageCaseBaseUrl: MANAGE_CASE_BASE_URL
 appInsights:
   connectionString: APPLICATIONINSIGHTS_CONNECTION_STRING
 csrfCookieSecret: CSRF_COOKIE_SECRET
