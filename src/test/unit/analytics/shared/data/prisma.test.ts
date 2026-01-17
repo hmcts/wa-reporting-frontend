@@ -96,6 +96,20 @@ describe('analytics prisma configuration', () => {
     expect(poolMock).toHaveBeenCalledWith({ connectionString: 'postgresql://readonly@db.host:5432/tasks' });
   });
 
+  test('builds a URL with options when configured', () => {
+    loadModule({
+      'database.tm.host': 'db.host',
+      'database.tm.user': 'readonly',
+      'database.tm.db_name': 'tasks',
+      'database.tm.options': 'sslmode=require',
+      'database.tm.schema': 'analytics',
+    });
+
+    expect(poolMock).toHaveBeenCalledWith({
+      connectionString: 'postgresql://readonly@db.host:5432/tasks?sslmode=require&options=-csearch_path=analytics',
+    });
+  });
+
   test('creates prisma clients with and without urls', () => {
     const { createPrismaClient } = loadModule({});
 

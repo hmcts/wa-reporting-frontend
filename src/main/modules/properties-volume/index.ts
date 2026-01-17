@@ -18,6 +18,13 @@ export class PropertiesVolume {
       this.setSecret('secrets.wa.session-secret', 'session.secret');
 
       this.setSecret('secrets.wa.csrf-cookie-secret', 'csrfCookieSecret');
+
+      this.setSecret('secrets.wa.cft-task-POSTGRES-USER-FLEXIBLE-REPLICA', 'database.tm.user');
+      this.setSecret('secrets.wa.cft-task-POSTGRES-PASS-FLEXIBLE-REPLICA', 'database.tm.password');
+      this.setSecret('secrets.wa.rd-caseworker-ref-api-POSTGRES-USER', 'database.crd.user');
+      this.setSecret('secrets.wa.rd-caseworker-ref-api-POSTGRES-PASS', 'database.crd.password');
+      this.setSecret('secrets.wa.rd-location-ref-api-POSTGRES-USER', 'database.lrd.user');
+      this.setSecret('secrets.wa.rd-location-ref-api-POSTGRES-PASS', 'database.lrd.password');
     }
   }
 
