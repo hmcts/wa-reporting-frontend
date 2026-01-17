@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prismaPgMock = jest.fn().mockImplementation(pool => ({ pool }));
 const poolMock = jest.fn().mockImplementation(options => ({ options }));
+const loggerInfoMock = jest.fn();
 
 jest.mock('@prisma/adapter-pg', () => ({
   PrismaPg: prismaPgMock,
@@ -12,11 +13,16 @@ jest.mock('pg', () => ({
 }));
 
 jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn().mockImplementation(() => ({})),
+  PrismaClient: jest.fn().mockImplementation(() => ({ $on: jest.fn() })),
   Prisma: {
     sql: jest.fn(),
     join: jest.fn(),
     raw: jest.fn(),
+  },
+}));
+jest.mock('@hmcts/nodejs-logging', () => ({
+  Logger: {
+    getLogger: jest.fn(() => ({ info: loggerInfoMock })),
   },
 }));
 
@@ -121,5 +127,43 @@ describe('analytics prisma configuration', () => {
     expect(poolMock).toHaveBeenCalledWith({ connectionString: 'postgres://test' });
     expect(PrismaClient).toHaveBeenCalledWith({ adapter: prismaPgMock.mock.results[0].value });
     expect(PrismaClient).toHaveBeenCalledWith();
+  });
+
+  test('enables query logging when configured', () => {
+    loadModule({
+      'database.tm.url': 'postgres://tm',
+      'logging.prismaQueryTimings': true,
+    });
+
+    expect(PrismaClient).toHaveBeenNthCalledWith(1, {
+      adapter: prismaPgMock.mock.results[0].value,
+      log: [{ emit: 'event', level: 'query' }],
+    });
+
+    const prismaClientMock = PrismaClient as jest.Mock;
+    const prismaInstance = prismaClientMock.mock.results[0]?.value;
+    expect(prismaInstance?.$on).toHaveBeenCalledWith('query', expect.any(Function));
+
+    const queryHandler = (prismaInstance?.$on as jest.Mock).mock.calls[0]?.[1];
+    queryHandler({
+      duration: 42,
+      target: 'task-manager',
+      query: 'select 1',
+    });
+
+    expect(loggerInfoMock).toHaveBeenCalledWith('db.query', {
+      durationMs: 42,
+      target: 'task-manager',
+      query: 'select 1',
+    });
+  });
+
+  test('returns undefined when config is incomplete', () => {
+    loadModule({
+      'database.tm.host': 'db.host',
+      'database.tm.user': 'readonly',
+    });
+
+    expect(PrismaClient).toHaveBeenNthCalledWith(1);
   });
 });
