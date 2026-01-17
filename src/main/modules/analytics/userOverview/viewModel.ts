@@ -11,6 +11,7 @@ import { TableHeadCell, buildSortHeadCell } from '../shared/viewModels/sortHead'
 
 import { paginateAssignedTasks, paginateCompletedTasks } from './pagination';
 import { CompletedByDatePoint, UserOverviewMetrics } from './service';
+import { CompletedByTaskNameAggregate } from './types';
 import {
   buildUserCompletedByDateChart,
   buildUserCompletedComplianceChart,
@@ -43,64 +44,6 @@ type UserOverviewViewModel = FilterOptionsViewModel & {
   completedByDateRows: { text: string }[][];
   completedByDateTotalsRow: { text: string }[];
 };
-
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
-
-type CompletedByTaskNameAggregate = {
-  taskName: string;
-  tasks: number;
-  handlingTimeSum: number;
-  handlingTimeCount: number;
-  daysBeyondSum: number;
-  daysBeyondCount: number;
-};
-
-function calculateDaysBeyondDueDate(row: UserOverviewMetrics['completed'][number]): number | null {
-  if (!row.completedDate || !row.dueDate) {
-    return null;
-  }
-  const completed = new Date(row.completedDate);
-  const due = new Date(row.dueDate);
-  if (Number.isNaN(completed.getTime()) || Number.isNaN(due.getTime())) {
-    return null;
-  }
-  return (completed.getTime() - due.getTime()) / MS_PER_DAY;
-}
-
-function buildCompletedByTaskNameAggregates(
-  completed: UserOverviewMetrics['completed']
-): CompletedByTaskNameAggregate[] {
-  const map = new Map<string, CompletedByTaskNameAggregate>();
-
-  completed.forEach(row => {
-    const taskName = normaliseLabel(row.taskName, 'Unknown');
-    const entry = map.get(taskName) ?? {
-      taskName,
-      tasks: 0,
-      handlingTimeSum: 0,
-      handlingTimeCount: 0,
-      daysBeyondSum: 0,
-      daysBeyondCount: 0,
-    };
-
-    entry.tasks += 1;
-
-    if (typeof row.handlingTimeDays === 'number' && Number.isFinite(row.handlingTimeDays)) {
-      entry.handlingTimeSum += row.handlingTimeDays;
-      entry.handlingTimeCount += 1;
-    }
-
-    const daysBeyond = calculateDaysBeyondDueDate(row);
-    if (typeof daysBeyond === 'number' && Number.isFinite(daysBeyond)) {
-      entry.daysBeyondSum += daysBeyond;
-      entry.daysBeyondCount += 1;
-    }
-
-    map.set(taskName, entry);
-  });
-
-  return Array.from(map.values()).sort((a, b) => b.tasks - a.tasks || a.taskName.localeCompare(b.taskName));
-}
 
 function formatAverage(valueSum: number, valueCount: number): string {
   if (valueCount === 0) {
@@ -310,6 +253,8 @@ export function buildUserOverviewViewModel(params: {
     withinDueYes: number;
     withinDueNo: number;
   };
+  completedByDate: CompletedByDatePoint[];
+  completedByTaskName: CompletedByTaskNameAggregate[];
   filterOptions: FilterOptions;
   locationDescriptions: Record<string, string>;
   sort: UserOverviewSort;
@@ -323,6 +268,8 @@ export function buildUserOverviewViewModel(params: {
     assignedTasks,
     completedTasks,
     completedComplianceSummary,
+    completedByDate,
+    completedByTaskName,
     filterOptions,
     locationDescriptions,
     sort,
@@ -332,10 +279,15 @@ export function buildUserOverviewViewModel(params: {
   const userOptions = filterOptions.users.length > 0 ? filterOptions.users : [{ value: '', text: 'All users' }];
 
   const priorityChart = buildUserPriorityChart(overview.prioritySummary);
-  const completedByDateChart = buildUserCompletedByDateChart(overview.completedByDate);
+  const completedByDateChart = buildUserCompletedByDateChart(completedByDate);
   const completedComplianceChart = buildUserCompletedComplianceChart(completedComplianceSummary);
   const filterViewModel = buildFilterOptionsViewModel(filterOptions, allTasks);
-  const completedByTaskNameAggregates = buildCompletedByTaskNameAggregates(overview.completed);
+  const completedByTaskNameAggregates = completedByTaskName
+    .map(row => ({
+      ...row,
+      taskName: normaliseLabel(row.taskName, 'Unknown'),
+    }))
+    .sort((a, b) => b.tasks - a.tasks || a.taskName.localeCompare(b.taskName));
   const completedByTaskNameTotals = completedByTaskNameAggregates.reduce(
     (acc, row) => ({
       tasks: acc.tasks + row.tasks,
@@ -428,7 +380,7 @@ export function buildUserOverviewViewModel(params: {
       { text: formatAverage(completedByTaskNameTotals.handlingTimeSum, completedByTaskNameTotals.handlingTimeCount) },
       { text: formatAverage(completedByTaskNameTotals.daysBeyondSum, completedByTaskNameTotals.daysBeyondCount) },
     ],
-    completedByDateRows: buildCompletedByDateRows(overview.completedByDate),
-    completedByDateTotalsRow: buildCompletedByDateTotalsRow(overview.completedByDate),
+    completedByDateRows: buildCompletedByDateRows(completedByDate),
+    completedByDateTotalsRow: buildCompletedByDateTotalsRow(completedByDate),
   };
 }

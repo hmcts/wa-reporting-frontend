@@ -22,6 +22,8 @@ describe('taskThinRepository', () => {
     const outstandingSort = getDefaultOutstandingSort();
     await taskThinRepository.fetchUserOverviewAssignedTaskRows({}, sort.assigned);
     await taskThinRepository.fetchUserOverviewCompletedTaskRows({}, sort.completed);
+    await taskThinRepository.fetchUserOverviewCompletedByDateRows({});
+    await taskThinRepository.fetchUserOverviewCompletedByTaskNameRows({});
     await taskThinRepository.fetchOutstandingCriticalTaskRows({}, outstandingSort.criticalTasks);
     await taskThinRepository.fetchOpenTasksByNameRows({});
     await taskThinRepository.fetchOpenTasksByRegionLocationRows({});

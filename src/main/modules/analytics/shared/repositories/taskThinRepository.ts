@@ -15,6 +15,8 @@ import {
   OutstandingCriticalTaskRow,
   SummaryTotalsRow,
   TasksDueRow,
+  UserOverviewCompletedByDateRow,
+  UserOverviewCompletedByTaskNameRow,
   UserOverviewTaskRow,
   WaitTimeRow,
 } from './types';
@@ -46,13 +48,13 @@ function buildAssignedOrderBy(sort: SortState<AssignedSortBy>): Prisma.Sql {
       case 'caseId':
         return Prisma.sql`case_id`;
       case 'createdDate':
-        return Prisma.sql`created_date`;
+        return Prisma.raw('created_date');
       case 'taskName':
         return Prisma.sql`task_name`;
       case 'assignedDate':
-        return Prisma.sql`first_assigned_date`;
+        return Prisma.raw('first_assigned_date');
       case 'dueDate':
-        return Prisma.sql`due_date`;
+        return Prisma.raw('due_date');
       case 'priority':
         return PRIORITY_SORT_SQL;
       case 'totalAssignments':
@@ -62,7 +64,7 @@ function buildAssignedOrderBy(sort: SortState<AssignedSortBy>): Prisma.Sql {
       case 'location':
         return Prisma.sql`location`;
       default:
-        return Prisma.sql`created_date`;
+        return Prisma.raw('created_date');
     }
   })();
 
@@ -75,15 +77,15 @@ function buildCompletedOrderBy(sort: SortState<CompletedSortBy>): Prisma.Sql {
       case 'caseId':
         return Prisma.sql`case_id`;
       case 'createdDate':
-        return Prisma.sql`created_date`;
+        return Prisma.raw('created_date');
       case 'taskName':
         return Prisma.sql`task_name`;
       case 'assignedDate':
-        return Prisma.sql`first_assigned_date`;
+        return Prisma.raw('first_assigned_date');
       case 'dueDate':
-        return Prisma.sql`due_date`;
+        return Prisma.raw('due_date');
       case 'completedDate':
-        return Prisma.sql`completed_date`;
+        return Prisma.raw('completed_date');
       case 'handlingTimeDays':
         return Prisma.sql`handling_time_days`;
       case 'withinDue':
@@ -95,7 +97,7 @@ function buildCompletedOrderBy(sort: SortState<CompletedSortBy>): Prisma.Sql {
       case 'location':
         return Prisma.sql`location`;
       default:
-        return Prisma.sql`completed_date`;
+        return Prisma.raw('completed_date');
     }
   })();
 
@@ -114,15 +116,15 @@ function buildCriticalTasksOrderBy(sort: SortState<CriticalTasksSortBy>): Prisma
       case 'taskName':
         return Prisma.sql`task_name`;
       case 'createdDate':
-        return Prisma.sql`created_date`;
+        return Prisma.raw('created_date');
       case 'dueDate':
-        return Prisma.sql`due_date`;
+        return Prisma.raw('due_date');
       case 'priority':
         return PRIORITY_SORT_SQL;
       case 'agentName':
         return Prisma.sql`assignee`;
       default:
-        return Prisma.sql`due_date`;
+        return Prisma.raw('due_date');
     }
   })();
 
@@ -227,6 +229,64 @@ export class TaskThinRepository {
       ${whereClause}
       ORDER BY ${orderBy}
       ${limitClause}
+    `);
+  }
+
+  async fetchUserOverviewCompletedByDateRows(filters: AnalyticsFilters): Promise<UserOverviewCompletedByDateRow[]> {
+    const conditions: Prisma.Sql[] = [Prisma.sql`completed_date IS NOT NULL`];
+    if (filters.completedFrom) {
+      conditions.push(Prisma.sql`completed_date >= ${filters.completedFrom}`);
+    }
+    if (filters.completedTo) {
+      conditions.push(Prisma.sql`completed_date <= ${filters.completedTo}`);
+    }
+    if (filters.user && filters.user.length > 0) {
+      conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
+    }
+    const whereClause = buildAnalyticsWhere(filters, conditions);
+
+    return tmPrisma.$queryRaw<UserOverviewCompletedByDateRow[]>(Prisma.sql`
+      SELECT
+        to_char(completed_date, 'YYYY-MM-DD') AS date_key,
+        SUM(tasks)::int AS tasks,
+        SUM(within_due)::int AS within_due,
+        SUM(beyond_due)::int AS beyond_due,
+        SUM(handling_time_sum)::numeric AS handling_time_sum,
+        SUM(handling_time_count)::int AS handling_time_count
+      FROM analytics.mv_user_completed_facts
+      ${whereClause}
+      GROUP BY completed_date
+      ORDER BY completed_date
+    `);
+  }
+
+  async fetchUserOverviewCompletedByTaskNameRows(
+    filters: AnalyticsFilters
+  ): Promise<UserOverviewCompletedByTaskNameRow[]> {
+    const conditions: Prisma.Sql[] = [Prisma.sql`completed_date IS NOT NULL`];
+    if (filters.completedFrom) {
+      conditions.push(Prisma.sql`completed_date >= ${filters.completedFrom}`);
+    }
+    if (filters.completedTo) {
+      conditions.push(Prisma.sql`completed_date <= ${filters.completedTo}`);
+    }
+    if (filters.user && filters.user.length > 0) {
+      conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
+    }
+    const whereClause = buildAnalyticsWhere(filters, conditions);
+
+    return tmPrisma.$queryRaw<UserOverviewCompletedByTaskNameRow[]>(Prisma.sql`
+      SELECT
+        task_name,
+        SUM(tasks)::int AS tasks,
+        SUM(handling_time_sum)::numeric AS handling_time_sum,
+        SUM(handling_time_count)::int AS handling_time_count,
+        SUM(days_beyond_sum)::numeric AS days_beyond_sum,
+        SUM(days_beyond_count)::int AS days_beyond_count
+      FROM analytics.mv_user_completed_facts
+      ${whereClause}
+      GROUP BY task_name
+      ORDER BY tasks DESC NULLS LAST, task_name ASC
     `);
   }
 

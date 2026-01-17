@@ -56,14 +56,72 @@ CREATE INDEX ix_thin_slicers
 CREATE INDEX ix_thin_state
   ON analytics.mv_reportable_task_thin(state);
 
+CREATE INDEX ix_thin_state_created_desc
+  ON analytics.mv_reportable_task_thin(state, created_date DESC);
+
 CREATE INDEX ix_thin_task_name
   ON analytics.mv_reportable_task_thin(task_name);
 
 CREATE INDEX ix_thin_termination_reason
   ON analytics.mv_reportable_task_thin(termination_reason);
 
+CREATE INDEX ix_thin_completed_reason_state_date_desc
+  ON analytics.mv_reportable_task_thin(termination_reason, state, completed_date DESC);
+
+CREATE INDEX ix_thin_completed_assignee_date_desc
+  ON analytics.mv_reportable_task_thin(assignee, completed_date DESC)
+  WHERE termination_reason = 'completed' AND state IN ('COMPLETED','TERMINATED') AND assignee IS NOT NULL;
+
 CREATE INDEX ix_thin_case_id
   ON analytics.mv_reportable_task_thin(case_id);
+
+DROP MATERIALIZED VIEW IF EXISTS analytics.mv_user_completed_facts CASCADE;
+
+CREATE MATERIALIZED VIEW analytics.mv_user_completed_facts AS
+SELECT
+  assignee,
+  jurisdiction_label,
+  role_category_label,
+  region,
+  location,
+  task_name,
+  completed_date::date AS completed_date,
+  COUNT(*)::int AS tasks,
+  SUM(CASE WHEN is_within_sla = 'Yes' THEN 1 ELSE 0 END)::int AS within_due,
+  SUM(CASE WHEN is_within_sla = 'No' THEN 1 ELSE 0 END)::int AS beyond_due,
+  SUM(handling_time_days)::numeric AS handling_time_sum,
+  COUNT(handling_time_days)::int AS handling_time_count,
+  SUM(
+    CASE
+      WHEN due_date IS NOT NULL AND completed_date IS NOT NULL THEN completed_date::date - due_date::date
+      ELSE 0
+    END
+  )::numeric AS days_beyond_sum,
+  SUM(CASE WHEN due_date IS NOT NULL AND completed_date IS NOT NULL THEN 1 ELSE 0 END)::int AS days_beyond_count
+FROM analytics.mv_reportable_task_thin
+WHERE completed_date IS NOT NULL
+  AND termination_reason = 'completed'
+  AND state IN ('COMPLETED','TERMINATED')
+GROUP BY
+  assignee,
+  jurisdiction_label,
+  role_category_label,
+  region,
+  location,
+  task_name,
+  completed_date::date;
+
+CREATE INDEX ix_user_completed_assignee_date
+  ON analytics.mv_user_completed_facts(assignee, completed_date DESC);
+
+CREATE INDEX ix_user_completed_assignee_task_name
+  ON analytics.mv_user_completed_facts(assignee, task_name);
+
+CREATE INDEX ix_user_completed_slicers
+  ON analytics.mv_user_completed_facts(jurisdiction_label, role_category_label, region, location, task_name);
+
+CREATE INDEX ix_user_completed_completed_date
+  ON analytics.mv_user_completed_facts(completed_date);
 
 DROP MATERIALIZED VIEW IF EXISTS analytics.mv_task_daily_facts CASCADE;
 

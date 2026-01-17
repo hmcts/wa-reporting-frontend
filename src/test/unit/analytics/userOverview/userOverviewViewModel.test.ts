@@ -60,10 +60,21 @@ describe('buildUserOverviewViewModel', () => {
       ],
       prioritySummary: { urgent: 1, high: 2, medium: 0, low: 0 },
       completedSummary: { total: 1, withinDueYes: 1, withinDueNo: 0 },
-      completedByDate: [
-        { date: '2024-01-04', tasks: 1, withinDue: 0, beyondDue: 1, handlingTimeSum: 2.5, handlingTimeCount: 1 },
-      ],
+      completedByDate: [],
     };
+    const completedByDate = [
+      { date: '2024-01-04', tasks: 1, withinDue: 0, beyondDue: 1, handlingTimeSum: 2.5, handlingTimeCount: 1 },
+    ];
+    const completedByTaskName = [
+      {
+        taskName: 'Task B',
+        tasks: 1,
+        handlingTimeSum: 2.5,
+        handlingTimeCount: 1,
+        daysBeyondSum: 1,
+        daysBeyondCount: 1,
+      },
+    ];
     const allTasks = [
       {
         service: 'Service A',
@@ -95,6 +106,8 @@ describe('buildUserOverviewViewModel', () => {
         withinDueYes: overview.completedSummary.withinDueYes,
         withinDueNo: overview.completedSummary.withinDueNo,
       },
+      completedByDate,
+      completedByTaskName,
       filterOptions,
       locationDescriptions: {},
       sort: getDefaultUserOverviewSort(),
@@ -145,6 +158,8 @@ describe('buildUserOverviewViewModel', () => {
         withinDueYes: overview.completedSummary.withinDueYes,
         withinDueNo: overview.completedSummary.withinDueNo,
       },
+      completedByDate: [],
+      completedByTaskName: [],
       filterOptions: {
         services: [],
         roleCategories: [],
@@ -197,10 +212,11 @@ describe('buildUserOverviewViewModel', () => {
       ],
       prioritySummary: { urgent: 0, high: 1, medium: 0, low: 0 },
       completedSummary: { total: 1, withinDueYes: 0, withinDueNo: 1 },
-      completedByDate: [
-        { date: '2024-01-04', tasks: 2, withinDue: 0, beyondDue: 2, handlingTimeSum: 0, handlingTimeCount: 0 },
-      ],
+      completedByDate: [],
     };
+    const completedByDate = [
+      { date: '2024-01-04', tasks: 2, withinDue: 0, beyondDue: 2, handlingTimeSum: 0, handlingTimeCount: 0 },
+    ];
 
     const viewModel = buildUserOverviewViewModel({
       filters: {},
@@ -213,6 +229,8 @@ describe('buildUserOverviewViewModel', () => {
         withinDueYes: overview.completedSummary.withinDueYes,
         withinDueNo: overview.completedSummary.withinDueNo,
       },
+      completedByDate,
+      completedByTaskName: [],
       filterOptions: {
         services: [],
         roleCategories: [],
@@ -232,7 +250,7 @@ describe('buildUserOverviewViewModel', () => {
     expect(viewModel.completedRows[0].completedDate).toBe('-');
   });
 
-  test('skips invalid completed and due dates when calculating days beyond', () => {
+  test('renders placeholders when no days beyond values are provided', () => {
     const overview: UserOverviewMetrics = {
       assigned: [],
       completed: [
@@ -254,6 +272,16 @@ describe('buildUserOverviewViewModel', () => {
       completedSummary: { total: 1, withinDueYes: 0, withinDueNo: 1 },
       completedByDate: [],
     };
+    const completedByTaskName = [
+      {
+        taskName: 'Task C',
+        tasks: 1,
+        handlingTimeSum: 0,
+        handlingTimeCount: 0,
+        daysBeyondSum: 0,
+        daysBeyondCount: 0,
+      },
+    ];
 
     const viewModel = buildUserOverviewViewModel({
       filters: {},
@@ -266,6 +294,8 @@ describe('buildUserOverviewViewModel', () => {
         withinDueYes: overview.completedSummary.withinDueYes,
         withinDueNo: overview.completedSummary.withinDueNo,
       },
+      completedByDate: [],
+      completedByTaskName,
       filterOptions: {
         services: [],
         roleCategories: [],
@@ -332,10 +362,29 @@ describe('buildUserOverviewViewModel', () => {
       ],
       prioritySummary: { urgent: 0, high: 2, medium: 0, low: 1 },
       completedSummary: { total: 2, withinDueYes: 1, withinDueNo: 1 },
-      completedByDate: [
-        { date: '2024-01-03', tasks: 0, withinDue: 0, beyondDue: 0, handlingTimeSum: 0, handlingTimeCount: 0 },
-      ],
+      completedByDate: [],
     };
+    const completedByDate = [
+      { date: '2024-01-03', tasks: 0, withinDue: 0, beyondDue: 0, handlingTimeSum: 0, handlingTimeCount: 0 },
+    ];
+    const completedByTaskName = [
+      {
+        taskName: 'Task B',
+        tasks: 2,
+        handlingTimeSum: 0,
+        handlingTimeCount: 0,
+        daysBeyondSum: 0,
+        daysBeyondCount: 0,
+      },
+      {
+        taskName: 'Task A',
+        tasks: 2,
+        handlingTimeSum: 0,
+        handlingTimeCount: 0,
+        daysBeyondSum: 0,
+        daysBeyondCount: 0,
+      },
+    ];
 
     const viewModel = buildUserOverviewViewModel({
       filters: {},
@@ -348,6 +397,8 @@ describe('buildUserOverviewViewModel', () => {
         withinDueYes: overview.completedSummary.withinDueYes,
         withinDueNo: overview.completedSummary.withinDueNo,
       },
+      completedByDate,
+      completedByTaskName,
       filterOptions: {
         services: [],
         roleCategories: [],
