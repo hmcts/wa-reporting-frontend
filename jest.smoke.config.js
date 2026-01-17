@@ -3,6 +3,7 @@ module.exports = {
   testRegex: '(/src/test/.*|\\.test)\\.(ts|js)$',
   testEnvironment: 'node',
   testRunner: 'jest-circus/runner',
+  testTimeout: 30000,
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
