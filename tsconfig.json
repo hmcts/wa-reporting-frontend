@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "outDir": "./src/",
+    "outDir": "./dist",
+    "rootDir": "./src",
     "module": "commonjs",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -20,5 +21,6 @@
       "routes/*": ["routes/*"]
     }
   },
+  "include": ["**/*.ts"],
   "exclude": ["**/*.test.ts", "**/codecept.conf.ts", "**/__mocks__/*"]
 }

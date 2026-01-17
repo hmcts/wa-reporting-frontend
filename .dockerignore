@@ -12,6 +12,7 @@
 !.pnp.cjs
 
 !tsconfig.json
+!scripts/**
 !webpack/**
 !src/main/**
 !config/**
