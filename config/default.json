@@ -51,7 +51,8 @@
       "user": "postgres",
       "password": "password",
       "db_name": "cft_task_db",
-      "schema": "analytics"
+      "schema": "analytics",
+      "options": ""
     },
     "crd": {
       "host": "localhost",
@@ -59,7 +60,8 @@
       "user": "postgres",
       "password": "password",
       "db_name": "dbrdcaseworker",
-      "schema": "rdstaffreport"
+      "schema": "rdstaffreport",
+      "options": ""
     },
     "lrd": {
       "host": "localhost",
@@ -67,7 +69,8 @@
       "user": "postgres",
       "password": "password",
       "db_name": "dbrdlocationref",
-      "schema": "locrefdata"
+      "schema": "locrefdata",
+      "options": ""
     }
   }
 }

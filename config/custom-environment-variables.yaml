@@ -21,6 +21,7 @@ database:
     db_name: TM_DB_NAME
     schema: TM_DB_SCHEMA
     url: TM_DB_URL
+    options: TM_DB_OPTIONS
   crd:
     host: CRD_DB_HOST
     port: CRD_DB_PORT
@@ -28,6 +29,7 @@ database:
     password: CRD_DB_PASSWORD
     db_name: CRD_DB_NAME
     schema: CRD_DB_SCHEMA
+    options: CRD_DB_OPTIONS
   lrd:
     host: LRD_DB_HOST
     port: LRD_DB_PORT
@@ -35,6 +37,7 @@ database:
     password: LRD_DB_PASSWORD
     db_name: LRD_DB_NAME
     schema: LRD_DB_SCHEMA
+    options: LRD_DB_OPTIONS
 session:
   secret: SESSION_SECRET
   cookie:

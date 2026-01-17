@@ -19,15 +19,23 @@ function buildDatabaseUrlFromConfig(prefix: string): string | undefined {
   const password = getConfigValue<string>(`${prefix}.password`);
   const database = getConfigValue<string>(`${prefix}.db_name`);
   const schema = getConfigValue<string>(`${prefix}.schema`);
+  const options = getConfigValue<string>(`${prefix}.options`);
 
   if (!host || !user || !database) {
     return undefined;
   }
 
   const auth = password ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}` : encodeURIComponent(user);
-  const schemaParam = schema ? `?options=-csearch_path=${encodeURIComponent(schema)}` : '';
+  const optionsParams = [];
+  if (options) {
+    optionsParams.push(options);
+  }
+  if (schema) {
+    optionsParams.push(`options=-csearch_path=${encodeURIComponent(schema)}`);
+  }
 
-  return `postgresql://${auth}@${host}:${port}/${database}${schemaParam}`;
+  const optsString = optionsParams.length > 0 ? `?${optionsParams.join('&')}` : '';
+  return `postgresql://${auth}@${host}:${port}/${database}${optsString}`;
 }
 
 export function createPrismaClient(databaseUrl?: string): PrismaClient {
