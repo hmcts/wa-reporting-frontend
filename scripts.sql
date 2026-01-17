@@ -111,6 +111,17 @@ GROUP BY
   task_name,
   completed_date::date;
 
+CREATE UNIQUE INDEX ux_mv_user_completed_facts_key
+  ON analytics.mv_user_completed_facts(
+    assignee,
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    completed_date
+  );
+
 CREATE INDEX ix_user_completed_assignee_date
   ON analytics.mv_user_completed_facts(assignee, completed_date DESC);
 
@@ -307,6 +318,21 @@ WHERE completed_date IS NOT NULL
 GROUP BY
   1,2,3,4,5,6,7,8,9,10,11;
 
+CREATE UNIQUE INDEX ux_mv_task_daily_facts_key
+  ON analytics.mv_task_daily_facts(
+    date_role,
+    reference_date,
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    priority,
+    task_status,
+    assignment_state,
+    sla_flag
+  );
+
 -- Recreate indexes for this MV
 CREATE INDEX ix_facts_date_role_date
   ON analytics.mv_task_daily_facts(date_role, reference_date);
@@ -372,6 +398,16 @@ GROUP BY
   task_name,
   priority_bucket;
 
+CREATE UNIQUE INDEX ux_mv_open_tasks_by_name_key
+  ON analytics.mv_open_tasks_by_name(
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    priority_bucket
+  );
+
 CREATE INDEX ix_open_tasks_by_name_slicers
   ON analytics.mv_open_tasks_by_name(jurisdiction_label, role_category_label, region, location, task_name);
 
@@ -405,6 +441,16 @@ GROUP BY
   location,
   task_name,
   priority_bucket;
+
+CREATE UNIQUE INDEX ux_mv_open_tasks_by_region_location_key
+  ON analytics.mv_open_tasks_by_region_location(
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    priority_bucket
+  );
 
 CREATE INDEX ix_open_tasks_by_region_location_slicers
   ON analytics.mv_open_tasks_by_region_location(jurisdiction_label, role_category_label, region, location, task_name);
@@ -442,6 +488,17 @@ GROUP BY
   state,
   priority_bucket;
 
+CREATE UNIQUE INDEX ux_mv_open_tasks_summary_key
+  ON analytics.mv_open_tasks_summary(
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    state,
+    priority_bucket
+  );
+
 CREATE INDEX ix_open_tasks_summary_slicers
   ON analytics.mv_open_tasks_summary(jurisdiction_label, role_category_label, region, location, task_name);
 
@@ -472,6 +529,16 @@ GROUP BY
   location,
   task_name,
   first_assigned_date;
+
+CREATE UNIQUE INDEX ux_mv_open_tasks_wait_time_by_assigned_date_key
+  ON analytics.mv_open_tasks_wait_time_by_assigned_date(
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    reference_date
+  );
 
 CREATE INDEX ix_open_tasks_wait_time_slicers
   ON analytics.mv_open_tasks_wait_time_by_assigned_date(jurisdiction_label, role_category_label, region, location, task_name);
