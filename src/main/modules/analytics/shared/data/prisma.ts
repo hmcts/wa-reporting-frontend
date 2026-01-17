@@ -25,7 +25,6 @@ function buildDatabaseUrlFromConfig(prefix: string): string | undefined {
     return undefined;
   }
 
-  console.log(`Authenticating as user ${user} to database ${database}, schema ${schema}`);
   const auth = password ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}` : encodeURIComponent(user);
   const optionsParams = [];
   if (options) {
