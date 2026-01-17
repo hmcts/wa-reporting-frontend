@@ -3,6 +3,10 @@ nodejs:
   aadIdentityName: wa
   ingressHost: wa-reporting-frontend.{{ .Values.global.environment }}.platform.hmcts.net
   image: 'hmctspublic.azurecr.io/wa/reporting-frontend:latest'
+  cpuRequests: 250m
+  cpuLimits: 2000m
+  memoryRequests: 512Mi
+  memoryLimits: 2048Mi
   keyVaults:
     wa:
       secrets:
