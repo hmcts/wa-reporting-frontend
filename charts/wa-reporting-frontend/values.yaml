@@ -29,13 +29,13 @@ nodejs:
     TM_DB_HOST: cft-task-postgres-db-flexible-replica-{{ .Values.global.environment }}.postgres.database.azure.com
     TM_DB_NAME: cft_task_db
     TM_DB_SCHEMA: analytics
-    TM_DB_OPTIONS: sslmode=require
+    TM_DB_OPTIONS: sslmode=verify-full
     CRD_DB_HOST: rd-caseworker-ref-api-postgres-db-v16-{{ .Values.global.environment }}.postgres.database.azure.com
     CRD_DB_NAME: dbrdcaseworker
     CRD_DB_SCHEMA: rdstaffreport
-    CRD_DB_OPTIONS: sslmode=require
+    CRD_DB_OPTIONS: sslmode=verify-full
     LRD_DB_HOST: rd-location-ref-api-postgres-db-v16-{{ .Values.global.environment }}.postgres.database.azure.com
     LRD_DB_NAME: dbrdlocationref
     LRD_DB_SCHEMA: locrefdata
-    LRD_DB_OPTIONS: sslmode=require
+    LRD_DB_OPTIONS: sslmode=verify-full
     ANALYTICS_MANAGE_CASE_BASE_URL: https://manage-case.{{ .Values.global.environment }}.platform.hmcts.net
