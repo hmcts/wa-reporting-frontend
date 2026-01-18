@@ -13184,10 +13184,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"plotly.js-basic-dist-min@npm:^2.35.3":
-  version: 2.35.3
-  resolution: "plotly.js-basic-dist-min@npm:2.35.3"
-  checksum: 10/a5077a37b9a55781d8eea5dba335a7bcda97a450ac01990113695408356662fe0215153f051744ec14b54782179884eed7450fccffa02fd801bf8f1a0867342f
+"plotly.js-basic-dist-min@npm:^3.0.0":
+  version: 3.3.1
+  resolution: "plotly.js-basic-dist-min@npm:3.3.1"
+  checksum: 10/4eb3e1886a4f16e3a26ca98056b51a870bb7dc39f74327121cc987a9f256a191b6fe077a21a47b6a2e6b8158ff38039b3eeb8949fef77308d8081aae41c25043
   languageName: node
   linkType: hard
 
@@ -16297,7 +16297,7 @@ __metadata:
     pa11y: "npm:^8.0.0"
     pg: "npm:^8.17.1"
     playwright: "npm:1.57.0"
-    plotly.js-basic-dist-min: "npm:^2.35.3"
+    plotly.js-basic-dist-min: "npm:^3.0.0"
     postcss: "npm:^8.5.6"
     prettier: "npm:2.8.8"
     prisma: "npm:^7.2.0"
