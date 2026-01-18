@@ -38,6 +38,64 @@ const WITHIN_DUE_SORT_SQL = Prisma.sql`CASE
   ELSE 3
 END`;
 
+function buildPriorityBucket(): Prisma.Sql {
+  return priorityBucketSql({
+    priorityColumn: Prisma.raw('major_priority'),
+    dateColumn: Prisma.raw('due_date'),
+    labels: { urgent: 'urgent', high: 'high', medium: 'medium', low: 'low' },
+  });
+}
+
+function applyCompletedDateFilters(filters: AnalyticsFilters, conditions: Prisma.Sql[]): void {
+  if (filters.completedFrom) {
+    conditions.push(Prisma.sql`completed_date >= ${filters.completedFrom}`);
+  }
+  if (filters.completedTo) {
+    conditions.push(Prisma.sql`completed_date <= ${filters.completedTo}`);
+  }
+}
+
+function buildCompletedTaskConditions(filters: AnalyticsFilters, caseId?: string): Prisma.Sql[] {
+  const conditions: Prisma.Sql[] = [
+    Prisma.sql`termination_reason = 'completed'`,
+    Prisma.sql`state IN ('COMPLETED', 'TERMINATED')`,
+  ];
+  applyCompletedDateFilters(filters, conditions);
+  if (caseId) {
+    conditions.push(Prisma.sql`case_id = ${caseId}`);
+  }
+  return conditions;
+}
+
+function buildUserOverviewTaskQuery(whereClause: Prisma.Sql, orderBy: Prisma.Sql, limit: number | null): Prisma.Sql {
+  const priorityBucket = buildPriorityBucket();
+  const limitClause = limit === null ? Prisma.empty : Prisma.sql`LIMIT ${limit}`;
+
+  return Prisma.sql`
+    SELECT
+      case_id,
+      task_id,
+      task_name,
+      jurisdiction_label,
+      role_category_label,
+      region,
+      location,
+      to_char(created_date, 'YYYY-MM-DD') AS created_date,
+      to_char(first_assigned_date, 'YYYY-MM-DD') AS first_assigned_date,
+      to_char(due_date, 'YYYY-MM-DD') AS due_date,
+      to_char(completed_date, 'YYYY-MM-DD') AS completed_date,
+      handling_time_days,
+      is_within_sla,
+      ${priorityBucket} AS priority,
+      assignee,
+      number_of_reassignments
+    FROM analytics.mv_reportable_task_thin
+    ${whereClause}
+    ORDER BY ${orderBy}
+    ${limitClause}
+  `;
+}
+
 function directionSql(direction: SortDirection): Prisma.Sql {
   return Prisma.raw(direction === 'asc' ? 'ASC' : 'DESC');
 }
@@ -149,38 +207,10 @@ export class TaskThinRepository {
     sort: SortState<AssignedSortBy>,
     limit: number | null = USER_OVERVIEW_TASKS_LIMIT
   ): Promise<UserOverviewTaskRow[]> {
-    const priorityBucket = priorityBucketSql({
-      priorityColumn: Prisma.raw('major_priority'),
-      dateColumn: Prisma.raw('due_date'),
-      labels: { urgent: 'urgent', high: 'high', medium: 'medium', low: 'low' },
-    });
     const whereClause = buildUserOverviewWhere(filters, [Prisma.sql`state = 'ASSIGNED'`]);
     const orderBy = buildAssignedOrderBy(sort);
-    const limitClause = limit === null ? Prisma.empty : Prisma.sql`LIMIT ${limit}`;
 
-    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(Prisma.sql`
-      SELECT
-        case_id,
-        task_id,
-        task_name,
-        jurisdiction_label,
-        role_category_label,
-        region,
-        location,
-        to_char(created_date, 'YYYY-MM-DD') AS created_date,
-        to_char(first_assigned_date, 'YYYY-MM-DD') AS first_assigned_date,
-        to_char(due_date, 'YYYY-MM-DD') AS due_date,
-        to_char(completed_date, 'YYYY-MM-DD') AS completed_date,
-        handling_time_days,
-        is_within_sla,
-        ${priorityBucket} AS priority,
-        assignee,
-        number_of_reassignments
-      FROM analytics.mv_reportable_task_thin
-      ${whereClause}
-      ORDER BY ${orderBy}
-      ${limitClause}
-    `);
+    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(buildUserOverviewTaskQuery(whereClause, orderBy, limit));
   }
 
   async fetchUserOverviewCompletedTaskRows(
@@ -188,58 +218,16 @@ export class TaskThinRepository {
     sort: SortState<CompletedSortBy>,
     limit: number | null = USER_OVERVIEW_TASKS_LIMIT
   ): Promise<UserOverviewTaskRow[]> {
-    const priorityBucket = priorityBucketSql({
-      priorityColumn: Prisma.raw('major_priority'),
-      dateColumn: Prisma.raw('due_date'),
-      labels: { urgent: 'urgent', high: 'high', medium: 'medium', low: 'low' },
-    });
-    const conditions: Prisma.Sql[] = [
-      Prisma.sql`termination_reason = 'completed'`,
-      Prisma.sql`state IN ('COMPLETED', 'TERMINATED')`,
-    ];
-    if (filters.completedFrom) {
-      conditions.push(Prisma.sql`completed_date >= ${filters.completedFrom}`);
-    }
-    if (filters.completedTo) {
-      conditions.push(Prisma.sql`completed_date <= ${filters.completedTo}`);
-    }
+    const conditions = buildCompletedTaskConditions(filters);
     const whereClause = buildUserOverviewWhere(filters, conditions);
     const orderBy = buildCompletedOrderBy(sort);
-    const limitClause = limit === null ? Prisma.empty : Prisma.sql`LIMIT ${limit}`;
 
-    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(Prisma.sql`
-      SELECT
-        case_id,
-        task_id,
-        task_name,
-        jurisdiction_label,
-        role_category_label,
-        region,
-        location,
-        to_char(created_date, 'YYYY-MM-DD') AS created_date,
-        to_char(first_assigned_date, 'YYYY-MM-DD') AS first_assigned_date,
-        to_char(due_date, 'YYYY-MM-DD') AS due_date,
-        to_char(completed_date, 'YYYY-MM-DD') AS completed_date,
-        handling_time_days,
-        is_within_sla,
-        ${priorityBucket} AS priority,
-        assignee,
-        number_of_reassignments
-      FROM analytics.mv_reportable_task_thin
-      ${whereClause}
-      ORDER BY ${orderBy}
-      ${limitClause}
-    `);
+    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(buildUserOverviewTaskQuery(whereClause, orderBy, limit));
   }
 
   async fetchUserOverviewCompletedByDateRows(filters: AnalyticsFilters): Promise<UserOverviewCompletedByDateRow[]> {
     const conditions: Prisma.Sql[] = [Prisma.sql`completed_date IS NOT NULL`];
-    if (filters.completedFrom) {
-      conditions.push(Prisma.sql`completed_date >= ${filters.completedFrom}`);
-    }
-    if (filters.completedTo) {
-      conditions.push(Prisma.sql`completed_date <= ${filters.completedTo}`);
-    }
+    applyCompletedDateFilters(filters, conditions);
     if (filters.user && filters.user.length > 0) {
       conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
     }
@@ -264,12 +252,7 @@ export class TaskThinRepository {
     filters: AnalyticsFilters
   ): Promise<UserOverviewCompletedByTaskNameRow[]> {
     const conditions: Prisma.Sql[] = [Prisma.sql`completed_date IS NOT NULL`];
-    if (filters.completedFrom) {
-      conditions.push(Prisma.sql`completed_date >= ${filters.completedFrom}`);
-    }
-    if (filters.completedTo) {
-      conditions.push(Prisma.sql`completed_date <= ${filters.completedTo}`);
-    }
+    applyCompletedDateFilters(filters, conditions);
     if (filters.user && filters.user.length > 0) {
       conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
     }
@@ -291,19 +274,7 @@ export class TaskThinRepository {
   }
 
   async fetchCompletedTaskAuditRows(filters: AnalyticsFilters, caseId?: string): Promise<CompletedTaskAuditRow[]> {
-    const conditions: Prisma.Sql[] = [
-      Prisma.sql`termination_reason = 'completed'`,
-      Prisma.sql`state IN ('COMPLETED', 'TERMINATED')`,
-    ];
-    if (filters.completedFrom) {
-      conditions.push(Prisma.sql`completed_date >= ${filters.completedFrom}`);
-    }
-    if (filters.completedTo) {
-      conditions.push(Prisma.sql`completed_date <= ${filters.completedTo}`);
-    }
-    if (caseId) {
-      conditions.push(Prisma.sql`case_id = ${caseId}`);
-    }
+    const conditions = buildCompletedTaskConditions(filters, caseId);
     const whereClause = buildAnalyticsWhere(filters, conditions);
 
     return tmPrisma.$queryRaw<CompletedTaskAuditRow[]>(Prisma.sql`
@@ -325,11 +296,7 @@ export class TaskThinRepository {
     filters: AnalyticsFilters,
     sort: SortState<CriticalTasksSortBy>
   ): Promise<OutstandingCriticalTaskRow[]> {
-    const priorityBucket = priorityBucketSql({
-      priorityColumn: Prisma.raw('major_priority'),
-      dateColumn: Prisma.raw('due_date'),
-      labels: { urgent: 'urgent', high: 'high', medium: 'medium', low: 'low' },
-    });
+    const priorityBucket = buildPriorityBucket();
     const whereClause = buildAnalyticsWhere(filters, [Prisma.sql`state NOT IN ('COMPLETED', 'TERMINATED')`]);
     const orderBy = buildCriticalTasksOrderBy(sort);
 
