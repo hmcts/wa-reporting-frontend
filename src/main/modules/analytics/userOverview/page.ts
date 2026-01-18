@@ -10,7 +10,8 @@ import { caseWorkerProfileService, courtVenueService } from '../shared/services'
 import { AnalyticsFilters, Task, TaskPriority, TaskStatus } from '../shared/types';
 import { UserOverviewSort } from '../shared/userOverviewSort';
 
-import { userOverviewService } from './service';
+import { CompletedByDatePoint, userOverviewService } from './service';
+import { CompletedByTaskNameAggregate } from './types';
 import { buildUserOverviewViewModel } from './viewModel';
 
 type UserOverviewPageViewModel = ReturnType<typeof buildUserOverviewViewModel>;
@@ -52,7 +53,8 @@ export async function buildUserOverviewPage(
     assignedResult,
     completedResult,
     assignedAllResult,
-    completedAllResult,
+    completedByDateResult,
+    completedByTaskNameResult,
     completedComplianceResult,
     locationDescriptionsResult,
     caseWorkerNamesResult,
@@ -60,7 +62,8 @@ export async function buildUserOverviewPage(
     taskThinRepository.fetchUserOverviewAssignedTaskRows(filters, sort.assigned),
     taskThinRepository.fetchUserOverviewCompletedTaskRows(filters, sort.completed),
     taskThinRepository.fetchUserOverviewAssignedTaskRows(filters, sort.assigned, null),
-    taskThinRepository.fetchUserOverviewCompletedTaskRows(filters, sort.completed, null),
+    taskThinRepository.fetchUserOverviewCompletedByDateRows(filters),
+    taskThinRepository.fetchUserOverviewCompletedByTaskNameRows(filters),
     completedComplianceSummaryService.fetchCompletedSummary(filters, range),
     courtVenueService.fetchCourtVenueDescriptions(),
     caseWorkerProfileService.fetchCaseWorkerProfileNames(),
@@ -80,10 +83,15 @@ export async function buildUserOverviewPage(
     'Failed to fetch user overview assigned tasks for charts from database',
     assignedRows
   );
-  const completedAllRows = settledArrayWithFallback(
-    completedAllResult,
-    'Failed to fetch user overview completed tasks for charts from database',
-    completedRows
+  const completedByDateRows = settledArrayWithFallback(
+    completedByDateResult,
+    'Failed to fetch user overview completed by date rows from database',
+    []
+  );
+  const completedByTaskNameRows = settledArrayWithFallback(
+    completedByTaskNameResult,
+    'Failed to fetch user overview completed by task name rows from database',
+    []
   );
   const completedCompliance = settledValueWithFallback(
     completedComplianceResult,
@@ -112,24 +120,43 @@ export async function buildUserOverviewPage(
     ...mapUserOverviewRow(row, caseWorkerNames),
     status: 'assigned' as TaskStatus,
   }));
-  const completedTasksAll = completedAllRows.map(row => ({
-    ...mapUserOverviewRow(row, caseWorkerNames),
-    status: 'completed' as TaskStatus,
-  }));
-  const allTasks = [...assignedTasksAll, ...completedTasksAll];
+  const allTasks = [...assignedTasksAll, ...completedTasks];
   const overview = userOverviewService.buildUserOverview(allTasks);
-  const completedComplianceSummary = {
-    total: completedCompliance?.total ?? overview.completedSummary.total,
-    withinDueYes: completedCompliance?.within ?? overview.completedSummary.withinDueYes,
-    withinDueNo:
-      completedCompliance?.within !== undefined
-        ? completedCompliance.total - completedCompliance.within
-        : overview.completedSummary.withinDueNo,
-  };
-
   const filterOptions = await fetchFilterOptionsWithFallback(
     'Failed to fetch user overview filter options from database'
   );
+
+  const completedByDate: CompletedByDatePoint[] = completedByDateRows.map(row => ({
+    date: row.date_key,
+    tasks: row.tasks,
+    withinDue: row.within_due,
+    beyondDue: row.beyond_due,
+    handlingTimeSum: row.handling_time_sum ?? 0,
+    handlingTimeCount: row.handling_time_count,
+  }));
+  const completedByTaskName: CompletedByTaskNameAggregate[] = completedByTaskNameRows.map(row => ({
+    taskName: row.task_name ?? 'Unknown',
+    tasks: row.tasks,
+    handlingTimeSum: row.handling_time_sum ?? 0,
+    handlingTimeCount: row.handling_time_count,
+    daysBeyondSum: row.days_beyond_sum ?? 0,
+    daysBeyondCount: row.days_beyond_count,
+  }));
+  const completedByDateTotals = completedByDate.reduce(
+    (acc, row) => ({
+      tasks: acc.tasks + row.tasks,
+      withinDue: acc.withinDue + row.withinDue,
+    }),
+    { tasks: 0, withinDue: 0 }
+  );
+  const completedComplianceSummary = {
+    total: completedCompliance?.total ?? completedByDateTotals.tasks,
+    withinDueYes: completedCompliance?.within ?? completedByDateTotals.withinDue,
+    withinDueNo:
+      completedCompliance?.within !== undefined
+        ? completedCompliance.total - completedCompliance.within
+        : completedByDateTotals.tasks - completedByDateTotals.withinDue,
+  };
 
   return buildUserOverviewViewModel({
     filters,
@@ -137,6 +164,8 @@ export async function buildUserOverviewPage(
     allTasks,
     assignedTasks,
     completedTasks,
+    completedByDate,
+    completedByTaskName,
     completedComplianceSummary,
     filterOptions,
     locationDescriptions,

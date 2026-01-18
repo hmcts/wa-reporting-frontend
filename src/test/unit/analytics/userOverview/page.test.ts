@@ -33,6 +33,8 @@ jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
   taskThinRepository: {
     fetchUserOverviewAssignedTaskRows: jest.fn(),
     fetchUserOverviewCompletedTaskRows: jest.fn(),
+    fetchUserOverviewCompletedByDateRows: jest.fn(),
+    fetchUserOverviewCompletedByTaskNameRows: jest.fn(),
   },
 }));
 
@@ -107,6 +109,26 @@ describe('buildUserOverviewPage', () => {
     ];
     (taskThinRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue(assignedRows);
     (taskThinRepository.fetchUserOverviewCompletedTaskRows as jest.Mock).mockResolvedValue(completedRows);
+    (taskThinRepository.fetchUserOverviewCompletedByDateRows as jest.Mock).mockResolvedValue([
+      {
+        date_key: '2024-01-04',
+        tasks: 1,
+        within_due: 1,
+        beyond_due: 0,
+        handling_time_sum: 1.5,
+        handling_time_count: 1,
+      },
+    ]);
+    (taskThinRepository.fetchUserOverviewCompletedByTaskNameRows as jest.Mock).mockResolvedValue([
+      {
+        task_name: 'Complete',
+        tasks: 1,
+        handling_time_sum: 1.5,
+        handling_time_count: 1,
+        days_beyond_sum: 1,
+        days_beyond_count: 1,
+      },
+    ]);
     (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock).mockResolvedValue({ total: 1, within: 1 });
     (userOverviewService.buildUserOverview as jest.Mock).mockReturnValue({
       assigned: [],
@@ -144,11 +166,8 @@ describe('buildUserOverviewPage', () => {
       { user: ['user-1'] },
       sort.completed
     );
-    expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).toHaveBeenCalledWith(
-      { user: ['user-1'] },
-      sort.completed,
-      null
-    );
+    expect(taskThinRepository.fetchUserOverviewCompletedByDateRows).toHaveBeenCalledWith({ user: ['user-1'] });
+    expect(taskThinRepository.fetchUserOverviewCompletedByTaskNameRows).toHaveBeenCalledWith({ user: ['user-1'] });
     expect(userOverviewService.buildUserOverview).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({
@@ -164,15 +183,6 @@ describe('buildUserOverviewPage', () => {
           status: 'assigned',
           totalAssignments: 1,
           assigneeName: 'user-2',
-        }),
-        expect.objectContaining({
-          caseId: 'CASE-2',
-          completedDate: '2024-01-04',
-          status: 'completed',
-          totalAssignments: 3,
-          handlingTimeDays: 1.5,
-          withinSla: true,
-          assigneeName: 'Sam Taylor',
         }),
       ])
     );
@@ -193,6 +203,8 @@ describe('buildUserOverviewPage', () => {
         completedPage: 1,
         assignedTasks: expect.any(Array),
         completedTasks: expect.any(Array),
+        completedByDate: expect.any(Array),
+        completedByTaskName: expect.any(Array),
         completedComplianceSummary: { total: 1, withinDueYes: 1, withinDueNo: 0 },
       })
     );
@@ -223,6 +235,8 @@ describe('buildUserOverviewPage', () => {
     ];
     (taskThinRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue(assignedRows);
     (taskThinRepository.fetchUserOverviewCompletedTaskRows as jest.Mock).mockResolvedValue([]);
+    (taskThinRepository.fetchUserOverviewCompletedByDateRows as jest.Mock).mockResolvedValue([]);
+    (taskThinRepository.fetchUserOverviewCompletedByTaskNameRows as jest.Mock).mockResolvedValue([]);
     (userOverviewService.buildUserOverview as jest.Mock).mockReturnValue({
       assigned: [],
       completed: [],

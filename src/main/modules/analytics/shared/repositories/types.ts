@@ -87,6 +87,24 @@ export type UserOverviewTaskRow = {
   number_of_reassignments: number | null;
 };
 
+export type UserOverviewCompletedByDateRow = {
+  date_key: string;
+  tasks: number;
+  within_due: number;
+  beyond_due: number;
+  handling_time_sum: number | null;
+  handling_time_count: number;
+};
+
+export type UserOverviewCompletedByTaskNameRow = {
+  task_name: string | null;
+  tasks: number;
+  handling_time_sum: number | null;
+  handling_time_count: number;
+  days_beyond_sum: number | null;
+  days_beyond_count: number;
+};
+
 export type OutstandingCriticalTaskRow = {
   case_id: string;
   task_id: string;
