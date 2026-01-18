@@ -1,15 +1,27 @@
 const { execFileSync } = require('node:child_process');
 
 const envVarMappings = [
-  { secretKey: null, envVar: 'TM_DB_HOST', value: 'cft-task-postgres-db-flexible-replica-<env>.postgres.database.azure.com' },
+  {
+    secretKey: null,
+    envVar: 'TM_DB_HOST',
+    value: 'cft-task-postgres-db-flexible-replica-<env>.postgres.database.azure.com',
+  },
   { secretKey: 'cft-task-POSTGRES-USER-FLEXIBLE-REPLICA', envVar: 'TM_DB_USER' },
   { secretKey: 'cft-task-POSTGRES-PASS-FLEXIBLE-REPLICA', envVar: 'TM_DB_PASSWORD' },
   { secretKey: null, envVar: 'TM_DB_OPTIONS', value: 'sslmode=verify-full' },
-  { secretKey: null, envVar: 'CRD_DB_HOST', value: 'rd-caseworker-ref-api-postgres-db-v16-<env>.postgres.database.azure.com' },
+  {
+    secretKey: null,
+    envVar: 'CRD_DB_HOST',
+    value: 'rd-caseworker-ref-api-postgres-db-v16-<env>.postgres.database.azure.com',
+  },
   { secretKey: 'rd-caseworker-ref-api-POSTGRES-USER', envVar: 'CRD_DB_USER' },
   { secretKey: 'rd-caseworker-ref-api-POSTGRES-PASS', envVar: 'CRD_DB_PASSWORD' },
   { secretKey: null, envVar: 'CRD_DB_OPTIONS', value: 'sslmode=verify-full' },
-  { secretKey: null, envVar: 'LRD_DB_HOST', value: 'rd-location-ref-api-postgres-db-v16-<env>.postgres.database.azure.com' },
+  {
+    secretKey: null,
+    envVar: 'LRD_DB_HOST',
+    value: 'rd-location-ref-api-postgres-db-v16-<env>.postgres.database.azure.com',
+  },
   { secretKey: 'rd-location-ref-api-POSTGRES-USER', envVar: 'LRD_DB_USER' },
   { secretKey: 'rd-location-ref-api-POSTGRES-PASS', envVar: 'LRD_DB_PASSWORD' },
   { secretKey: null, envVar: 'LRD_DB_OPTIONS', value: 'sslmode=verify-full' },
@@ -22,9 +34,9 @@ if (!environment) {
   process.exit(2);
 }
 
-const applyEnvironment = (value) => (value ? value.replaceAll('<env>', environment) : value);
+const applyEnvironment = value => (value ? value.replaceAll('<env>', environment) : value);
 
-const readSecretValue = (secretKey) => {
+const readSecretValue = secretKey => {
   try {
     return execFileSync(
       'az',
