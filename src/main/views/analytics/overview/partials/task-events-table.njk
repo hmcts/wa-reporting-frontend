@@ -1,5 +1,5 @@
 {% from "macros/csrf.njk" import csrfProtection %}
-{% from "govuk/components/date-input/macro.njk" import govukDateInput %}
+{% from "moj/components/date-picker/macro.njk" import mojDatePicker %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
 {% from "macros/analytics-table.njk" import analyticsTable %}
 {% from "govuk/components/tabs/macro.njk" import govukTabs %}
@@ -41,39 +41,23 @@
   {% endif %}
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-one-third">
-      {{ govukDateInput({
+      {{ mojDatePicker({
         id: "eventsFrom",
-        namePrefix: "eventsFrom",
-        fieldset: {
-          legend: {
-            text: "Date range from",
-            isPageHeading: false,
-            classes: "govuk-fieldset__legend--s"
-          }
-        },
-        items: [
-          { name: "day", classes: "govuk-input--width-2", value: eventsFrom.day },
-          { name: "month", classes: "govuk-input--width-2", value: eventsFrom.month },
-          { name: "year", classes: "govuk-input--width-4", value: eventsFrom.year }
-        ]
+        name: "eventsFrom",
+        classes: "govuk-input--width-10",
+        label: { text: "Date range from", classes: "govuk-label--s" },
+        hint: { text: "For example, 17/5/2024." },
+        value: eventsFromValue | default("")
       }) }}
     </div>
     <div class="govuk-grid-column-one-third">
-      {{ govukDateInput({
+      {{ mojDatePicker({
         id: "eventsTo",
-        namePrefix: "eventsTo",
-        fieldset: {
-          legend: {
-            text: "Date range to",
-            isPageHeading: false,
-            classes: "govuk-fieldset__legend--s"
-          }
-        },
-        items: [
-          { name: "day", classes: "govuk-input--width-2", value: eventsTo.day },
-          { name: "month", classes: "govuk-input--width-2", value: eventsTo.month },
-          { name: "year", classes: "govuk-input--width-4", value: eventsTo.year }
-        ]
+        name: "eventsTo",
+        classes: "govuk-input--width-10",
+        label: { text: "Date range to", classes: "govuk-label--s" },
+        hint: { text: "For example, 17/5/2024." },
+        value: eventsToValue | default("")
       }) }}
     </div>
   </div>

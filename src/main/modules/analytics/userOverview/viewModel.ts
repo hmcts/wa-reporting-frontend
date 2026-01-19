@@ -1,5 +1,5 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
-import { buildDateParts, formatNumber, formatPercent } from '../shared/formatting';
+import { formatDatePickerValue, formatNumber, formatPercent } from '../shared/formatting';
 import { PaginationMeta } from '../shared/pagination';
 import type { FilterOptions } from '../shared/services';
 import { AnalyticsFilters, Task, UserOverviewResponse } from '../shared/types';
@@ -20,8 +20,8 @@ import {
 
 type UserOverviewViewModel = FilterOptionsViewModel & {
   filters: AnalyticsFilters;
-  completedFrom: { day: string; month: string; year: string };
-  completedTo: { day: string; month: string; year: string };
+  completedFromValue: string;
+  completedToValue: string;
   userOptions: SelectOption[];
   prioritySummary: UserOverviewResponse['prioritySummary'];
   assignedSort: UserOverviewSort['assigned'];
@@ -329,8 +329,8 @@ export function buildUserOverviewViewModel(params: {
   return {
     filters,
     ...filterViewModel,
-    completedFrom: buildDateParts(filters.completedFrom),
-    completedTo: buildDateParts(filters.completedTo),
+    completedFromValue: formatDatePickerValue(filters.completedFrom),
+    completedToValue: formatDatePickerValue(filters.completedTo),
     userOptions,
     prioritySummary: overview.prioritySummary,
     assignedSort: sort.assigned,

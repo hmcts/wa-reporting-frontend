@@ -138,7 +138,7 @@ describe('buildUserOverviewViewModel', () => {
     expect(viewModel.completedPagination.page).toBe(1);
   });
 
-  test('hydrates date parts and default user options', () => {
+  test('hydrates date picker values and default user options', () => {
     const overview: UserOverviewMetrics = {
       assigned: [],
       completed: [],
@@ -177,8 +177,8 @@ describe('buildUserOverviewViewModel', () => {
       completedPage: 1,
     });
 
-    expect(viewModel.completedFrom).toEqual({ day: '1', month: '2', year: '2024' });
-    expect(viewModel.completedTo).toEqual({ day: '15', month: '2', year: '2024' });
+    expect(viewModel.completedFromValue).toBe('01/02/2024');
+    expect(viewModel.completedToValue).toBe('15/02/2024');
     expect(viewModel.userOptions[0].text).toBe('All users');
   });
 

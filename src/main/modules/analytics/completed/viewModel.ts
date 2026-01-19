@@ -1,5 +1,5 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
-import { buildDateParts, formatNumber, formatPercent } from '../shared/formatting';
+import { formatDatePickerValue, formatNumber, formatPercent } from '../shared/formatting';
 import { FilterOptions } from '../shared/services';
 import {
   AnalyticsFilters,
@@ -34,8 +34,8 @@ export type TaskAuditEntry = {
 
 type CompletedViewModel = ReturnType<typeof buildFilterOptionsViewModel> & {
   filters: AnalyticsFilters;
-  completedFrom: { day: string; month: string; year: string };
-  completedTo: { day: string; month: string; year: string };
+  completedFromValue: string;
+  completedToValue: string;
   summary: CompletedResponse['summary'];
   charts: {
     complianceToday: string;
@@ -342,8 +342,8 @@ export function buildCompletedViewModel(params: {
   return {
     filters,
     ...filterViewModel,
-    completedFrom: buildDateParts(filters.completedFrom),
-    completedTo: buildDateParts(filters.completedTo),
+    completedFromValue: formatDatePickerValue(filters.completedFrom),
+    completedToValue: formatDatePickerValue(filters.completedTo),
     summary: completed.summary,
     charts: {
       complianceToday: complianceTodayChart,

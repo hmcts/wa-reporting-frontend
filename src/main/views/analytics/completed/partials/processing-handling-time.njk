@@ -48,23 +48,11 @@
         <input type="hidden" name="user" value="{{ value }}">
       {% endfor %}
     {% endif %}
-    {% if completedFrom.day %}
-      <input type="hidden" name="completedFrom-day" value="{{ completedFrom.day }}">
+    {% if completedFromValue %}
+      <input type="hidden" name="completedFrom" value="{{ completedFromValue }}">
     {% endif %}
-    {% if completedFrom.month %}
-      <input type="hidden" name="completedFrom-month" value="{{ completedFrom.month }}">
-    {% endif %}
-    {% if completedFrom.year %}
-      <input type="hidden" name="completedFrom-year" value="{{ completedFrom.year }}">
-    {% endif %}
-    {% if completedTo.day %}
-      <input type="hidden" name="completedTo-day" value="{{ completedTo.day }}">
-    {% endif %}
-    {% if completedTo.month %}
-      <input type="hidden" name="completedTo-month" value="{{ completedTo.month }}">
-    {% endif %}
-    {% if completedTo.year %}
-      <input type="hidden" name="completedTo-year" value="{{ completedTo.year }}">
+    {% if completedToValue %}
+      <input type="hidden" name="completedTo" value="{{ completedToValue }}">
     {% endif %}
 
     {{ govukRadios({

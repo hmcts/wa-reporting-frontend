@@ -13,6 +13,10 @@ $govuk-page-width: 1400px;
   --analytics-priority-not-provided: #b1b4b6;
 }
 
+.moj-datepicker__dialog {
+  z-index: 5;
+}
+
 .analytics-chart {
   min-height: 400px;
   position: relative;

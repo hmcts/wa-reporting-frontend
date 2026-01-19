@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 import { AnalyticsFilters } from '../types';
 
 export interface FilterValidationResult {
@@ -25,11 +27,11 @@ function toOptionalStringArray(value: unknown): string[] | undefined {
 }
 
 function parseDate(value: string): Date | undefined {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
+  const parsed = moment.utc(value, ['YYYY-MM-DD', 'D/M/YYYY', 'DD/MM/YYYY'], true);
+  if (!parsed.isValid()) {
     return undefined;
   }
-  return parsed;
+  return parsed.toDate();
 }
 
 function parseDateParts(prefix: string, raw: Record<string, unknown>): Date | undefined {

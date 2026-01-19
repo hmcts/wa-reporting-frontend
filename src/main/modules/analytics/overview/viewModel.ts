@@ -1,5 +1,5 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
-import { buildDateParts, formatNumber, formatPercent } from '../shared/formatting';
+import { formatDatePickerValue, formatNumber, formatPercent } from '../shared/formatting';
 import { FilterOptions } from '../shared/services';
 import { AnalyticsFilters, OverviewResponse } from '../shared/types';
 import { FilterOptionsViewModel } from '../shared/viewModels/filterOptions';
@@ -12,7 +12,6 @@ type TaskEventsRow = {
 };
 
 type AnalyticsTask = { service: string; roleCategory: string; region: string; location: string; taskName: string };
-type DateParts = { day: string; month: string; year: string };
 type TableCell = { text: string; attributes?: Record<string, string> };
 type TableRow = TableCell[];
 type TableRows = TableRow[];
@@ -25,8 +24,8 @@ type OverviewViewModel = FilterOptionsViewModel & {
   totalsRow: TableRow;
   taskEventsRows: TableRows;
   taskEventsTotalsRow: TableRow;
-  eventsFrom: DateParts;
-  eventsTo: DateParts;
+  eventsFromValue: string;
+  eventsToValue: string;
 };
 
 function buildNumericCell(value: number): TableCell {
@@ -110,7 +109,7 @@ export function buildOverviewViewModel(params: {
     totalsRow: buildOverviewTotalsRow(overview.totals),
     taskEventsRows: buildTaskEventsRows(taskEventsRows),
     taskEventsTotalsRow: buildTaskEventsTotalsRow(taskEventsTotals),
-    eventsFrom: buildDateParts(eventsRange.from),
-    eventsTo: buildDateParts(eventsRange.to),
+    eventsFromValue: formatDatePickerValue(eventsRange.from),
+    eventsToValue: formatDatePickerValue(eventsRange.to),
   };
 }
