@@ -53,14 +53,17 @@ function decorateNumericRows(
         extraClasses.push(boldCellClass);
       }
       const classes = addClasses(cell?.classes, extraClasses);
-      const format = shouldFormatNumeric ? cell?.format ?? 'numeric' : cell?.format;
+      const format = shouldFormatNumeric ? (cell?.format ?? 'numeric') : cell?.format;
       return { ...cell, classes, format };
     });
   });
 }
 
 export class Nunjucks {
-  constructor(public developmentMode: boolean, private readonly rebrandEnabled = false) {
+  constructor(
+    public developmentMode: boolean,
+    private readonly rebrandEnabled = false
+  ) {
     this.developmentMode = developmentMode;
   }
 

@@ -41,7 +41,7 @@ function buildRegionOptions(
   const options = regionIds
     .map(regionId => ({
       value: regionId,
-      text: regionId === '' ? '(Blank)' : descriptions[regionId] ?? regionId,
+      text: regionId === '' ? '(Blank)' : (descriptions[regionId] ?? regionId),
     }))
     .sort(compareByText);
   return [{ value: '', text: 'All regions' }, ...options];
@@ -58,7 +58,7 @@ function buildLocationOptions(
   const options = locationIds
     .map(locationId => ({
       value: locationId,
-      text: locationId === '' ? '(Blank)' : descriptions[locationId] ?? locationId,
+      text: locationId === '' ? '(Blank)' : (descriptions[locationId] ?? locationId),
     }))
     .sort(compareByText);
   return [{ value: '', text: 'All locations' }, ...options];
