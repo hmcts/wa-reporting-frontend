@@ -39,6 +39,9 @@ describe('analytics forms', () => {
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 120, left: 0, behavior: 'auto' });
     expect(window.sessionStorage.getItem(key)).toBeNull();
 
+    restoreScrollPosition();
+    expect((window.scrollTo as jest.Mock).mock.calls).toHaveLength(1);
+
     window.sessionStorage.setItem(key, 'not-a-number');
     restoreScrollPosition();
     expect((window.scrollTo as jest.Mock).mock.calls).toHaveLength(1);
@@ -374,5 +377,43 @@ describe('analytics forms', () => {
 
     expect(form.requestSubmit).toHaveBeenCalled();
     expect(submitSpy).toHaveBeenCalled();
+  });
+
+  test('skips rebinding auto-submit listeners when already bound', () => {
+    const form = document.createElement('form');
+    form.dataset.autoSubmit = 'true';
+    form.dataset.autoSubmitBound = 'true';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    form.appendChild(checkbox);
+    form.requestSubmit = jest.fn();
+    document.body.appendChild(form);
+
+    initAutoSubmitForms();
+    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(form.requestSubmit).not.toHaveBeenCalled();
+  });
+
+  test('removes stored filters when no values remain', () => {
+    const form = document.createElement('form');
+    form.dataset.analyticsFilters = 'true';
+    const input = document.createElement('input');
+    input.name = 'service';
+    input.value = 'Existing';
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    const storageKey = getFilterStorageKey(form);
+    window.localStorage.setItem(storageKey, JSON.stringify({ service: ['Old'] }));
+
+    const removeSpy = jest.spyOn(Storage.prototype, 'removeItem');
+
+    initFilterPersistence();
+    input.value = '';
+    form.dispatchEvent(new Event('submit'));
+
+    expect(removeSpy).toHaveBeenCalledWith(storageKey);
+    removeSpy.mockRestore();
   });
 });

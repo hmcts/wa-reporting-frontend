@@ -76,10 +76,13 @@ describe('analytics tables', () => {
     const sortedRow = table.querySelector('tbody tr');
     expect(sortedRow?.textContent).toContain('Beta');
 
+    const orphanContainer = document.createElement('div');
     const orphanButton = document.createElement('button');
     orphanButton.dataset.exportCsvButton = 'true';
-    document.body.appendChild(orphanButton);
+    orphanContainer.appendChild(orphanButton);
+    document.body.appendChild(orphanContainer);
     initTableExports();
+    expect(orphanButton.dataset.exportBound).toBeUndefined();
 
     const emptyTable = document.createElement('table');
     emptyTable.dataset.sortable = 'true';
@@ -144,16 +147,172 @@ describe('analytics tables', () => {
       <tbody><tr><td>Item</td></tr></tbody>
     `;
     document.body.appendChild(mojTable);
+
+    const criticalMojTable = document.createElement('table');
+    criticalMojTable.dataset.module = 'moj-sortable-table';
+    criticalMojTable.dataset.serverSort = 'true';
+    criticalMojTable.dataset.sortScope = 'criticalTasks';
+    criticalMojTable.dataset.sortSection = 'critical-tasks-section';
+    criticalMojTable.innerHTML = `
+      <thead>
+        <tr>
+          <th data-sort-key="task"><button type="button">Task</button></th>
+        </tr>
+      </thead>
+      <tbody><tr><td>Item</td></tr></tbody>
+    `;
+    document.body.appendChild(criticalMojTable);
+
+    const assignedMojTable = document.createElement('table');
+    assignedMojTable.dataset.module = 'moj-sortable-table';
+    assignedMojTable.dataset.serverSort = 'true';
+    assignedMojTable.dataset.sortScope = 'assigned';
+    assignedMojTable.dataset.sortSection = 'assigned-section';
+    assignedMojTable.innerHTML = `
+      <thead>
+        <tr>
+          <th data-sort-key="name"><button type="button">Name</button></th>
+        </tr>
+      </thead>
+      <tbody><tr><td>Item</td></tr></tbody>
+    `;
+    document.body.appendChild(assignedMojTable);
     initMojServerSorting(fetchSortedSectionWithDeps);
     const mojButton = mojTable.querySelector('button');
     const mojSection = document.createElement('div');
     mojSection.dataset.section = 'user-overview-completed';
     document.body.appendChild(mojSection);
+    const criticalSection = document.createElement('div');
+    criticalSection.dataset.section = 'critical-tasks-section';
+    document.body.appendChild(criticalSection);
+    const assignedSection = document.createElement('div');
+    assignedSection.dataset.section = 'assigned-section';
+    document.body.appendChild(assignedSection);
+
+    const criticalButton = criticalMojTable.querySelector('button');
+    const assignedButton = assignedMojTable.querySelector('button');
     mojButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    criticalButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    assignedButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flushPromises();
 
     expect(form.querySelector<HTMLInputElement>('input[name="completedSortBy"]')?.value).toBe('name');
     expect(form.querySelector<HTMLInputElement>('input[name="completedSortDir"]')?.value).toBe('asc');
+    expect(form.querySelector<HTMLInputElement>('input[name="criticalTasksPage"]')?.value).toBe('1');
+    expect(form.querySelector<HTMLInputElement>('input[name="assignedPage"]')?.value).toBe('1');
+  });
+
+  test('covers csv fallbacks and client sorting branches', () => {
+    const exportButton = document.createElement('button');
+    exportButton.dataset.exportCsvButton = 'true';
+    const exportTable = document.createElement('table');
+    const exportRow = document.createElement('tr');
+    const exportCell = document.createElement('td');
+    Object.defineProperty(exportCell, 'textContent', { value: null });
+    exportRow.appendChild(exportCell);
+    exportTable.appendChild(exportRow);
+    const exportContainer = document.createElement('div');
+    exportContainer.appendChild(exportButton);
+    exportContainer.appendChild(exportTable);
+    document.body.appendChild(exportContainer);
+
+    initTableExports();
+    exportButton.click();
+    expect(URL.createObjectURL).toHaveBeenCalled();
+
+    const clientTable = document.createElement('table');
+    clientTable.dataset.sortable = 'true';
+    clientTable.dataset.sortDefault = '0';
+    clientTable.dataset.sortDefaultDir = 'desc';
+    clientTable.innerHTML = `
+      <thead><tr><th>Col 1</th><th>Col 2</th></tr></thead>
+      <tbody>
+        <tr><td>B</td></tr>
+        <tr><td>A</td></tr>
+      </tbody>
+    `;
+    document.body.appendChild(clientTable);
+    initTableSorting(fetchSortedSectionWithDeps);
+
+    const headers = clientTable.querySelectorAll<HTMLTableHeaderCellElement>('thead th');
+    expect(headers[0]?.dataset.sortDir).toBe('desc');
+    headers[0]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    headers[1]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(headers[0]?.dataset.sortDir).toBeUndefined();
+    expect(headers[1]?.dataset.sortDir).toBe('asc');
+  });
+
+  test('toggles sort direction for server-sorted tables', async () => {
+    const form = document.createElement('form');
+    form.dataset.analyticsFilters = 'true';
+    form.action = '/analytics/assigned';
+    document.body.appendChild(form);
+
+    const section = document.createElement('div');
+    section.dataset.section = 'assigned-section';
+    document.body.appendChild(section);
+
+    const table = document.createElement('table');
+    table.dataset.sortable = 'true';
+    table.dataset.serverSort = 'true';
+    table.dataset.sortScope = 'assigned';
+    table.dataset.sortSection = 'assigned-section';
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th data-sort-key="task" data-sort-dir="asc"><button type="button">Task</button></th>
+        </tr>
+      </thead>
+      <tbody><tr><td>Alpha</td></tr></tbody>
+    `;
+    document.body.appendChild(table);
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => '<p>Updated</p>',
+    }) as unknown as typeof fetch;
+
+    initTableSorting(fetchSortedSectionWithDeps);
+    table.querySelector('button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushPromises();
+
+    expect(form.querySelector<HTMLInputElement>('input[name="assignedSortDir"]')?.value).toBe('desc');
+  });
+
+  test('handles moj server sort when aria-sort is ascending', async () => {
+    const form = document.createElement('form');
+    form.dataset.analyticsFilters = 'true';
+    document.body.appendChild(form);
+
+    const section = document.createElement('div');
+    section.dataset.section = 'completed-section';
+    document.body.appendChild(section);
+
+    const mojTable = document.createElement('table');
+    mojTable.dataset.module = 'moj-sortable-table';
+    mojTable.dataset.serverSort = 'true';
+    mojTable.dataset.sortScope = 'completed';
+    mojTable.dataset.sortSection = 'completed-section';
+    mojTable.innerHTML = `
+      <thead>
+        <tr>
+          <th data-sort-key="name" aria-sort="ascending"><button type="button">Name</button></th>
+        </tr>
+      </thead>
+      <tbody><tr><td>Item</td></tr></tbody>
+    `;
+    document.body.appendChild(mojTable);
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => '<p>Updated</p>',
+    }) as unknown as typeof fetch;
+
+    initMojServerSorting(fetchSortedSectionWithDeps);
+    mojTable.querySelector('button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushPromises();
+
+    expect(form.querySelector<HTMLInputElement>('input[name="completedSortDir"]')?.value).toBe('desc');
   });
 
   test('covers sorting guard clauses and sticky totals', async () => {
@@ -293,5 +452,26 @@ describe('analytics tables', () => {
     stickyTable.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     const stickyRows = stickyTable.querySelectorAll('tbody tr');
     expect(stickyRows[stickyRows.length - 1]?.textContent).toContain('Total');
+  });
+
+  test('covers export fallbacks, numeric comparisons, and bound sorts', () => {
+    const button = document.createElement('button');
+    button.dataset.exportCsvButton = 'true';
+    const table = document.createElement('table');
+    table.dataset.exportCsv = 'true';
+    document.body.appendChild(button);
+    document.body.appendChild(table);
+
+    initTableExports();
+    expect(button.dataset.exportBound).toBe('true');
+    initTableExports();
+
+    expect(compareValues('1,200', '900')).toBeGreaterThan(0);
+
+    const boundTable = document.createElement('table');
+    boundTable.dataset.sortable = 'true';
+    boundTable.dataset.sortBound = 'true';
+    document.body.appendChild(boundTable);
+    initTableSorting(fetchSortedSectionWithDeps);
   });
 });

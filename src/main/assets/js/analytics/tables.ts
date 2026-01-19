@@ -115,7 +115,7 @@ export function initTableSorting(fetchSortedSection: FetchSortedSection): void {
       return;
     }
 
-    const sortTable = (index: number, direction: 'asc' | 'desc', activeHeader?: HTMLTableHeaderCellElement) => {
+    const sortTable = (index: number, direction: 'asc' | 'desc', activeHeader: HTMLTableHeaderCellElement) => {
       const rows = Array.from(body.querySelectorAll<HTMLTableRowElement>('tr'));
       const totals = rows.filter(row => getCellValue(row, 0).toLowerCase() === 'total');
       const sortableRows = rows.filter(row => !totals.includes(row));
@@ -129,14 +129,12 @@ export function initTableSorting(fetchSortedSection: FetchSortedSection): void {
       sortableRows.forEach(row => body.appendChild(row));
       totals.forEach(row => body.appendChild(row));
 
-      if (activeHeader) {
-        headers.forEach(header => {
-          if (header !== activeHeader) {
-            delete header.dataset.sortDir;
-          }
-        });
-        activeHeader.dataset.sortDir = direction;
-      }
+      headers.forEach(header => {
+        if (header !== activeHeader) {
+          delete header.dataset.sortDir;
+        }
+      });
+      activeHeader.dataset.sortDir = direction;
     };
 
     headers.forEach((th, index) => {

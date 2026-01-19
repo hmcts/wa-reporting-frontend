@@ -97,6 +97,39 @@ type UserOverviewCompletedRow = {
   location: string;
 };
 
+function mapAssignedRow(row: Task, locationDescriptions: Record<string, string>): UserOverviewAssignedRow {
+  return {
+    caseId: row.caseId,
+    createdDate: row.createdDate,
+    taskName: row.taskName,
+    assignedDate: row.assignedDate ?? '-',
+    dueDate: row.dueDate ?? '-',
+    priority: row.priority,
+    totalAssignments: formatNumber(row.totalAssignments ?? 0),
+    assigneeName: row.assigneeName ?? '',
+    location: lookup(row.location, locationDescriptions),
+  };
+}
+
+function mapCompletedRow(row: Task, locationDescriptions: Record<string, string>): UserOverviewCompletedRow {
+  return {
+    caseId: row.caseId,
+    createdDate: row.createdDate,
+    taskName: row.taskName,
+    assignedDate: row.assignedDate ?? '-',
+    dueDate: row.dueDate ?? '-',
+    completedDate: row.completedDate ?? '-',
+    handlingTimeDays:
+      row.handlingTimeDays !== undefined
+        ? formatNumber(row.handlingTimeDays, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : '-',
+    withinDue: row.withinSla === null || row.withinSla === undefined ? '-' : row.withinSla ? 'Yes' : 'No',
+    totalAssignments: formatNumber(row.totalAssignments ?? 0),
+    assigneeName: row.assigneeName ?? '',
+    location: lookup(row.location, locationDescriptions),
+  };
+}
+
 type SortHeadContext = {
   sort: UserOverviewSort;
 };
@@ -356,33 +389,8 @@ export function buildUserOverviewViewModel(params: {
       { key: { text: 'Within due date' }, value: { text: formatNumber(completedComplianceSummary.withinDueYes) } },
       { key: { text: 'Beyond due date' }, value: { text: formatNumber(completedComplianceSummary.withinDueNo) } },
     ],
-    assignedRows: assignedPagedRows.map(row => ({
-      caseId: row.caseId,
-      createdDate: row.createdDate,
-      taskName: row.taskName,
-      assignedDate: row.assignedDate ?? '-',
-      dueDate: row.dueDate ?? '-',
-      priority: row.priority,
-      totalAssignments: formatNumber(row.totalAssignments ?? 0),
-      assigneeName: row.assigneeName ?? '',
-      location: lookup(row.location, locationDescriptions),
-    })),
-    completedRows: completedPagedRows.map(row => ({
-      caseId: row.caseId,
-      createdDate: row.createdDate,
-      taskName: row.taskName,
-      assignedDate: row.assignedDate ?? '-',
-      dueDate: row.dueDate ?? '-',
-      completedDate: row.completedDate ?? '-',
-      handlingTimeDays:
-        row.handlingTimeDays !== undefined
-          ? formatNumber(row.handlingTimeDays, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-          : '-',
-      withinDue: row.withinSla === null || row.withinSla === undefined ? '-' : row.withinSla ? 'Yes' : 'No',
-      totalAssignments: formatNumber(row.totalAssignments ?? 0),
-      assigneeName: row.assigneeName ?? '',
-      location: lookup(row.location, locationDescriptions),
-    })),
+    assignedRows: assignedPagedRows.map(row => mapAssignedRow(row, locationDescriptions)),
+    completedRows: completedPagedRows.map(row => mapCompletedRow(row, locationDescriptions)),
     completedByTaskNameRows: completedByTaskNameAggregates.map(row => [
       { text: row.taskName },
       buildNumericCell(row.tasks),
@@ -399,3 +407,9 @@ export function buildUserOverviewViewModel(params: {
     completedByDateTotalsRow: buildCompletedByDateTotalsRow(completedByDate),
   };
 }
+
+export const __testing = {
+  buildPercentCell,
+  mapAssignedRow,
+  mapCompletedRow,
+};

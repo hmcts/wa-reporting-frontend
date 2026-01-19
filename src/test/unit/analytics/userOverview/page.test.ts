@@ -217,7 +217,7 @@ describe('buildUserOverviewPage', () => {
       {
         case_id: 'CASE-10',
         task_id: 'CASE-10',
-        task_name: 'Audit',
+        task_name: null,
         jurisdiction_label: null,
         role_category_label: null,
         region: null,
@@ -265,12 +265,112 @@ describe('buildUserOverviewPage', () => {
         roleCategory: '',
         region: '',
         location: '',
-        taskName: 'Audit',
+        taskName: '',
         createdDate: '-',
         withinSla: false,
         assigneeName: undefined,
         totalAssignments: 1,
       }),
     ]);
+  });
+
+  test('defaults missing aggregates when mapping completed summaries', async () => {
+    const sort = getDefaultUserOverviewSort();
+
+    (taskThinRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue([]);
+    (taskThinRepository.fetchUserOverviewCompletedTaskRows as jest.Mock).mockResolvedValue([]);
+    (taskThinRepository.fetchUserOverviewCompletedByDateRows as jest.Mock).mockResolvedValue([
+      {
+        date_key: '2024-03-01',
+        tasks: 1,
+        within_due: 1,
+        beyond_due: 0,
+        handling_time_sum: null,
+        handling_time_count: 0,
+      },
+    ]);
+    (taskThinRepository.fetchUserOverviewCompletedByTaskNameRows as jest.Mock).mockResolvedValue([
+      {
+        task_name: null,
+        tasks: 1,
+        handling_time_sum: null,
+        handling_time_count: 0,
+        days_beyond_sum: null,
+        days_beyond_count: 0,
+      },
+    ]);
+    (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock).mockResolvedValue({ total: 1, within: 1 });
+    (userOverviewService.buildUserOverview as jest.Mock).mockReturnValue({
+      assigned: [],
+      completed: [],
+      prioritySummary: { urgent: 0, high: 0, medium: 0, low: 0 },
+      completedSummary: { total: 0, withinDueYes: 0, withinDueNo: 0 },
+      completedByDate: [],
+    });
+    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      users: [],
+    });
+    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
+    (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
+    (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-defaults' });
+
+    await buildUserOverviewPage({}, sort);
+
+    expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        completedByDate: [expect.objectContaining({ handlingTimeSum: 0 })],
+        completedByTaskName: [expect.objectContaining({ taskName: 'Unknown', handlingTimeSum: 0, daysBeyondSum: 0 })],
+      })
+    );
+  });
+
+  test('derives compliance summary from completed-by-date totals when compliance is missing', async () => {
+    const sort = getDefaultUserOverviewSort();
+
+    (taskThinRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue([]);
+    (taskThinRepository.fetchUserOverviewCompletedTaskRows as jest.Mock).mockResolvedValue([]);
+    (taskThinRepository.fetchUserOverviewCompletedByDateRows as jest.Mock).mockResolvedValue([
+      {
+        date_key: '2024-02-10',
+        tasks: 4,
+        within_due: 3,
+        beyond_due: 1,
+        handling_time_sum: 0,
+        handling_time_count: 0,
+      },
+    ]);
+    (taskThinRepository.fetchUserOverviewCompletedByTaskNameRows as jest.Mock).mockResolvedValue([]);
+    (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock).mockResolvedValue(null);
+    (userOverviewService.buildUserOverview as jest.Mock).mockReturnValue({
+      assigned: [],
+      completed: [],
+      prioritySummary: { urgent: 0, high: 0, medium: 0, low: 0 },
+      completedSummary: { total: 0, withinDueYes: 0, withinDueNo: 0 },
+      completedByDate: [],
+    });
+    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      users: [],
+    });
+    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
+    (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
+    (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-compliance' });
+
+    await buildUserOverviewPage({}, sort);
+
+    expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        completedComplianceSummary: { total: 4, withinDueYes: 3, withinDueNo: 1 },
+      })
+    );
   });
 });

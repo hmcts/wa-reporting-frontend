@@ -1,4 +1,5 @@
 import {
+  __testing,
   buildAnalyticsPaginationHref,
   paginateRows,
   parsePageParam,
@@ -29,6 +30,18 @@ describe('pagination helpers', () => {
     expect(href).toContain('assignedPage=2');
   });
 
+  test('buildAnalyticsPaginationHref skips empty filters and optional extras', () => {
+    const href = buildAnalyticsPaginationHref({
+      basePath: '/analytics',
+      filters: { service: [' ', 'Crime'], user: [''] },
+      pageParam: 'page',
+      page: 1,
+    });
+
+    expect(href).toContain('service=Crime');
+    expect(href).not.toContain('user=');
+  });
+
   test('paginateRows slices rows and builds pagination metadata', () => {
     const rows = Array.from({ length: 12 }, (_, index) => ({ id: index + 1 }));
     const { pagedRows, pagination } = paginateRows({
@@ -45,5 +58,11 @@ describe('pagination helpers', () => {
     expect(pagination.startResult).toBe(6);
     expect(pagination.endResult).toBe(10);
     expect(pagination.pagination.items[1].current).toBe(true);
+  });
+
+  test('normalises pages and parses non-finite values', () => {
+    expect(__testing.normalisePage(2, 0)).toBe(1);
+    expect(__testing.parsePageValue(Number.NaN)).toBeUndefined();
+    expect(__testing.parsePageValue([3])).toBe(3);
   });
 });

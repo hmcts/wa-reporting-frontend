@@ -1,7 +1,7 @@
 import { Task, TaskPriority, TaskStatus, UserTaskRow } from '../../../../main/modules/analytics/shared/types';
 import { getDefaultUserOverviewSort } from '../../../../main/modules/analytics/shared/userOverviewSort';
 import { UserOverviewMetrics } from '../../../../main/modules/analytics/userOverview/service';
-import { buildUserOverviewViewModel } from '../../../../main/modules/analytics/userOverview/viewModel';
+import { __testing, buildUserOverviewViewModel } from '../../../../main/modules/analytics/userOverview/viewModel';
 
 const buildTasks = (rows: UserTaskRow[], status: TaskStatus): Task[] =>
   rows.map(row => ({
@@ -423,5 +423,194 @@ describe('buildUserOverviewViewModel', () => {
     expect(viewModel.completedRows[0].withinDue).toBe('No');
     expect(viewModel.completedByTaskNameRows[0][0].text).toBe('Task A');
     expect(viewModel.completedByDateRows[0][3].text).toBe('0%');
+  });
+
+  test('formats totals and within-sla placeholders in task rows', () => {
+    const overview: UserOverviewMetrics = {
+      assigned: [
+        {
+          caseId: 'A1',
+          taskName: 'Task A',
+          createdDate: '2024-01-01',
+          assignedDate: undefined,
+          dueDate: undefined,
+          completedDate: undefined,
+          priority: 'low',
+          totalAssignments: 0,
+          assigneeName: undefined,
+          location: 'Leeds',
+          status: 'open',
+        },
+      ],
+      completed: [
+        {
+          caseId: 'C1',
+          taskName: 'Task C',
+          createdDate: '2024-01-01',
+          assignedDate: undefined,
+          dueDate: undefined,
+          completedDate: undefined,
+          priority: 'high',
+          totalAssignments: 0,
+          assigneeName: undefined,
+          location: 'Leeds',
+          withinDue: null,
+          status: 'completed',
+        },
+      ],
+      prioritySummary: { urgent: 0, high: 0, medium: 0, low: 1 },
+      completedSummary: { total: 1, withinDueYes: 0, withinDueNo: 1 },
+      completedByDate: [],
+    };
+
+    const viewModel = buildUserOverviewViewModel({
+      filters: {},
+      overview,
+      allTasks: [],
+      assignedTasks: buildTasks(overview.assigned, 'assigned'),
+      completedTasks: buildTasks(overview.completed, 'completed'),
+      completedComplianceSummary: {
+        total: overview.completedSummary.total,
+        withinDueYes: overview.completedSummary.withinDueYes,
+        withinDueNo: overview.completedSummary.withinDueNo,
+      },
+      completedByDate: [],
+      completedByTaskName: [],
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        users: [],
+      },
+      locationDescriptions: {},
+      sort: getDefaultUserOverviewSort(),
+      assignedPage: 1,
+      completedPage: 1,
+    });
+
+    expect(viewModel.assignedRows[0].totalAssignments).toBe('0');
+    expect(viewModel.completedRows[0].withinDue).toBe('-');
+    expect(viewModel.completedRows[0].totalAssignments).toBe('0');
+  });
+
+  test('formats percent cells via helper', () => {
+    const { buildPercentCell } = __testing;
+
+    expect(buildPercentCell(33.3, { minimumFractionDigits: 1 }).text).toContain('33');
+    jest.isolateModules(() => {
+      const { __testing: isolated } = require('../../../../main/modules/analytics/userOverview/viewModel');
+      expect(isolated.buildPercentCell(10).text).toContain('10');
+    });
+  });
+
+  test('formats total assignment counts for assigned and completed rows', () => {
+    const overview: UserOverviewMetrics = {
+      assigned: [
+        {
+          caseId: '900',
+          taskName: 'Task A',
+          createdDate: '2024-01-01',
+          assignedDate: '2024-01-02',
+          dueDate: '2024-01-03',
+          completedDate: undefined,
+          priority: 'urgent',
+          totalAssignments: 3,
+          assigneeName: 'User A',
+          location: 'Leeds',
+          status: 'open',
+        },
+      ],
+      completed: [
+        {
+          caseId: '901',
+          taskName: 'Task B',
+          createdDate: '2024-01-01',
+          assignedDate: '2024-01-02',
+          dueDate: '2024-01-03',
+          completedDate: '2024-01-04',
+          priority: 'high',
+          totalAssignments: 2,
+          assigneeName: 'User B',
+          location: 'Leeds',
+          status: 'completed',
+          withinDue: true,
+        },
+      ],
+      prioritySummary: { urgent: 1, high: 1, medium: 0, low: 0 },
+      completedSummary: { total: 1, withinDueYes: 1, withinDueNo: 0 },
+      completedByDate: [],
+    };
+
+    const viewModel = buildUserOverviewViewModel({
+      filters: {},
+      overview,
+      allTasks: [],
+      assignedTasks: buildTasks(overview.assigned, 'assigned'),
+      completedTasks: buildTasks(overview.completed, 'completed'),
+      completedComplianceSummary: {
+        total: overview.completedSummary.total,
+        withinDueYes: overview.completedSummary.withinDueYes,
+        withinDueNo: overview.completedSummary.withinDueNo,
+      },
+      completedByDate: [],
+      completedByTaskName: [],
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        users: [],
+      },
+      locationDescriptions: {},
+      sort: getDefaultUserOverviewSort(),
+      assignedPage: 1,
+      completedPage: 1,
+    });
+
+    expect(viewModel.assignedRows[0].totalAssignments).toBe('3');
+    expect(viewModel.completedRows[0].totalAssignments).toBe('2');
+  });
+
+  test('maps assigned and completed rows via helpers', () => {
+    const { mapAssignedRow, mapCompletedRow } = __testing;
+    const locationDescriptions = { Leeds: 'Leeds Crown Court' };
+    const baseTask = {
+      caseId: '1000',
+      taskId: '1000',
+      service: 'Service',
+      roleCategory: 'Role',
+      region: 'Region',
+      location: 'Leeds',
+      taskName: 'Task Z',
+      priority: 'low' as TaskPriority,
+      status: 'assigned' as TaskStatus,
+      createdDate: '2024-01-01',
+      assignedDate: '2024-01-02',
+      dueDate: '2024-01-03',
+      completedDate: '2024-01-04',
+      handlingTimeDays: 1.5,
+      totalAssignments: 1,
+      assigneeName: 'User',
+      withinSla: true,
+    } as Task;
+
+    expect(mapAssignedRow(baseTask, locationDescriptions).totalAssignments).toBe('1');
+    expect(mapAssignedRow(baseTask, locationDescriptions).location).toBe('Leeds Crown Court');
+
+    const completedRow = mapCompletedRow(baseTask, locationDescriptions);
+    expect(completedRow.handlingTimeDays).toBe('1.50');
+    expect(completedRow.withinDue).toBe('Yes');
+
+    jest.isolateModules(() => {
+      const { __testing: isolated } = require('../../../../main/modules/analytics/userOverview/viewModel');
+      expect(isolated.mapAssignedRow(baseTask, locationDescriptions).totalAssignments).toBe('1');
+      expect(isolated.mapCompletedRow(baseTask, locationDescriptions).totalAssignments).toBe('1');
+      const nullAssignments = { ...baseTask, totalAssignments: undefined };
+      expect(isolated.mapAssignedRow(nullAssignments, locationDescriptions).totalAssignments).toBe('0');
+      expect(isolated.mapCompletedRow(nullAssignments, locationDescriptions).totalAssignments).toBe('0');
+    });
   });
 });

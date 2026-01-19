@@ -331,4 +331,69 @@ describe('buildCompletedPage', () => {
       })
     );
   });
+
+  test('maps task audit rows with missing assignee and location', async () => {
+    const fallback = {
+      summary: {
+        completedToday: 0,
+        completedInRange: 0,
+        withinDueYes: 0,
+        withinDueNo: 0,
+        withinDueTodayYes: 0,
+        withinDueTodayNo: 0,
+      },
+      timeline: [],
+      completedByName: [],
+      handlingTimeStats: { metric: 'handlingTime', averageDays: 0, lowerRange: 0, upperRange: 0 },
+      processingHandlingTime: [],
+    };
+
+    (completedService.buildCompleted as jest.Mock).mockReturnValue(fallback);
+    (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue({ byLocation: [], byRegion: [] });
+    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      users: [],
+    });
+    (regionService.fetchRegionDescriptions as jest.Mock).mockResolvedValue({});
+    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
+    (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
+    (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock)
+      .mockResolvedValueOnce({ total: 0, within: 0 })
+      .mockResolvedValueOnce({ total: 0, within: 0 });
+    (completedTimelineChartService.fetchCompletedTimeline as jest.Mock).mockResolvedValue([]);
+    (completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime as jest.Mock).mockResolvedValue([]);
+    (completedByNameChartService.fetchCompletedByName as jest.Mock).mockResolvedValue([]);
+    (completedRegionLocationTableService.fetchCompletedByLocation as jest.Mock).mockResolvedValue([]);
+    (completedRegionLocationTableService.fetchCompletedByRegion as jest.Mock).mockResolvedValue([]);
+    (taskThinRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([
+      {
+        case_id: 'CASE-EMPTY',
+        task_name: null,
+        assignee: null,
+        completed_date: null,
+        number_of_reassignments: null,
+        location: null,
+        termination_process_label: null,
+      },
+    ]);
+    (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-empty-audit' });
+
+    await buildCompletedPage({}, 'handlingTime', 'CASE-EMPTY');
+
+    expect(buildCompletedViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskAuditRows: [
+          expect.objectContaining({
+            agentName: '-',
+            location: '-',
+            totalAssignments: 1,
+          }),
+        ],
+      })
+    );
+  });
 });

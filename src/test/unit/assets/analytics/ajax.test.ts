@@ -9,6 +9,7 @@ import {
   fetchSectionUpdate,
   fetchSortedSection,
   initAjaxFilterSections,
+  postAjaxForm,
 } from '../../../../main/assets/js/analytics/ajax';
 
 import { setupAnalyticsDom } from './analyticsTestUtils';
@@ -112,6 +113,50 @@ describe('analytics ajax', () => {
     expect(missingSubmitSpy).toHaveBeenCalled();
   });
 
+  test('falls back when paginated updates fail', async () => {
+    const form = document.createElement('form');
+    form.action = '/analytics/outstanding';
+    form.method = 'POST';
+    form.submit = jest.fn();
+    document.body.appendChild(form);
+
+    const section = document.createElement('div');
+    section.dataset.section = 'outstanding-critical-tasks';
+    document.body.appendChild(section);
+
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 }) as unknown as typeof fetch;
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await fetchPaginatedSection(
+      form,
+      'outstanding-critical-tasks',
+      'criticalTasks',
+      'criticalTasksPage',
+      '2',
+      ajaxDeps
+    );
+
+    expect(form.submit).toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  test('defaults postAjaxForm to the current path and POST', async () => {
+    const form = document.createElement('form');
+    Object.defineProperty(form, 'action', { value: '', writable: true });
+    Object.defineProperty(form, 'method', { value: '', writable: true });
+    document.body.appendChild(form);
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => '<span>ok</span>',
+    }) as unknown as typeof fetch;
+
+    await postAjaxForm(form, {});
+
+    expect(global.fetch).toHaveBeenCalledWith(window.location.pathname, expect.objectContaining({ method: 'POST' }));
+  });
+
   test('handles missing sections and failed pagination updates', async () => {
     const form = document.createElement('form');
     form.submit = jest.fn();
@@ -131,6 +176,19 @@ describe('analytics ajax', () => {
 
     await fetchSortedSection(form, 'assigned', 'missing', ajaxDeps);
     expect(form.submit).toHaveBeenCalled();
+
+    form.action = '/analytics/users';
+    form.method = 'POST';
+
+    const defaultSection = sortedSection;
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => '<span>sorted</span>',
+    }) as unknown as typeof fetch;
+
+    await fetchSortedSection(form, 'assigned', undefined, ajaxDeps);
+    expect(defaultSection.innerHTML).toContain('sorted');
 
     const paginatedSection = document.createElement('div');
     paginatedSection.dataset.section = 'outstanding-critical-tasks';

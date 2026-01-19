@@ -64,6 +64,9 @@ describe('analytics open by name', () => {
   });
 
   test('handles open-by-name guard clauses', async () => {
+    document.body.innerHTML = '';
+    await initOpenByName();
+
     const emptyContainer = document.createElement('section');
     emptyContainer.dataset.openByName = 'true';
     document.body.appendChild(emptyContainer);
@@ -82,5 +85,28 @@ describe('analytics open by name', () => {
     await initOpenByName();
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
+  });
+
+  test('renders without an error node when initial data is present', async () => {
+    const container = document.createElement('section');
+    container.dataset.openByName = 'true';
+    container.innerHTML = `
+      <div data-open-by-name-chart="true"></div>
+      <table data-open-by-name-table="true"><tbody></tbody></table>
+      <script data-open-by-name-initial type="application/json">
+        ${JSON.stringify({
+          breakdown: [{ name: 'Task A', urgent: 1, high: 2, medium: 3, low: 4 }],
+          totals: { name: 'Total', urgent: 1, high: 2, medium: 3, low: 4 },
+          chart: { data: [{ y: ['Task A'] }] },
+        })}
+      </script>
+    `;
+    document.body.appendChild(container);
+
+    await initOpenByName();
+
+    const rows = container.querySelectorAll('tbody tr');
+    expect(rows).toHaveLength(2);
+    expect(container.querySelector('[data-open-by-name-error="true"]')).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { buildOutstandingViewModel } from '../../../../main/modules/analytics/outstanding/viewModel';
+import { __testing, buildOutstandingViewModel } from '../../../../main/modules/analytics/outstanding/viewModel';
 import { getDefaultOutstandingSort } from '../../../../main/modules/analytics/shared/outstandingSort';
 
 describe('buildOutstandingViewModel', () => {
@@ -54,6 +54,7 @@ describe('buildOutstandingViewModel', () => {
     expect(viewModel.openTasksTotalsRow[0].text).toBe('Total');
     expect(viewModel.openTasksTotalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.openTasksRows[0][1].attributes?.['data-sort-value']).toBe('2');
+    expect(viewModel.openTasksRows[0][3].text).toBe('50.0%');
     expect(viewModel.openByNameTotalsRow[1].text).toBe('1');
     expect(viewModel.openByNameTotalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.waitTimeTotalsRow[2].text).toBe('2.0');
@@ -200,5 +201,44 @@ describe('buildOutstandingViewModel', () => {
     expect(viewModel.outstandingByRegionLocationRows[1][1].text).toBe('South West');
     expect(viewModel.outstandingByRegionLocationRows[2][0].text).toBe('York');
     expect(viewModel.criticalTasksPagination.pageSize).toBe(500);
+  });
+
+  test('formats percent cells via helper', () => {
+    const { buildOutstandingLocationRows, buildOutstandingRegionRows, buildPercentCell } = __testing;
+
+    expect(buildPercentCell(25, { minimumFractionDigits: 1 }).text).toContain('25');
+
+    const locationRows = buildOutstandingLocationRows(
+      [
+        { location: 'Same', region: 'North', open: 1, urgent: 0, high: 0, medium: 0, low: 1 },
+        { location: 'Same', region: 'South', open: 2, urgent: 0, high: 1, medium: 0, low: 0 },
+      ],
+      true,
+      { Same: 'Same Location' },
+      { North: 'North', South: 'South' }
+    );
+    expect(locationRows[0][1].text).toBe('North');
+
+    const locationRowsNoRegion = buildOutstandingLocationRows(
+      [{ location: 'Only', region: 'North', open: 1, urgent: 0, high: 0, medium: 0, low: 1 }],
+      false,
+      { Only: 'Only Location' },
+      {}
+    );
+    expect(locationRowsNoRegion[0][0].text).toBe('Only Location');
+
+    const regionRows = buildOutstandingRegionRows(
+      [
+        { region: 'South', open: 1, urgent: 0, high: 1, medium: 0, low: 0 },
+        { region: 'North', open: 1, urgent: 0, high: 0, medium: 0, low: 1 },
+      ],
+      { North: 'North', South: 'South' }
+    );
+    expect(regionRows[0][0].text).toBe('North');
+
+    jest.isolateModules(() => {
+      const { __testing: isolated } = require('../../../../main/modules/analytics/outstanding/viewModel');
+      expect(isolated.buildPercentCell(12.5).text).toContain('12');
+    });
   });
 });

@@ -272,6 +272,39 @@ describe('buildCompletedViewModel', () => {
     });
   });
 
+  test('renders zero completion percentages in timeline rows', () => {
+    const completed: CompletedResponse = {
+      summary: {
+        completedToday: 0,
+        completedInRange: 0,
+        withinDueYes: 0,
+        withinDueNo: 0,
+        withinDueTodayYes: 0,
+        withinDueTodayNo: 0,
+      },
+      timeline: [{ date: '2024-06-01', completed: 0, withinDue: 0, beyondDue: 0 }],
+      completedByName: [],
+      handlingTimeStats: { metric: 'handlingTime', averageDays: 0, lowerRange: 0, upperRange: 0 },
+      processingHandlingTime: [],
+    };
+
+    const viewModel = buildCompletedViewModel({
+      filters: {},
+      completed,
+      allTasks: [],
+      filterOptions: { services: [], roleCategories: [], regions: [], locations: [], taskNames: [], users: [] },
+      completedByLocation: [],
+      completedByRegion: [],
+      regionDescriptions: {},
+      locationDescriptions: {},
+      taskAuditRows: [],
+      taskAuditCaseId: '',
+      selectedMetric: 'handlingTime',
+    });
+
+    expect(viewModel.timelineRows[0][3].text).toBe('0%');
+  });
+
   test('exposes task audit data for templates', () => {
     const completed: CompletedResponse = {
       summary: {
@@ -546,5 +579,17 @@ describe('buildCompletedViewModel', () => {
     expect(rows).toHaveLength(2);
     expect(rows[0][0].text).toBe('Same Location');
     expect(rows[1][0].text).toBe('Same Location');
+  });
+
+  test('exposes numeric helper formatting for totals and percentages', () => {
+    const { buildPercentCell, buildOptionalNumericCell, buildTotalsRowWithLabelColumns } = __testing;
+
+    expect(buildPercentCell(12.5, { minimumFractionDigits: 1 }).text).toContain('12.5');
+    expect(buildOptionalNumericCell(undefined).text).toBe('-');
+    expect(buildOptionalNumericCell(3).attributes?.['data-sort-value']).toBe('3');
+
+    const totals = buildTotalsRowWithLabelColumns('Total', 3, [1, 2], 1);
+    expect(totals[0].attributes?.['data-total-row']).toBe('true');
+    expect(totals[totals.length - 1].text).toBe('');
   });
 });

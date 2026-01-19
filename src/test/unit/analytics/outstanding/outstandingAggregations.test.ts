@@ -438,4 +438,29 @@ describe('buildOutstanding', () => {
     expect(metrics.openByName[0].urgent).toBe(0);
     expect(metrics.outstandingByLocation[0].urgent).toBe(0);
   });
+
+  test('calculates wait time averages from assigned dates', () => {
+    const tasks: Task[] = [
+      {
+        caseId: 'CASE-100',
+        taskId: 'TASK-100',
+        service: 'Service A',
+        roleCategory: 'Ops',
+        region: 'North',
+        location: 'Leeds',
+        taskName: 'Review',
+        status: 'assigned',
+        priority: 'low',
+        createdDate: '2024-01-01',
+        assignedDate: '2024-01-01',
+        dueDate: '2024-01-10',
+        totalAssignments: 1,
+      },
+    ];
+
+    const metrics = outstandingService.buildOutstanding(tasks);
+
+    expect(metrics.timelines.waitTimeByAssigned).toHaveLength(1);
+    expect(metrics.timelines.waitTimeByAssigned[0].averageWaitDays).toBe(0);
+  });
 });

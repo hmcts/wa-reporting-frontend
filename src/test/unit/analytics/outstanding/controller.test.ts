@@ -134,4 +134,29 @@ describe('outstandingController', () => {
     expect(getAjaxPartialTemplate).toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/outstanding/partials/critical-tasks', { view: 'outstanding-ajax' });
   });
+
+  test('falls back to full page when ajax template is missing', async () => {
+    const router = buildRouter();
+    const render = jest.fn();
+    const req = {
+      method: 'POST',
+      body: { ajaxSection: 'criticalTasks' },
+      get: jest.fn().mockReturnValue('fetch'),
+    } as unknown as Request;
+    const res = { render } as unknown as Response;
+
+    (validateFilters as jest.Mock).mockReturnValue({ filters: {} });
+    (parseOutstandingSort as jest.Mock).mockReturnValue({ criticalTasks: { by: 'dueDate', dir: 'asc' } });
+    (parseCriticalTasksPage as jest.Mock).mockReturnValue(1);
+    (buildOutstandingPage as jest.Mock).mockResolvedValue({ view: 'outstanding-fallback' });
+    (isAjaxRequest as jest.Mock).mockReturnValue(true);
+    (getAjaxPartialTemplate as jest.Mock).mockReturnValue(undefined);
+
+    outstandingController.registerOutstandingRoutes(router);
+
+    const handler = (router.post as jest.Mock).mock.calls[0][1];
+    await handler(req, res);
+
+    expect(render).toHaveBeenCalledWith('analytics/outstanding/index', { view: 'outstanding-fallback' });
+  });
 });

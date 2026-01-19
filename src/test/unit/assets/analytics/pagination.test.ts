@@ -76,7 +76,7 @@ describe('analytics pagination', () => {
     expect(form.querySelector<HTMLInputElement>('input[name="completedPage"]')?.value).toBe('3');
 
     expect(getPaginationParamFromHref('/analytics/outstanding?criticalTasksPage=2', 'criticalTasksPage')).toBe('2');
-    expect(getPaginationParamFromHref('::', 'criticalTasksPage')).toBeNull();
+    expect(getPaginationParamFromHref('http://[invalid', 'criticalTasksPage')).toBeNull();
   });
 
   test('guards pagination handlers when inputs are missing', () => {

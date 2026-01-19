@@ -1,7 +1,12 @@
 /* @jest-environment jsdom */
 import Plotly from 'plotly.js-basic-dist-min';
 
-import { bindScrollPan, renderCharts } from '../../../../main/assets/js/analytics/charts';
+import {
+  bindScrollPan,
+  labelModebarButtons,
+  renderCharts,
+  renderOpenByNameChart,
+} from '../../../../main/assets/js/analytics/charts';
 
 import { mockBoundingClientRect, setupAnalyticsDom } from './analyticsTestUtils';
 
@@ -58,6 +63,12 @@ describe('analytics charts', () => {
     const emptyNode = document.createElement('div');
     emptyNode.dataset.chartConfig = '';
     document.body.appendChild(emptyNode);
+    const staticNode = document.createElement('div');
+    staticNode.dataset.chartConfig = JSON.stringify({
+      data: [{ y: ['X'] }],
+      config: { displayModeBar: false },
+    });
+    document.body.appendChild(staticNode);
 
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     renderCharts();
@@ -117,5 +128,99 @@ describe('analytics charts', () => {
     wheelNode.dispatchEvent(new WheelEvent('wheel', { deltaY: 0, bubbles: true }));
 
     expect(boundNode.dataset.scrollPanBound).toBe('true');
+  });
+
+  test('cancels pending drag animation on mouseup', () => {
+    const node = document.createElement('div');
+    (node as unknown as { _fullLayout?: { yaxis?: { range?: [number, number] } } })._fullLayout = {
+      yaxis: { range: [4, 0] },
+    };
+
+    const originalRaf = window.requestAnimationFrame;
+    const originalCancel = window.cancelAnimationFrame;
+    window.requestAnimationFrame = jest.fn(() => 1);
+    window.cancelAnimationFrame = jest.fn();
+
+    bindScrollPan(node, { data: [{ y: ['A', 'B', 'C'] }] });
+    const handle = node.querySelector<HTMLElement>('.analytics-chart-scroll-handle');
+    handle?.dispatchEvent(new MouseEvent('mousedown', { clientY: 10, bubbles: true }));
+    window.dispatchEvent(new MouseEvent('mousemove', { clientY: 20, bubbles: true }));
+    window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+
+    expect(window.cancelAnimationFrame).toHaveBeenCalledWith(1);
+
+    window.requestAnimationFrame = originalRaf;
+    window.cancelAnimationFrame = originalCancel;
+  });
+
+  test('handles non-array categories and wheel animation frames', () => {
+    const nonArrayNode = document.createElement('div');
+    bindScrollPan(nonArrayNode, { data: [{ y: 'A' as unknown as string }] });
+
+    const node = document.createElement('div');
+    (node as unknown as { _fullLayout?: { yaxis?: { range?: [number, number] } } })._fullLayout = {
+      yaxis: { range: [4, 0] },
+    };
+
+    const originalRaf = window.requestAnimationFrame;
+    window.requestAnimationFrame = jest.fn(() => 1);
+
+    bindScrollPan(node, { data: [{ y: ['A', 'B', 'C'] }] });
+    node.dispatchEvent(new WheelEvent('wheel', { deltaY: 1, bubbles: true }));
+
+    expect(window.requestAnimationFrame).toHaveBeenCalled();
+
+    window.requestAnimationFrame = originalRaf;
+  });
+
+  test('requests and cancels animation frames during drag and wheel interactions', () => {
+    const node = document.createElement('div');
+    (node as unknown as { _fullLayout?: { yaxis?: { range?: [number, number] } } })._fullLayout = {
+      yaxis: { range: [4, 0] },
+    };
+
+    const originalRaf = window.requestAnimationFrame;
+    const originalCancel = window.cancelAnimationFrame;
+    const rafSpy = jest.fn(() => 1);
+    const cancelSpy = jest.fn();
+    window.requestAnimationFrame = rafSpy;
+    window.cancelAnimationFrame = cancelSpy;
+
+    bindScrollPan(node, { data: [{ y: ['A', 'B', 'C'] }] });
+    const handle = node.querySelector<HTMLElement>('.analytics-chart-scroll-handle');
+    handle?.dispatchEvent(new MouseEvent('mousedown', { clientY: 10, bubbles: true }));
+    window.dispatchEvent(new MouseEvent('mousemove', { clientY: 20, bubbles: true }));
+    window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    node.dispatchEvent(new WheelEvent('wheel', { deltaY: 1, bubbles: true }));
+
+    expect(rafSpy).toHaveBeenCalled();
+    expect(cancelSpy).toHaveBeenCalledWith(1);
+
+    window.requestAnimationFrame = originalRaf;
+    window.cancelAnimationFrame = originalCancel;
+  });
+
+  test('labels modebar buttons and renders open-by-name charts', () => {
+    const container = document.createElement('div');
+    const alreadyLabeled = document.createElement('a');
+    alreadyLabeled.className = 'modebar-btn';
+    alreadyLabeled.setAttribute('aria-label', 'Existing');
+    container.appendChild(alreadyLabeled);
+    const unlabeled = document.createElement('a');
+    unlabeled.className = 'modebar-btn';
+    unlabeled.dataset.title = 'Zoom';
+    container.appendChild(unlabeled);
+    const missingLabel = document.createElement('a');
+    missingLabel.className = 'modebar-btn';
+    container.appendChild(missingLabel);
+
+    labelModebarButtons(container);
+    expect(alreadyLabeled.getAttribute('aria-label')).toBe('Existing');
+    expect(unlabeled.getAttribute('aria-label')).toBe('Zoom');
+    expect(missingLabel.getAttribute('aria-label')).toBeNull();
+
+    const node = document.createElement('div');
+    renderOpenByNameChart(node, { data: [{ y: ['A', 'B', 'C'] }] });
+    expect(Plotly.newPlot).toHaveBeenCalled();
   });
 });

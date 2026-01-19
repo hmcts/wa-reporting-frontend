@@ -148,4 +148,47 @@ describe('buildOverviewPage', () => {
       })
     );
   });
+
+  test('keeps fallback overview when no service rows are returned', async () => {
+    const fallback = {
+      serviceRows: [],
+      totals: {
+        service: 'Total',
+        open: 0,
+        assigned: 0,
+        assignedPct: 0,
+        urgent: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+    };
+
+    (overviewService.buildOverview as jest.Mock).mockReturnValue(fallback);
+    (serviceOverviewTableService.fetchServiceOverview as jest.Mock).mockResolvedValue({
+      serviceRows: [],
+      totals: fallback.totals,
+    });
+    (taskEventsByServiceChartService.fetchTaskEventsByService as jest.Mock).mockResolvedValue({
+      rows: [],
+      totals: { service: 'Total', completed: 0, cancelled: 0, created: 0 },
+    });
+    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      users: [],
+    });
+    (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-empty' });
+
+    await buildOverviewPage({});
+
+    expect(buildOverviewViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        overview: fallback,
+      })
+    );
+  });
 });
