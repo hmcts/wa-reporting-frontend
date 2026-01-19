@@ -460,4 +460,91 @@ describe('buildCompletedViewModel', () => {
     expect(rows[0][1].text).toBe('Leeds Crown Court');
     expect(rows[1][1].text).toBe('York Court');
   });
+
+  test('uses processing time metrics when selected', () => {
+    const completed: CompletedResponse = {
+      summary: {
+        completedToday: 0,
+        completedInRange: 0,
+        withinDueYes: 0,
+        withinDueNo: 0,
+        withinDueTodayYes: 0,
+        withinDueTodayNo: 0,
+      },
+      timeline: [],
+      completedByName: [],
+      handlingTimeStats: {
+        metric: 'handlingTime',
+        averageDays: 0,
+        lowerRange: 0,
+        upperRange: 0,
+      },
+      processingHandlingTime: [
+        {
+          date: '2024-02-01',
+          tasks: 2,
+          handlingAverageDays: 1,
+          handlingStdDevDays: 0.5,
+          handlingSumDays: 2,
+          handlingCount: 2,
+          processingAverageDays: 2.5,
+          processingStdDevDays: 0.5,
+          processingSumDays: 5,
+          processingCount: 2,
+        },
+      ],
+    };
+
+    const viewModel = buildCompletedViewModel({
+      filters: {},
+      completed,
+      allTasks: [],
+      filterOptions: { services: [], roleCategories: [], regions: [], locations: [], taskNames: [], users: [] },
+      completedByLocation: [],
+      completedByRegion: [],
+      regionDescriptions: {},
+      locationDescriptions: {},
+      taskAuditRows: [],
+      taskAuditCaseId: '',
+      selectedMetric: 'processingTime',
+    });
+
+    expect(viewModel.processingHandlingRows[0][2].text).toBe('2.50');
+    expect(viewModel.processingHandlingRows[0][3].text).toBe('3.00');
+    expect(viewModel.processingHandlingRows[0][4].text).toBe('2.00');
+    expect(viewModel.processingHandlingOverallAverage).toBe('2.50');
+    expect(viewModel.processingHandlingOverallLabel).toBe('Overall average of processing time (days)');
+  });
+
+  test('keeps order when sorting location rows with identical labels', () => {
+    const rows = __testing.buildCompletedLocationRows(
+      [
+        {
+          region: null,
+          location: 'Same',
+          tasks: 1,
+          withinDue: 1,
+          beyondDue: 0,
+          handlingTimeDays: undefined,
+          processingTimeDays: undefined,
+        },
+        {
+          region: null,
+          location: 'Same',
+          tasks: 2,
+          withinDue: 1,
+          beyondDue: 1,
+          handlingTimeDays: undefined,
+          processingTimeDays: undefined,
+        },
+      ],
+      false,
+      { Same: 'Same Location' },
+      {}
+    );
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0][0].text).toBe('Same Location');
+    expect(rows[1][0].text).toBe('Same Location');
+  });
 });

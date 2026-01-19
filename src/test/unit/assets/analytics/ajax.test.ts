@@ -1,0 +1,178 @@
+/* @jest-environment jsdom */
+import { initAll as initMojAll } from '@ministryofjustice/frontend';
+import { initAll } from 'govuk-frontend';
+
+import type { AjaxDeps } from '../../../../main/assets/js/analytics/ajax';
+import {
+  buildUrlEncodedBody,
+  fetchPaginatedSection,
+  fetchSectionUpdate,
+  fetchSortedSection,
+  initAjaxFilterSections,
+} from '../../../../main/assets/js/analytics/ajax';
+
+import { setupAnalyticsDom } from './analyticsTestUtils';
+
+jest.mock('govuk-frontend', () => ({ initAll: jest.fn() }));
+jest.mock('@ministryofjustice/frontend', () => ({ initAll: jest.fn() }));
+
+const flushPromises = async (): Promise<void> => {
+  await new Promise(resolve => setTimeout(resolve, 0));
+};
+
+describe('analytics ajax', () => {
+  let ajaxDeps: AjaxDeps;
+  const fetchSectionUpdateWithDeps = (form: HTMLFormElement, sectionId: string): Promise<void> =>
+    fetchSectionUpdate(form, sectionId, ajaxDeps);
+
+  beforeEach(() => {
+    setupAnalyticsDom();
+    ajaxDeps = {
+      initAll,
+      initMojAll,
+      rebindSectionBehaviors: jest.fn(),
+    };
+  });
+
+  test('falls back to full submit when ajax requests fail', async () => {
+    const form = document.createElement('form');
+    form.dataset.ajaxSection = 'summary';
+    form.action = '/analytics/overview';
+    const submitSpy = jest.spyOn(form, 'submit').mockImplementation(() => {});
+    document.body.appendChild(form);
+    const section = document.createElement('div');
+    section.dataset.section = 'summary';
+    document.body.appendChild(section);
+
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 }) as unknown as typeof fetch;
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await fetchSectionUpdate(form, 'summary', ajaxDeps);
+
+    expect(submitSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  test('builds encoded bodies and paginates sections', async () => {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/analytics/outstanding';
+    const textInput = document.createElement('input');
+    textInput.name = 'search';
+    textInput.value = 'alpha';
+    form.appendChild(textInput);
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.name = 'upload';
+    const file = new File(['data'], 'file.txt', { type: 'text/plain' });
+    Object.defineProperty(fileInput, 'files', { value: [file] });
+    form.appendChild(fileInput);
+    document.body.appendChild(form);
+
+    const originalFormData = FormData;
+    class MockFormData {
+      private entries: [string, FormDataEntryValue][] = [
+        ['search', 'alpha'],
+        ['upload', file],
+      ];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      constructor(_form?: any) {}
+      forEach(callback: (value: FormDataEntryValue, key: string) => void): void {
+        this.entries.forEach(([key, value]) => callback(value, key));
+      }
+    }
+    global.FormData = MockFormData as unknown as typeof FormData;
+    const params = buildUrlEncodedBody(form, { extra: 'value' });
+    global.FormData = originalFormData;
+    expect(params.get('search')).toBe('alpha');
+    expect(params.get('upload')).toBe('file.txt');
+    expect(params.get('extra')).toBe('value');
+
+    const section = document.createElement('div');
+    section.dataset.section = 'outstanding-critical-tasks';
+    document.body.appendChild(section);
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => '<span>page</span>',
+    }) as unknown as typeof fetch;
+
+    await fetchPaginatedSection(
+      form,
+      'outstanding-critical-tasks',
+      'criticalTasks',
+      'criticalTasksPage',
+      '2',
+      ajaxDeps
+    );
+    expect(section.innerHTML).toContain('page');
+
+    const missingTargetForm = document.createElement('form');
+    const missingSubmitSpy = jest.spyOn(missingTargetForm, 'submit').mockImplementation(() => {});
+    await fetchPaginatedSection(missingTargetForm, 'missing', 'criticalTasks', 'criticalTasksPage', '1', ajaxDeps);
+    expect(missingSubmitSpy).toHaveBeenCalled();
+  });
+
+  test('handles missing sections and failed pagination updates', async () => {
+    const form = document.createElement('form');
+    form.submit = jest.fn();
+    document.body.appendChild(form);
+
+    await fetchSectionUpdate(form, 'missing-section', ajaxDeps);
+    expect(form.submit).toHaveBeenCalled();
+
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 }) as unknown as typeof fetch;
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const sortedSection = document.createElement('div');
+    sortedSection.dataset.section = 'user-overview-assigned';
+    document.body.appendChild(sortedSection);
+
+    await fetchSortedSection(form, 'assigned', 'user-overview-assigned', ajaxDeps);
+    expect(form.submit).toHaveBeenCalled();
+
+    await fetchSortedSection(form, 'assigned', 'missing', ajaxDeps);
+    expect(form.submit).toHaveBeenCalled();
+
+    const paginatedSection = document.createElement('div');
+    paginatedSection.dataset.section = 'outstanding-critical-tasks';
+    document.body.appendChild(paginatedSection);
+    await fetchPaginatedSection(
+      form,
+      'outstanding-critical-tasks',
+      'criticalTasks',
+      'criticalTasksPage',
+      '2',
+      ajaxDeps
+    );
+    expect(form.submit).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  test('initialises ajax section filters and guards missing ids', async () => {
+    const ajaxForm = document.createElement('form');
+    ajaxForm.dataset.ajaxSection = 'completed-summary';
+    ajaxForm.action = '/analytics/completed';
+    document.body.appendChild(ajaxForm);
+    const ajaxSection = document.createElement('div');
+    ajaxSection.dataset.section = 'completed-summary';
+    document.body.appendChild(ajaxSection);
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => '<p>Updated</p>',
+    }) as unknown as typeof fetch;
+
+    initAjaxFilterSections(fetchSectionUpdateWithDeps);
+    ajaxForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await flushPromises();
+    expect(ajaxSection.innerHTML).toContain('Updated');
+    expect(initAll).toHaveBeenCalled();
+
+    const emptySectionForm = document.createElement('form');
+    emptySectionForm.dataset.ajaxSection = '';
+    emptySectionForm.submit = jest.fn();
+    document.body.appendChild(emptySectionForm);
+    initAjaxFilterSections(fetchSectionUpdateWithDeps);
+    emptySectionForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    expect(emptySectionForm.submit).toHaveBeenCalled();
+  });
+});
