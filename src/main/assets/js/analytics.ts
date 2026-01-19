@@ -1,3 +1,4 @@
+import { initAll as initMojAll } from '@ministryofjustice/frontend';
 import { initAll } from 'govuk-frontend';
 import type { Config } from 'plotly.js';
 import Plotly from 'plotly.js-basic-dist-min';
@@ -278,6 +279,36 @@ function initTableSorting(): void {
   });
 }
 
+function moveStickyTotalsRow(table: HTMLTableElement): void {
+  const body = table.querySelector('tbody');
+  if (!body) {
+    return;
+  }
+  const totalsCell = body.querySelector<HTMLElement>('[data-total-row="true"]');
+  const totalsRow = totalsCell?.closest('tr');
+  if (!totalsRow) {
+    return;
+  }
+  body.appendChild(totalsRow);
+}
+
+function initMojStickyTotals(): void {
+  const tables = document.querySelectorAll<HTMLTableElement>(
+    '[data-module="moj-sortable-table"][data-sticky-totals="true"]'
+  );
+  tables.forEach(table => {
+    if (table.dataset.mojStickyTotalsBound === 'true') {
+      return;
+    }
+    const moveTotals = () => {
+      window.requestAnimationFrame(() => moveStickyTotalsRow(table));
+    };
+    table.addEventListener('click', moveTotals);
+    moveStickyTotalsRow(table);
+    table.dataset.mojStickyTotalsBound = 'true';
+  });
+}
+
 function initAjaxFilterSections(): void {
   const forms = document.querySelectorAll<HTMLFormElement>('form[data-ajax-section]');
   forms.forEach(form => {
@@ -353,6 +384,7 @@ function rebindSectionBehaviors(): void {
   renderCharts();
   initTableExports();
   initTableSorting();
+  initMojStickyTotals();
   initAjaxFilterSections();
   initAutoSubmitForms();
   initCriticalTasksPagination();
@@ -369,6 +401,7 @@ async function fetchSectionUpdate(form: HTMLFormElement, sectionId: string): Pro
     const html = await postAjaxForm(form, { ajaxSection: sectionId });
     target.innerHTML = html;
     initAll({ scope: target });
+    initMojAll({ scope: target });
     rebindSectionBehaviors();
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -1092,8 +1125,10 @@ function bindScrollPan(node: HTMLElement, config: PlotlyConfig): void {
 
 document.addEventListener('DOMContentLoaded', () => {
   renderCharts();
+  initMojAll();
   initTableExports();
   initTableSorting();
+  initMojStickyTotals();
   initCriticalTasksPagination();
   initUserOverviewPagination();
   initMultiSelects();

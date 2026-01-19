@@ -2,6 +2,7 @@ $govuk-new-organisation-colours: true;
 $govuk-page-width: 1400px;
 
 @import 'govuk-frontend';
+@import '@ministryofjustice/frontend';
 
 :root {
   /* GOV.UK palette alignment for Plotly series */

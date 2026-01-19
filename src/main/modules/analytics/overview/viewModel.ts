@@ -3,7 +3,6 @@ import { buildDateParts, formatNumber, formatPercent } from '../shared/formattin
 import { FilterOptions } from '../shared/services';
 import { AnalyticsFilters, OverviewResponse } from '../shared/types';
 import { FilterOptionsViewModel } from '../shared/viewModels/filterOptions';
-import { buildTotalsRow } from '../shared/viewModels/totalsRow';
 
 type TaskEventsRow = {
   service: string;
@@ -14,7 +13,8 @@ type TaskEventsRow = {
 
 type AnalyticsTask = { service: string; roleCategory: string; region: string; location: string; taskName: string };
 type DateParts = { day: string; month: string; year: string };
-type TableRow = { text: string }[];
+type TableCell = { text: string; attributes?: Record<string, string> };
+type TableRow = TableCell[];
 type TableRows = TableRow[];
 
 type OverviewViewModel = FilterOptionsViewModel & {
@@ -29,44 +29,63 @@ type OverviewViewModel = FilterOptionsViewModel & {
   eventsTo: DateParts;
 };
 
+function buildNumericCell(value: number): TableCell {
+  return { text: formatNumber(value), attributes: { 'data-sort-value': String(value) } };
+}
+
+function buildPercentCell(value: number): TableCell {
+  return {
+    text: formatPercent(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    attributes: { 'data-sort-value': String(value) },
+  };
+}
+
+function buildTotalLabelCell(label: string): TableCell {
+  return { text: label, attributes: { 'data-total-row': 'true' } };
+}
+
 function buildOverviewTableRows(rows: OverviewResponse['serviceRows']): TableRows {
   return rows.map(row => [
     { text: row.service },
-    { text: formatNumber(row.open) },
-    { text: formatNumber(row.assigned) },
-    {
-      text: formatPercent(row.assignedPct, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
-    },
-    { text: formatNumber(row.urgent) },
-    { text: formatNumber(row.high) },
-    { text: formatNumber(row.medium) },
-    { text: formatNumber(row.low) },
+    buildNumericCell(row.open),
+    buildNumericCell(row.assigned),
+    buildPercentCell(row.assignedPct),
+    buildNumericCell(row.urgent),
+    buildNumericCell(row.high),
+    buildNumericCell(row.medium),
+    buildNumericCell(row.low),
   ]);
 }
 
 function buildOverviewTotalsRow(totals: OverviewResponse['totals']): TableRow {
-  return buildTotalsRow(totals.service, [
-    totals.open,
-    totals.assigned,
-    formatPercent(totals.assignedPct, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
-    totals.urgent,
-    totals.high,
-    totals.medium,
-    totals.low,
-  ]);
+  return [
+    buildTotalLabelCell(totals.service),
+    buildNumericCell(totals.open),
+    buildNumericCell(totals.assigned),
+    buildPercentCell(totals.assignedPct),
+    buildNumericCell(totals.urgent),
+    buildNumericCell(totals.high),
+    buildNumericCell(totals.medium),
+    buildNumericCell(totals.low),
+  ];
 }
 
 function buildTaskEventsRows(rows: TaskEventsRow[]): TableRows {
   return rows.map(row => [
     { text: row.service },
-    { text: formatNumber(row.created) },
-    { text: formatNumber(row.completed) },
-    { text: formatNumber(row.cancelled) },
+    buildNumericCell(row.created),
+    buildNumericCell(row.completed),
+    buildNumericCell(row.cancelled),
   ]);
 }
 
 function buildTaskEventsTotalsRow(totals: TaskEventsRow): TableRow {
-  return buildTotalsRow(totals.service, [totals.created, totals.completed, totals.cancelled]);
+  return [
+    buildTotalLabelCell(totals.service),
+    buildNumericCell(totals.created),
+    buildNumericCell(totals.completed),
+    buildNumericCell(totals.cancelled),
+  ];
 }
 
 export function buildOverviewViewModel(params: {

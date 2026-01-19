@@ -89,14 +89,19 @@
         <div class="analytics-tab-panel">
           {{ csvDownloadButton() }}
           {{ analyticsTable({
-            attributes: { 'data-export-csv': 'true', 'data-export-filename': 'overview-task-events.csv', 'data-sortable': 'true' },
+            attributes: {
+              'data-export-csv': 'true',
+              'data-export-filename': 'overview-task-events.csv',
+              'data-module': 'moj-sortable-table',
+              'data-sticky-totals': 'true'
+            },
             classes: "analytics-table--compact",
             hasTotals: true,
             head: [
-              { text: "Service" },
-              { text: "Created", format: "numeric" },
-              { text: "Completed", format: "numeric" },
-              { text: "Cancelled", format: "numeric" }
+              { text: "Service", attributes: { 'aria-sort': 'ascending' } },
+              { text: "Created", format: "numeric", attributes: { 'aria-sort': 'none' } },
+              { text: "Completed", format: "numeric", attributes: { 'aria-sort': 'none' } },
+              { text: "Cancelled", format: "numeric", attributes: { 'aria-sort': 'none' } }
             ],
             rows: taskEventsRows.concat([taskEventsTotalsRow])
           }) }}

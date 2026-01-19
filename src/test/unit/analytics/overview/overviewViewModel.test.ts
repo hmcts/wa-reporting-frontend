@@ -37,6 +37,8 @@ describe('buildOverviewViewModel', () => {
 
     expect(viewModel.rows).toHaveLength(1);
     expect(viewModel.tableRows[0][0].text).toBe('Service A');
+    expect(viewModel.tableRows[0][1].attributes?.['data-sort-value']).toBe('10');
+    expect(viewModel.totalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.eventsFrom).toEqual({ day: '5', month: '1', year: '2024' });
     expect(viewModel.eventsTo).toEqual({ day: '10', month: '1', year: '2024' });
   });
@@ -87,6 +89,7 @@ describe('buildOverviewViewModel', () => {
 
     expect(viewModel.rows[0].service).toBe('Service A');
     expect(viewModel.totalsRow[0].text).toBe('Total');
+    expect(viewModel.taskEventsTotalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.taskEventsTotalsRow[0].text).toBe('Total');
   });
 });
