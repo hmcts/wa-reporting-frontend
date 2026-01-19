@@ -9,18 +9,18 @@
           attributes: {
             'data-export-csv': 'true',
             'data-export-filename': 'completed-by-region.csv',
-            'data-sortable': 'true',
-            'data-sort-default': '0'
+            'data-module': 'moj-sortable-table',
+            'data-sticky-totals': 'true'
           },
           classes: "analytics-table--compact",
           hasTotals: true,
           head: [
-            { text: "Region" },
-            { text: "Completed tasks", format: "numeric" },
-            { text: "Inside due date", format: "numeric" },
-            { text: "Outside due date", format: "numeric" },
-            { text: "Handling time", format: "numeric" },
-            { text: "Processing time", format: "numeric" }
+            { text: "Region", attributes: { 'aria-sort': 'ascending' } },
+            { text: "Completed tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Inside due date", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Outside due date", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Handling time", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Processing time", format: "numeric", attributes: { 'aria-sort': 'none' } }
           ],
           rows: completedByRegionRows.concat([completedByRegionTotalsRow])
         }) }}
@@ -33,18 +33,18 @@
           attributes: {
             'data-export-csv': 'true',
             'data-export-filename': 'completed-by-location.csv',
-            'data-sortable': 'true',
-            'data-sort-default': '0'
+            'data-module': 'moj-sortable-table',
+            'data-sticky-totals': 'true'
           },
           classes: "analytics-table--compact",
           hasTotals: true,
           head: [
-            { text: "Location" },
-            { text: "Completed tasks", format: "numeric" },
-            { text: "Inside due date", format: "numeric" },
-            { text: "Outside due date", format: "numeric" },
-            { text: "Handling time", format: "numeric" },
-            { text: "Processing time", format: "numeric" }
+            { text: "Location", attributes: { 'aria-sort': 'ascending' } },
+            { text: "Completed tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Inside due date", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Outside due date", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Handling time", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Processing time", format: "numeric", attributes: { 'aria-sort': 'none' } }
           ],
           rows: completedByLocationRows.concat([completedByLocationTotalsRow])
         }) }}
@@ -57,19 +57,19 @@
           attributes: {
             'data-export-csv': 'true',
             'data-export-filename': 'completed-by-location-region.csv',
-            'data-sortable': 'true',
-            'data-sort-default': '0'
+            'data-module': 'moj-sortable-table',
+            'data-sticky-totals': 'true'
           },
           classes: "analytics-table--compact",
           hasTotals: true,
           head: [
-            { text: "Region" },
-            { text: "Location" },
-            { text: "Completed tasks", format: "numeric" },
-            { text: "Inside due date", format: "numeric" },
-            { text: "Outside due date", format: "numeric" },
-            { text: "Handling time", format: "numeric" },
-            { text: "Processing time", format: "numeric" }
+            { text: "Region", attributes: { 'aria-sort': 'ascending' } },
+            { text: "Location", attributes: { 'aria-sort': 'none' } },
+            { text: "Completed tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Inside due date", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Outside due date", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Handling time", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Processing time", format: "numeric", attributes: { 'aria-sort': 'none' } }
           ],
           rows: completedByRegionLocationRows.concat([completedByRegionLocationTotalsRow])
         }) }}

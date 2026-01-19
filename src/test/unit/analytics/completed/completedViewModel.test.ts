@@ -72,7 +72,10 @@ describe('buildCompletedViewModel', () => {
     expect(viewModel.serviceOptions[0].text).toBe('All services');
     expect(viewModel.timelineRows[0][0].text).toBe('2024-01-02');
     expect(viewModel.completedByNameRows[0][0].text).toBe('Review');
+    expect(viewModel.completedByNameRows[0][1].attributes?.['data-sort-value']).toBe('2');
+    expect(viewModel.completedByNameTotalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.processingHandlingRows[0][2].text).toBe('1.50');
+    expect(viewModel.processingHandlingRows[0][2].attributes?.['data-sort-value']).toBe('1.5');
     expect(viewModel.processingHandlingOverallAverage).toBe('1.50');
   });
 

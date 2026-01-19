@@ -122,12 +122,15 @@ describe('buildUserOverviewViewModel', () => {
     expect(viewModel.completedSummaryRows[0].key.text).toBe('Completed');
     expect(viewModel.completedByDateRows[0][0].text).toBe('2024-01-04');
     expect(viewModel.completedByDateRows[0][1].text).toBe('1');
+    expect(viewModel.completedByDateRows[0][1].attributes?.['data-sort-value']).toBe('1');
     expect(viewModel.completedByDateRows[0][5].text).toBe('2.50');
+    expect(viewModel.completedByDateTotalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.completedByTaskNameRows[0][0].text).toBe('Task B');
     expect(viewModel.completedByTaskNameRows[0][1].text).toBe('1');
     expect(viewModel.completedByTaskNameRows[0][2].text).toBe('2.50');
     expect(viewModel.completedByTaskNameRows[0][3].text).toBe('1.00');
     expect(viewModel.completedByTaskNameTotalsRow[0].text).toBe('Total');
+    expect(viewModel.completedByTaskNameTotalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.assignedHead[1].attributes?.['data-sort-dir']).toBe('desc');
     expect(viewModel.assignedHead[0].attributes?.['data-sort-key']).toBe('caseId');
     expect(viewModel.assignedHead[0].text).toBe('Case ID');
