@@ -17,7 +17,7 @@ import { lookup } from '../shared/utils';
 import { FilterOptionsViewModel } from '../shared/viewModels/filterOptions';
 import { buildPriorityRows } from '../shared/viewModels/priorityRows';
 import { TableHeadCell, buildSortHeadCell } from '../shared/viewModels/sortHead';
-import { buildTotalRow, buildTotalsRowWithLabelColumns, sumBy } from '../shared/viewModels/totalsRow';
+import { sumBy } from '../shared/viewModels/totalsRow';
 
 import { CriticalTasksPagination, paginateCriticalTasks } from './criticalTasksPagination';
 
@@ -27,7 +27,8 @@ type OpenByNameInitial = {
   chart: Record<string, unknown>;
 };
 
-type TableRow = { text: string }[];
+type TableCell = { text: string; attributes?: Record<string, string> };
+type TableRow = TableCell[];
 type TableRows = TableRow[];
 type CriticalTaskView = CriticalTask;
 
@@ -36,6 +37,23 @@ type WaitTimeTotals = { assignedCount: number; weightedTotal: number; average: n
 type DueTotals = { totalDue: number; open: number; completed: number };
 type PriorityTotals = { urgent: number; high: number; medium: number; low: number };
 type OutstandingTotals = { open: number; urgent: number; high: number; medium: number; low: number };
+
+function buildNumericCell(value: number, options: Intl.NumberFormatOptions = {}): TableCell {
+  return { text: formatNumber(value, options), attributes: { 'data-sort-value': String(value) } };
+}
+
+function buildPercentCell(value: number, options: Intl.NumberFormatOptions = {}): TableCell {
+  return { text: formatPercent(value, options), attributes: { 'data-sort-value': String(value) } };
+}
+
+function buildTotalLabelCell(label: string): TableCell {
+  return { text: label, attributes: { 'data-total-row': 'true' } };
+}
+
+function buildTotalsRowWithLabelColumns(label: string, labelColumns: number, values: number[]): TableRow {
+  const prefix = Array.from({ length: Math.max(0, labelColumns - 1) }).map(() => ({ text: '' }));
+  return [buildTotalLabelCell(label), ...prefix, ...values.map(value => buildNumericCell(value))];
+}
 
 export type OutstandingViewModel = FilterOptionsViewModel & {
   filters: AnalyticsFilters;
@@ -85,15 +103,21 @@ export type OutstandingViewModel = FilterOptionsViewModel & {
 function buildOpenByNameRows(breakdown: PriorityBreakdown[]): TableRows {
   return breakdown.map(row => [
     { text: row.name },
-    { text: formatNumber(row.urgent) },
-    { text: formatNumber(row.high) },
-    { text: formatNumber(row.medium) },
-    { text: formatNumber(row.low) },
+    buildNumericCell(row.urgent),
+    buildNumericCell(row.high),
+    buildNumericCell(row.medium),
+    buildNumericCell(row.low),
   ]);
 }
 
 function buildOpenByNameTotalsRow(totals: PriorityBreakdown): TableRow {
-  return buildTotalRow([totals.urgent, totals.high, totals.medium, totals.low]);
+  return [
+    buildTotalLabelCell(totals.name),
+    buildNumericCell(totals.urgent),
+    buildNumericCell(totals.high),
+    buildNumericCell(totals.medium),
+    buildNumericCell(totals.low),
+  ];
 }
 
 function calculateOpenTasksTotals(openByCreated: AssignmentSeriesPoint[]): OpenTasksTotals {
@@ -107,32 +131,25 @@ function calculateOpenTasksTotals(openByCreated: AssignmentSeriesPoint[]): OpenT
 function buildOpenTasksRows(openByCreated: AssignmentSeriesPoint[]): TableRows {
   return openByCreated.map(point => [
     { text: point.date },
-    { text: formatNumber(point.open) },
-    { text: formatNumber(point.assigned) },
-    {
-      text: formatPercent(point.assignedPct, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
-    },
-    { text: formatNumber(point.unassigned) },
-    {
-      text: formatPercent(point.unassignedPct, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
-    },
+    buildNumericCell(point.open),
+    buildNumericCell(point.assigned),
+    buildPercentCell(point.assignedPct, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    buildNumericCell(point.unassigned),
+    buildPercentCell(point.unassignedPct, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
   ]);
 }
 
 function buildOpenTasksTotalsRow(openTasksTotals: OpenTasksTotals): TableRow {
-  return buildTotalRow([
-    openTasksTotals.open,
-    openTasksTotals.assigned,
-    formatPercent((openTasksTotals.assigned / openTasksTotals.open) * 100, {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    }),
-    openTasksTotals.unassigned,
-    formatPercent((openTasksTotals.unassigned / openTasksTotals.open) * 100, {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    }),
-  ]);
+  const assignedPct = openTasksTotals.open === 0 ? 0 : (openTasksTotals.assigned / openTasksTotals.open) * 100;
+  const unassignedPct = openTasksTotals.open === 0 ? 0 : (openTasksTotals.unassigned / openTasksTotals.open) * 100;
+  return [
+    buildTotalLabelCell('Total'),
+    buildNumericCell(openTasksTotals.open),
+    buildNumericCell(openTasksTotals.assigned),
+    buildPercentCell(assignedPct, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    buildNumericCell(openTasksTotals.unassigned),
+    buildPercentCell(unassignedPct, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+  ];
 }
 
 function calculateWaitTimeTotals(waitTime: WaitTimePoint[]): WaitTimeTotals {
@@ -145,16 +162,17 @@ function calculateWaitTimeTotals(waitTime: WaitTimePoint[]): WaitTimeTotals {
 function buildWaitTimeRows(waitTime: WaitTimePoint[]): TableRows {
   return waitTime.map(point => [
     { text: point.date },
-    { text: formatNumber(point.assignedCount) },
-    { text: formatNumber(point.averageWaitDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) },
+    buildNumericCell(point.assignedCount),
+    buildNumericCell(point.averageWaitDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
   ]);
 }
 
 function buildWaitTimeTotalsRow(waitTimeTotals: WaitTimeTotals): TableRow {
-  return buildTotalRow([
-    waitTimeTotals.assignedCount,
-    formatNumber(waitTimeTotals.average, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
-  ]);
+  return [
+    buildTotalLabelCell('Total'),
+    buildNumericCell(waitTimeTotals.assignedCount),
+    buildNumericCell(waitTimeTotals.average, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+  ];
 }
 
 function calculateDueTotals(dueByDate: DueByDatePoint[]): DueTotals {
@@ -168,14 +186,19 @@ function calculateDueTotals(dueByDate: DueByDatePoint[]): DueTotals {
 function buildTasksDueRows(dueByDate: DueByDatePoint[]): TableRows {
   return dueByDate.map(point => [
     { text: point.date },
-    { text: formatNumber(point.totalDue) },
-    { text: formatNumber(point.open) },
-    { text: formatNumber(point.completed) },
+    buildNumericCell(point.totalDue),
+    buildNumericCell(point.open),
+    buildNumericCell(point.completed),
   ]);
 }
 
 function buildTasksDueTotalsRow(dueTotals: DueTotals): TableRow {
-  return buildTotalRow([dueTotals.totalDue, dueTotals.open, dueTotals.completed]);
+  return [
+    buildTotalLabelCell('Total'),
+    buildNumericCell(dueTotals.totalDue),
+    buildNumericCell(dueTotals.open),
+    buildNumericCell(dueTotals.completed),
+  ];
 }
 
 function calculatePriorityTotals(priorityByDueDate: PrioritySeriesPoint[]): PriorityTotals {
@@ -190,22 +213,23 @@ function calculatePriorityTotals(priorityByDueDate: PrioritySeriesPoint[]): Prio
 function buildTasksDuePriorityRows(priorityByDueDate: PrioritySeriesPoint[]): TableRows {
   return priorityByDueDate.map(point => [
     { text: point.date },
-    { text: formatNumber(point.urgent + point.high + point.medium + point.low) },
-    { text: formatNumber(point.urgent) },
-    { text: formatNumber(point.high) },
-    { text: formatNumber(point.medium) },
-    { text: formatNumber(point.low) },
+    buildNumericCell(point.urgent + point.high + point.medium + point.low),
+    buildNumericCell(point.urgent),
+    buildNumericCell(point.high),
+    buildNumericCell(point.medium),
+    buildNumericCell(point.low),
   ]);
 }
 
 function buildTasksDuePriorityTotalsRow(priorityTotals: PriorityTotals): TableRow {
-  return buildTotalRow([
-    priorityTotals.urgent + priorityTotals.high + priorityTotals.medium + priorityTotals.low,
-    priorityTotals.urgent,
-    priorityTotals.high,
-    priorityTotals.medium,
-    priorityTotals.low,
-  ]);
+  return [
+    buildTotalLabelCell('Total'),
+    buildNumericCell(priorityTotals.urgent + priorityTotals.high + priorityTotals.medium + priorityTotals.low),
+    buildNumericCell(priorityTotals.urgent),
+    buildNumericCell(priorityTotals.high),
+    buildNumericCell(priorityTotals.medium),
+    buildNumericCell(priorityTotals.low),
+  ];
 }
 
 function buildPriorityTableRows(summary: { urgent: number; high: number; medium: number; low: number }): TableRows {
@@ -260,11 +284,11 @@ function buildOutstandingRegionRows(rows: OutstandingByRegionRow[], regionLookup
   return rows
     .map(row => [
       { text: lookup(row.region, regionLookup) },
-      { text: formatNumber(row.open) },
-      { text: formatNumber(row.urgent) },
-      { text: formatNumber(row.high) },
-      { text: formatNumber(row.medium) },
-      { text: formatNumber(row.low) },
+      buildNumericCell(row.open),
+      buildNumericCell(row.urgent),
+      buildNumericCell(row.high),
+      buildNumericCell(row.medium),
+      buildNumericCell(row.low),
     ])
     .sort((a, b) => a[0].text.localeCompare(b[0].text));
 }
@@ -282,11 +306,11 @@ function buildOutstandingLocationRows(
         cells.push({ text: lookup(row.region, regionLookup) });
       }
       return cells.concat([
-        { text: formatNumber(row.open) },
-        { text: formatNumber(row.urgent) },
-        { text: formatNumber(row.high) },
-        { text: formatNumber(row.medium) },
-        { text: formatNumber(row.low) },
+        buildNumericCell(row.open),
+        buildNumericCell(row.urgent),
+        buildNumericCell(row.high),
+        buildNumericCell(row.medium),
+        buildNumericCell(row.low),
       ]);
     })
     .sort((a, b) => {

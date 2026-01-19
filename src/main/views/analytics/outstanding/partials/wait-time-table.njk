@@ -8,13 +8,18 @@
     <div class="analytics-tab-panel">
       {{ csvDownloadButton() }}
       {{ analyticsTable({
-        attributes: { 'data-export-csv': 'true', 'data-export-filename': 'outstanding-wait-time.csv', 'data-sortable': 'true' },
+        attributes: {
+          'data-export-csv': 'true',
+          'data-export-filename': 'outstanding-wait-time.csv',
+          'data-module': 'moj-sortable-table',
+          'data-sticky-totals': 'true'
+        },
         classes: "analytics-table--compact",
         hasTotals: true,
         head: [
-          { text: "Assigned date" },
-          { text: "Assigned tasks", format: "numeric" },
-          { text: "Average wait time", format: "numeric" }
+          { text: "Assigned date", attributes: { 'aria-sort': 'none' } },
+          { text: "Assigned tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "Average wait time", format: "numeric", attributes: { 'aria-sort': 'none' } }
         ],
         rows: waitTimeRows.concat([waitTimeTotalsRow])
       }) }}

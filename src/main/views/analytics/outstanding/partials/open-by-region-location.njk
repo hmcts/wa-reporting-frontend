@@ -9,18 +9,18 @@
           attributes: {
             'data-export-csv': 'true',
             'data-export-filename': 'outstanding-by-region.csv',
-            'data-sortable': 'true',
-            'data-sort-default': '0'
+            'data-module': 'moj-sortable-table',
+            'data-sticky-totals': 'true'
           },
           classes: "analytics-table--compact",
           hasTotals: true,
           head: [
-            { text: "Region" },
-            { text: "Tasks outstanding", format: "numeric" },
-            { text: "Urgent", format: "numeric" },
-            { text: "High", format: "numeric" },
-            { text: "Medium", format: "numeric" },
-            { text: "Low", format: "numeric" }
+            { text: "Region", attributes: { 'aria-sort': 'ascending' } },
+            { text: "Tasks outstanding", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Urgent", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "High", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Medium", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Low", format: "numeric", attributes: { 'aria-sort': 'none' } }
           ],
           rows: outstandingByRegionRows.concat([outstandingByRegionTotalsRow])
         }) }}
@@ -33,18 +33,18 @@
           attributes: {
             'data-export-csv': 'true',
             'data-export-filename': 'outstanding-by-location.csv',
-            'data-sortable': 'true',
-            'data-sort-default': '0'
+            'data-module': 'moj-sortable-table',
+            'data-sticky-totals': 'true'
           },
           classes: "analytics-table--compact",
           hasTotals: true,
           head: [
-            { text: "Location" },
-            { text: "Tasks outstanding", format: "numeric" },
-            { text: "Urgent", format: "numeric" },
-            { text: "High", format: "numeric" },
-            { text: "Medium", format: "numeric" },
-            { text: "Low", format: "numeric" }
+            { text: "Location", attributes: { 'aria-sort': 'ascending' } },
+            { text: "Tasks outstanding", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Urgent", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "High", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Medium", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Low", format: "numeric", attributes: { 'aria-sort': 'none' } }
           ],
           rows: outstandingByLocationRows.concat([outstandingByLocationTotalsRow])
         }) }}
@@ -57,19 +57,19 @@
           attributes: {
             'data-export-csv': 'true',
             'data-export-filename': 'outstanding-by-location-region.csv',
-            'data-sortable': 'true',
-            'data-sort-default': '0'
+            'data-module': 'moj-sortable-table',
+            'data-sticky-totals': 'true'
           },
           classes: "analytics-table--compact",
           hasTotals: true,
           head: [
-            { text: "Location" },
-            { text: "Region" },
-            { text: "Tasks outstanding", format: "numeric" },
-            { text: "Urgent", format: "numeric" },
-            { text: "High", format: "numeric" },
-            { text: "Medium", format: "numeric" },
-            { text: "Low", format: "numeric" }
+            { text: "Location", attributes: { 'aria-sort': 'ascending' } },
+            { text: "Region", attributes: { 'aria-sort': 'none' } },
+            { text: "Tasks outstanding", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Urgent", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "High", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Medium", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Low", format: "numeric", attributes: { 'aria-sort': 'none' } }
           ],
           rows: outstandingByRegionLocationRows.concat([outstandingByRegionLocationTotalsRow])
         }) }}
