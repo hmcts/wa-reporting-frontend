@@ -1,6 +1,6 @@
 import { Server } from 'http';
 
-import { expect } from 'chai';
+import { expect } from '@jest/globals';
 import request from 'supertest';
 
 import { app } from '../../main/app';
@@ -20,8 +20,8 @@ describe('Analytics overview route', () => {
     test('should render the overview page', async () => {
       const response = await request(server).get('/analytics/overview').expect(200);
 
-      expect(response.headers['content-type']).to.contain('text/html');
-      expect(response.text).to.contain('Service performance overview');
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('Service performance overview');
     });
   });
 });

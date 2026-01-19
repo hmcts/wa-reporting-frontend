@@ -16,7 +16,7 @@ class CriticalTasksTableService {
       createdDate: normaliseLabel(row.created_date),
       dueDate: row.due_date ?? undefined,
       priority: row.priority,
-      agentName: row.assignee ? caseWorkerNames[row.assignee] ?? row.assignee : '',
+      agentName: row.assignee ? (caseWorkerNames[row.assignee] ?? row.assignee) : '',
     }));
   }
 }

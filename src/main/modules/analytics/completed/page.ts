@@ -26,7 +26,7 @@ function mapTaskAuditRow(
   locationDescriptions: Record<string, string>
 ): TaskAuditEntry {
   const assigneeId = row.assignee ?? undefined;
-  const agentName = assigneeId ? caseWorkerNames[assigneeId] ?? assigneeId : '-';
+  const agentName = assigneeId ? (caseWorkerNames[assigneeId] ?? assigneeId) : '-';
   return {
     caseId: row.case_id,
     taskName: row.task_name ?? '-',

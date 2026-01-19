@@ -20,7 +20,7 @@ function mapUserOverviewRow(row: UserOverviewTaskRow, caseWorkerNames: Record<st
   const totalAssignments = (row.number_of_reassignments ?? 0) + 1;
   const withinSla = row.is_within_sla === 'Yes' ? true : row.is_within_sla === 'No' ? false : null;
   const assigneeId = row.assignee ?? undefined;
-  const assigneeName = assigneeId ? caseWorkerNames[assigneeId] ?? assigneeId : undefined;
+  const assigneeName = assigneeId ? (caseWorkerNames[assigneeId] ?? assigneeId) : undefined;
   return {
     caseId: row.case_id,
     taskId: row.task_id,

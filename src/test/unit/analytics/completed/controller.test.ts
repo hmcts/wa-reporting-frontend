@@ -23,7 +23,7 @@ describe('completedController', () => {
     ({
       get: jest.fn(),
       post: jest.fn(),
-    } as unknown as Router);
+    }) as unknown as Router;
 
   beforeEach(() => {
     jest.clearAllMocks();
