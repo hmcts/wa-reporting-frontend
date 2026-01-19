@@ -1,6 +1,6 @@
 import { Server } from 'http';
 
-import { expect } from 'chai';
+import { expect } from '@jest/globals';
 import request from 'supertest';
 
 import { app } from '../../main/app';
@@ -20,9 +20,9 @@ describe('Analytics completed routes', () => {
     test('should render the completed page', async () => {
       const response = await request(server).get('/analytics/completed').expect(200);
 
-      expect(response.headers['content-type']).to.contain('text/html');
-      expect(response.text).to.contain('Completed tasks');
-      expect(response.text).to.contain('Processing and handling time');
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('Completed tasks');
+      expect(response.text).toContain('Processing and handling time');
     });
   });
 });
