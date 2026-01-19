@@ -13,8 +13,7 @@ import { renderCharts } from './analytics/charts';
 import { initAutoSubmitForms, initFilterPersistence, initMultiSelects, restoreScrollPosition } from './analytics/forms';
 import { initOpenByName } from './analytics/outstanding/openByName';
 import { initCriticalTasksPagination, initUserOverviewPagination } from './analytics/pagination';
-import { initMojServerSorting, initMojStickyTotals, initTableExports, initTableSorting } from './analytics/tables';
-import '../scss/analytics.scss';
+import { initMojServerSorting, initMojStickyTotals, initTableExports } from './analytics/tables';
 
 declare global {
   interface Window {
@@ -27,7 +26,6 @@ window.Plotly = Plotly;
 const rebindSectionBehaviors = (): void => {
   renderCharts();
   initTableExports();
-  initTableSorting(fetchSortedSectionWithDeps);
   initMojServerSorting(fetchSortedSectionWithDeps);
   initMojStickyTotals();
   initAjaxFilterSections(fetchSectionUpdateWithDeps);
@@ -60,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCharts();
   initMojAll();
   initTableExports();
-  initTableSorting(fetchSortedSectionWithDeps);
   initMojServerSorting(fetchSortedSectionWithDeps);
   initMojStickyTotals();
   initCriticalTasksPagination(fetchPaginatedSectionWithDeps);

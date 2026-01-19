@@ -112,6 +112,8 @@ export async function fetchPaginatedSection(
   try {
     const html = await postAjaxForm(form, { ajaxSection, [pageParam]: page });
     target.innerHTML = html;
+    deps.initAll({ scope: target });
+    deps.initMojAll({ scope: target });
     deps.rebindSectionBehaviors();
   } catch (error) {
     // eslint-disable-next-line no-console

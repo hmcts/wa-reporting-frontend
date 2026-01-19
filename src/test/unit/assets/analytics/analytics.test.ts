@@ -24,12 +24,10 @@ import {
   initMojServerSorting,
   initMojStickyTotals,
   initTableExports,
-  initTableSorting,
 } from '../../../../main/assets/js/analytics/tables';
 
 import { setupAnalyticsDom } from './analyticsTestUtils';
 
-jest.mock('../../../../main/assets/scss/analytics.scss', () => ({}), { virtual: true });
 jest.mock('govuk-frontend', () => ({ initAll: jest.fn() }));
 jest.mock('@ministryofjustice/frontend', () => ({ initAll: jest.fn() }));
 jest.mock('../../../../main/assets/js/analytics/ajax', () => ({
@@ -56,7 +54,6 @@ jest.mock('../../../../main/assets/js/analytics/tables', () => ({
   initMojServerSorting: jest.fn(),
   initMojStickyTotals: jest.fn(),
   initTableExports: jest.fn(),
-  initTableSorting: jest.fn(),
 }));
 
 import '../../../../main/assets/js/analytics';
@@ -83,7 +80,6 @@ describe('analytics bootstrap', () => {
     (initMojServerSorting as jest.Mock).mockClear();
     (initMojStickyTotals as jest.Mock).mockClear();
     (initTableExports as jest.Mock).mockClear();
-    (initTableSorting as jest.Mock).mockClear();
   });
 
   test('runs DOMContentLoaded bootstrap without throwing', async () => {
@@ -92,7 +88,6 @@ describe('analytics bootstrap', () => {
     expect(initMojAll).toHaveBeenCalled();
     expect(renderCharts).toHaveBeenCalled();
     expect(initTableExports).toHaveBeenCalled();
-    expect(initTableSorting).toHaveBeenCalledWith(expect.any(Function));
     expect(initMojServerSorting).toHaveBeenCalledWith(expect.any(Function));
     expect(initMojStickyTotals).toHaveBeenCalled();
     expect(initCriticalTasksPagination).toHaveBeenCalledWith(expect.any(Function));
@@ -111,7 +106,7 @@ describe('analytics bootstrap', () => {
     await flushPromises();
 
     const fetchSectionUpdateWithDeps = (initAjaxFilterSections as jest.Mock).mock.calls[0][0];
-    const fetchSortedSectionWithDeps = (initTableSorting as jest.Mock).mock.calls[0][0];
+    const fetchSortedSectionWithDeps = (initMojServerSorting as jest.Mock).mock.calls[0][0];
     const fetchPaginatedSectionWithDeps = (initCriticalTasksPagination as jest.Mock).mock.calls[0][0];
 
     const form = document.createElement('form');
@@ -141,7 +136,7 @@ describe('analytics bootstrap', () => {
 
     expect(renderCharts).toHaveBeenCalledTimes(2);
     expect(initTableExports).toHaveBeenCalledTimes(2);
-    expect(initTableSorting).toHaveBeenCalledTimes(2);
+    expect(initMojServerSorting).toHaveBeenCalledTimes(2);
     expect(initMojServerSorting).toHaveBeenCalledTimes(2);
     expect(initMojStickyTotals).toHaveBeenCalledTimes(2);
     expect(initAjaxFilterSections).toHaveBeenCalledTimes(2);

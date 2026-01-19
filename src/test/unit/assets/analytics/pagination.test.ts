@@ -61,6 +61,8 @@ describe('analytics pagination', () => {
     pagination.querySelector('a')?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     await flushPromises();
     expect(form.querySelector<HTMLInputElement>('input[name="criticalTasksPage"]')?.value).toBe('2');
+    expect(initAll).toHaveBeenCalledWith({ scope: section });
+    expect(initMojAll).toHaveBeenCalledWith({ scope: section });
 
     const userPagination = document.createElement('nav');
     userPagination.dataset.userOverviewPagination = 'completed';
@@ -74,6 +76,8 @@ describe('analytics pagination', () => {
     userPagination.querySelector('a')?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     await flushPromises();
     expect(form.querySelector<HTMLInputElement>('input[name="completedPage"]')?.value).toBe('3');
+    expect(initAll).toHaveBeenCalledWith({ scope: userSection });
+    expect(initMojAll).toHaveBeenCalledWith({ scope: userSection });
 
     expect(getPaginationParamFromHref('/analytics/outstanding?criticalTasksPage=2', 'criticalTasksPage')).toBe('2');
     expect(getPaginationParamFromHref('http://[invalid', 'criticalTasksPage')).toBeNull();
