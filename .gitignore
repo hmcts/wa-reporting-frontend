@@ -26,6 +26,7 @@ dist/
 build/
 public/
 src/main/views/govuk
+src/main/views/moj
 coverage/
 smoke-output/
 functional-output/

@@ -1,5 +1,5 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
-import { buildDateParts, formatNumber, formatPercent } from '../shared/formatting';
+import { formatDatePickerValue, formatNumber, formatPercent } from '../shared/formatting';
 import { FilterOptions } from '../shared/services';
 import {
   AnalyticsFilters,
@@ -12,7 +12,7 @@ import {
 } from '../shared/types';
 import { buildRollingAverage, lookup } from '../shared/utils';
 import { getUserOptions } from '../shared/viewModels/filterOptions';
-import { buildTotalRow, buildTotalsRowWithLabelColumns, sumBy } from '../shared/viewModels/totalsRow';
+import { sumBy } from '../shared/viewModels/totalsRow';
 
 import {
   buildCompletedByNameChart,
@@ -34,8 +34,8 @@ export type TaskAuditEntry = {
 
 type CompletedViewModel = ReturnType<typeof buildFilterOptionsViewModel> & {
   filters: AnalyticsFilters;
-  completedFrom: { day: string; month: string; year: string };
-  completedTo: { day: string; month: string; year: string };
+  completedFromValue: string;
+  completedToValue: string;
   summary: CompletedResponse['summary'];
   charts: {
     complianceToday: string;
@@ -45,35 +45,67 @@ type CompletedViewModel = ReturnType<typeof buildFilterOptionsViewModel> & {
     handling: string;
     processingHandlingTime: string;
   };
-  completedByNameRows: { text: string }[][];
-  completedByNameTotalsRow: { text: string }[];
-  timelineRows: { text: string }[][];
-  timelineTotalsRow: { text: string }[];
+  completedByNameRows: TableRow[];
+  completedByNameTotalsRow: TableRowCell[];
+  timelineRows: TableRow[];
+  timelineTotalsRow: TableRowCell[];
   complianceTodayRows: { key: { text: string }; value: { text: string } }[];
   complianceRangeRows: { key: { text: string }; value: { text: string } }[];
   handlingRows: { key: { text: string }; value: { text: string } }[];
-  processingHandlingRows: { text: string }[][];
+  processingHandlingRows: TableRow[];
   processingHandlingMetric: CompletedMetric;
   processingHandlingOverallLabel: string;
   processingHandlingOverallAverage: string;
   userOptions: { value: string; text: string }[];
-  completedByRegionRows: { text: string }[][];
-  completedByRegionTotalsRow: { text: string }[];
-  completedByLocationRows: { text: string }[][];
-  completedByLocationTotalsRow: { text: string }[];
-  completedByRegionLocationRows: { text: string }[][];
-  completedByRegionLocationTotalsRow: { text: string }[];
+  completedByRegionRows: TableRow[];
+  completedByRegionTotalsRow: TableRowCell[];
+  completedByLocationRows: TableRow[];
+  completedByLocationTotalsRow: TableRowCell[];
+  completedByRegionLocationRows: TableRow[];
+  completedByRegionLocationTotalsRow: TableRowCell[];
   taskAuditRows: TaskAuditEntry[];
   taskAuditCaseId: string;
   taskAuditEmptyState: string;
 };
 
 type HandlingStats = CompletedResponse['handlingTimeStats'];
+type TableRowCell = { text: string; attributes?: Record<string, string> };
+type TableRow = TableRowCell[];
 
-function buildProcessingHandlingRows(
-  rows: CompletedProcessingHandlingPoint[],
-  metric: CompletedMetric
-): { text: string }[][] {
+function buildNumericCell(value: number, options: Intl.NumberFormatOptions = {}): TableRowCell {
+  return { text: formatNumber(value, options), attributes: { 'data-sort-value': String(value) } };
+}
+
+function buildPercentCell(value: number, options: Intl.NumberFormatOptions = {}): TableRowCell {
+  return { text: formatPercent(value, options), attributes: { 'data-sort-value': String(value) } };
+}
+
+function buildOptionalNumericCell(
+  value: number | null | undefined,
+  options: Intl.NumberFormatOptions = {}
+): TableRowCell {
+  if (typeof value !== 'number') {
+    return { text: '-' };
+  }
+  return buildNumericCell(value, options);
+}
+
+function buildTotalLabelCell(label: string): TableRowCell {
+  return { text: label, attributes: { 'data-total-row': 'true' } };
+}
+
+function buildTotalsRowWithLabelColumns(
+  label: string,
+  labelColumns: number,
+  values: number[],
+  trailingBlanks = 0
+): TableRow {
+  const prefix = Array.from({ length: Math.max(0, labelColumns - 1) }).map(() => ({ text: '' }));
+  const blanks = Array.from({ length: Math.max(0, trailingBlanks) }).map(() => ({ text: '' }));
+  return [buildTotalLabelCell(label), ...prefix, ...values.map(value => buildNumericCell(value)), ...blanks];
+}
+
+function buildProcessingHandlingRows(rows: CompletedProcessingHandlingPoint[], metric: CompletedMetric): TableRow[] {
   return rows.map(row => {
     const average = metric === 'handlingTime' ? row.handlingAverageDays : row.processingAverageDays;
     const stddev = metric === 'handlingTime' ? row.handlingStdDevDays : row.processingStdDevDays;
@@ -81,10 +113,10 @@ function buildProcessingHandlingRows(
     const lowerRange = Math.max(0, average - stddev);
     return [
       { text: row.date },
-      { text: formatNumber(row.tasks) },
-      { text: formatNumber(average, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { text: formatNumber(upperRange, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-      { text: formatNumber(lowerRange, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      buildNumericCell(row.tasks),
+      buildNumericCell(average, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      buildNumericCell(upperRange, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      buildNumericCell(lowerRange, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     ];
   });
 }
@@ -113,30 +145,31 @@ function buildProcessingHandlingOverallAverage(
   return totals.sum / totals.count;
 }
 
-function buildCompletedByNameRows(rows: CompletedResponse['completedByName']): { text: string }[][] {
+function buildCompletedByNameRows(rows: CompletedResponse['completedByName']): TableRow[] {
   return rows.map(row => [
     { text: row.taskName },
-    { text: formatNumber(row.tasks) },
-    { text: formatNumber(row.withinDue) },
-    {
-      text: formatPercent((row.withinDue / row.tasks) * 100, {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
-      }),
-    },
-    { text: formatNumber(row.beyondDue) },
+    buildNumericCell(row.tasks),
+    buildNumericCell(row.withinDue),
+    buildPercentCell(row.tasks === 0 ? 0 : (row.withinDue / row.tasks) * 100, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }),
+    buildNumericCell(row.beyondDue),
   ]);
 }
 
-function buildCompletedByNameTotalsRow(rows: CompletedResponse['completedByName']): { text: string }[] {
+function buildCompletedByNameTotalsRow(rows: CompletedResponse['completedByName']): TableRow {
   const totalTasks = sumBy(rows, row => row.tasks);
   const totalWithin = sumBy(rows, row => row.withinDue);
   const totalBeyond = sumBy(rows, row => row.beyondDue);
-  const totalPct = formatPercent((totalWithin / totalTasks) * 100, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-  return buildTotalRow([totalTasks, totalWithin, totalPct, totalBeyond]);
+  const totalPct = totalTasks === 0 ? 0 : (totalWithin / totalTasks) * 100;
+  return [
+    buildTotalLabelCell('Total'),
+    buildNumericCell(totalTasks),
+    buildNumericCell(totalWithin),
+    buildPercentCell(totalPct, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    buildNumericCell(totalBeyond),
+  ];
 }
 
 function buildComplianceRows(summary: Pick<CompletedResponse['summary'], 'withinDueYes' | 'withinDueNo'>): {
@@ -149,43 +182,43 @@ function buildComplianceRows(summary: Pick<CompletedResponse['summary'], 'within
   ];
 }
 
-function buildTimelineRows(timeline: CompletedResponse['timeline']): { text: string }[][] {
+function buildTimelineRows(timeline: CompletedResponse['timeline']): TableRow[] {
   const rollingAverage = buildRollingAverage(
     timeline.map(point => point.completed),
     7
   );
   return timeline.map((point, index) => [
     { text: point.date },
-    { text: formatNumber(point.completed) },
-    { text: formatNumber(point.withinDue) },
-    {
-      text: formatPercent((point.withinDue / point.completed) * 100, {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
-      }),
-    },
-    { text: formatNumber(point.beyondDue) },
-    {
-      text: formatNumber(rollingAverage[index] ?? 0),
-    },
+    buildNumericCell(point.completed),
+    buildNumericCell(point.withinDue),
+    buildPercentCell(point.completed === 0 ? 0 : (point.withinDue / point.completed) * 100, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }),
+    buildNumericCell(point.beyondDue),
+    buildNumericCell(rollingAverage[index] ?? 0),
   ]);
 }
 
-function buildTimelineTotalsRow(timeline: CompletedResponse['timeline']): { text: string }[] {
+function buildTimelineTotalsRow(timeline: CompletedResponse['timeline']): TableRow {
   const totalCompleted = sumBy(timeline, row => row.completed);
   const totalWithin = sumBy(timeline, row => row.withinDue);
   const totalBeyond = sumBy(timeline, row => row.beyondDue);
-  const totalPct = formatPercent((totalWithin / totalCompleted) * 100, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
+  const totalPct = totalCompleted === 0 ? 0 : (totalWithin / totalCompleted) * 100;
   const rollingAverage = buildRollingAverage(
     timeline.map(point => point.completed),
     7
   );
   const lastRollingAverage = rollingAverage.length === 0 ? 0 : rollingAverage[rollingAverage.length - 1];
 
-  return buildTotalRow([totalCompleted, totalWithin, totalPct, totalBeyond, lastRollingAverage]);
+  return [
+    buildTotalLabelCell('Total'),
+    buildNumericCell(totalCompleted),
+    buildNumericCell(totalWithin),
+    buildPercentCell(totalPct, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    buildNumericCell(totalBeyond),
+    buildNumericCell(lastRollingAverage),
+  ];
 }
 
 function buildHandlingRows(stats: HandlingStats): { key: { text: string }; value: { text: string } }[] {
@@ -205,28 +238,15 @@ function buildHandlingRows(stats: HandlingStats): { key: { text: string }; value
   ];
 }
 
-function buildCompletedRegionRows(
-  rows: CompletedByRegionRow[],
-  regionLookup: Record<string, string>
-): { text: string }[][] {
+function buildCompletedRegionRows(rows: CompletedByRegionRow[], regionLookup: Record<string, string>): TableRow[] {
   return rows
     .map(row => [
       { text: lookup(row.region ?? 'Unknown', regionLookup) },
-      { text: formatNumber(row.tasks) },
-      { text: formatNumber(row.withinDue) },
-      { text: formatNumber(row.beyondDue) },
-      {
-        text:
-          typeof row.handlingTimeDays === 'number'
-            ? formatNumber(row.handlingTimeDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-            : '-',
-      },
-      {
-        text:
-          typeof row.processingTimeDays === 'number'
-            ? formatNumber(row.processingTimeDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-            : '-',
-      },
+      buildNumericCell(row.tasks),
+      buildNumericCell(row.withinDue),
+      buildNumericCell(row.beyondDue),
+      buildOptionalNumericCell(row.handlingTimeDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+      buildOptionalNumericCell(row.processingTimeDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
     ])
     .sort((a, b) => a[0].text.localeCompare(b[0].text));
 }
@@ -236,28 +256,18 @@ function buildCompletedLocationRows(
   includeRegion: boolean,
   locationLookup: Record<string, string>,
   regionLookup: Record<string, string>
-): { text: string }[][] {
+): TableRow[] {
   return rows
     .map(row => {
       const regionText = lookup(row.region ?? 'Unknown', regionLookup);
       const locationText = lookup(row.location ?? 'Unknown', locationLookup);
       const cells = includeRegion ? [{ text: regionText }, { text: locationText }] : [{ text: locationText }];
       return cells.concat([
-        { text: formatNumber(row.tasks) },
-        { text: formatNumber(row.withinDue) },
-        { text: formatNumber(row.beyondDue) },
-        {
-          text:
-            typeof row.handlingTimeDays === 'number'
-              ? formatNumber(row.handlingTimeDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-              : '-',
-        },
-        {
-          text:
-            typeof row.processingTimeDays === 'number'
-              ? formatNumber(row.processingTimeDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-              : '-',
-        },
+        buildNumericCell(row.tasks),
+        buildNumericCell(row.withinDue),
+        buildNumericCell(row.beyondDue),
+        buildOptionalNumericCell(row.handlingTimeDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+        buildOptionalNumericCell(row.processingTimeDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
       ]);
     })
     .sort((a, b) => {
@@ -275,7 +285,7 @@ function buildCompletedLocationRows(
 function buildCompletedRegionLocationTotals(
   rows: CompletedByLocationRow[] | CompletedByRegionRow[],
   labelColumns: number
-): { text: string }[] {
+): TableRow {
   let tasks = 0;
   let within = 0;
   let beyond = 0;
@@ -332,8 +342,8 @@ export function buildCompletedViewModel(params: {
   return {
     filters,
     ...filterViewModel,
-    completedFrom: buildDateParts(filters.completedFrom),
-    completedTo: buildDateParts(filters.completedTo),
+    completedFromValue: formatDatePickerValue(filters.completedFrom),
+    completedToValue: formatDatePickerValue(filters.completedTo),
     summary: completed.summary,
     charts: {
       complianceToday: complianceTodayChart,

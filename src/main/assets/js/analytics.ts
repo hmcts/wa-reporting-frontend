@@ -1,3 +1,4 @@
+import { initAll as initMojAll } from '@ministryofjustice/frontend';
 import { initAll } from 'govuk-frontend';
 import type { Config } from 'plotly.js';
 import Plotly from 'plotly.js-basic-dist-min';
@@ -278,6 +279,90 @@ function initTableSorting(): void {
   });
 }
 
+function initMojServerSorting(): void {
+  const tables = document.querySelectorAll<HTMLTableElement>(
+    '[data-module="moj-sortable-table"][data-server-sort="true"]'
+  );
+  tables.forEach(table => {
+    if (table.dataset.mojServerSortBound === 'true') {
+      return;
+    }
+    const scope = table.dataset.sortScope;
+    const head = table.querySelector('thead');
+    const form = getAnalyticsFiltersForm();
+    if (!scope || !head || !form) {
+      return;
+    }
+    const sectionId = table.dataset.sortSection;
+    head.addEventListener(
+      'click',
+      event => {
+        const target = event.target as HTMLElement | null;
+        const button = target?.closest('button');
+        if (!button) {
+          return;
+        }
+        const heading = button.closest('th');
+        if (!heading) {
+          return;
+        }
+        const sortKey = heading.dataset.sortKey;
+        if (!sortKey) {
+          return;
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const currentDir = heading.getAttribute('aria-sort');
+        const nextDir = currentDir === 'ascending' ? 'desc' : 'asc';
+        setHiddenInput(form, `${scope}SortBy`, sortKey);
+        setHiddenInput(form, `${scope}SortDir`, nextDir);
+        if (scope === 'criticalTasks') {
+          setHiddenInput(form, 'criticalTasksPage', '1');
+        }
+        if (scope === 'assigned') {
+          setHiddenInput(form, 'assignedPage', '1');
+        }
+        if (scope === 'completed') {
+          setHiddenInput(form, 'completedPage', '1');
+        }
+        void fetchSortedSection(form, scope, sectionId);
+      },
+      { capture: true }
+    );
+    table.dataset.mojServerSortBound = 'true';
+  });
+}
+
+function moveStickyTotalsRow(table: HTMLTableElement): void {
+  const body = table.querySelector('tbody');
+  if (!body) {
+    return;
+  }
+  const totalsCell = body.querySelector<HTMLElement>('[data-total-row="true"]');
+  const totalsRow = totalsCell?.closest('tr');
+  if (!totalsRow) {
+    return;
+  }
+  body.appendChild(totalsRow);
+}
+
+function initMojStickyTotals(): void {
+  const tables = document.querySelectorAll<HTMLTableElement>(
+    '[data-module="moj-sortable-table"][data-sticky-totals="true"]'
+  );
+  tables.forEach(table => {
+    if (table.dataset.mojStickyTotalsBound === 'true') {
+      return;
+    }
+    const moveTotals = () => {
+      window.requestAnimationFrame(() => moveStickyTotalsRow(table));
+    };
+    table.addEventListener('click', moveTotals);
+    moveStickyTotalsRow(table);
+    table.dataset.mojStickyTotalsBound = 'true';
+  });
+}
+
 function initAjaxFilterSections(): void {
   const forms = document.querySelectorAll<HTMLFormElement>('form[data-ajax-section]');
   forms.forEach(form => {
@@ -353,6 +438,8 @@ function rebindSectionBehaviors(): void {
   renderCharts();
   initTableExports();
   initTableSorting();
+  initMojServerSorting();
+  initMojStickyTotals();
   initAjaxFilterSections();
   initAutoSubmitForms();
   initCriticalTasksPagination();
@@ -369,6 +456,7 @@ async function fetchSectionUpdate(form: HTMLFormElement, sectionId: string): Pro
     const html = await postAjaxForm(form, { ajaxSection: sectionId });
     target.innerHTML = html;
     initAll({ scope: target });
+    initMojAll({ scope: target });
     rebindSectionBehaviors();
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -388,6 +476,7 @@ async function fetchSortedSection(form: HTMLFormElement, scope: string, sectionI
   try {
     const html = await postAjaxForm(form, { ajaxSection: scope });
     target.innerHTML = html;
+    initMojAll({ scope: target });
     rebindSectionBehaviors();
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -854,6 +943,7 @@ function renderOpenByNameChart(node: HTMLElement, config: PlotlyConfig): void {
 function createNumericCell(value: number, isTotal: boolean): HTMLTableCellElement {
   const cell = document.createElement('td');
   cell.className = 'govuk-table__cell govuk-table__cell--numeric';
+  cell.setAttribute('data-sort-value', String(value));
   if (isTotal) {
     cell.classList.add('govuk-!-font-weight-bold');
   }
@@ -885,6 +975,7 @@ function renderOpenByNameTable(body: HTMLElement, rows: OpenByNameRow[], totals:
     nameCell.className = 'govuk-table__cell';
     if (isTotal) {
       nameCell.classList.add('govuk-!-font-weight-bold');
+      nameCell.setAttribute('data-total-row', 'true');
     }
     nameCell.textContent = row.name;
     tr.appendChild(nameCell);
@@ -1092,8 +1183,11 @@ function bindScrollPan(node: HTMLElement, config: PlotlyConfig): void {
 
 document.addEventListener('DOMContentLoaded', () => {
   renderCharts();
+  initMojAll();
   initTableExports();
   initTableSorting();
+  initMojServerSorting();
+  initMojStickyTotals();
   initCriticalTasksPagination();
   initUserOverviewPagination();
   initMultiSelects();

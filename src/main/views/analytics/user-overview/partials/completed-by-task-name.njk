@@ -10,15 +10,16 @@
       attributes: {
         'data-export-csv': 'true',
         'data-export-filename': 'user-overview-completed-by-task-name.csv',
-        'data-sortable': 'true'
+        'data-module': 'moj-sortable-table',
+        'data-sticky-totals': 'true'
       },
       classes: "analytics-table--compact",
       hasTotals: true,
       head: [
-        { text: "Task name" },
-        { text: "Tasks", format: "numeric" },
-        { text: "Average handling time", format: "numeric" },
-        { text: "Average days beyond due date", format: "numeric" }
+        { text: "Task name", attributes: { 'aria-sort': 'ascending' } },
+        { text: "Tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Average handling time", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Average days beyond due date", format: "numeric", attributes: { 'aria-sort': 'none' } }
       ],
       rows: completedByTaskNameRows.concat([completedByTaskNameTotalsRow])
     }) }}

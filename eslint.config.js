@@ -22,6 +22,7 @@ module.exports = [
       '.yarn/**',
       '.pnp.*',
       'src/main/views/govuk/**',
+      'src/main/views/moj/**',
     ],
   },
   ...compat.config({

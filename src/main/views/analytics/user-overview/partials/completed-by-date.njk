@@ -7,16 +7,21 @@
   <div class="analytics-tab-panel">
     {{ csvDownloadButton() }}
     {{ analyticsTable({
-      attributes: { 'data-export-csv': 'true', 'data-export-filename': 'user-overview-completed-by-date.csv', 'data-sortable': 'true' },
+      attributes: {
+        'data-export-csv': 'true',
+        'data-export-filename': 'user-overview-completed-by-date.csv',
+        'data-module': 'moj-sortable-table',
+        'data-sticky-totals': 'true'
+      },
       classes: "analytics-table--compact",
       hasTotals: true,
       head: [
-        { text: "Completed date" },
-        { text: "Tasks", format: "numeric" },
-        { text: "Within due date", format: "numeric" },
-        { text: "%", format: "numeric" },
-        { text: "Outside due date", format: "numeric" },
-        { text: "Average handling time (days)", format: "numeric" }
+        { text: "Completed date", attributes: { 'aria-sort': 'ascending' } },
+        { text: "Tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Within due date", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "%", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Outside due date", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Average handling time (days)", format: "numeric", attributes: { 'aria-sort': 'none' } }
       ],
       rows: completedByDateRows.concat([completedByDateTotalsRow])
     }) }}

@@ -11,15 +11,20 @@
     <div class="analytics-tab-panel" data-open-by-name-table>
       {{ csvDownloadButton() }}
       {{ analyticsTable({
-        attributes: { 'data-export-csv': 'true', 'data-export-filename': 'outstanding-open-by-name.csv', 'data-sortable': 'true' },
+        attributes: {
+          'data-export-csv': 'true',
+          'data-export-filename': 'outstanding-open-by-name.csv',
+          'data-module': 'moj-sortable-table',
+          'data-sticky-totals': 'true'
+        },
         classes: "analytics-table--compact",
         hasTotals: true,
         head: [
-          { text: "Task name" },
-          { text: "Urgent", format: "numeric" },
-          { text: "High", format: "numeric" },
-          { text: "Medium", format: "numeric" },
-          { text: "Low", format: "numeric" }
+          { text: "Task name", attributes: { 'aria-sort': 'none' } },
+          { text: "Urgent", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "High", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "Medium", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "Low", format: "numeric", attributes: { 'aria-sort': 'none' } }
         ],
         rows: openByNameRows.concat([openByNameTotalsRow])
       }) }}

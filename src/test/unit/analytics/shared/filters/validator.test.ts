@@ -16,9 +16,32 @@ describe('validateFilters', () => {
     expect(result.filters.completedTo).toBeInstanceOf(Date);
   });
 
+  test('parses dd/mm/yyyy date picker values', () => {
+    const result = validateFilters({
+      completedFrom: '05/02/2024',
+      completedTo: '15/02/2024',
+      eventsFrom: '1/3/2024',
+      eventsTo: '2/3/2024',
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.filters.completedFrom).toBeInstanceOf(Date);
+    expect(result.filters.completedTo).toBeInstanceOf(Date);
+    expect(result.filters.eventsFrom).toBeInstanceOf(Date);
+    expect(result.filters.eventsTo).toBeInstanceOf(Date);
+  });
+
   test('flags invalid dates', () => {
     const result = validateFilters({
       completedFrom: 'not-a-date',
+    });
+
+    expect(result.errors).toContain('completedFrom must be a valid date');
+  });
+
+  test('flags invalid dd/mm/yyyy values', () => {
+    const result = validateFilters({
+      completedFrom: '31/02/2024',
     });
 
     expect(result.errors).toContain('completedFrom must be a valid date');

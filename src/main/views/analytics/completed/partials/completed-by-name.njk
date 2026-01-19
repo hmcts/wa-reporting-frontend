@@ -10,17 +10,17 @@
       attributes: {
         'data-export-csv': 'true',
         'data-export-filename': 'completed-by-name.csv',
-        'data-sortable': 'true',
-        'data-sort-default': '0'
+        'data-module': 'moj-sortable-table',
+        'data-sticky-totals': 'true'
       },
       classes: "analytics-table--compact",
       hasTotals: true,
       head: [
-        { text: "Task name" },
-        { text: "Tasks", format: "numeric" },
-        { text: "Within due date", format: "numeric" },
-        { text: "%", format: "numeric" },
-        { text: "Outside due date", format: "numeric" }
+        { text: "Task name", attributes: { 'aria-sort': 'ascending' } },
+        { text: "Tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Within due date", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "%", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Outside due date", format: "numeric", attributes: { 'aria-sort': 'none' } }
       ],
       rows: completedByNameRows.concat([completedByNameTotalsRow])
     }) }}

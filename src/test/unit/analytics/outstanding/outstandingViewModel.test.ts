@@ -52,8 +52,12 @@ describe('buildOutstandingViewModel', () => {
     });
 
     expect(viewModel.openTasksTotalsRow[0].text).toBe('Total');
+    expect(viewModel.openTasksTotalsRow[0].attributes?.['data-total-row']).toBe('true');
+    expect(viewModel.openTasksRows[0][1].attributes?.['data-sort-value']).toBe('2');
     expect(viewModel.openByNameTotalsRow[1].text).toBe('1');
+    expect(viewModel.openByNameTotalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.waitTimeTotalsRow[2].text).toBe('2.0');
+    expect(viewModel.waitTimeTotalsRow[2].attributes?.['data-sort-value']).toBe('2');
     expect(viewModel.charts.openTasks).toBe('open');
     expect(viewModel.outstandingByLocationRows[0][0].text).toBe('Leeds Crown Court');
     expect(viewModel.outstandingByRegionRows[0][0].text).toBe('North East');

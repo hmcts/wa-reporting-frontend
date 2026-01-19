@@ -3,18 +3,23 @@
   <div class="analytics-tab-panel">
     {{ csvDownloadButton() }}
     {{ analyticsTable({
-      attributes: { 'data-export-csv': 'true', 'data-export-filename': 'overview-by-service.csv', 'data-sortable': 'true' },
+      attributes: {
+        'data-export-csv': 'true',
+        'data-export-filename': 'overview-by-service.csv',
+        'data-module': 'moj-sortable-table',
+        'data-sticky-totals': 'true'
+      },
       classes: "analytics-table--compact",
       hasTotals: true,
       head: [
-        { text: "Service" },
-        { text: "Open", format: "numeric" },
-        { text: "Assigned", format: "numeric" },
-        { text: "Assigned %", format: "numeric" },
-        { text: "Urgent", format: "numeric" },
-        { text: "High", format: "numeric" },
-        { text: "Medium", format: "numeric" },
-        { text: "Low", format: "numeric" }
+        { text: "Service", attributes: { 'aria-sort': 'ascending' } },
+        { text: "Open", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Assigned", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Assigned %", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Urgent", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "High", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Medium", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Low", format: "numeric", attributes: { 'aria-sort': 'none' } }
       ],
       rows: tableRows.concat([totalsRow])
     }) }}

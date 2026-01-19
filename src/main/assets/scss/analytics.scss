@@ -2,6 +2,7 @@ $govuk-new-organisation-colours: true;
 $govuk-page-width: 1400px;
 
 @import 'govuk-frontend';
+@import '@ministryofjustice/frontend';
 
 :root {
   /* GOV.UK palette alignment for Plotly series */
@@ -10,6 +11,10 @@ $govuk-page-width: 1400px;
   --analytics-priority-medium: #ffdd00;
   --analytics-priority-low: #1d70b8;
   --analytics-priority-not-provided: #b1b4b6;
+}
+
+.moj-datepicker__dialog {
+  z-index: 5;
 }
 
 .analytics-chart {

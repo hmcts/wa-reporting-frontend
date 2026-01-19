@@ -1,7 +1,7 @@
 import { buildOverviewViewModel } from '../../../../main/modules/analytics/overview/viewModel';
 
 describe('buildOverviewViewModel', () => {
-  test('builds table rows and date parts', () => {
+  test('builds table rows and date picker values', () => {
     const viewModel = buildOverviewViewModel({
       filters: {},
       overview: {
@@ -37,8 +37,10 @@ describe('buildOverviewViewModel', () => {
 
     expect(viewModel.rows).toHaveLength(1);
     expect(viewModel.tableRows[0][0].text).toBe('Service A');
-    expect(viewModel.eventsFrom).toEqual({ day: '5', month: '1', year: '2024' });
-    expect(viewModel.eventsTo).toEqual({ day: '10', month: '1', year: '2024' });
+    expect(viewModel.tableRows[0][1].attributes?.['data-sort-value']).toBe('10');
+    expect(viewModel.totalsRow[0].attributes?.['data-total-row']).toBe('true');
+    expect(viewModel.eventsFromValue).toBe('05/01/2024');
+    expect(viewModel.eventsToValue).toBe('10/01/2024');
   });
 
   test('sorts rows alphabetically and builds totals rows', () => {
@@ -87,6 +89,7 @@ describe('buildOverviewViewModel', () => {
 
     expect(viewModel.rows[0].service).toBe('Service A');
     expect(viewModel.totalsRow[0].text).toBe('Total');
+    expect(viewModel.taskEventsTotalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.taskEventsTotalsRow[0].text).toBe('Total');
   });
 });

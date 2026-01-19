@@ -15,6 +15,7 @@ export function buildSortHeadCell(params: {
   const isActive = activeSort.by === sortKey;
   const attributes: Record<string, string> = {
     'data-sort-key': sortKey,
+    'aria-sort': 'none',
   };
   if (isActive) {
     attributes['data-sort-dir'] = activeSort.dir;

@@ -8,16 +8,21 @@
     <div class="analytics-tab-panel">
       {{ csvDownloadButton() }}
       {{ analyticsTable({
-        attributes: { 'data-export-csv': 'true', 'data-export-filename': 'outstanding-open-tasks.csv', 'data-sortable': 'true' },
+        attributes: {
+          'data-export-csv': 'true',
+          'data-export-filename': 'outstanding-open-tasks.csv',
+          'data-module': 'moj-sortable-table',
+          'data-sticky-totals': 'true'
+        },
         classes: "analytics-table--compact",
         hasTotals: true,
         head: [
-          { text: "Created date" },
-          { text: "Open tasks", format: "numeric" },
-          { text: "Assigned tasks", format: "numeric" },
-          { text: "Assigned %", format: "numeric" },
-          { text: "Unassigned tasks", format: "numeric" },
-          { text: "Unassigned %", format: "numeric" }
+          { text: "Created date", attributes: { 'aria-sort': 'none' } },
+          { text: "Open tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "Assigned tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "Assigned %", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "Unassigned tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "Unassigned %", format: "numeric", attributes: { 'aria-sort': 'none' } }
         ],
         rows: openTasksRows.concat([openTasksTotalsRow])
       }) }}

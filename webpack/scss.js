@@ -1,3 +1,4 @@
+const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const devMode = process.env.NODE_ENV !== 'production';
@@ -34,6 +35,7 @@ module.exports = {
           options: {
             sassOptions: {
               quietDeps: true,
+              loadPaths: [path.resolve(__dirname, '..'), path.resolve(__dirname, '..', 'node_modules')],
             },
           },
         },

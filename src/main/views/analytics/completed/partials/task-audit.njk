@@ -37,23 +37,11 @@
         <input type="hidden" name="taskName" value="{{ value }}">
       {% endfor %}
     {% endif %}
-    {% if completedFrom.day %}
-      <input type="hidden" name="completedFrom-day" value="{{ completedFrom.day }}">
+    {% if completedFromValue %}
+      <input type="hidden" name="completedFrom" value="{{ completedFromValue }}">
     {% endif %}
-    {% if completedFrom.month %}
-      <input type="hidden" name="completedFrom-month" value="{{ completedFrom.month }}">
-    {% endif %}
-    {% if completedFrom.year %}
-      <input type="hidden" name="completedFrom-year" value="{{ completedFrom.year }}">
-    {% endif %}
-    {% if completedTo.day %}
-      <input type="hidden" name="completedTo-day" value="{{ completedTo.day }}">
-    {% endif %}
-    {% if completedTo.month %}
-      <input type="hidden" name="completedTo-month" value="{{ completedTo.month }}">
-    {% endif %}
-    {% if completedTo.year %}
-      <input type="hidden" name="completedTo-year" value="{{ completedTo.year }}">
+    {% if completedToValue %}
+      <input type="hidden" name="completedTo" value="{{ completedToValue }}">
     {% endif %}
 
     <div class="govuk-grid-row">
@@ -77,40 +65,40 @@
   </form>
 
   {% set taskAuditTableRows = [] %}
-  {% for row in taskAuditRows %}
-    {% set taskAuditTableRows = taskAuditTableRows.concat([[
-      { html: caseLink(row.caseId) },
-      { text: row.taskName },
-      { text: row.agentName },
-      { text: row.completedDate },
-      { text: row.totalAssignments | formatNumber },
-      { text: row.location },
-      { text: row.status }
-    ]]) %}
-  {% endfor %}
-  {% set taskAuditTableHtml %}
-    <div class="analytics-tab-panel">
-      {{ csvDownloadButton() }}
-      {{ analyticsTable({
-        attributes: {
-          'data-export-csv': 'true',
-          'data-export-filename': 'completed-task-audit.csv',
-          'data-sortable': 'true'
-        },
-        classes: "analytics-table--compact",
-        boldLastRow: false,
-        head: [
-          { text: "Case ID" },
-          { text: "Task name" },
-          { text: "Agent name" },
-          { text: "Completed date" },
-          { text: "Total assignments", format: "numeric" },
-          { text: "Location" },
-          { text: "Status" }
-        ],
-        rows: taskAuditTableRows
-      }) }}
-    </div>
+    {% for row in taskAuditRows %}
+      {% set taskAuditTableRows = taskAuditTableRows.concat([[
+        { html: caseLink(row.caseId) },
+        { text: row.taskName },
+        { text: row.agentName },
+        { text: row.completedDate },
+        { text: row.totalAssignments | formatNumber, attributes: { 'data-sort-value': row.totalAssignments } },
+        { text: row.location },
+        { text: row.status }
+      ]]) %}
+    {% endfor %}
+    {% set taskAuditTableHtml %}
+      <div class="analytics-tab-panel">
+        {{ csvDownloadButton() }}
+        {{ analyticsTable({
+          attributes: {
+            'data-export-csv': 'true',
+            'data-export-filename': 'completed-task-audit.csv',
+            'data-module': 'moj-sortable-table'
+          },
+          classes: "analytics-table--compact",
+          boldLastRow: false,
+          head: [
+            { text: "Case ID", attributes: { 'aria-sort': 'none' } },
+            { text: "Task name", attributes: { 'aria-sort': 'none' } },
+            { text: "Agent name", attributes: { 'aria-sort': 'none' } },
+            { text: "Completed date", attributes: { 'aria-sort': 'none' } },
+            { text: "Total assignments", format: "numeric", attributes: { 'aria-sort': 'none' } },
+            { text: "Location", attributes: { 'aria-sort': 'none' } },
+            { text: "Status", attributes: { 'aria-sort': 'none' } }
+          ],
+          rows: taskAuditTableRows
+        }) }}
+      </div>
   {% endset %}
   {{ govukTabs({
     id: "taskAuditTabs",

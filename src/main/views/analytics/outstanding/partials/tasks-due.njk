@@ -8,14 +8,19 @@
     <div class="analytics-tab-panel">
       {{ csvDownloadButton() }}
       {{ analyticsTable({
-        attributes: { 'data-export-csv': 'true', 'data-export-filename': 'outstanding-tasks-due.csv', 'data-sortable': 'true' },
+        attributes: {
+          'data-export-csv': 'true',
+          'data-export-filename': 'outstanding-tasks-due.csv',
+          'data-module': 'moj-sortable-table',
+          'data-sticky-totals': 'true'
+        },
         classes: "analytics-table--compact",
         hasTotals: true,
         head: [
-          { text: "Due date" },
-          { text: "Total due", format: "numeric" },
-          { text: "Open", format: "numeric" },
-          { text: "Completed", format: "numeric" }
+          { text: "Due date", attributes: { 'aria-sort': 'none' } },
+          { text: "Total due", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "Open", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "Completed", format: "numeric", attributes: { 'aria-sort': 'none' } }
         ],
         rows: tasksDueRows.concat([tasksDueTotalsRow])
       }) }}

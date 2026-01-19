@@ -1,5 +1,5 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
-import { buildDateParts, formatNumber, formatPercent } from '../shared/formatting';
+import { formatDatePickerValue, formatNumber, formatPercent } from '../shared/formatting';
 import { PaginationMeta } from '../shared/pagination';
 import type { FilterOptions } from '../shared/services';
 import { AnalyticsFilters, Task, UserOverviewResponse } from '../shared/types';
@@ -20,8 +20,8 @@ import {
 
 type UserOverviewViewModel = FilterOptionsViewModel & {
   filters: AnalyticsFilters;
-  completedFrom: { day: string; month: string; year: string };
-  completedTo: { day: string; month: string; year: string };
+  completedFromValue: string;
+  completedToValue: string;
   userOptions: SelectOption[];
   prioritySummary: UserOverviewResponse['prioritySummary'];
   assignedSort: UserOverviewSort['assigned'];
@@ -39,17 +39,36 @@ type UserOverviewViewModel = FilterOptionsViewModel & {
   completedSummaryRows: { key: { text: string }; value: { text: string } }[];
   assignedRows: UserOverviewAssignedRow[];
   completedRows: UserOverviewCompletedRow[];
-  completedByTaskNameRows: { text: string }[][];
-  completedByTaskNameTotalsRow: { text: string }[];
-  completedByDateRows: { text: string }[][];
-  completedByDateTotalsRow: { text: string }[];
+  completedByTaskNameRows: TableRow[];
+  completedByTaskNameTotalsRow: TableRowCell[];
+  completedByDateRows: TableRow[];
+  completedByDateTotalsRow: TableRowCell[];
 };
 
-function formatAverage(valueSum: number, valueCount: number): string {
+type TableRowCell = { text: string; attributes?: Record<string, string> };
+type TableRow = TableRowCell[];
+
+function buildNumericCell(value: number, options: Intl.NumberFormatOptions = {}): TableRowCell {
+  return { text: formatNumber(value, options), attributes: { 'data-sort-value': String(value) } };
+}
+
+function buildPercentCell(value: number, options: Intl.NumberFormatOptions = {}): TableRowCell {
+  return { text: formatPercent(value, options), attributes: { 'data-sort-value': String(value) } };
+}
+
+function buildAverageCell(valueSum: number, valueCount: number): TableRowCell {
   if (valueCount === 0) {
-    return '-';
+    return { text: '-' };
   }
-  return formatNumber(valueSum / valueCount, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const average = valueSum / valueCount;
+  return {
+    text: formatNumber(average, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    attributes: { 'data-sort-value': String(average) },
+  };
+}
+
+function buildTotalLabelCell(label: string): TableRowCell {
+  return { text: label, attributes: { 'data-total-row': 'true' } };
 }
 
 type UserOverviewAssignedRow = {
@@ -200,23 +219,21 @@ function buildCompletedHead(context: SortHeadContext): TableHeadCell[] {
   ];
 }
 
-function buildCompletedByDateRows(rows: CompletedByDatePoint[]): { text: string }[][] {
+function buildCompletedByDateRows(rows: CompletedByDatePoint[]): TableRow[] {
   return rows.map(row => [
     { text: row.date },
-    { text: formatNumber(row.tasks) },
-    { text: formatNumber(row.withinDue) },
-    {
-      text: formatPercent((row.withinDue / (row.tasks || 1)) * 100, {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
-      }),
-    },
-    { text: formatNumber(row.beyondDue) },
-    { text: formatAverage(row.handlingTimeSum, row.handlingTimeCount) },
+    buildNumericCell(row.tasks),
+    buildNumericCell(row.withinDue),
+    buildPercentCell(row.tasks === 0 ? 0 : (row.withinDue / row.tasks) * 100, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }),
+    buildNumericCell(row.beyondDue),
+    buildAverageCell(row.handlingTimeSum, row.handlingTimeCount),
   ]);
 }
 
-function buildCompletedByDateTotalsRow(rows: CompletedByDatePoint[]): { text: string }[] {
+function buildCompletedByDateTotalsRow(rows: CompletedByDatePoint[]): TableRow {
   const totals = rows.reduce(
     (acc, row) => ({
       tasks: acc.tasks + row.tasks,
@@ -228,17 +245,15 @@ function buildCompletedByDateTotalsRow(rows: CompletedByDatePoint[]): { text: st
     { tasks: 0, withinDue: 0, beyondDue: 0, handlingTimeSum: 0, handlingTimeCount: 0 }
   );
   return [
-    { text: 'Total' },
-    { text: formatNumber(totals.tasks) },
-    { text: formatNumber(totals.withinDue) },
-    {
-      text: formatPercent((totals.withinDue / (totals.tasks || 1)) * 100, {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
-      }),
-    },
-    { text: formatNumber(totals.beyondDue) },
-    { text: formatAverage(totals.handlingTimeSum, totals.handlingTimeCount) },
+    buildTotalLabelCell('Total'),
+    buildNumericCell(totals.tasks),
+    buildNumericCell(totals.withinDue),
+    buildPercentCell(totals.tasks === 0 ? 0 : (totals.withinDue / totals.tasks) * 100, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }),
+    buildNumericCell(totals.beyondDue),
+    buildAverageCell(totals.handlingTimeSum, totals.handlingTimeCount),
   ];
 }
 
@@ -314,8 +329,8 @@ export function buildUserOverviewViewModel(params: {
   return {
     filters,
     ...filterViewModel,
-    completedFrom: buildDateParts(filters.completedFrom),
-    completedTo: buildDateParts(filters.completedTo),
+    completedFromValue: formatDatePickerValue(filters.completedFrom),
+    completedToValue: formatDatePickerValue(filters.completedTo),
     userOptions,
     prioritySummary: overview.prioritySummary,
     assignedSort: sort.assigned,
@@ -370,15 +385,15 @@ export function buildUserOverviewViewModel(params: {
     })),
     completedByTaskNameRows: completedByTaskNameAggregates.map(row => [
       { text: row.taskName },
-      { text: formatNumber(row.tasks) },
-      { text: formatAverage(row.handlingTimeSum, row.handlingTimeCount) },
-      { text: formatAverage(row.daysBeyondSum, row.daysBeyondCount) },
+      buildNumericCell(row.tasks),
+      buildAverageCell(row.handlingTimeSum, row.handlingTimeCount),
+      buildAverageCell(row.daysBeyondSum, row.daysBeyondCount),
     ]),
     completedByTaskNameTotalsRow: [
-      { text: 'Total' },
-      { text: formatNumber(completedByTaskNameTotals.tasks) },
-      { text: formatAverage(completedByTaskNameTotals.handlingTimeSum, completedByTaskNameTotals.handlingTimeCount) },
-      { text: formatAverage(completedByTaskNameTotals.daysBeyondSum, completedByTaskNameTotals.daysBeyondCount) },
+      buildTotalLabelCell('Total'),
+      buildNumericCell(completedByTaskNameTotals.tasks),
+      buildAverageCell(completedByTaskNameTotals.handlingTimeSum, completedByTaskNameTotals.handlingTimeCount),
+      buildAverageCell(completedByTaskNameTotals.daysBeyondSum, completedByTaskNameTotals.daysBeyondCount),
     ],
     completedByDateRows: buildCompletedByDateRows(completedByDate),
     completedByDateTotalsRow: buildCompletedByDateTotalsRow(completedByDate),

@@ -1,4 +1,9 @@
-import { buildDateParts, formatNumber, formatPercent } from '../../../../main/modules/analytics/shared/formatting';
+import {
+  buildDateParts,
+  formatDatePickerValue,
+  formatNumber,
+  formatPercent,
+} from '../../../../main/modules/analytics/shared/formatting';
 
 describe('formatNumber', () => {
   test('formats numeric values using en-GB', () => {
@@ -30,5 +35,15 @@ describe('buildDateParts', () => {
 
   test('returns empty strings when no date provided', () => {
     expect(buildDateParts()).toEqual({ day: '', month: '', year: '' });
+  });
+});
+
+describe('formatDatePickerValue', () => {
+  test('formats date for picker values', () => {
+    expect(formatDatePickerValue(new Date('2024-01-05'))).toBe('05/01/2024');
+  });
+
+  test('returns empty string when no date provided', () => {
+    expect(formatDatePickerValue()).toBe('');
   });
 });

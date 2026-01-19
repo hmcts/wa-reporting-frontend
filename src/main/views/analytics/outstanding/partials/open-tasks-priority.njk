@@ -8,16 +8,21 @@
     <div class="analytics-tab-panel">
       {{ csvDownloadButton() }}
       {{ analyticsTable({
-        attributes: { 'data-export-csv': 'true', 'data-export-filename': 'outstanding-open-tasks-priority.csv', 'data-sortable': 'true' },
+        attributes: {
+          'data-export-csv': 'true',
+          'data-export-filename': 'outstanding-open-tasks-priority.csv',
+          'data-module': 'moj-sortable-table',
+          'data-sticky-totals': 'true'
+        },
         classes: "analytics-table--compact",
         hasTotals: true,
         head: [
-          { text: "Due date" },
-          { text: "Total open", format: "numeric" },
-          { text: "Urgent", format: "numeric" },
-          { text: "High", format: "numeric" },
-          { text: "Medium", format: "numeric" },
-          { text: "Low", format: "numeric" }
+          { text: "Due date", attributes: { 'aria-sort': 'none' } },
+          { text: "Total open", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "Urgent", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "High", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "Medium", format: "numeric", attributes: { 'aria-sort': 'none' } },
+          { text: "Low", format: "numeric", attributes: { 'aria-sort': 'none' } }
         ],
         rows: tasksDuePriorityRows.concat([tasksDuePriorityTotalsRow])
       }) }}
