@@ -153,4 +153,33 @@ describe('userOverviewController', () => {
     expect(getAjaxPartialTemplate).toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/user-overview/partials/assigned-tasks', { view: 'users-ajax' });
   });
+
+  test('falls back to full page when ajax template is missing', async () => {
+    const router = buildRouter();
+    const render = jest.fn();
+    const req = {
+      method: 'POST',
+      body: { ajaxSection: 'assigned' },
+      get: jest.fn().mockReturnValue('fetch'),
+    } as unknown as Request;
+    const res = { render } as unknown as Response;
+
+    (validateFilters as jest.Mock).mockReturnValue({ filters: {} });
+    (parseUserOverviewSort as jest.Mock).mockReturnValue({
+      assigned: { by: 'createdDate', dir: 'desc' },
+      completed: { by: 'completedDate', dir: 'desc' },
+    });
+    (parseAssignedPage as jest.Mock).mockReturnValue(1);
+    (parseCompletedPage as jest.Mock).mockReturnValue(1);
+    (buildUserOverviewPage as jest.Mock).mockResolvedValue({ view: 'users-fallback' });
+    (isAjaxRequest as jest.Mock).mockReturnValue(true);
+    (getAjaxPartialTemplate as jest.Mock).mockReturnValue(undefined);
+
+    userOverviewController.registerUserOverviewRoutes(router);
+
+    const handler = (router.post as jest.Mock).mock.calls[0][1];
+    await handler(req, res);
+
+    expect(render).toHaveBeenCalledWith('analytics/user-overview/index', { view: 'users-fallback' });
+  });
 });

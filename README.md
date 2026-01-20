@@ -56,7 +56,7 @@ Run the app and visit:
 
 Notes:
 
-- Plotly charts use GOV.UK-aligned priority colors defined in `src/main/assets/scss/analytics.scss`.
+- Plotly charts use GOV.UK-aligned priority colors defined in `src/main/assets/scss/main.scss`.
 - Each chart has a data-table alternative via the GOV.UK toggle pattern for accessibility.
 
 ### Running with Docker

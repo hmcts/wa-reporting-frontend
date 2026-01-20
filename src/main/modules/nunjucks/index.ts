@@ -103,3 +103,9 @@ export class Nunjucks {
     });
   }
 }
+
+export const __testing = {
+  addClasses,
+  extractNumericColumns,
+  decorateNumericRows,
+};

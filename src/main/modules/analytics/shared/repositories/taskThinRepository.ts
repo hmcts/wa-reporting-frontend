@@ -427,4 +427,9 @@ export class TaskThinRepository {
   }
 }
 
+export const __testing = {
+  buildUserOverviewWhere,
+  buildCompletedTaskConditions,
+};
+
 export const taskThinRepository = new TaskThinRepository();

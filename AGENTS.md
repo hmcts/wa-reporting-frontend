@@ -60,5 +60,5 @@ config/
 - Shared analytics helpers belong in `src/main/modules/analytics/shared/` (filters, services, viewModels, charts, cache, repositories); reuse before adding new helpers.
 - For AJAX section refreshes (e.g., user overview sorting), follow the established pattern: add a `data-section` wrapper around the section partial, submit `ajaxSection` with `X-Requested-With: fetch`, render the specific partial in the controller when the header/section is present, and send URL-encoded form data (including `_csrf`) so `csurf` can validate it.
 - Add or update tests under `src/test/` following existing unit/functional/a11y/smoke patterns for the change. Branch and line coverage per file should be at least 95%.
-- Mandatory: the final step after any change is to run `yarn lint`, `yarn test`, and `yarn build`; do not consider work complete unless all three pass.
+- Mandatory: the final step after any change is to run `yarn lint`, `yarn test:coverage`, and `yarn build`; do not consider work complete unless all three pass and coverage for files modified as part of the task is above the mandated 95%.
 - Any changes which impact these Development Guidelines should be accompanied with changes to the Development Guidelines.

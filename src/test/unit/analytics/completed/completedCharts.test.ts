@@ -2,6 +2,7 @@ import {
   buildCompletedByNameChart,
   buildComplianceChart,
   buildHandlingChart,
+  buildProcessingHandlingTimeChart,
   buildTimelineChart,
 } from '../../../../main/modules/analytics/completed/visuals/charts';
 
@@ -48,5 +49,32 @@ describe('completedCharts', () => {
       buildHandlingChart({ metric: 'handlingTime', averageDays: 2, lowerRange: 1, upperRange: 3 })
     );
     expect(config.data[0].y).toEqual([2]);
+  });
+
+  test('buildProcessingHandlingTimeChart uses processing metrics when selected', () => {
+    const config = JSON.parse(
+      buildProcessingHandlingTimeChart(
+        [
+          {
+            date: '2024-01-01',
+            tasks: 2,
+            handlingAverageDays: 1,
+            handlingStdDevDays: 0.5,
+            handlingSumDays: 2,
+            handlingCount: 2,
+            processingAverageDays: 2.5,
+            processingStdDevDays: 0.5,
+            processingSumDays: 5,
+            processingCount: 2,
+          },
+        ],
+        'processingTime'
+      )
+    );
+
+    expect(config.data[0].y).toEqual([2.5]);
+    expect(config.data[1].y).toEqual([3]);
+    expect(config.data[2].y).toEqual([2]);
+    expect(config.layout.xaxis.title).toBe('Completed date');
   });
 });

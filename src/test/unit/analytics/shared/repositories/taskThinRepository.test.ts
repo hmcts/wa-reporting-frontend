@@ -1,6 +1,9 @@
 import { tmPrisma } from '../../../../../main/modules/analytics/shared/data/prisma';
 import { getDefaultOutstandingSort } from '../../../../../main/modules/analytics/shared/outstandingSort';
-import { taskThinRepository } from '../../../../../main/modules/analytics/shared/repositories/taskThinRepository';
+import {
+  __testing,
+  taskThinRepository,
+} from '../../../../../main/modules/analytics/shared/repositories/taskThinRepository';
 import {
   AssignedSortBy,
   CompletedSortBy,
@@ -21,7 +24,9 @@ describe('taskThinRepository', () => {
     const sort = getDefaultUserOverviewSort();
     const outstandingSort = getDefaultOutstandingSort();
     await taskThinRepository.fetchUserOverviewAssignedTaskRows({}, sort.assigned);
+    await taskThinRepository.fetchUserOverviewAssignedTaskRows({}, sort.assigned, null);
     await taskThinRepository.fetchUserOverviewCompletedTaskRows({}, sort.completed);
+    await taskThinRepository.fetchUserOverviewCompletedTaskRows({}, sort.completed, null);
     await taskThinRepository.fetchUserOverviewCompletedByDateRows({});
     await taskThinRepository.fetchUserOverviewCompletedByTaskNameRows({});
     await taskThinRepository.fetchOutstandingCriticalTaskRows({}, outstandingSort.criticalTasks);
@@ -106,6 +111,25 @@ describe('taskThinRepository', () => {
     );
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();
+  });
+
+  test('adds user filters for completed-by-date and completed-by-task-name queries', async () => {
+    await taskThinRepository.fetchUserOverviewCompletedByDateRows({ user: ['user-1'] });
+    await taskThinRepository.fetchUserOverviewCompletedByTaskNameRows({ user: ['user-1'] });
+
+    expect(tmPrisma.$queryRaw).toHaveBeenCalled();
+  });
+
+  test('includes case ID filters when fetching completed task audits', async () => {
+    await taskThinRepository.fetchCompletedTaskAuditRows({ completedFrom: new Date('2024-01-01') }, 'CASE-123');
+
+    expect(tmPrisma.$queryRaw).toHaveBeenCalled();
+  });
+
+  test('builds user overview where clauses for user-only filters', () => {
+    const whereClause = __testing.buildUserOverviewWhere({ user: ['user-1'] }, []);
+
+    expect(whereClause.sql).toContain('WHERE');
   });
 
   test('covers critical task sort options and user filtering', async () => {

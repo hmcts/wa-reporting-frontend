@@ -433,3 +433,9 @@ export function buildOutstandingViewModel(params: {
     outstandingByRegionLocationTotalsRow: buildOutstandingTotalsRow(outstandingTotals, 2),
   };
 }
+
+export const __testing = {
+  buildPercentCell,
+  buildOutstandingLocationRows,
+  buildOutstandingRegionRows,
+};

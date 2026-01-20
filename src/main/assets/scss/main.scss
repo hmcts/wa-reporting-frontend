@@ -1,5 +1,177 @@
-$govuk-new-organisation-colours: true;
-$govuk-page-width: 1400px;
+@use 'govuk-frontend/dist/govuk/index' as * with (
+  $govuk-new-organisation-colours: true,
+  $govuk-page-width: 1400px
+);
+@use '@ministryofjustice/frontend/moj/all';
 
-@import 'govuk-frontend';
-@import '@ministryofjustice/frontend';
+:root {
+  /* GOV.UK palette alignment for Plotly series */
+  --analytics-priority-urgent: #d4351c;
+  --analytics-priority-high: #f47738;
+  --analytics-priority-medium: #ffdd00;
+  --analytics-priority-low: #1d70b8;
+  --analytics-priority-not-provided: #b1b4b6;
+}
+
+.moj-datepicker__dialog {
+  z-index: 5;
+}
+
+.analytics-chart {
+  min-height: 400px;
+  position: relative;
+}
+
+.analytics-chart--small {
+  min-height: 240px;
+}
+
+.analytics-chart-scroll-track {
+  position: absolute;
+  top: 8px;
+  right: 4px;
+  bottom: 8px;
+  width: 10px;
+  background: rgba(177, 180, 182, 0.25);
+  border-radius: 6px;
+}
+
+.analytics-chart-scroll-handle {
+  position: absolute;
+  left: 2px;
+  width: 6px;
+  background: #b1b4b6;
+  border-radius: 6px;
+  opacity: 0.8;
+  cursor: ns-resize;
+  pointer-events: auto;
+}
+
+.govuk-heading-xl {
+  margin-bottom: govuk-spacing(1);
+}
+
+.govuk-form-group {
+  margin-bottom: govuk-spacing(3);
+}
+
+.analytics-multiselect {
+  position: relative;
+  margin-top: govuk-spacing(1);
+}
+
+.analytics-multiselect__toggle {
+  @extend .govuk-select;
+  display: block;
+  width: 100%;
+  position: relative;
+  padding-right: 40px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.analytics-multiselect__toggle::-webkit-details-marker {
+  display: none;
+}
+
+.analytics-multiselect__toggle::marker {
+  content: '';
+}
+
+.analytics-multiselect__toggle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #0b0c0c;
+  transform: translateY(-30%);
+}
+
+.analytics-multiselect__panel {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin-top: 2px;
+  border: 2px solid #0b0c0c;
+  background-color: #ffffff;
+  padding: govuk-spacing(2);
+  max-height: 240px;
+  overflow: auto;
+  box-shadow: 0 4px 10px rgba(11, 12, 12, 0.2);
+}
+
+.analytics-multiselect__search {
+  margin-bottom: govuk-spacing(2);
+}
+
+.analytics-multiselect[open] .analytics-multiselect__panel {
+  display: block;
+}
+
+.analytics-multiselect__summary {
+  display: inline-block;
+  padding-right: govuk-spacing(2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.analytics-chart-intro {
+  min-height: govuk-spacing(8);
+}
+
+.analytics-tab-panel {
+  overflow: auto;
+  max-width: 100%;
+  max-height: 520px;
+}
+
+.analytics-tab-panel--paginated {
+  position: relative;
+}
+
+.analytics-tab-panel__pagination {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  background: govuk-colour('white');
+  padding: govuk-spacing(2) 0;
+  margin-top: govuk-spacing(2);
+  box-shadow: 0 -1px 0 $govuk-border-colour;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.analytics-tab-panel__pagination .govuk-pagination {
+  width: 100%;
+}
+
+.analytics-tab-panel__content {
+  display: inline-block;
+  min-width: 100%;
+  width: max-content;
+}
+
+.analytics-table--compact {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.analytics-table-total-row td,
+.analytics-table-total-row th {
+  font-weight: 700;
+}
+
+.analytics-table--sticky-header .govuk-table__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: govuk-colour('white');
+}

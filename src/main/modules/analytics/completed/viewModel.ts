@@ -404,4 +404,7 @@ export function buildCompletedViewModel(params: {
 export const __testing = {
   buildCompletedRegionRows,
   buildCompletedLocationRows,
+  buildPercentCell,
+  buildOptionalNumericCell,
+  buildTotalsRowWithLabelColumns,
 };

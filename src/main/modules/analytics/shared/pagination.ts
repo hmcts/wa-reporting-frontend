@@ -181,3 +181,8 @@ export function paginateRows<T>({ rows, page, pageSize, buildHref, landmarkLabel
     },
   };
 }
+
+export const __testing = {
+  normalisePage,
+  parsePageValue,
+};
