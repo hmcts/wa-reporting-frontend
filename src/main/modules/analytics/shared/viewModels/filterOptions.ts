@@ -10,7 +10,7 @@ export type FilterOptionsViewModel = {
 };
 
 export function getUniqueOptions(values: (string | undefined)[], label: string): SelectOption[] {
-  const unique = Array.from(new Set(values.filter(Boolean) as string[])).sort();
+  const unique = Array.from(new Set(values.filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b));
   return [{ value: '', text: `All ${label}` }, ...unique.map(value => ({ value, text: value }))];
 }
 

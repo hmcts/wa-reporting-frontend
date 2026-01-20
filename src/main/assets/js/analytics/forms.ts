@@ -77,7 +77,9 @@ export function getAutoSubmitKey(form: HTMLFormElement): string {
         : ''
     )
     .filter(name => name && name !== '_csrf');
-  const unique = Array.from(new Set(names)).sort().join('|');
+  const unique = Array.from(new Set(names))
+    .sort((a, b) => a.localeCompare(b))
+    .join('|');
   return `analyticsFilters:autoSubmit:${window.location.pathname}:${unique}`;
 }
 

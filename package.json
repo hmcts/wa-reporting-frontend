@@ -136,7 +136,8 @@
   },
   "resolutions": {
     "diff": "^8.0.3",
-    "hono": "4.11.4"
+    "hono": "^4.11.4",
+    "tar": "^7.5.4"
   },
   "husky": {
     "hooks": {
