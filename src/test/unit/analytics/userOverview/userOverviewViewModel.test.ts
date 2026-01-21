@@ -101,6 +101,8 @@ describe('buildUserOverviewViewModel', () => {
       allTasks,
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
       completedTasks: buildTasks(overview.completed, 'completed'),
+      assignedTotalResults: overview.assigned.length,
+      completedTotalResults: overview.completed.length,
       completedComplianceSummary: {
         total: overview.completedSummary.total,
         withinDueYes: overview.completedSummary.withinDueYes,
@@ -156,6 +158,8 @@ describe('buildUserOverviewViewModel', () => {
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
       completedTasks: buildTasks(overview.completed, 'completed'),
+      assignedTotalResults: overview.assigned.length,
+      completedTotalResults: overview.completed.length,
       completedComplianceSummary: {
         total: overview.completedSummary.total,
         withinDueYes: overview.completedSummary.withinDueYes,
@@ -227,6 +231,8 @@ describe('buildUserOverviewViewModel', () => {
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
       completedTasks: buildTasks(overview.completed, 'completed'),
+      assignedTotalResults: overview.assigned.length,
+      completedTotalResults: overview.completed.length,
       completedComplianceSummary: {
         total: overview.completedSummary.total,
         withinDueYes: overview.completedSummary.withinDueYes,
@@ -292,6 +298,8 @@ describe('buildUserOverviewViewModel', () => {
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
       completedTasks: buildTasks(overview.completed, 'completed'),
+      assignedTotalResults: overview.assigned.length,
+      completedTotalResults: overview.completed.length,
       completedComplianceSummary: {
         total: overview.completedSummary.total,
         withinDueYes: overview.completedSummary.withinDueYes,
@@ -395,6 +403,8 @@ describe('buildUserOverviewViewModel', () => {
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
       completedTasks: buildTasks(overview.completed, 'completed'),
+      assignedTotalResults: overview.assigned.length,
+      completedTotalResults: overview.completed.length,
       completedComplianceSummary: {
         total: overview.completedSummary.total,
         withinDueYes: overview.completedSummary.withinDueYes,
@@ -469,6 +479,8 @@ describe('buildUserOverviewViewModel', () => {
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
       completedTasks: buildTasks(overview.completed, 'completed'),
+      assignedTotalResults: overview.assigned.length,
+      completedTotalResults: overview.completed.length,
       completedComplianceSummary: {
         total: overview.completedSummary.total,
         withinDueYes: overview.completedSummary.withinDueYes,
@@ -549,6 +561,8 @@ describe('buildUserOverviewViewModel', () => {
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
       completedTasks: buildTasks(overview.completed, 'completed'),
+      assignedTotalResults: overview.assigned.length,
+      completedTotalResults: overview.completed.length,
       completedComplianceSummary: {
         total: overview.completedSummary.total,
         withinDueYes: overview.completedSummary.withinDueYes,

@@ -15,6 +15,7 @@ describe('buildOutstandingViewModel', () => {
       },
       sort: getDefaultOutstandingSort(),
       criticalTasksPage: 1,
+      criticalTasksTotalResults: 0,
       allTasks: [],
       summary: {
         open: 4,
@@ -81,6 +82,7 @@ describe('buildOutstandingViewModel', () => {
       },
       sort: getDefaultOutstandingSort(),
       criticalTasksPage: 1,
+      criticalTasksTotalResults: 1,
       allTasks: [],
       summary: {
         open: 0,
@@ -152,6 +154,7 @@ describe('buildOutstandingViewModel', () => {
       },
       sort: getDefaultOutstandingSort(),
       criticalTasksPage: 1,
+      criticalTasksTotalResults: 0,
       allTasks: [],
       summary: {
         open: 2,

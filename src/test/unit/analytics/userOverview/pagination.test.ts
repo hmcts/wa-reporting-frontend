@@ -13,9 +13,10 @@ describe('user overview pagination', () => {
   });
 
   test('paginates assigned tasks with sort parameters', () => {
-    const rows = ['a', 'b', 'c'];
+    const rows = ['a', 'b'];
     const { pagedRows, pagination } = paginateAssignedTasks({
       rows,
+      totalResults: 3,
       filters: { service: ['Service A'] },
       sort: { by: 'assignee', dir: 'asc' },
       page: 1,
@@ -29,9 +30,10 @@ describe('user overview pagination', () => {
   });
 
   test('paginates completed tasks using default page size', () => {
-    const rows = Array.from({ length: USER_OVERVIEW_PAGE_SIZE + 1 }, (_, index) => `row-${index + 1}`);
+    const rows = Array.from({ length: USER_OVERVIEW_PAGE_SIZE }, (_, index) => `row-${index + 1}`);
     const { pagination } = paginateCompletedTasks({
       rows,
+      totalResults: USER_OVERVIEW_PAGE_SIZE + 1,
       filters: {},
       sort: { by: 'completedDate', dir: 'desc' },
       page: 2,

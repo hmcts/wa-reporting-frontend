@@ -3,7 +3,10 @@ import { taskThinRepository } from '../../../../../main/modules/analytics/shared
 import { caseWorkerProfileService } from '../../../../../main/modules/analytics/shared/services';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  taskThinRepository: { fetchOutstandingCriticalTaskRows: jest.fn() },
+  taskThinRepository: {
+    fetchOutstandingCriticalTaskRows: jest.fn(),
+    fetchOutstandingCriticalTaskCount: jest.fn(),
+  },
 }));
 
 jest.mock('../../../../../main/modules/analytics/shared/services', () => ({
@@ -16,6 +19,7 @@ describe('criticalTasksTableService', () => {
   });
 
   test('maps rows into critical task view models', async () => {
+    (taskThinRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(3);
     (taskThinRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([
       {
         case_id: '123',
@@ -58,39 +62,51 @@ describe('criticalTasksTableService', () => {
       'user-1': 'Sam Taylor',
     });
 
-    const result = await criticalTasksTableService.fetchCriticalTasks({}, { by: 'dueDate', dir: 'asc' });
+    const result = await criticalTasksTableService.fetchCriticalTasksPage({}, { by: 'dueDate', dir: 'asc' }, 1, 10);
 
-    expect(result).toEqual([
+    expect(result).toEqual({
+      rows: [
+        {
+          caseId: '123',
+          caseType: 'Benefit',
+          location: 'Leeds',
+          taskName: 'Review',
+          createdDate: '2024-01-01',
+          dueDate: undefined,
+          priority: 'high',
+          agentName: '',
+        },
+        {
+          caseId: '124',
+          caseType: 'Benefit',
+          location: 'Leeds',
+          taskName: 'Validate',
+          createdDate: '2024-01-02',
+          dueDate: undefined,
+          priority: 'high',
+          agentName: 'Sam Taylor',
+        },
+        {
+          caseId: '125',
+          caseType: 'Benefit',
+          location: 'Leeds',
+          taskName: 'Check',
+          createdDate: '2024-01-03',
+          dueDate: undefined,
+          priority: 'high',
+          agentName: 'user-2',
+        },
+      ],
+      totalResults: 3,
+      page: 1,
+    });
+    expect(taskThinRepository.fetchOutstandingCriticalTaskRows).toHaveBeenCalledWith(
+      {},
+      { by: 'dueDate', dir: 'asc' },
       {
-        caseId: '123',
-        caseType: 'Benefit',
-        location: 'Leeds',
-        taskName: 'Review',
-        createdDate: '2024-01-01',
-        dueDate: undefined,
-        priority: 'high',
-        agentName: '',
-      },
-      {
-        caseId: '124',
-        caseType: 'Benefit',
-        location: 'Leeds',
-        taskName: 'Validate',
-        createdDate: '2024-01-02',
-        dueDate: undefined,
-        priority: 'high',
-        agentName: 'Sam Taylor',
-      },
-      {
-        caseId: '125',
-        caseType: 'Benefit',
-        location: 'Leeds',
-        taskName: 'Check',
-        createdDate: '2024-01-03',
-        dueDate: undefined,
-        priority: 'high',
-        agentName: 'user-2',
-      },
-    ]);
+        page: 1,
+        pageSize: 10,
+      }
+    );
   });
 });

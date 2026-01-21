@@ -5,11 +5,13 @@ import {
   settledArrayWithFallback,
   settledValueWithFallback,
 } from '../shared/pageUtils';
+import { normalisePage } from '../shared/pagination';
 import { UserOverviewTaskRow, taskThinRepository } from '../shared/repositories';
 import { caseWorkerProfileService, courtVenueService } from '../shared/services';
 import { AnalyticsFilters, Task, TaskPriority, TaskStatus } from '../shared/types';
 import { UserOverviewSort } from '../shared/userOverviewSort';
 
+import { USER_OVERVIEW_PAGE_SIZE } from './pagination';
 import { CompletedByDatePoint, userOverviewService } from './service';
 import { CompletedByTaskNameAggregate } from './types';
 import { buildUserOverviewViewModel } from './viewModel';
@@ -49,6 +51,24 @@ export async function buildUserOverviewPage(
   completedPage = 1
 ): Promise<UserOverviewPageViewModel> {
   const range = normaliseDateRange({ from: filters.completedFrom, to: filters.completedTo });
+  const [assignedCountResult, completedCountResult] = await Promise.allSettled([
+    taskThinRepository.fetchUserOverviewAssignedTaskCount(filters),
+    taskThinRepository.fetchUserOverviewCompletedTaskCount(filters),
+  ]);
+  const assignedTotalResults = settledValueWithFallback(
+    assignedCountResult,
+    'Failed to fetch user overview assigned tasks count from database',
+    0
+  );
+  const completedTotalResults = settledValueWithFallback(
+    completedCountResult,
+    'Failed to fetch user overview completed tasks count from database',
+    0
+  );
+  const assignedTotalPages = Math.max(1, Math.ceil(assignedTotalResults / USER_OVERVIEW_PAGE_SIZE));
+  const completedTotalPages = Math.max(1, Math.ceil(completedTotalResults / USER_OVERVIEW_PAGE_SIZE));
+  const resolvedAssignedPage = normalisePage(assignedPage, assignedTotalPages);
+  const resolvedCompletedPage = normalisePage(completedPage, completedTotalPages);
   const [
     assignedResult,
     completedResult,
@@ -59,8 +79,14 @@ export async function buildUserOverviewPage(
     locationDescriptionsResult,
     caseWorkerNamesResult,
   ] = await Promise.allSettled([
-    taskThinRepository.fetchUserOverviewAssignedTaskRows(filters, sort.assigned),
-    taskThinRepository.fetchUserOverviewCompletedTaskRows(filters, sort.completed),
+    taskThinRepository.fetchUserOverviewAssignedTaskRows(filters, sort.assigned, {
+      page: resolvedAssignedPage,
+      pageSize: USER_OVERVIEW_PAGE_SIZE,
+    }),
+    taskThinRepository.fetchUserOverviewCompletedTaskRows(filters, sort.completed, {
+      page: resolvedCompletedPage,
+      pageSize: USER_OVERVIEW_PAGE_SIZE,
+    }),
     taskThinRepository.fetchUserOverviewAssignedTaskRows(filters, sort.assigned, null),
     taskThinRepository.fetchUserOverviewCompletedByDateRows(filters),
     taskThinRepository.fetchUserOverviewCompletedByTaskNameRows(filters),
@@ -164,13 +190,15 @@ export async function buildUserOverviewPage(
     allTasks,
     assignedTasks,
     completedTasks,
+    assignedTotalResults,
+    completedTotalResults,
     completedByDate,
     completedByTaskName,
     completedComplianceSummary,
     filterOptions,
     locationDescriptions,
     sort,
-    assignedPage,
-    completedPage,
+    assignedPage: resolvedAssignedPage,
+    completedPage: resolvedCompletedPage,
   });
 }

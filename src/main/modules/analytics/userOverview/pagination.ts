@@ -1,4 +1,9 @@
-import { PaginationMeta, buildAnalyticsPaginationHref, paginateRows, parsePageParam } from '../shared/pagination';
+import {
+  PaginationMeta,
+  buildAnalyticsPaginationHref,
+  buildPaginationMeta,
+  parsePageParam,
+} from '../shared/pagination';
 import { AnalyticsFilters } from '../shared/types';
 import { UserOverviewSort } from '../shared/userOverviewSort';
 
@@ -7,6 +12,7 @@ const USER_OVERVIEW_PATH = '/analytics/users';
 
 type PaginateUserOverviewParams<T> = {
   rows: T[];
+  totalResults: number;
   filters: AnalyticsFilters;
   sort: UserOverviewSort['assigned'] | UserOverviewSort['completed'];
   page: number;
@@ -24,6 +30,7 @@ export function parseCompletedPage(raw: unknown): number {
 
 export function paginateAssignedTasks<T>({
   rows,
+  totalResults,
   filters,
   sort,
   page,
@@ -42,17 +49,21 @@ export function paginateAssignedTasks<T>({
       },
     });
 
-  return paginateRows({
-    rows,
-    page,
-    pageSize,
-    buildHref,
-    landmarkLabel: 'Assigned tasks pagination',
-  });
+  return {
+    pagedRows: rows,
+    pagination: buildPaginationMeta({
+      totalResults,
+      page,
+      pageSize,
+      buildHref,
+      landmarkLabel: 'Assigned tasks pagination',
+    }),
+  };
 }
 
 export function paginateCompletedTasks<T>({
   rows,
+  totalResults,
   filters,
   sort,
   page,
@@ -71,11 +82,14 @@ export function paginateCompletedTasks<T>({
       },
     });
 
-  return paginateRows({
-    rows,
-    page,
-    pageSize,
-    buildHref,
-    landmarkLabel: 'Completed tasks pagination',
-  });
+  return {
+    pagedRows: rows,
+    pagination: buildPaginationMeta({
+      totalResults,
+      page,
+      pageSize,
+      buildHref,
+      landmarkLabel: 'Completed tasks pagination',
+    }),
+  };
 }

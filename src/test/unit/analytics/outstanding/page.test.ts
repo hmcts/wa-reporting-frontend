@@ -69,7 +69,7 @@ jest.mock('../../../../main/modules/analytics/outstanding/visuals/charts', () =>
 }));
 
 jest.mock('../../../../main/modules/analytics/outstanding/visuals/criticalTasksTableService', () => ({
-  criticalTasksTableService: { fetchCriticalTasks: jest.fn() },
+  criticalTasksTableService: { fetchCriticalTasksPage: jest.fn() },
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/pageUtils', () => ({
@@ -154,7 +154,11 @@ describe('buildOutstandingPage', () => {
       locationRows: [{ location: 'Leeds', region: 'North', open: 1, urgent: 1, high: 0, medium: 0, low: 0 }],
       regionRows: [{ region: 'North', open: 1, urgent: 1, high: 0, medium: 0, low: 0 }],
     });
-    (criticalTasksTableService.fetchCriticalTasks as jest.Mock).mockResolvedValue([]);
+    (criticalTasksTableService.fetchCriticalTasksPage as jest.Mock).mockResolvedValue({
+      rows: [],
+      totalResults: 0,
+      page: 1,
+    });
 
     (buildOpenByNameChartConfig as jest.Mock).mockReturnValue({ config: 'openByName' });
     (buildOpenTasksChart as jest.Mock).mockReturnValue('openTasks');
@@ -184,6 +188,7 @@ describe('buildOutstandingPage', () => {
       expect.objectContaining({
         sort: getDefaultOutstandingSort(),
         criticalTasksPage: 1,
+        criticalTasksTotalResults: 0,
         charts: {
           openTasks: 'openTasks',
           waitTime: 'waitTime',
@@ -241,7 +246,7 @@ describe('buildOutstandingPage', () => {
     (openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation as jest.Mock).mockRejectedValue(
       new Error('db')
     );
-    (criticalTasksTableService.fetchCriticalTasks as jest.Mock).mockRejectedValue(new Error('db'));
+    (criticalTasksTableService.fetchCriticalTasksPage as jest.Mock).mockRejectedValue(new Error('db'));
 
     (buildOpenByNameChartConfig as jest.Mock).mockReturnValue({ config: 'empty' });
     (buildOpenTasksChart as jest.Mock).mockReturnValue('openTasks');

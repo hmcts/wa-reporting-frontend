@@ -21,8 +21,10 @@ import {
   WaitTimeRow,
 } from './types';
 
-const CRITICAL_TASKS_LIMIT = 5000;
-const USER_OVERVIEW_TASKS_LIMIT = 5000;
+type PaginationOptions = {
+  page: number;
+  pageSize: number;
+};
 
 const PRIORITY_SORT_SQL = Prisma.sql`CASE
   WHEN major_priority <= 2000 THEN 4
@@ -67,9 +69,27 @@ function buildCompletedTaskConditions(filters: AnalyticsFilters, caseId?: string
   return conditions;
 }
 
-function buildUserOverviewTaskQuery(whereClause: Prisma.Sql, orderBy: Prisma.Sql, limit: number | null): Prisma.Sql {
+function buildPaginationClauses(pagination?: PaginationOptions | null): {
+  limitClause: Prisma.Sql;
+  offsetClause: Prisma.Sql;
+} {
+  if (!pagination) {
+    return { limitClause: Prisma.empty, offsetClause: Prisma.empty };
+  }
+  const offset = Math.max(pagination.page - 1, 0) * pagination.pageSize;
+  return {
+    limitClause: Prisma.sql`LIMIT ${pagination.pageSize}`,
+    offsetClause: Prisma.sql`OFFSET ${offset}`,
+  };
+}
+
+function buildUserOverviewTaskQuery(
+  whereClause: Prisma.Sql,
+  orderBy: Prisma.Sql,
+  pagination?: PaginationOptions | null
+): Prisma.Sql {
   const priorityBucket = buildPriorityBucket();
-  const limitClause = limit === null ? Prisma.empty : Prisma.sql`LIMIT ${limit}`;
+  const { limitClause, offsetClause } = buildPaginationClauses(pagination);
 
   return Prisma.sql`
     SELECT
@@ -93,6 +113,7 @@ function buildUserOverviewTaskQuery(whereClause: Prisma.Sql, orderBy: Prisma.Sql
     ${whereClause}
     ORDER BY ${orderBy}
     ${limitClause}
+    ${offsetClause}
   `;
 }
 
@@ -205,24 +226,45 @@ export class TaskThinRepository {
   async fetchUserOverviewAssignedTaskRows(
     filters: AnalyticsFilters,
     sort: SortState<AssignedSortBy>,
-    limit: number | null = USER_OVERVIEW_TASKS_LIMIT
+    pagination?: PaginationOptions | null
   ): Promise<UserOverviewTaskRow[]> {
     const whereClause = buildUserOverviewWhere(filters, [Prisma.sql`state = 'ASSIGNED'`]);
     const orderBy = buildAssignedOrderBy(sort);
 
-    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(buildUserOverviewTaskQuery(whereClause, orderBy, limit));
+    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(buildUserOverviewTaskQuery(whereClause, orderBy, pagination));
   }
 
   async fetchUserOverviewCompletedTaskRows(
     filters: AnalyticsFilters,
     sort: SortState<CompletedSortBy>,
-    limit: number | null = USER_OVERVIEW_TASKS_LIMIT
+    pagination?: PaginationOptions | null
   ): Promise<UserOverviewTaskRow[]> {
     const conditions = buildCompletedTaskConditions(filters);
     const whereClause = buildUserOverviewWhere(filters, conditions);
     const orderBy = buildCompletedOrderBy(sort);
 
-    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(buildUserOverviewTaskQuery(whereClause, orderBy, limit));
+    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(buildUserOverviewTaskQuery(whereClause, orderBy, pagination));
+  }
+
+  async fetchUserOverviewAssignedTaskCount(filters: AnalyticsFilters): Promise<number> {
+    const whereClause = buildUserOverviewWhere(filters, [Prisma.sql`state = 'ASSIGNED'`]);
+    const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
+      SELECT COUNT(*)::int AS total
+      FROM analytics.mv_reportable_task_thin
+      ${whereClause}
+    `);
+    return rows[0]?.total ?? 0;
+  }
+
+  async fetchUserOverviewCompletedTaskCount(filters: AnalyticsFilters): Promise<number> {
+    const conditions = buildCompletedTaskConditions(filters);
+    const whereClause = buildUserOverviewWhere(filters, conditions);
+    const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
+      SELECT COUNT(*)::int AS total
+      FROM analytics.mv_reportable_task_thin
+      ${whereClause}
+    `);
+    return rows[0]?.total ?? 0;
   }
 
   async fetchUserOverviewCompletedByDateRows(filters: AnalyticsFilters): Promise<UserOverviewCompletedByDateRow[]> {
@@ -294,11 +336,13 @@ export class TaskThinRepository {
 
   async fetchOutstandingCriticalTaskRows(
     filters: AnalyticsFilters,
-    sort: SortState<CriticalTasksSortBy>
+    sort: SortState<CriticalTasksSortBy>,
+    pagination: PaginationOptions
   ): Promise<OutstandingCriticalTaskRow[]> {
     const priorityBucket = buildPriorityBucket();
     const whereClause = buildAnalyticsWhere(filters, [Prisma.sql`state NOT IN ('COMPLETED', 'TERMINATED')`]);
     const orderBy = buildCriticalTasksOrderBy(sort);
+    const { limitClause, offsetClause } = buildPaginationClauses(pagination);
 
     return tmPrisma.$queryRaw<OutstandingCriticalTaskRow[]>(Prisma.sql`
       SELECT
@@ -315,8 +359,19 @@ export class TaskThinRepository {
       FROM analytics.mv_reportable_task_thin
       ${whereClause}
       ORDER BY ${orderBy}
-      LIMIT ${CRITICAL_TASKS_LIMIT}
+      ${limitClause}
+      ${offsetClause}
     `);
+  }
+
+  async fetchOutstandingCriticalTaskCount(filters: AnalyticsFilters): Promise<number> {
+    const whereClause = buildAnalyticsWhere(filters, [Prisma.sql`state NOT IN ('COMPLETED', 'TERMINATED')`]);
+    const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
+      SELECT COUNT(*)::int AS total
+      FROM analytics.mv_reportable_task_thin
+      ${whereClause}
+    `);
+    return rows[0]?.total ?? 0;
   }
 
   async fetchOpenTasksByNameRows(filters: AnalyticsFilters): Promise<OpenTasksByNameRow[]> {
