@@ -73,7 +73,8 @@ describe('userOverviewController', () => {
         completed: { by: 'completedDate', dir: 'desc' },
       },
       1,
-      1
+      1,
+      undefined
     );
     expect(getAjaxPartialTemplate).not.toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/user-overview/index', { view: 'users' });
@@ -109,7 +110,8 @@ describe('userOverviewController', () => {
         completed: { by: 'completedDate', dir: 'desc' },
       },
       2,
-      3
+      3,
+      undefined
     );
     expect(getAjaxPartialTemplate).not.toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/user-overview/index', { view: 'users-post' });
@@ -148,7 +150,8 @@ describe('userOverviewController', () => {
         completed: { by: 'completedDate', dir: 'desc' },
       },
       2,
-      1
+      1,
+      'assigned'
     );
     expect(getAjaxPartialTemplate).toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/user-overview/partials/assigned-tasks', { view: 'users-ajax' });

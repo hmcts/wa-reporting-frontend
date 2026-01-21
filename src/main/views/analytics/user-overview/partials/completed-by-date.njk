@@ -1,3 +1,7 @@
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+{% from "macros/analytics-table.njk" import analyticsTable %}
+{% from "macros/csv-download.njk" import csvDownloadButton %}
+
 <h2 class="govuk-heading-m">Completed tasks by date</h2>
 <p class="govuk-body">Number of tasks completed by date and average handling time</p>
 {% set completedByDateChartHtml %}

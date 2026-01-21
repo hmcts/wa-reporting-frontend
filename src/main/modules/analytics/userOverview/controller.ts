@@ -16,13 +16,18 @@ class UserOverviewController {
 
       const assignedPage = parseAssignedPage(source.assignedPage);
       const completedPage = parseCompletedPage(source.completedPage);
-      const viewModel = await buildUserOverviewPage(filters, sort, assignedPage, completedPage);
+      const ajaxSection = typeof source.ajaxSection === 'string' ? source.ajaxSection : undefined;
+      const viewModel = await buildUserOverviewPage(filters, sort, assignedPage, completedPage, ajaxSection);
       if (isAjaxRequest(req)) {
         const template = getAjaxPartialTemplate({
           source,
           partials: {
             assigned: 'analytics/user-overview/partials/assigned-tasks',
             completed: 'analytics/user-overview/partials/completed-tasks',
+            'user-overview-assigned': 'analytics/user-overview/partials/assigned-tasks',
+            'user-overview-completed': 'analytics/user-overview/partials/completed-tasks',
+            'user-overview-completed-by-date': 'analytics/user-overview/partials/completed-by-date',
+            'user-overview-completed-by-task-name': 'analytics/user-overview/partials/completed-by-task-name',
           },
         });
         if (template) {

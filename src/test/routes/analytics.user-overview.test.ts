@@ -24,5 +24,16 @@ describe('Analytics user overview route', () => {
       expect(response.text).toContain('User overview');
       expect(response.text).toContain('data-module="moj-sortable-table"');
     });
+
+    test('should render the assigned tasks partial for ajax requests', async () => {
+      const response = await request(server)
+        .get('/analytics/users?ajaxSection=user-overview-assigned')
+        .set('X-Requested-With', 'fetch')
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('Currently assigned tasks');
+      expect(response.text).not.toContain('User overview');
+    });
   });
 });

@@ -1,4 +1,5 @@
 import { completedComplianceSummaryService } from '../completed/visuals/completedComplianceSummaryService';
+import { emptyOverviewFilterOptions } from '../shared/filters';
 import {
   fetchFilterOptionsWithFallback,
   normaliseDateRange,
@@ -17,6 +18,49 @@ import { CompletedByTaskNameAggregate } from './types';
 import { buildUserOverviewViewModel } from './viewModel';
 
 type UserOverviewPageViewModel = ReturnType<typeof buildUserOverviewViewModel>;
+
+type UserOverviewAjaxSection =
+  | 'user-overview-assigned'
+  | 'user-overview-completed'
+  | 'user-overview-completed-by-date'
+  | 'user-overview-completed-by-task-name'
+  | 'assigned'
+  | 'completed';
+
+const deferredSections = new Set<UserOverviewAjaxSection>([
+  'user-overview-assigned',
+  'user-overview-completed',
+  'user-overview-completed-by-date',
+  'user-overview-completed-by-task-name',
+]);
+
+function resolveUserOverviewSection(raw?: string): UserOverviewAjaxSection | undefined {
+  if (!raw) {
+    return undefined;
+  }
+  const validSections: UserOverviewAjaxSection[] = [
+    'user-overview-assigned',
+    'user-overview-completed',
+    'user-overview-completed-by-date',
+    'user-overview-completed-by-task-name',
+    'assigned',
+    'completed',
+  ];
+  return validSections.includes(raw as UserOverviewAjaxSection) ? (raw as UserOverviewAjaxSection) : undefined;
+}
+
+function shouldFetchSection(requested: UserOverviewAjaxSection | undefined, section: UserOverviewAjaxSection): boolean {
+  if (!requested) {
+    return !deferredSections.has(section);
+  }
+  if (requested === 'assigned') {
+    return section === 'user-overview-assigned';
+  }
+  if (requested === 'completed') {
+    return section === 'user-overview-completed';
+  }
+  return requested === section;
+}
 
 function mapUserOverviewRow(row: UserOverviewTaskRow, caseWorkerNames: Record<string, string>): Task {
   const totalAssignments = (row.number_of_reassignments ?? 0) + 1;
@@ -48,12 +92,18 @@ export async function buildUserOverviewPage(
   filters: AnalyticsFilters,
   sort: UserOverviewSort,
   assignedPage = 1,
-  completedPage = 1
+  completedPage = 1,
+  ajaxSection?: string
 ): Promise<UserOverviewPageViewModel> {
+  const requestedSection = resolveUserOverviewSection(ajaxSection);
+  const shouldFetchAssigned = shouldFetchSection(requestedSection, 'user-overview-assigned');
+  const shouldFetchCompleted = shouldFetchSection(requestedSection, 'user-overview-completed');
+  const shouldFetchCompletedByDate = shouldFetchSection(requestedSection, 'user-overview-completed-by-date');
+  const shouldFetchCompletedByTaskName = shouldFetchSection(requestedSection, 'user-overview-completed-by-task-name');
   const range = normaliseDateRange({ from: filters.completedFrom, to: filters.completedTo });
   const [assignedCountResult, completedCountResult] = await Promise.allSettled([
-    taskThinRepository.fetchUserOverviewAssignedTaskCount(filters),
-    taskThinRepository.fetchUserOverviewCompletedTaskCount(filters),
+    shouldFetchAssigned ? taskThinRepository.fetchUserOverviewAssignedTaskCount(filters) : Promise.resolve(0),
+    shouldFetchCompleted ? taskThinRepository.fetchUserOverviewCompletedTaskCount(filters) : Promise.resolve(0),
   ]);
   const assignedTotalResults = settledValueWithFallback(
     assignedCountResult,
@@ -79,20 +129,34 @@ export async function buildUserOverviewPage(
     locationDescriptionsResult,
     caseWorkerNamesResult,
   ] = await Promise.allSettled([
-    taskThinRepository.fetchUserOverviewAssignedTaskRows(filters, sort.assigned, {
-      page: resolvedAssignedPage,
-      pageSize: USER_OVERVIEW_PAGE_SIZE,
-    }),
-    taskThinRepository.fetchUserOverviewCompletedTaskRows(filters, sort.completed, {
-      page: resolvedCompletedPage,
-      pageSize: USER_OVERVIEW_PAGE_SIZE,
-    }),
-    taskThinRepository.fetchUserOverviewAssignedTaskRows(filters, sort.assigned, null),
-    taskThinRepository.fetchUserOverviewCompletedByDateRows(filters),
-    taskThinRepository.fetchUserOverviewCompletedByTaskNameRows(filters),
-    completedComplianceSummaryService.fetchCompletedSummary(filters, range),
-    courtVenueService.fetchCourtVenueDescriptions(),
-    caseWorkerProfileService.fetchCaseWorkerProfileNames(),
+    shouldFetchAssigned
+      ? taskThinRepository.fetchUserOverviewAssignedTaskRows(filters, sort.assigned, {
+          page: resolvedAssignedPage,
+          pageSize: USER_OVERVIEW_PAGE_SIZE,
+        })
+      : Promise.resolve([]),
+    shouldFetchCompleted
+      ? taskThinRepository.fetchUserOverviewCompletedTaskRows(filters, sort.completed, {
+          page: resolvedCompletedPage,
+          pageSize: USER_OVERVIEW_PAGE_SIZE,
+        })
+      : Promise.resolve([]),
+    shouldFetchAssigned
+      ? taskThinRepository.fetchUserOverviewAssignedTaskRows(filters, sort.assigned, null)
+      : Promise.resolve([]),
+    shouldFetchCompleted || shouldFetchCompletedByDate
+      ? taskThinRepository.fetchUserOverviewCompletedByDateRows(filters)
+      : Promise.resolve([]),
+    shouldFetchCompletedByTaskName
+      ? taskThinRepository.fetchUserOverviewCompletedByTaskNameRows(filters)
+      : Promise.resolve([]),
+    shouldFetchCompleted
+      ? completedComplianceSummaryService.fetchCompletedSummary(filters, range)
+      : Promise.resolve(null),
+    shouldFetchAssigned || shouldFetchCompleted ? courtVenueService.fetchCourtVenueDescriptions() : Promise.resolve({}),
+    shouldFetchAssigned || shouldFetchCompleted
+      ? caseWorkerProfileService.fetchCaseWorkerProfileNames()
+      : Promise.resolve({}),
   ]);
   const assignedRows = settledArrayWithFallback(
     assignedResult,
@@ -146,11 +210,11 @@ export async function buildUserOverviewPage(
     ...mapUserOverviewRow(row, caseWorkerNames),
     status: 'assigned' as TaskStatus,
   }));
-  const allTasks = [...assignedTasksAll, ...completedTasks];
+  const allTasks = shouldFetchAssigned ? [...assignedTasksAll, ...completedTasks] : completedTasks;
   const overview = userOverviewService.buildUserOverview(allTasks);
-  const filterOptions = await fetchFilterOptionsWithFallback(
-    'Failed to fetch user overview filter options from database'
-  );
+  const filterOptions = requestedSection
+    ? emptyOverviewFilterOptions()
+    : await fetchFilterOptionsWithFallback('Failed to fetch user overview filter options from database');
 
   const completedByDate: CompletedByDatePoint[] = completedByDateRows.map(row => ({
     date: row.date_key,
