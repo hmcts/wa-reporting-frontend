@@ -57,10 +57,15 @@ function buildPercentCell(value: number, options: Intl.NumberFormatOptions = {})
 }
 
 function buildAverageCell(valueSum: number, valueCount: number): TableRowCell {
-  if (valueCount === 0) {
+  const sum = Number.isFinite(valueSum) ? valueSum : 0;
+  const count = Number.isFinite(valueCount) ? valueCount : 0;
+  if (count <= 0) {
     return { text: '-' };
   }
-  const average = valueSum / valueCount;
+  const average = sum / count;
+  if (!Number.isFinite(average)) {
+    return { text: '-' };
+  }
   return {
     text: formatNumber(average, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     attributes: { 'data-sort-value': String(average) },
@@ -343,10 +348,10 @@ export function buildUserOverviewViewModel(params: {
   const completedByTaskNameTotals = completedByTaskNameAggregates.reduce(
     (acc, row) => ({
       tasks: acc.tasks + row.tasks,
-      handlingTimeSum: acc.handlingTimeSum + row.handlingTimeSum,
-      handlingTimeCount: acc.handlingTimeCount + row.handlingTimeCount,
-      daysBeyondSum: acc.daysBeyondSum + row.daysBeyondSum,
-      daysBeyondCount: acc.daysBeyondCount + row.daysBeyondCount,
+      handlingTimeSum: acc.handlingTimeSum + (Number.isFinite(row.handlingTimeSum) ? row.handlingTimeSum : 0),
+      handlingTimeCount: acc.handlingTimeCount + (Number.isFinite(row.handlingTimeCount) ? row.handlingTimeCount : 0),
+      daysBeyondSum: acc.daysBeyondSum + (Number.isFinite(row.daysBeyondSum) ? row.daysBeyondSum : 0),
+      daysBeyondCount: acc.daysBeyondCount + (Number.isFinite(row.daysBeyondCount) ? row.daysBeyondCount : 0),
     }),
     { tasks: 0, handlingTimeSum: 0, handlingTimeCount: 0, daysBeyondSum: 0, daysBeyondCount: 0 }
   );

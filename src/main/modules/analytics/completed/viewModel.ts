@@ -53,6 +53,7 @@ type CompletedViewModel = ReturnType<typeof buildFilterOptionsViewModel> & {
   complianceRangeRows: { key: { text: string }; value: { text: string } }[];
   handlingRows: { key: { text: string }; value: { text: string } }[];
   processingHandlingRows: TableRow[];
+  processingHandlingTotalsRow: TableRowCell[];
   processingHandlingMetric: CompletedMetric;
   processingHandlingOverallLabel: string;
   processingHandlingOverallAverage: string;
@@ -143,6 +144,21 @@ function buildProcessingHandlingOverallAverage(
     return 0;
   }
   return totals.sum / totals.count;
+}
+
+function buildProcessingHandlingTotalsRow(
+  rows: CompletedProcessingHandlingPoint[],
+  metric: CompletedMetric
+): TableRowCell[] {
+  const totalTasks = rows.reduce((acc, row) => acc + row.tasks, 0);
+  const overallAverage = buildProcessingHandlingOverallAverage(rows, metric);
+  return [
+    buildTotalLabelCell('Total'),
+    buildNumericCell(totalTasks),
+    buildNumericCell(overallAverage, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    { text: '-' },
+    { text: '-' },
+  ];
 }
 
 function buildCompletedByNameRows(rows: CompletedResponse['completedByName']): TableRow[] {
@@ -367,6 +383,7 @@ export function buildCompletedViewModel(params: {
     timelineTotalsRow: buildTimelineTotalsRow(completed.timeline),
     handlingRows: buildHandlingRows(handlingStats),
     processingHandlingRows: buildProcessingHandlingRows(completed.processingHandlingTime, selectedMetric),
+    processingHandlingTotalsRow: buildProcessingHandlingTotalsRow(completed.processingHandlingTime, selectedMetric),
     processingHandlingMetric: selectedMetric,
     processingHandlingOverallLabel:
       selectedMetric === 'handlingTime'

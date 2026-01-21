@@ -23,7 +23,7 @@ import {
 } from '../../../../main/assets/js/analytics/pagination';
 import {
   initMojServerSorting,
-  initMojStickyTotals,
+  initMojTotalsRowPinning,
   initTableExports,
 } from '../../../../main/assets/js/analytics/tables';
 
@@ -54,7 +54,7 @@ jest.mock('../../../../main/assets/js/analytics/pagination', () => ({
 }));
 jest.mock('../../../../main/assets/js/analytics/tables', () => ({
   initMojServerSorting: jest.fn(),
-  initMojStickyTotals: jest.fn(),
+  initMojTotalsRowPinning: jest.fn(),
   initTableExports: jest.fn(),
 }));
 
@@ -81,8 +81,8 @@ describe('analytics bootstrap', () => {
     (initCriticalTasksPagination as jest.Mock).mockClear();
     (initUserOverviewPagination as jest.Mock).mockClear();
     (initMojServerSorting as jest.Mock).mockClear();
-    (initMojStickyTotals as jest.Mock).mockClear();
     (initTableExports as jest.Mock).mockClear();
+    (initMojTotalsRowPinning as jest.Mock).mockClear();
   });
 
   test('runs DOMContentLoaded bootstrap without throwing', async () => {
@@ -92,7 +92,7 @@ describe('analytics bootstrap', () => {
     expect(renderCharts).toHaveBeenCalled();
     expect(initTableExports).toHaveBeenCalled();
     expect(initMojServerSorting).toHaveBeenCalledWith(expect.any(Function));
-    expect(initMojStickyTotals).toHaveBeenCalled();
+    expect(initMojTotalsRowPinning).toHaveBeenCalled();
     expect(initCriticalTasksPagination).toHaveBeenCalledWith(expect.any(Function));
     expect(initUserOverviewPagination).toHaveBeenCalledWith(expect.any(Function));
     expect(initMultiSelects).toHaveBeenCalled();
@@ -142,7 +142,7 @@ describe('analytics bootstrap', () => {
     expect(initTableExports).toHaveBeenCalledTimes(2);
     expect(initMojServerSorting).toHaveBeenCalledTimes(2);
     expect(initMojServerSorting).toHaveBeenCalledTimes(2);
-    expect(initMojStickyTotals).toHaveBeenCalledTimes(2);
+    expect(initMojTotalsRowPinning).toHaveBeenCalledTimes(2);
     expect(initAjaxFilterSections).toHaveBeenCalledTimes(2);
     expect(initAutoSubmitForms).toHaveBeenCalledTimes(2);
     expect(initCriticalTasksPagination).toHaveBeenCalledTimes(2);

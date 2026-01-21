@@ -14,7 +14,7 @@ import { renderCharts } from './analytics/charts';
 import { initAutoSubmitForms, initFilterPersistence, initMultiSelects, restoreScrollPosition } from './analytics/forms';
 import { initOpenByName } from './analytics/outstanding/openByName';
 import { initCriticalTasksPagination, initUserOverviewPagination } from './analytics/pagination';
-import { initMojServerSorting, initMojStickyTotals, initTableExports } from './analytics/tables';
+import { initMojServerSorting, initMojTotalsRowPinning, initTableExports } from './analytics/tables';
 
 declare global {
   interface Window {
@@ -28,7 +28,7 @@ const rebindSectionBehaviors = (): void => {
   renderCharts();
   initTableExports();
   initMojServerSorting(fetchSortedSectionWithDeps);
-  initMojStickyTotals();
+  initMojTotalsRowPinning();
   initAjaxFilterSections(fetchSectionUpdateWithDeps);
   initAutoSubmitForms();
   initCriticalTasksPagination(fetchPaginatedSectionWithDeps);
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMojAll();
   initTableExports();
   initMojServerSorting(fetchSortedSectionWithDeps);
-  initMojStickyTotals();
+  initMojTotalsRowPinning();
   initCriticalTasksPagination(fetchPaginatedSectionWithDeps);
   initUserOverviewPagination(fetchPaginatedSectionWithDeps);
   initMultiSelects();

@@ -99,25 +99,26 @@
   {% set processingHandlingTableHtml %}
     <div class="analytics-tab-panel">
       {{ csvDownloadButton() }}
-      {{ analyticsTable({
-        attributes: {
-          'data-export-csv': 'true',
-          'data-export-filename': 'completed-processing-handling-time.csv',
-          'data-module': 'moj-sortable-table'
-        },
-        classes: "analytics-table--compact",
-        hasTotals: false,
-        head: [
-          { text: "Completed date", attributes: { 'aria-sort': 'ascending' } },
-          { text: "Tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
-          { text: "Average selected metric (days)", format: "numeric", attributes: { 'aria-sort': 'none' } },
-          { text: "Upper range (+1 std)", format: "numeric", attributes: { 'aria-sort': 'none' } },
-          { text: "Lower range (-1 std)", format: "numeric", attributes: { 'aria-sort': 'none' } }
-        ],
-        rows: processingHandlingRows
-      }) }}
-    </div>
-  {% endset %}
+    {{ analyticsTable({
+      attributes: {
+        'data-export-csv': 'true',
+        'data-export-filename': 'completed-processing-handling-time.csv',
+        'data-module': 'moj-sortable-table',
+        'data-sticky-totals': 'true'
+      },
+      classes: "analytics-table--compact",
+      hasTotals: true,
+      head: [
+        { text: "Completed date", attributes: { 'aria-sort': 'ascending' } },
+        { text: "Tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Average selected metric (days)", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Upper range (+1 std)", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Lower range (-1 std)", format: "numeric", attributes: { 'aria-sort': 'none' } }
+      ],
+      rows: processingHandlingRows.concat([processingHandlingTotalsRow])
+    }) }}
+  </div>
+{% endset %}
 
 {{ govukTabs({
   id: "processingHandlingTimeTabs",
