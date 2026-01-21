@@ -31,17 +31,7 @@ import { waitTimeByAssignedDateChartService } from './visuals/waitTimeByAssigned
 
 type OutstandingPageViewModel = ReturnType<typeof buildOutstandingViewModel>;
 
-type OutstandingAjaxSection =
-  | 'open-tasks-summary'
-  | 'open-tasks-table'
-  | 'wait-time-table'
-  | 'tasks-due'
-  | 'open-tasks-priority'
-  | 'open-by-name'
-  | 'open-by-region-location'
-  | 'criticalTasks';
-
-const deferredSections = new Set<OutstandingAjaxSection>([
+const outstandingSections = [
   'open-tasks-summary',
   'open-tasks-table',
   'wait-time-table',
@@ -50,23 +40,17 @@ const deferredSections = new Set<OutstandingAjaxSection>([
   'open-by-name',
   'open-by-region-location',
   'criticalTasks',
-]);
+] as const;
+
+type OutstandingAjaxSection = (typeof outstandingSections)[number];
+
+const deferredSections = new Set<OutstandingAjaxSection>(outstandingSections);
 
 function resolveOutstandingSection(raw?: string): OutstandingAjaxSection | undefined {
   if (!raw) {
     return undefined;
   }
-  const validSections: OutstandingAjaxSection[] = [
-    'open-tasks-summary',
-    'open-tasks-table',
-    'wait-time-table',
-    'tasks-due',
-    'open-tasks-priority',
-    'open-by-name',
-    'open-by-region-location',
-    'criticalTasks',
-  ];
-  return validSections.includes(raw as OutstandingAjaxSection) ? (raw as OutstandingAjaxSection) : undefined;
+  return outstandingSections.includes(raw as OutstandingAjaxSection) ? (raw as OutstandingAjaxSection) : undefined;
 }
 
 export async function buildOutstandingPage(

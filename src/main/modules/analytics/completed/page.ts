@@ -21,36 +21,24 @@ import { completedTimelineChartService } from './visuals/completedTimelineChartS
 
 type CompletedPageViewModel = ReturnType<typeof buildCompletedViewModel>;
 
-type CompletedAjaxSection =
-  | 'completed-summary'
-  | 'completed-timeline'
-  | 'completed-by-name'
-  | 'completed-task-audit'
-  | 'completed-by-region-location'
-  | 'completed-processing-handling-time';
-
-const deferredSections = new Set<CompletedAjaxSection>([
+const completedSections = [
   'completed-summary',
   'completed-timeline',
   'completed-by-name',
   'completed-task-audit',
   'completed-by-region-location',
   'completed-processing-handling-time',
-]);
+] as const;
+
+type CompletedAjaxSection = (typeof completedSections)[number];
+
+const deferredSections = new Set<CompletedAjaxSection>(completedSections);
 
 function resolveCompletedSection(raw?: string): CompletedAjaxSection | undefined {
   if (!raw) {
     return undefined;
   }
-  const validSections: CompletedAjaxSection[] = [
-    'completed-summary',
-    'completed-timeline',
-    'completed-by-name',
-    'completed-task-audit',
-    'completed-by-region-location',
-    'completed-processing-handling-time',
-  ];
-  return validSections.includes(raw as CompletedAjaxSection) ? (raw as CompletedAjaxSection) : undefined;
+  return completedSections.includes(raw as CompletedAjaxSection) ? (raw as CompletedAjaxSection) : undefined;
 }
 
 function shouldFetchSection(requested: CompletedAjaxSection | undefined, section: CompletedAjaxSection): boolean {

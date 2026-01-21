@@ -8,6 +8,17 @@ import { parseCriticalTasksPage } from './criticalTasksPagination';
 import { buildOutstandingPage } from './page';
 
 class OutstandingController {
+  private readonly partials = {
+    criticalTasks: 'analytics/outstanding/partials/critical-tasks',
+    'open-tasks-summary': 'analytics/outstanding/partials/open-tasks-summary',
+    'open-tasks-table': 'analytics/outstanding/partials/open-tasks-table',
+    'wait-time-table': 'analytics/outstanding/partials/wait-time-table',
+    'tasks-due': 'analytics/outstanding/partials/tasks-due',
+    'open-tasks-priority': 'analytics/outstanding/partials/open-tasks-priority',
+    'open-by-name': 'analytics/outstanding/partials/open-by-name',
+    'open-by-region-location': 'analytics/outstanding/partials/open-by-region-location',
+  };
+
   registerOutstandingRoutes(router: Router): void {
     const handler = async (req: Request, res: Response) => {
       const source = (req.method === 'POST' ? req.body : req.query) as Record<string, unknown>;
@@ -19,16 +30,7 @@ class OutstandingController {
       if (isAjaxRequest(req)) {
         const template = getAjaxPartialTemplate({
           source,
-          partials: {
-            criticalTasks: 'analytics/outstanding/partials/critical-tasks',
-            'open-tasks-summary': 'analytics/outstanding/partials/open-tasks-summary',
-            'open-tasks-table': 'analytics/outstanding/partials/open-tasks-table',
-            'wait-time-table': 'analytics/outstanding/partials/wait-time-table',
-            'tasks-due': 'analytics/outstanding/partials/tasks-due',
-            'open-tasks-priority': 'analytics/outstanding/partials/open-tasks-priority',
-            'open-by-name': 'analytics/outstanding/partials/open-by-name',
-            'open-by-region-location': 'analytics/outstanding/partials/open-by-region-location',
-          },
+          partials: this.partials,
         });
         if (template) {
           return res.render(template, viewModel);

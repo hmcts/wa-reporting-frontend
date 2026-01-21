@@ -19,13 +19,16 @@ import { buildUserOverviewViewModel } from './viewModel';
 
 type UserOverviewPageViewModel = ReturnType<typeof buildUserOverviewViewModel>;
 
-type UserOverviewAjaxSection =
-  | 'user-overview-assigned'
-  | 'user-overview-completed'
-  | 'user-overview-completed-by-date'
-  | 'user-overview-completed-by-task-name'
-  | 'assigned'
-  | 'completed';
+const userOverviewSections = [
+  'user-overview-assigned',
+  'user-overview-completed',
+  'user-overview-completed-by-date',
+  'user-overview-completed-by-task-name',
+  'assigned',
+  'completed',
+] as const;
+
+type UserOverviewAjaxSection = (typeof userOverviewSections)[number];
 
 const deferredSections = new Set<UserOverviewAjaxSection>([
   'user-overview-assigned',
@@ -38,15 +41,7 @@ function resolveUserOverviewSection(raw?: string): UserOverviewAjaxSection | und
   if (!raw) {
     return undefined;
   }
-  const validSections: UserOverviewAjaxSection[] = [
-    'user-overview-assigned',
-    'user-overview-completed',
-    'user-overview-completed-by-date',
-    'user-overview-completed-by-task-name',
-    'assigned',
-    'completed',
-  ];
-  return validSections.includes(raw as UserOverviewAjaxSection) ? (raw as UserOverviewAjaxSection) : undefined;
+  return userOverviewSections.includes(raw as UserOverviewAjaxSection) ? (raw as UserOverviewAjaxSection) : undefined;
 }
 
 function shouldFetchSection(requested: UserOverviewAjaxSection | undefined, section: UserOverviewAjaxSection): boolean {

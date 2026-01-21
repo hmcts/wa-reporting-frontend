@@ -8,6 +8,15 @@ import { buildUserOverviewPage } from './page';
 import { parseAssignedPage, parseCompletedPage } from './pagination';
 
 class UserOverviewController {
+  private readonly partials = {
+    assigned: 'analytics/user-overview/partials/assigned-tasks',
+    completed: 'analytics/user-overview/partials/completed-tasks',
+    'user-overview-assigned': 'analytics/user-overview/partials/assigned-tasks',
+    'user-overview-completed': 'analytics/user-overview/partials/completed-tasks',
+    'user-overview-completed-by-date': 'analytics/user-overview/partials/completed-by-date',
+    'user-overview-completed-by-task-name': 'analytics/user-overview/partials/completed-by-task-name',
+  };
+
   registerUserOverviewRoutes(router: Router): void {
     const handler = async (req: Request, res: Response) => {
       const source = (req.method === 'POST' ? req.body : req.query) as Record<string, unknown>;
@@ -21,14 +30,7 @@ class UserOverviewController {
       if (isAjaxRequest(req)) {
         const template = getAjaxPartialTemplate({
           source,
-          partials: {
-            assigned: 'analytics/user-overview/partials/assigned-tasks',
-            completed: 'analytics/user-overview/partials/completed-tasks',
-            'user-overview-assigned': 'analytics/user-overview/partials/assigned-tasks',
-            'user-overview-completed': 'analytics/user-overview/partials/completed-tasks',
-            'user-overview-completed-by-date': 'analytics/user-overview/partials/completed-by-date',
-            'user-overview-completed-by-task-name': 'analytics/user-overview/partials/completed-by-task-name',
-          },
+          partials: this.partials,
         });
         if (template) {
           return res.render(template, viewModel);

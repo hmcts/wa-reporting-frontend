@@ -14,16 +14,17 @@ import { taskEventsByServiceChartService } from './visuals/taskEventsByServiceCh
 
 type OverviewPageViewModel = ReturnType<typeof buildOverviewViewModel>;
 
-type OverviewAjaxSection = 'overview-service-performance' | 'overview-task-events';
+const overviewSections = ['overview-service-performance', 'overview-task-events'] as const;
 
-const deferredSections = new Set<OverviewAjaxSection>(['overview-service-performance', 'overview-task-events']);
+type OverviewAjaxSection = (typeof overviewSections)[number];
+
+const deferredSections = new Set<OverviewAjaxSection>(overviewSections);
 
 function resolveOverviewSection(raw?: string): OverviewAjaxSection | undefined {
   if (!raw) {
     return undefined;
   }
-  const validSections: OverviewAjaxSection[] = ['overview-service-performance', 'overview-task-events'];
-  return validSections.includes(raw as OverviewAjaxSection) ? (raw as OverviewAjaxSection) : undefined;
+  return overviewSections.includes(raw as OverviewAjaxSection) ? (raw as OverviewAjaxSection) : undefined;
 }
 
 function shouldFetchSection(requested: OverviewAjaxSection | undefined, section: OverviewAjaxSection): boolean {

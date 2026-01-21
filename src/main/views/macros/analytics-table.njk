@@ -6,9 +6,6 @@
   {% set hasTotals = params.hasTotals | default(boldLastRow) %}
   {% set tableClasses = params.classes | default('') %}
   {% set tableClasses = (tableClasses ~ " analytics-table--sticky-header") | trim %}
-  {% if hasTotals %}
-    {% set tableClasses = (tableClasses ~ " analytics-table--sticky-totals") | trim %}
-  {% endif %}
   {% set formattedRows = params.rows | decorateNumericRows(numericColumns, {
     boldLastRow: boldLastRow,
     boldRows: params.boldRows
