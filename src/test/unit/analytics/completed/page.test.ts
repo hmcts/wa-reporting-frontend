@@ -78,7 +78,7 @@ describe('buildCompletedPage', () => {
     jest.clearAllMocks();
   });
 
-  test('builds the view model using database results when available', async () => {
+  test('builds the summary section when requested', async () => {
     const filters: AnalyticsFilters = {
       completedFrom: new Date('2024-05-10'),
       completedTo: new Date('2024-05-01'),
@@ -105,52 +105,24 @@ describe('buildCompletedPage', () => {
 
     (completedService.buildCompleted as jest.Mock).mockReturnValue(fallback);
     (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue(fallbackRegionLocation);
-    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      users: [],
-    });
-    (regionService.fetchRegionDescriptions as jest.Mock).mockResolvedValue({ North: 'North East' });
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ Leeds: 'Leeds Crown Court' });
-    (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
     (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock)
       .mockResolvedValueOnce({ total: 10, within: 7 })
       .mockResolvedValueOnce({ total: 2, within: 1 });
-    (completedTimelineChartService.fetchCompletedTimeline as jest.Mock).mockResolvedValue([
-      { date: '2024-05-01', completed: 2, withinDue: 1, beyondDue: 1 },
-    ]);
-    (completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime as jest.Mock).mockResolvedValue([
-      {
-        date: '2024-05-01',
-        tasks: 2,
-        handlingAverageDays: 1,
-        handlingStdDevDays: 0.5,
-        handlingSumDays: 2,
-        handlingCount: 2,
-        processingAverageDays: 2,
-        processingStdDevDays: 1,
-        processingSumDays: 4,
-        processingCount: 2,
-      },
-    ]);
-    (completedByNameChartService.fetchCompletedByName as jest.Mock).mockResolvedValue([
-      { taskName: 'Review', tasks: 2, withinDue: 1, beyondDue: 1 },
-    ]);
-    (completedRegionLocationTableService.fetchCompletedByLocation as jest.Mock).mockResolvedValue([
-      { location: 'Leeds', region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 },
-    ]);
-    (completedRegionLocationTableService.fetchCompletedByRegion as jest.Mock).mockResolvedValue([
-      { region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 },
-    ]);
-    (taskThinRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([]);
-    (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed' });
+    (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-summary' });
 
-    const viewModel = await buildCompletedPage(filters, 'handlingTime');
+    const viewModel = await buildCompletedPage(filters, 'handlingTime', undefined, 'completed-summary');
 
-    expect(viewModel).toEqual({ view: 'completed' });
+    expect(viewModel).toEqual({ view: 'completed-summary' });
+    expect(fetchFilterOptionsWithFallback).not.toHaveBeenCalled();
+    expect(completedTimelineChartService.fetchCompletedTimeline).not.toHaveBeenCalled();
+    expect(completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime).not.toHaveBeenCalled();
+    expect(completedByNameChartService.fetchCompletedByName).not.toHaveBeenCalled();
+    expect(completedRegionLocationTableService.fetchCompletedByLocation).not.toHaveBeenCalled();
+    expect(completedRegionLocationTableService.fetchCompletedByRegion).not.toHaveBeenCalled();
+    expect(taskThinRepository.fetchCompletedTaskAuditRows).not.toHaveBeenCalled();
+    expect(regionService.fetchRegionDescriptions).not.toHaveBeenCalled();
+    expect(courtVenueService.fetchCourtVenueDescriptions).not.toHaveBeenCalled();
+    expect(caseWorkerProfileService.fetchCaseWorkerProfileNames).not.toHaveBeenCalled();
     expect(completedComplianceSummaryService.fetchCompletedSummary).toHaveBeenCalledWith(
       filters,
       expect.objectContaining({ from: new Date('2024-05-01'), to: new Date('2024-05-10') })
@@ -166,27 +138,10 @@ describe('buildCompletedPage', () => {
             withinDueTodayYes: 1,
             withinDueTodayNo: 1,
           }),
-          timeline: [{ date: '2024-05-01', completed: 2, withinDue: 1, beyondDue: 1 }],
-          completedByName: [{ taskName: 'Review', tasks: 2, withinDue: 1, beyondDue: 1 }],
-          processingHandlingTime: [
-            {
-              date: '2024-05-01',
-              tasks: 2,
-              handlingAverageDays: 1,
-              handlingStdDevDays: 0.5,
-              handlingSumDays: 2,
-              handlingCount: 2,
-              processingAverageDays: 2,
-              processingStdDevDays: 1,
-              processingSumDays: 4,
-              processingCount: 2,
-            },
-          ],
+          timeline: fallback.timeline,
+          completedByName: fallback.completedByName,
+          processingHandlingTime: fallback.processingHandlingTime,
         }),
-        completedByLocation: [{ location: 'Leeds', region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 }],
-        completedByRegion: [{ region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 }],
-        regionDescriptions: { North: 'North East' },
-        locationDescriptions: { Leeds: 'Leeds Crown Court' },
         taskAuditRows: [],
         taskAuditCaseId: '',
         selectedMetric: 'handlingTime',
@@ -194,7 +149,7 @@ describe('buildCompletedPage', () => {
     );
   });
 
-  test('falls back to defaults when summaries or charts fail', async () => {
+  test('defers sections on full page load', async () => {
     const fallback = {
       summary: {
         completedToday: 0,
@@ -224,39 +179,173 @@ describe('buildCompletedPage', () => {
       taskNames: [],
       users: [],
     });
-    (regionService.fetchRegionDescriptions as jest.Mock).mockResolvedValue({});
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
-    (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
-    (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock)
-      .mockRejectedValueOnce(new Error('db'))
-      .mockResolvedValueOnce(null);
-    (completedTimelineChartService.fetchCompletedTimeline as jest.Mock).mockResolvedValue([]);
-    (completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime as jest.Mock).mockRejectedValue(
-      new Error('db')
-    );
-    (completedByNameChartService.fetchCompletedByName as jest.Mock).mockRejectedValue(new Error('db'));
-    (completedRegionLocationTableService.fetchCompletedByLocation as jest.Mock).mockResolvedValue([]);
-    (completedRegionLocationTableService.fetchCompletedByRegion as jest.Mock).mockRejectedValue(new Error('db'));
-    (taskThinRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([]);
-    (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-fallback' });
+    (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-empty' });
 
     await buildCompletedPage({}, 'handlingTime');
 
+    expect(completedComplianceSummaryService.fetchCompletedSummary).not.toHaveBeenCalled();
+    expect(completedTimelineChartService.fetchCompletedTimeline).not.toHaveBeenCalled();
+    expect(completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime).not.toHaveBeenCalled();
+    expect(completedByNameChartService.fetchCompletedByName).not.toHaveBeenCalled();
+    expect(completedRegionLocationTableService.fetchCompletedByLocation).not.toHaveBeenCalled();
+    expect(completedRegionLocationTableService.fetchCompletedByRegion).not.toHaveBeenCalled();
+    expect(taskThinRepository.fetchCompletedTaskAuditRows).not.toHaveBeenCalled();
+    expect(fetchFilterOptionsWithFallback).toHaveBeenCalled();
+    expect(buildCompletedViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        completed: fallback,
+        completedByLocation: fallbackRegionLocation.byLocation,
+        completedByRegion: fallbackRegionLocation.byRegion,
+      })
+    );
+  });
+
+  test('treats unknown ajax section as full page load', async () => {
+    const fallback = {
+      summary: {
+        completedToday: 0,
+        completedInRange: 0,
+        withinDueYes: 0,
+        withinDueNo: 0,
+        withinDueTodayYes: 0,
+        withinDueTodayNo: 0,
+      },
+      timeline: [],
+      completedByName: [],
+      handlingTimeStats: { metric: 'handlingTime', averageDays: 0, lowerRange: 0, upperRange: 0 },
+      processingHandlingTime: [],
+    };
+
+    (completedService.buildCompleted as jest.Mock).mockReturnValue(fallback);
+    (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue({ byLocation: [], byRegion: [] });
+    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      users: [],
+    });
+    (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-unknown' });
+
+    await buildCompletedPage({}, 'handlingTime', undefined, 'unknown-section');
+
+    expect(fetchFilterOptionsWithFallback).toHaveBeenCalled();
+    expect(completedComplianceSummaryService.fetchCompletedSummary).not.toHaveBeenCalled();
+    expect(buildCompletedViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        completed: fallback,
+      })
+    );
+  });
+
+  test('builds the region and location section when requested', async () => {
+    const fallback = {
+      summary: {
+        completedToday: 0,
+        completedInRange: 0,
+        withinDueYes: 0,
+        withinDueNo: 0,
+        withinDueTodayYes: 0,
+        withinDueTodayNo: 0,
+      },
+      timeline: [],
+      completedByName: [],
+      handlingTimeStats: { metric: 'handlingTime', averageDays: 0, lowerRange: 0, upperRange: 0 },
+      processingHandlingTime: [],
+    };
+    const fallbackRegionLocation = { byLocation: [], byRegion: [] };
+
+    (completedService.buildCompleted as jest.Mock).mockReturnValue(fallback);
+    (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue(fallbackRegionLocation);
+    (completedRegionLocationTableService.fetchCompletedByLocation as jest.Mock).mockResolvedValue([
+      { location: 'Leeds', region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 },
+    ]);
+    (completedRegionLocationTableService.fetchCompletedByRegion as jest.Mock).mockResolvedValue([
+      { region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 },
+    ]);
+    (regionService.fetchRegionDescriptions as jest.Mock).mockResolvedValue({ North: 'North East' });
+    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ Leeds: 'Leeds Crown Court' });
+    (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-region-location' });
+
+    await buildCompletedPage({}, 'handlingTime', undefined, 'completed-by-region-location');
+
+    expect(completedComplianceSummaryService.fetchCompletedSummary).not.toHaveBeenCalled();
+    expect(completedTimelineChartService.fetchCompletedTimeline).not.toHaveBeenCalled();
+    expect(completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime).not.toHaveBeenCalled();
+    expect(completedByNameChartService.fetchCompletedByName).not.toHaveBeenCalled();
+    expect(fetchFilterOptionsWithFallback).not.toHaveBeenCalled();
+    expect(buildCompletedViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        completedByLocation: [{ location: 'Leeds', region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 }],
+        completedByRegion: [{ region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 }],
+        regionDescriptions: { North: 'North East' },
+        locationDescriptions: { Leeds: 'Leeds Crown Court' },
+      })
+    );
+  });
+
+  test('builds the processing handling time section when requested', async () => {
+    const fallback = {
+      summary: {
+        completedToday: 0,
+        completedInRange: 0,
+        withinDueYes: 0,
+        withinDueNo: 0,
+        withinDueTodayYes: 0,
+        withinDueTodayNo: 0,
+      },
+      timeline: [],
+      completedByName: [],
+      handlingTimeStats: { metric: 'handlingTime', averageDays: 0, lowerRange: 0, upperRange: 0 },
+      processingHandlingTime: [],
+    };
+    const fallbackRegionLocation = { byLocation: [], byRegion: [] };
+
+    (completedService.buildCompleted as jest.Mock).mockReturnValue(fallback);
+    (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue(fallbackRegionLocation);
+    (completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime as jest.Mock).mockResolvedValue([
+      {
+        date: '2024-05-01',
+        tasks: 2,
+        handlingAverageDays: 1,
+        handlingStdDevDays: 0.5,
+        handlingSumDays: 2,
+        handlingCount: 2,
+        processingAverageDays: 2,
+        processingStdDevDays: 1,
+        processingSumDays: 4,
+        processingCount: 2,
+      },
+    ]);
+    (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-processing-handling' });
+
+    await buildCompletedPage({}, 'processingTime', undefined, 'completed-processing-handling-time');
+
+    expect(completedComplianceSummaryService.fetchCompletedSummary).not.toHaveBeenCalled();
+    expect(completedTimelineChartService.fetchCompletedTimeline).not.toHaveBeenCalled();
+    expect(completedByNameChartService.fetchCompletedByName).not.toHaveBeenCalled();
+    expect(completedRegionLocationTableService.fetchCompletedByLocation).not.toHaveBeenCalled();
+    expect(fetchFilterOptionsWithFallback).not.toHaveBeenCalled();
     expect(buildCompletedViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
         completed: expect.objectContaining({
-          summary: fallback.summary,
-          timeline: fallback.timeline,
-          completedByName: fallback.completedByName,
-          processingHandlingTime: fallback.processingHandlingTime,
+          processingHandlingTime: [
+            {
+              date: '2024-05-01',
+              tasks: 2,
+              handlingAverageDays: 1,
+              handlingStdDevDays: 0.5,
+              handlingSumDays: 2,
+              handlingCount: 2,
+              processingAverageDays: 2,
+              processingStdDevDays: 1,
+              processingSumDays: 4,
+              processingCount: 2,
+            },
+          ],
         }),
-        completedByLocation: fallbackRegionLocation.byLocation,
-        completedByRegion: fallbackRegionLocation.byRegion,
-        regionDescriptions: {},
-        locationDescriptions: {},
-        taskAuditRows: [],
-        taskAuditCaseId: '',
-        selectedMetric: 'handlingTime',
+        selectedMetric: 'processingTime',
       })
     );
   });
@@ -280,25 +369,8 @@ describe('buildCompletedPage', () => {
 
     (completedService.buildCompleted as jest.Mock).mockReturnValue(fallback);
     (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue(fallbackRegionLocation);
-    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      users: [],
-    });
-    (regionService.fetchRegionDescriptions as jest.Mock).mockResolvedValue({ North: 'North East' });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ Leeds: 'Leeds Crown Court' });
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({ 'user-1': 'Agent One' });
-    (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock)
-      .mockResolvedValueOnce({ total: 0, within: 0 })
-      .mockResolvedValueOnce({ total: 0, within: 0 });
-    (completedTimelineChartService.fetchCompletedTimeline as jest.Mock).mockResolvedValue([]);
-    (completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime as jest.Mock).mockResolvedValue([]);
-    (completedByNameChartService.fetchCompletedByName as jest.Mock).mockResolvedValue([]);
-    (completedRegionLocationTableService.fetchCompletedByLocation as jest.Mock).mockResolvedValue([]);
-    (completedRegionLocationTableService.fetchCompletedByRegion as jest.Mock).mockResolvedValue([]);
     (taskThinRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([
       {
         case_id: 'CASE-123',
@@ -312,7 +384,7 @@ describe('buildCompletedPage', () => {
     ]);
     (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-audit' });
 
-    await buildCompletedPage({}, 'handlingTime', 'CASE-123');
+    await buildCompletedPage({}, 'handlingTime', 'CASE-123', 'completed-task-audit');
 
     expect(buildCompletedViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -350,25 +422,8 @@ describe('buildCompletedPage', () => {
 
     (completedService.buildCompleted as jest.Mock).mockReturnValue(fallback);
     (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue({ byLocation: [], byRegion: [] });
-    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      users: [],
-    });
-    (regionService.fetchRegionDescriptions as jest.Mock).mockResolvedValue({});
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
-    (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock)
-      .mockResolvedValueOnce({ total: 0, within: 0 })
-      .mockResolvedValueOnce({ total: 0, within: 0 });
-    (completedTimelineChartService.fetchCompletedTimeline as jest.Mock).mockResolvedValue([]);
-    (completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime as jest.Mock).mockResolvedValue([]);
-    (completedByNameChartService.fetchCompletedByName as jest.Mock).mockResolvedValue([]);
-    (completedRegionLocationTableService.fetchCompletedByLocation as jest.Mock).mockResolvedValue([]);
-    (completedRegionLocationTableService.fetchCompletedByRegion as jest.Mock).mockResolvedValue([]);
     (taskThinRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([
       {
         case_id: 'CASE-EMPTY',
@@ -382,7 +437,7 @@ describe('buildCompletedPage', () => {
     ]);
     (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-empty-audit' });
 
-    await buildCompletedPage({}, 'handlingTime', 'CASE-EMPTY');
+    await buildCompletedPage({}, 'handlingTime', 'CASE-EMPTY', 'completed-task-audit');
 
     expect(buildCompletedViewModel).toHaveBeenCalledWith(
       expect.objectContaining({

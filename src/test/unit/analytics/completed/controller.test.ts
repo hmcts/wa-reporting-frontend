@@ -48,7 +48,7 @@ describe('completedController', () => {
     await handler(req, res);
 
     expect(validateFilters).toHaveBeenCalledWith(req.query);
-    expect(buildCompletedPage).toHaveBeenCalledWith({ service: ['Civil'] }, 'handlingTime', undefined);
+    expect(buildCompletedPage).toHaveBeenCalledWith({ service: ['Civil'] }, 'handlingTime', undefined, undefined);
     expect(render).toHaveBeenCalledWith('analytics/completed/index', { view: 'completed' });
   });
 
@@ -68,7 +68,7 @@ describe('completedController', () => {
     await handler(req, res);
 
     expect(validateFilters).toHaveBeenCalledWith(req.body);
-    expect(buildCompletedPage).toHaveBeenCalledWith({ taskName: ['Review'] }, 'handlingTime', undefined);
+    expect(buildCompletedPage).toHaveBeenCalledWith({ taskName: ['Review'] }, 'handlingTime', undefined, undefined);
     expect(render).toHaveBeenCalledWith('analytics/completed/index', { view: 'completed-post' });
   });
 
@@ -90,7 +90,7 @@ describe('completedController', () => {
     const handler = (router.post as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
-    expect(buildCompletedPage).toHaveBeenCalledWith({}, 'handlingTime', '1234567890');
+    expect(buildCompletedPage).toHaveBeenCalledWith({}, 'handlingTime', '1234567890', undefined);
     expect(render).toHaveBeenCalledWith('analytics/completed/index', { view: 'completed-case-id' });
   });
 
@@ -109,7 +109,7 @@ describe('completedController', () => {
     const handler = (router.get as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
-    expect(buildCompletedPage).toHaveBeenCalledWith({}, 'processingTime', undefined);
+    expect(buildCompletedPage).toHaveBeenCalledWith({}, 'processingTime', undefined, undefined);
     expect(render).toHaveBeenCalledWith('analytics/completed/index', { view: 'completed-metric' });
   });
 
@@ -131,7 +131,7 @@ describe('completedController', () => {
     const handler = (router.post as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
-    expect(buildCompletedPage).toHaveBeenCalledWith({}, 'handlingTime', undefined);
+    expect(buildCompletedPage).toHaveBeenCalledWith({}, 'handlingTime', undefined, undefined);
     expect(render).toHaveBeenCalledWith('analytics/completed/index', { view: 'completed-blank' });
   });
 
@@ -156,6 +156,12 @@ describe('completedController', () => {
     await handler(req, res);
 
     expect(getAjaxPartialTemplate).toHaveBeenCalled();
+    expect(buildCompletedPage).toHaveBeenCalledWith(
+      { service: ['Crime'] },
+      'handlingTime',
+      '174',
+      'completed-task-audit'
+    );
     expect(render).toHaveBeenCalledWith('analytics/completed/partials/task-audit', { view: 'completed-ajax' });
   });
 
@@ -179,6 +185,7 @@ describe('completedController', () => {
     const handler = (router.post as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
+    expect(buildCompletedPage).toHaveBeenCalledWith({}, 'handlingTime', undefined, 'completed-task-audit');
     expect(render).toHaveBeenCalledWith('analytics/completed/index', { view: 'completed-fallback' });
   });
 });

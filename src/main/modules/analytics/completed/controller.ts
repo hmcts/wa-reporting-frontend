@@ -28,13 +28,18 @@ class CompletedController {
       const { filters } = validateFilters(source);
       const caseId = parseCaseId(source);
       const metric = parseMetric(source);
-      const viewModel = await buildCompletedPage(filters, metric, caseId);
+      const ajaxSection = typeof source.ajaxSection === 'string' ? source.ajaxSection : undefined;
+      const viewModel = await buildCompletedPage(filters, metric, caseId, ajaxSection);
 
       if (isAjaxRequest(req)) {
         const template = getAjaxPartialTemplate({
           source,
           partials: {
+            'completed-summary': 'analytics/completed/partials/completed-summary',
+            'completed-timeline': 'analytics/completed/partials/completed-timeline',
+            'completed-by-name': 'analytics/completed/partials/completed-by-name',
             'completed-task-audit': 'analytics/completed/partials/task-audit',
+            'completed-by-region-location': 'analytics/completed/partials/completed-by-region-location',
             'completed-processing-handling-time': 'analytics/completed/partials/processing-handling-time',
           },
         });

@@ -1,3 +1,4 @@
+import { emptyOverviewFilterOptions } from '../shared/filters';
 import {
   fetchFilterOptionsWithFallback,
   normaliseDateRange,
@@ -20,6 +21,45 @@ import { completedTimelineChartService } from './visuals/completedTimelineChartS
 
 type CompletedPageViewModel = ReturnType<typeof buildCompletedViewModel>;
 
+type CompletedAjaxSection =
+  | 'completed-summary'
+  | 'completed-timeline'
+  | 'completed-by-name'
+  | 'completed-task-audit'
+  | 'completed-by-region-location'
+  | 'completed-processing-handling-time';
+
+const deferredSections = new Set<CompletedAjaxSection>([
+  'completed-summary',
+  'completed-timeline',
+  'completed-by-name',
+  'completed-task-audit',
+  'completed-by-region-location',
+  'completed-processing-handling-time',
+]);
+
+function resolveCompletedSection(raw?: string): CompletedAjaxSection | undefined {
+  if (!raw) {
+    return undefined;
+  }
+  const validSections: CompletedAjaxSection[] = [
+    'completed-summary',
+    'completed-timeline',
+    'completed-by-name',
+    'completed-task-audit',
+    'completed-by-region-location',
+    'completed-processing-handling-time',
+  ];
+  return validSections.includes(raw as CompletedAjaxSection) ? (raw as CompletedAjaxSection) : undefined;
+}
+
+function shouldFetchSection(requested: CompletedAjaxSection | undefined, section: CompletedAjaxSection): boolean {
+  if (!requested) {
+    return !deferredSections.has(section);
+  }
+  return requested === section;
+}
+
 function mapTaskAuditRow(
   row: CompletedTaskAuditRow,
   caseWorkerNames: Record<string, string>,
@@ -41,27 +81,21 @@ function mapTaskAuditRow(
 export async function buildCompletedPage(
   filters: AnalyticsFilters,
   selectedMetric: CompletedMetric,
-  caseId?: string
+  caseId?: string,
+  ajaxSection?: string
 ): Promise<CompletedPageViewModel> {
+  const requestedSection = resolveCompletedSection(ajaxSection);
+  const shouldFetchSummary = shouldFetchSection(requestedSection, 'completed-summary');
+  const shouldFetchTimeline = shouldFetchSection(requestedSection, 'completed-timeline');
+  const shouldFetchCompletedByName = shouldFetchSection(requestedSection, 'completed-by-name');
+  const shouldFetchTaskAudit = shouldFetchSection(requestedSection, 'completed-task-audit');
+  const shouldFetchRegionLocation = shouldFetchSection(requestedSection, 'completed-by-region-location');
+  const shouldFetchProcessingHandling = shouldFetchSection(requestedSection, 'completed-processing-handling-time');
+  const shouldFetchTaskAuditData = shouldFetchTaskAudit && Boolean(caseId);
+  const shouldFetchLocationDescriptions = shouldFetchRegionLocation || shouldFetchTaskAuditData;
+
   const fallback = completedService.buildCompleted([]);
   const fallbackRegionLocation = completedService.buildCompletedByRegionLocation([]);
-
-  const filterOptions = await fetchFilterOptionsWithFallback('Failed to fetch completed filter options from database');
-  const [regionDescriptionsResult, locationDescriptionsResult] = await Promise.allSettled([
-    regionService.fetchRegionDescriptions(),
-    courtVenueService.fetchCourtVenueDescriptions(),
-  ]);
-  const regionDescriptions = settledValueWithFallback(
-    regionDescriptionsResult,
-    'Failed to fetch region descriptions from database',
-    {}
-  );
-  const locationDescriptions = settledValueWithFallback(
-    locationDescriptionsResult,
-    'Failed to fetch court venue descriptions from database',
-    {}
-  );
-  const allTasks: Task[] = [];
 
   let summary = fallback.summary;
   let timeline = fallback.timeline;
@@ -82,16 +116,30 @@ export async function buildCompletedPage(
     completedByRegionResult,
     taskAuditRowsResult,
     caseWorkerNamesResult,
+    regionDescriptionsResult,
+    locationDescriptionsResult,
   ] = await Promise.allSettled([
-    completedComplianceSummaryService.fetchCompletedSummary(filters, range),
-    completedComplianceSummaryService.fetchCompletedSummary(filters, { from: today, to: today }),
-    completedTimelineChartService.fetchCompletedTimeline(filters, range),
-    completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime(filters, range),
-    completedByNameChartService.fetchCompletedByName(filters, range),
-    completedRegionLocationTableService.fetchCompletedByLocation(filters, range),
-    completedRegionLocationTableService.fetchCompletedByRegion(filters, range),
-    caseId ? taskThinRepository.fetchCompletedTaskAuditRows(filters, caseId) : Promise.resolve([]),
-    caseWorkerProfileService.fetchCaseWorkerProfileNames(),
+    shouldFetchSummary
+      ? completedComplianceSummaryService.fetchCompletedSummary(filters, range)
+      : Promise.resolve(null),
+    shouldFetchSummary
+      ? completedComplianceSummaryService.fetchCompletedSummary(filters, { from: today, to: today })
+      : Promise.resolve(null),
+    shouldFetchTimeline ? completedTimelineChartService.fetchCompletedTimeline(filters, range) : Promise.resolve([]),
+    shouldFetchProcessingHandling
+      ? completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime(filters, range)
+      : Promise.resolve([]),
+    shouldFetchCompletedByName ? completedByNameChartService.fetchCompletedByName(filters, range) : Promise.resolve([]),
+    shouldFetchRegionLocation
+      ? completedRegionLocationTableService.fetchCompletedByLocation(filters, range)
+      : Promise.resolve([]),
+    shouldFetchRegionLocation
+      ? completedRegionLocationTableService.fetchCompletedByRegion(filters, range)
+      : Promise.resolve([]),
+    shouldFetchTaskAuditData ? taskThinRepository.fetchCompletedTaskAuditRows(filters, caseId!) : Promise.resolve([]),
+    shouldFetchTaskAuditData ? caseWorkerProfileService.fetchCaseWorkerProfileNames() : Promise.resolve({}),
+    shouldFetchRegionLocation ? regionService.fetchRegionDescriptions() : Promise.resolve({}),
+    shouldFetchLocationDescriptions ? courtVenueService.fetchCourtVenueDescriptions() : Promise.resolve({}),
   ]);
 
   const rangeSummary = settledValueWithError(rangeSummaryResult, 'Failed to fetch completed summary from database');
@@ -148,6 +196,20 @@ export async function buildCompletedPage(
     'Failed to fetch case worker profiles from database',
     {}
   );
+  const regionDescriptions = settledValueWithFallback(
+    regionDescriptionsResult,
+    'Failed to fetch region descriptions from database',
+    {}
+  );
+  const locationDescriptions = settledValueWithFallback(
+    locationDescriptionsResult,
+    'Failed to fetch court venue descriptions from database',
+    {}
+  );
+  const filterOptions = requestedSection
+    ? emptyOverviewFilterOptions()
+    : await fetchFilterOptionsWithFallback('Failed to fetch completed filter options from database');
+  const allTasks: Task[] = [];
 
   const completed: CompletedResponse = {
     ...fallback,
