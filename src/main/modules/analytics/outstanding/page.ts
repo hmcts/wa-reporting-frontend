@@ -49,6 +49,7 @@ const deferredSections = new Set<OutstandingAjaxSection>([
   'open-tasks-priority',
   'open-by-name',
   'open-by-region-location',
+  'criticalTasks',
 ]);
 
 function resolveOutstandingSection(raw?: string): OutstandingAjaxSection | undefined {
