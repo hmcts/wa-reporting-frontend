@@ -9,6 +9,7 @@ import {
   fetchSectionUpdate,
   fetchSortedSection,
   initAjaxFilterSections,
+  initAjaxInitialSections,
   postAjaxForm,
 } from '../../../../main/assets/js/analytics/ajax';
 
@@ -232,5 +233,29 @@ describe('analytics ajax', () => {
     initAjaxFilterSections(fetchSectionUpdateWithDeps);
     emptySectionForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     expect(emptySectionForm.submit).toHaveBeenCalled();
+  });
+
+  test('initialises ajax initial sections from the filters form', async () => {
+    const filtersForm = document.createElement('form');
+    filtersForm.dataset.analyticsFilters = 'true';
+    document.body.appendChild(filtersForm);
+
+    const initialSection = document.createElement('div');
+    initialSection.dataset.section = 'open-tasks-summary';
+    initialSection.dataset.ajaxInitial = 'true';
+    document.body.appendChild(initialSection);
+
+    const fetchSectionUpdateSpy = jest.fn(async (_form: HTMLFormElement, sectionId: string) => {
+      const target = document.querySelector<HTMLElement>(`[data-section="${sectionId}"]`);
+      if (target) {
+        target.innerHTML = '<p>Updated</p>';
+      }
+    });
+
+    initAjaxInitialSections(fetchSectionUpdateSpy);
+    await flushPromises();
+
+    expect(fetchSectionUpdateSpy).toHaveBeenCalledWith(filtersForm, 'open-tasks-summary');
+    expect(initialSection.innerHTML).toContain('Updated');
   });
 });

@@ -1,4 +1,4 @@
-import { storeScrollPosition } from './forms';
+import { getAnalyticsFiltersForm, storeScrollPosition } from './forms';
 
 export type InitAll = (options?: { scope?: HTMLElement }) => void;
 
@@ -139,5 +139,24 @@ export function initAjaxFilterSections(fetchSectionUpdateWithDeps: FetchSectionU
       void fetchSectionUpdateWithDeps(form, sectionId);
     });
     form.dataset.ajaxBound = 'true';
+  });
+}
+
+export function initAjaxInitialSections(fetchSectionUpdateWithDeps: FetchSectionUpdate): void {
+  const form = getAnalyticsFiltersForm();
+  if (!form) {
+    return;
+  }
+  const sections = document.querySelectorAll<HTMLElement>('[data-ajax-initial="true"][data-section]');
+  sections.forEach(section => {
+    if (section.dataset.ajaxInitialBound === 'true') {
+      return;
+    }
+    const sectionId = section.dataset.section;
+    if (!sectionId) {
+      return;
+    }
+    void fetchSectionUpdateWithDeps(form, sectionId);
+    section.dataset.ajaxInitialBound = 'true';
   });
 }

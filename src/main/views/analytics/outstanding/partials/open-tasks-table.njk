@@ -1,38 +1,40 @@
-<div class="govuk-grid-column-one-half">
-  <h2 class="govuk-heading-m">Open tasks</h2>
-  <p class="govuk-body analytics-chart-intro">Open tasks by created date with current assignment state</p>
-  {% set openTasksChartHtml %}
-    <div class="analytics-chart" data-chart-config='{{ charts.openTasks | safe }}'></div>
-  {% endset %}
-  {% set openTasksTableHtml %}
-    <div class="analytics-tab-panel">
-      {{ csvDownloadButton() }}
-      {{ analyticsTable({
-        attributes: {
-          'data-export-csv': 'true',
-          'data-export-filename': 'outstanding-open-tasks.csv',
-          'data-module': 'moj-sortable-table',
-          'data-sticky-totals': 'true'
-        },
-        classes: "analytics-table--compact",
-        hasTotals: true,
-        head: [
-          { text: "Created date", attributes: { 'aria-sort': 'none' } },
-          { text: "Open tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
-          { text: "Assigned tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
-          { text: "Assigned %", format: "numeric", attributes: { 'aria-sort': 'none' } },
-          { text: "Unassigned tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
-          { text: "Unassigned %", format: "numeric", attributes: { 'aria-sort': 'none' } }
-        ],
-        rows: openTasksRows.concat([openTasksTotalsRow])
-      }) }}
-    </div>
-  {% endset %}
-  {{ govukTabs({
-    id: "openTasksTabs",
-    items: [
-      { label: "Chart", id: "openTasksChart", panel: { html: openTasksChartHtml } },
-      { label: "Data table", id: "openTasksTable", panel: { html: openTasksTableHtml } }
-    ]
-  }) }}
-</div>
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+{% from "macros/analytics-table.njk" import analyticsTable %}
+{% from "macros/csv-download.njk" import csvDownloadButton %}
+
+<h2 class="govuk-heading-m">Open tasks</h2>
+<p class="govuk-body analytics-chart-intro">Open tasks by created date with current assignment state</p>
+{% set openTasksChartHtml %}
+  <div class="analytics-chart" data-chart-config='{{ charts.openTasks | safe }}'></div>
+{% endset %}
+{% set openTasksTableHtml %}
+  <div class="analytics-tab-panel">
+    {{ csvDownloadButton() }}
+    {{ analyticsTable({
+      attributes: {
+        'data-export-csv': 'true',
+        'data-export-filename': 'outstanding-open-tasks.csv',
+        'data-module': 'moj-sortable-table',
+        'data-sticky-totals': 'true'
+      },
+      classes: "analytics-table--compact",
+      hasTotals: true,
+      head: [
+        { text: "Created date", attributes: { 'aria-sort': 'none' } },
+        { text: "Open tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Assigned tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Assigned %", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Unassigned tasks", format: "numeric", attributes: { 'aria-sort': 'none' } },
+        { text: "Unassigned %", format: "numeric", attributes: { 'aria-sort': 'none' } }
+      ],
+      rows: openTasksRows.concat([openTasksTotalsRow])
+    }) }}
+  </div>
+{% endset %}
+{{ govukTabs({
+  id: "openTasksTabs",
+  items: [
+    { label: "Chart", id: "openTasksChart", panel: { html: openTasksChartHtml } },
+    { label: "Data table", id: "openTasksTable", panel: { html: openTasksTableHtml } }
+  ]
+}) }}

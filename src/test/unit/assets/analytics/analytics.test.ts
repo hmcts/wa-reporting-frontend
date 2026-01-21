@@ -7,6 +7,7 @@ import {
   fetchSectionUpdate,
   fetchSortedSection,
   initAjaxFilterSections,
+  initAjaxInitialSections,
 } from '../../../../main/assets/js/analytics/ajax';
 import { renderCharts } from '../../../../main/assets/js/analytics/charts';
 import {
@@ -34,6 +35,7 @@ jest.mock('../../../../main/assets/js/analytics/ajax', () => ({
   fetchPaginatedSection: jest.fn(),
   fetchSectionUpdate: jest.fn(),
   fetchSortedSection: jest.fn(),
+  initAjaxInitialSections: jest.fn(),
   initAjaxFilterSections: jest.fn(),
 }));
 jest.mock('../../../../main/assets/js/analytics/charts', () => ({ renderCharts: jest.fn() }));
@@ -68,6 +70,7 @@ describe('analytics bootstrap', () => {
     (fetchPaginatedSection as jest.Mock).mockClear();
     (fetchSectionUpdate as jest.Mock).mockClear();
     (fetchSortedSection as jest.Mock).mockClear();
+    (initAjaxInitialSections as jest.Mock).mockClear();
     (initAjaxFilterSections as jest.Mock).mockClear();
     (renderCharts as jest.Mock).mockClear();
     (initAutoSubmitForms as jest.Mock).mockClear();
@@ -96,6 +99,7 @@ describe('analytics bootstrap', () => {
     expect(initFilterPersistence).toHaveBeenCalled();
     expect(initOpenByName).toHaveBeenCalled();
     expect(initAjaxFilterSections).toHaveBeenCalledWith(expect.any(Function));
+    expect(initAjaxInitialSections).toHaveBeenCalledWith(expect.any(Function));
     expect(initAutoSubmitForms).toHaveBeenCalled();
     expect(restoreScrollPosition).toHaveBeenCalled();
     expect(window.Plotly).toBeDefined();
@@ -143,5 +147,6 @@ describe('analytics bootstrap', () => {
     expect(initAutoSubmitForms).toHaveBeenCalledTimes(2);
     expect(initCriticalTasksPagination).toHaveBeenCalledTimes(2);
     expect(initUserOverviewPagination).toHaveBeenCalledTimes(2);
+    expect(initOpenByName).toHaveBeenCalledTimes(2);
   });
 });

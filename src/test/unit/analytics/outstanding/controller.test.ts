@@ -66,7 +66,8 @@ describe('outstandingController', () => {
       {
         criticalTasks: { by: 'dueDate', dir: 'asc' },
       },
-      1
+      1,
+      undefined
     );
     expect(getAjaxPartialTemplate).not.toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/outstanding/index', { view: 'outstanding' });
@@ -96,7 +97,8 @@ describe('outstandingController', () => {
       {
         criticalTasks: { by: 'dueDate', dir: 'asc' },
       },
-      3
+      3,
+      undefined
     );
     expect(getAjaxPartialTemplate).not.toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/outstanding/index', { view: 'outstanding-post' });
@@ -129,7 +131,8 @@ describe('outstandingController', () => {
       {
         criticalTasks: { by: 'dueDate', dir: 'asc' },
       },
-      2
+      2,
+      'criticalTasks'
     );
     expect(getAjaxPartialTemplate).toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/outstanding/partials/critical-tasks', { view: 'outstanding-ajax' });

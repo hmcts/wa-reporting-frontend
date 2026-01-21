@@ -7,6 +7,7 @@ import {
   fetchSectionUpdate,
   fetchSortedSection,
   initAjaxFilterSections,
+  initAjaxInitialSections,
 } from './analytics/ajax';
 import type { AjaxDeps } from './analytics/ajax';
 import { renderCharts } from './analytics/charts';
@@ -32,6 +33,7 @@ const rebindSectionBehaviors = (): void => {
   initAutoSubmitForms();
   initCriticalTasksPagination(fetchPaginatedSectionWithDeps);
   initUserOverviewPagination(fetchPaginatedSectionWithDeps);
+  void initOpenByName();
 };
 
 const ajaxDeps: AjaxDeps = {
@@ -66,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initFilterPersistence();
   void initOpenByName();
   initAjaxFilterSections(fetchSectionUpdateWithDeps);
+  initAjaxInitialSections(fetchSectionUpdateWithDeps);
   initAutoSubmitForms();
   restoreScrollPosition();
 });
