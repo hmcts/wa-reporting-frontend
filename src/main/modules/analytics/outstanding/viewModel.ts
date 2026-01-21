@@ -330,6 +330,7 @@ export function buildOutstandingViewModel(params: {
   filterOptions: FilterOptions;
   sort: OutstandingSort;
   criticalTasksPage: number;
+  criticalTasksTotalResults: number;
   allTasks: { service: string; roleCategory: string; region: string; location: string; taskName: string }[];
   summary: {
     open: number;
@@ -366,6 +367,7 @@ export function buildOutstandingViewModel(params: {
     filterOptions,
     sort,
     criticalTasksPage,
+    criticalTasksTotalResults,
     allTasks,
     summary,
     charts,
@@ -384,6 +386,7 @@ export function buildOutstandingViewModel(params: {
   const filterViewModel = buildFilterOptionsViewModel(filterOptions, allTasks);
   const { pagedTasks, pagination } = paginateCriticalTasks({
     tasks: criticalTasks,
+    totalResults: criticalTasksTotalResults,
     filters,
     sort: sort.criticalTasks,
     page: criticalTasksPage,

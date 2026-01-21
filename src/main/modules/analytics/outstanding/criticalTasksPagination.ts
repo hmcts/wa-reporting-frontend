@@ -1,5 +1,10 @@
 import { OutstandingSort } from '../shared/outstandingSort';
-import { PaginationMeta, buildAnalyticsPaginationHref, paginateRows, parsePageParam } from '../shared/pagination';
+import {
+  PaginationMeta,
+  buildAnalyticsPaginationHref,
+  buildPaginationMeta,
+  parsePageParam,
+} from '../shared/pagination';
 import { AnalyticsFilters, CriticalTask } from '../shared/types';
 
 export const CRITICAL_TASKS_PAGE_SIZE = 500;
@@ -7,6 +12,7 @@ const OUTSTANDING_PATH = '/analytics/outstanding';
 
 type PaginateCriticalTasksParams = {
   tasks: CriticalTask[];
+  totalResults: number;
   filters: AnalyticsFilters;
   sort: OutstandingSort['criticalTasks'];
   page: number;
@@ -22,6 +28,7 @@ export function parseCriticalTasksPage(raw: unknown): number {
 
 export function paginateCriticalTasks({
   tasks,
+  totalResults,
   filters,
   sort,
   page,
@@ -39,13 +46,13 @@ export function paginateCriticalTasks({
         criticalTasksSortDir: sort.dir,
       },
     });
-  const { pagedRows, pagination } = paginateRows({
-    rows: tasks,
+  const pagination = buildPaginationMeta({
+    totalResults,
     page,
     pageSize,
     buildHref,
     landmarkLabel: 'Critical tasks pagination',
   });
 
-  return { pagedTasks: pagedRows, pagination };
+  return { pagedTasks: tasks, pagination };
 }

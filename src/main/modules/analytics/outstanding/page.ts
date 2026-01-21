@@ -51,6 +51,8 @@ export async function buildOutstandingPage(
   let outstandingByLocation = outstanding.outstandingByLocation;
   let outstandingByRegion = outstanding.outstandingByRegion;
   let criticalTasks = outstanding.criticalTasks;
+  let criticalTasksTotalResults = 0;
+  let resolvedCriticalTasksPage = criticalTasksPage;
   const [
     openByNameResult,
     openResult,
@@ -68,7 +70,7 @@ export async function buildOutstandingPage(
     tasksDueByPriorityChartService.fetchTasksDueByPriority(filters),
     openTasksSummaryStatsService.fetchOpenTasksSummary(filters),
     openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation(filters),
-    criticalTasksTableService.fetchCriticalTasks(filters, sort.criticalTasks),
+    criticalTasksTableService.fetchCriticalTasksPage(filters, sort.criticalTasks, criticalTasksPage),
   ]);
 
   const openByNameValue = settledValueWithError(openByNameResult, 'Failed to fetch open tasks by name');
@@ -93,11 +95,14 @@ export async function buildOutstandingPage(
     priorityByDueDate
   );
   summary = settledValueWithFallback(summaryResult, 'Failed to fetch open tasks summary from database', summary);
-  criticalTasks = settledArrayWithFallback(
+  const criticalTasksValue = settledValueWithFallback(
     criticalTasksResult,
     'Failed to fetch critical tasks from database',
-    criticalTasks
+    { rows: criticalTasks, totalResults: 0, page: criticalTasksPage }
   );
+  criticalTasks = criticalTasksValue.rows;
+  criticalTasksTotalResults = criticalTasksValue.totalResults;
+  resolvedCriticalTasksPage = criticalTasksValue.page;
 
   const regionLocationValue = settledValueWithError(
     regionLocationResult,
@@ -138,7 +143,8 @@ export async function buildOutstandingPage(
     filters,
     filterOptions,
     sort,
-    criticalTasksPage,
+    criticalTasksPage: resolvedCriticalTasksPage,
+    criticalTasksTotalResults,
     allTasks,
     summary,
     charts: {

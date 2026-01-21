@@ -33,6 +33,8 @@ jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
   taskThinRepository: {
     fetchUserOverviewAssignedTaskRows: jest.fn(),
     fetchUserOverviewCompletedTaskRows: jest.fn(),
+    fetchUserOverviewAssignedTaskCount: jest.fn(),
+    fetchUserOverviewCompletedTaskCount: jest.fn(),
     fetchUserOverviewCompletedByDateRows: jest.fn(),
     fetchUserOverviewCompletedByTaskNameRows: jest.fn(),
   },
@@ -45,6 +47,8 @@ jest.mock('../../../../main/modules/analytics/completed/visuals/completedComplia
 describe('buildUserOverviewPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(0);
+    (taskThinRepository.fetchUserOverviewCompletedTaskCount as jest.Mock).mockResolvedValue(0);
   });
 
   test('builds the user overview view model with filters and options', async () => {
@@ -107,6 +111,8 @@ describe('buildUserOverviewPage', () => {
         number_of_reassignments: 2,
       },
     ];
+    (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(2);
+    (taskThinRepository.fetchUserOverviewCompletedTaskCount as jest.Mock).mockResolvedValue(1);
     (taskThinRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue(assignedRows);
     (taskThinRepository.fetchUserOverviewCompletedTaskRows as jest.Mock).mockResolvedValue(completedRows);
     (taskThinRepository.fetchUserOverviewCompletedByDateRows as jest.Mock).mockResolvedValue([
@@ -155,7 +161,8 @@ describe('buildUserOverviewPage', () => {
 
     expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(
       { user: ['user-1'] },
-      sort.assigned
+      sort.assigned,
+      { page: 1, pageSize: 500 }
     );
     expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(
       { user: ['user-1'] },
@@ -164,7 +171,8 @@ describe('buildUserOverviewPage', () => {
     );
     expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).toHaveBeenCalledWith(
       { user: ['user-1'] },
-      sort.completed
+      sort.completed,
+      { page: 1, pageSize: 500 }
     );
     expect(taskThinRepository.fetchUserOverviewCompletedByDateRows).toHaveBeenCalledWith({ user: ['user-1'] });
     expect(taskThinRepository.fetchUserOverviewCompletedByTaskNameRows).toHaveBeenCalledWith({ user: ['user-1'] });
@@ -206,6 +214,8 @@ describe('buildUserOverviewPage', () => {
         completedByDate: expect.any(Array),
         completedByTaskName: expect.any(Array),
         completedComplianceSummary: { total: 1, withinDueYes: 1, withinDueNo: 0 },
+        assignedTotalResults: 2,
+        completedTotalResults: 1,
       })
     );
     expect(viewModel).toEqual({ view: 'user-overview' });

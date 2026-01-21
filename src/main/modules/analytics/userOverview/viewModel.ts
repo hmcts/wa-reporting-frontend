@@ -296,6 +296,8 @@ export function buildUserOverviewViewModel(params: {
   allTasks: Task[];
   assignedTasks: Task[];
   completedTasks: Task[];
+  assignedTotalResults: number;
+  completedTotalResults: number;
   completedComplianceSummary: {
     total: number;
     withinDueYes: number;
@@ -315,6 +317,8 @@ export function buildUserOverviewViewModel(params: {
     allTasks,
     assignedTasks,
     completedTasks,
+    assignedTotalResults,
+    completedTotalResults,
     completedComplianceSummary,
     completedByDate,
     completedByTaskName,
@@ -348,12 +352,14 @@ export function buildUserOverviewViewModel(params: {
   );
   const { pagedRows: assignedPagedRows, pagination: assignedPagination } = paginateAssignedTasks({
     rows: assignedTasks,
+    totalResults: assignedTotalResults,
     filters,
     sort: sort.assigned,
     page: assignedPage,
   });
   const { pagedRows: completedPagedRows, pagination: completedPagination } = paginateCompletedTasks({
     rows: completedTasks,
+    totalResults: completedTotalResults,
     filters,
     sort: sort.completed,
     page: completedPage,

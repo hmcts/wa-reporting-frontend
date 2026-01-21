@@ -23,13 +23,19 @@ describe('taskThinRepository', () => {
   test('executes core query methods', async () => {
     const sort = getDefaultUserOverviewSort();
     const outstandingSort = getDefaultOutstandingSort();
-    await taskThinRepository.fetchUserOverviewAssignedTaskRows({}, sort.assigned);
+    await taskThinRepository.fetchUserOverviewAssignedTaskRows({}, sort.assigned, { page: 1, pageSize: 20 });
     await taskThinRepository.fetchUserOverviewAssignedTaskRows({}, sort.assigned, null);
-    await taskThinRepository.fetchUserOverviewCompletedTaskRows({}, sort.completed);
+    await taskThinRepository.fetchUserOverviewCompletedTaskRows({}, sort.completed, { page: 1, pageSize: 20 });
     await taskThinRepository.fetchUserOverviewCompletedTaskRows({}, sort.completed, null);
+    await taskThinRepository.fetchUserOverviewAssignedTaskCount({});
+    await taskThinRepository.fetchUserOverviewCompletedTaskCount({});
     await taskThinRepository.fetchUserOverviewCompletedByDateRows({});
     await taskThinRepository.fetchUserOverviewCompletedByTaskNameRows({});
-    await taskThinRepository.fetchOutstandingCriticalTaskRows({}, outstandingSort.criticalTasks);
+    await taskThinRepository.fetchOutstandingCriticalTaskRows({}, outstandingSort.criticalTasks, {
+      page: 1,
+      pageSize: 20,
+    });
+    await taskThinRepository.fetchOutstandingCriticalTaskCount({});
     await taskThinRepository.fetchOpenTasksByNameRows({});
     await taskThinRepository.fetchOpenTasksByRegionLocationRows({});
     await taskThinRepository.fetchOpenTasksSummaryRows({});
@@ -62,12 +68,17 @@ describe('taskThinRepository', () => {
     ];
 
     for (const key of sortKeys) {
-      await taskThinRepository.fetchUserOverviewAssignedTaskRows({}, { ...baseSort, by: key, dir: 'asc' });
+      await taskThinRepository.fetchUserOverviewAssignedTaskRows(
+        {},
+        { ...baseSort, by: key, dir: 'asc' },
+        { page: 1, pageSize: 20 }
+      );
     }
 
     await taskThinRepository.fetchUserOverviewAssignedTaskRows(
       { user: ['user-1'] },
-      { ...baseSort, by: 'caseId', dir: 'asc' }
+      { ...baseSort, by: 'caseId', dir: 'asc' },
+      { page: 1, pageSize: 20 }
     );
 
     await taskThinRepository.fetchUserOverviewAssignedTaskRows(
@@ -76,7 +87,8 @@ describe('taskThinRepository', () => {
         ...baseSort,
         by: 'unknown' as AssignedSortBy,
         dir: 'desc',
-      }
+      },
+      { page: 1, pageSize: 20 }
     );
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();
@@ -101,13 +113,15 @@ describe('taskThinRepository', () => {
     for (const key of sortKeys) {
       await taskThinRepository.fetchUserOverviewCompletedTaskRows(
         { completedFrom: new Date('2024-01-01'), completedTo: new Date('2024-01-10') },
-        { ...baseSort, by: key, dir: 'asc' }
+        { ...baseSort, by: key, dir: 'asc' },
+        { page: 1, pageSize: 20 }
       );
     }
 
     await taskThinRepository.fetchUserOverviewCompletedTaskRows(
       { completedFrom: new Date('2024-01-01'), completedTo: new Date('2024-01-10') },
-      { ...baseSort, by: 'unknown' as CompletedSortBy, dir: 'desc' }
+      { ...baseSort, by: 'unknown' as CompletedSortBy, dir: 'desc' },
+      { page: 1, pageSize: 20 }
     );
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();
@@ -146,12 +160,17 @@ describe('taskThinRepository', () => {
     ] as const;
 
     for (const key of sortKeys) {
-      await taskThinRepository.fetchOutstandingCriticalTaskRows({ user: ['user-1'] }, { ...outstandingSort, by: key });
+      await taskThinRepository.fetchOutstandingCriticalTaskRows(
+        { user: ['user-1'] },
+        { ...outstandingSort, by: key },
+        { page: 1, pageSize: 20 }
+      );
     }
 
     await taskThinRepository.fetchOutstandingCriticalTaskRows(
       { user: ['user-1'] },
-      { ...outstandingSort, by: 'unknown' as typeof outstandingSort.by, dir: 'desc' }
+      { ...outstandingSort, by: 'unknown' as typeof outstandingSort.by, dir: 'desc' },
+      { page: 1, pageSize: 20 }
     );
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();

@@ -26,10 +26,11 @@ describe('criticalTasksPagination', () => {
     expect(parseCriticalTasksPage(['3'])).toBe(3);
   });
 
-  test('paginateCriticalTasks slices tasks and builds pagination links', () => {
-    const tasks = buildTasks(1200);
+  test('paginateCriticalTasks builds pagination links for server-side data', () => {
+    const tasks = buildTasks(500);
     const { pagedTasks, pagination } = paginateCriticalTasks({
       tasks,
+      totalResults: 1200,
       filters: { service: ['Crime'], region: ['North'] },
       sort: { by: 'dueDate', dir: 'asc' },
       page: 2,
@@ -38,7 +39,7 @@ describe('criticalTasksPagination', () => {
     });
 
     expect(pagedTasks).toHaveLength(500);
-    expect(pagedTasks[0].caseId).toBe('CASE-501');
+    expect(pagedTasks[0].caseId).toBe('CASE-1');
     expect(pagination.page).toBe(2);
     expect(pagination.totalPages).toBe(3);
     expect(pagination.startResult).toBe(501);
@@ -54,6 +55,7 @@ describe('criticalTasksPagination', () => {
     const tasks = buildTasks(10);
     const { pagination } = paginateCriticalTasks({
       tasks,
+      totalResults: 10,
       filters: {},
       sort: { by: 'dueDate', dir: 'asc' },
       page: 99,
