@@ -48,7 +48,7 @@ describe('overviewController', () => {
     await handler(req, res);
 
     expect(validateFilters).toHaveBeenCalledWith(req.query);
-    expect(buildOverviewPage).toHaveBeenCalledWith({ service: ['Tribunal'] });
+    expect(buildOverviewPage).toHaveBeenCalledWith({ service: ['Tribunal'] }, undefined);
     expect(getAjaxPartialTemplate).not.toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/overview/index', { view: 'overview' });
   });
@@ -69,7 +69,7 @@ describe('overviewController', () => {
     await handler(req, res);
 
     expect(validateFilters).toHaveBeenCalledWith(req.body);
-    expect(buildOverviewPage).toHaveBeenCalledWith({ location: ['Leeds'] });
+    expect(buildOverviewPage).toHaveBeenCalledWith({ location: ['Leeds'] }, undefined);
     expect(getAjaxPartialTemplate).not.toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/overview/index', { view: 'overview-post' });
   });
@@ -94,6 +94,7 @@ describe('overviewController', () => {
     const handler = (router.post as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
+    expect(buildOverviewPage).toHaveBeenCalledWith({ service: ['Crime'] }, 'overview-task-events');
     expect(getAjaxPartialTemplate).toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/overview/partials/task-events-table', { view: 'overview-ajax' });
   });

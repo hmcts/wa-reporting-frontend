@@ -1,3 +1,4 @@
+import { emptyOverviewFilterOptions } from '../shared/filters';
 import {
   fetchFilterOptionsWithFallback,
   resolveDateRangeWithDefaults,
@@ -13,15 +14,42 @@ import { taskEventsByServiceChartService } from './visuals/taskEventsByServiceCh
 
 type OverviewPageViewModel = ReturnType<typeof buildOverviewViewModel>;
 
-export async function buildOverviewPage(filters: AnalyticsFilters): Promise<OverviewPageViewModel> {
+type OverviewAjaxSection = 'overview-service-performance' | 'overview-task-events';
+
+const deferredSections = new Set<OverviewAjaxSection>(['overview-service-performance', 'overview-task-events']);
+
+function resolveOverviewSection(raw?: string): OverviewAjaxSection | undefined {
+  if (!raw) {
+    return undefined;
+  }
+  const validSections: OverviewAjaxSection[] = ['overview-service-performance', 'overview-task-events'];
+  return validSections.includes(raw as OverviewAjaxSection) ? (raw as OverviewAjaxSection) : undefined;
+}
+
+function shouldFetchSection(requested: OverviewAjaxSection | undefined, section: OverviewAjaxSection): boolean {
+  if (!requested) {
+    return !deferredSections.has(section);
+  }
+  return requested === section;
+}
+
+export async function buildOverviewPage(
+  filters: AnalyticsFilters,
+  ajaxSection?: string
+): Promise<OverviewPageViewModel> {
+  const requestedSection = resolveOverviewSection(ajaxSection);
+  const shouldFetchOverview = shouldFetchSection(requestedSection, 'overview-service-performance');
+  const shouldFetchTaskEvents = shouldFetchSection(requestedSection, 'overview-task-events');
   let overview = overviewService.buildOverview([]);
-  try {
-    const dbOverview = await serviceOverviewTableService.fetchServiceOverview(filters);
-    if (dbOverview.serviceRows.length > 0) {
-      overview = dbOverview;
+  if (shouldFetchOverview) {
+    try {
+      const dbOverview = await serviceOverviewTableService.fetchServiceOverview(filters);
+      if (dbOverview.serviceRows.length > 0) {
+        overview = dbOverview;
+      }
+    } catch (error) {
+      logDbError('Failed to fetch service overview from database', error);
     }
-  } catch (error) {
-    logDbError('Failed to fetch service overview from database', error);
   }
 
   const eventsRange = resolveDateRangeWithDefaults({ from: filters.eventsFrom, to: filters.eventsTo, daysBack: 30 });
@@ -35,8 +63,12 @@ export async function buildOverviewPage(filters: AnalyticsFilters): Promise<Over
 
   const allTasks: { service: string; roleCategory: string; region: string; location: string; taskName: string }[] = [];
   const [eventsResult, filtersResult] = await Promise.allSettled([
-    taskEventsByServiceChartService.fetchTaskEventsByService(filters, eventsRange),
-    fetchFilterOptionsWithFallback('Failed to fetch overview filter options from database'),
+    shouldFetchTaskEvents
+      ? taskEventsByServiceChartService.fetchTaskEventsByService(filters, eventsRange)
+      : Promise.resolve(null),
+    requestedSection
+      ? Promise.resolve(emptyOverviewFilterOptions())
+      : fetchFilterOptionsWithFallback('Failed to fetch overview filter options from database'),
   ]);
 
   const eventsValue = settledValueWithError(eventsResult, 'Failed to fetch task events by service from database');
@@ -45,10 +77,7 @@ export async function buildOverviewPage(filters: AnalyticsFilters): Promise<Over
     taskEventsTotals = eventsValue.totals;
   }
 
-  const filterOptions =
-    filtersResult.status === 'fulfilled'
-      ? filtersResult.value
-      : await fetchFilterOptionsWithFallback('Failed to fetch overview filter options from database');
+  const filterOptions = filtersResult.status === 'fulfilled' ? filtersResult.value : emptyOverviewFilterOptions();
 
   return buildOverviewViewModel({
     filters,

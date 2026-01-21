@@ -25,5 +25,16 @@ describe('Analytics overview route', () => {
       expect(response.text).toContain('data-module="moj-sortable-table"');
       expect(response.text).toContain('data-total-row="true"');
     });
+
+    test('should render the service performance partial for ajax requests', async () => {
+      const response = await request(server)
+        .get('/analytics/overview?ajaxSection=overview-service-performance')
+        .set('X-Requested-With', 'fetch')
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('Open and assigned tasks by service');
+      expect(response.text).not.toContain('Service performance overview');
+    });
   });
 });

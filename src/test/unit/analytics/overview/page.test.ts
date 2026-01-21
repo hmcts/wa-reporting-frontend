@@ -40,7 +40,7 @@ describe('buildOverviewPage', () => {
     jest.clearAllMocks();
   });
 
-  test('uses database overview when service rows exist', async () => {
+  test('builds service performance overview when requested', async () => {
     const fallback = {
       serviceRows: [],
       totals: {
@@ -84,6 +84,76 @@ describe('buildOverviewPage', () => {
       rows: [{ service: 'Service A', completed: 2, cancelled: 1, created: 3 }],
       totals: { service: 'Total', completed: 2, cancelled: 1, created: 3 },
     });
+    (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview' });
+
+    const viewModel = await buildOverviewPage({}, 'overview-service-performance');
+
+    expect(viewModel).toEqual({ view: 'overview' });
+    expect(taskEventsByServiceChartService.fetchTaskEventsByService).not.toHaveBeenCalled();
+    expect(fetchFilterOptionsWithFallback).not.toHaveBeenCalled();
+    expect(buildOverviewViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        overview: expect.objectContaining({
+          serviceRows: [
+            { service: 'Service A', open: 10, assigned: 5, assignedPct: 50, urgent: 1, high: 1, medium: 1, low: 2 },
+          ],
+        }),
+        taskEventsRows: [],
+      })
+    );
+  });
+
+  test('builds task events when requested', async () => {
+    const fallback = {
+      serviceRows: [],
+      totals: {
+        service: 'Total',
+        open: 0,
+        assigned: 0,
+        assignedPct: 0,
+        urgent: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+    };
+
+    (overviewService.buildOverview as jest.Mock).mockReturnValue(fallback);
+    (taskEventsByServiceChartService.fetchTaskEventsByService as jest.Mock).mockResolvedValue({
+      rows: [{ service: 'Service A', completed: 2, cancelled: 1, created: 3 }],
+      totals: { service: 'Total', completed: 2, cancelled: 1, created: 3 },
+    });
+    (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-task-events' });
+
+    await buildOverviewPage({}, 'overview-task-events');
+
+    expect(serviceOverviewTableService.fetchServiceOverview).not.toHaveBeenCalled();
+    expect(fetchFilterOptionsWithFallback).not.toHaveBeenCalled();
+    expect(buildOverviewViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        overview: fallback,
+        taskEventsRows: [{ service: 'Service A', completed: 2, cancelled: 1, created: 3 }],
+        taskEventsTotals: { service: 'Total', completed: 2, cancelled: 1, created: 3 },
+      })
+    );
+  });
+
+  test('defers overview sections on full page load', async () => {
+    const fallback = {
+      serviceRows: [],
+      totals: {
+        service: 'Total',
+        open: 0,
+        assigned: 0,
+        assignedPct: 0,
+        urgent: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+    };
+
+    (overviewService.buildOverview as jest.Mock).mockReturnValue(fallback);
     (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
       services: [],
       roleCategories: [],
@@ -92,24 +162,21 @@ describe('buildOverviewPage', () => {
       taskNames: [],
       users: [],
     });
-    (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview' });
+    (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-empty' });
 
-    const viewModel = await buildOverviewPage({});
+    await buildOverviewPage({});
 
-    expect(viewModel).toEqual({ view: 'overview' });
+    expect(serviceOverviewTableService.fetchServiceOverview).not.toHaveBeenCalled();
+    expect(taskEventsByServiceChartService.fetchTaskEventsByService).not.toHaveBeenCalled();
+    expect(fetchFilterOptionsWithFallback).toHaveBeenCalled();
     expect(buildOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
-        overview: expect.objectContaining({
-          serviceRows: [
-            { service: 'Service A', open: 10, assigned: 5, assignedPct: 50, urgent: 1, high: 1, medium: 1, low: 2 },
-          ],
-        }),
-        taskEventsRows: [{ service: 'Service A', completed: 2, cancelled: 1, created: 3 }],
+        overview: fallback,
       })
     );
   });
 
-  test('falls back when service overview or filters fail', async () => {
+  test('falls back when service overview fails', async () => {
     const fallback = {
       serviceRows: [],
       totals: {
@@ -126,25 +193,13 @@ describe('buildOverviewPage', () => {
 
     (overviewService.buildOverview as jest.Mock).mockReturnValue(fallback);
     (serviceOverviewTableService.fetchServiceOverview as jest.Mock).mockRejectedValue(new Error('db'));
-    (taskEventsByServiceChartService.fetchTaskEventsByService as jest.Mock).mockRejectedValue(new Error('db'));
-    (fetchFilterOptionsWithFallback as jest.Mock).mockRejectedValueOnce(new Error('db')).mockResolvedValueOnce({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      users: [],
-    });
     (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-fallback' });
 
-    await buildOverviewPage({});
+    await buildOverviewPage({}, 'overview-service-performance');
 
-    expect(fetchFilterOptionsWithFallback).toHaveBeenCalledTimes(2);
     expect(buildOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
         overview: fallback,
-        taskEventsRows: [],
-        taskEventsTotals: { service: 'Total', completed: 0, cancelled: 0, created: 0 },
       })
     );
   });
@@ -169,21 +224,9 @@ describe('buildOverviewPage', () => {
       serviceRows: [],
       totals: fallback.totals,
     });
-    (taskEventsByServiceChartService.fetchTaskEventsByService as jest.Mock).mockResolvedValue({
-      rows: [],
-      totals: { service: 'Total', completed: 0, cancelled: 0, created: 0 },
-    });
-    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      users: [],
-    });
     (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-empty' });
 
-    await buildOverviewPage({});
+    await buildOverviewPage({}, 'overview-service-performance');
 
     expect(buildOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
