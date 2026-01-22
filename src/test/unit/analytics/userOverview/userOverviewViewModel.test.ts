@@ -186,6 +186,57 @@ describe('buildUserOverviewViewModel', () => {
     expect(viewModel.userOptions[0].text).toBe('All users');
   });
 
+  test('falls back when averages cannot be calculated', () => {
+    const overview: UserOverviewMetrics = {
+      assigned: [],
+      completed: [],
+      prioritySummary: { urgent: 0, high: 0, medium: 0, low: 0 },
+      completedSummary: { total: 0, withinDueYes: 0, withinDueNo: 0 },
+      completedByDate: [],
+    };
+
+    const viewModel = buildUserOverviewViewModel({
+      filters: {},
+      overview,
+      allTasks: [],
+      assignedTasks: buildTasks(overview.assigned, 'assigned'),
+      completedTasks: buildTasks(overview.completed, 'completed'),
+      assignedTotalResults: overview.assigned.length,
+      completedTotalResults: overview.completed.length,
+      completedComplianceSummary: {
+        total: overview.completedSummary.total,
+        withinDueYes: overview.completedSummary.withinDueYes,
+        withinDueNo: overview.completedSummary.withinDueNo,
+      },
+      completedByDate: [],
+      completedByTaskName: [
+        {
+          taskName: 'Task C',
+          tasks: 1,
+          handlingTimeSum: 3,
+          handlingTimeCount: Number.NaN,
+          daysBeyondSum: 2,
+          daysBeyondCount: Number.NaN,
+        },
+      ],
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        users: [],
+      },
+      locationDescriptions: {},
+      sort: getDefaultUserOverviewSort(),
+      assignedPage: 1,
+      completedPage: 1,
+    });
+
+    expect(viewModel.completedByTaskNameTotalsRow[2].text).toBe('-');
+    expect(viewModel.completedByTaskNameTotalsRow[3].text).toBe('-');
+  });
+
   test('uses provided user options and renders fallback dates', () => {
     const overview: UserOverviewMetrics = {
       assigned: [

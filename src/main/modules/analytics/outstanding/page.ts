@@ -1,3 +1,4 @@
+import { emptyOverviewFilterOptions } from '../shared/filters';
 import { OutstandingSort } from '../shared/outstandingSort';
 import {
   fetchFilterOptionsWithFallback,
@@ -30,11 +31,37 @@ import { waitTimeByAssignedDateChartService } from './visuals/waitTimeByAssigned
 
 type OutstandingPageViewModel = ReturnType<typeof buildOutstandingViewModel>;
 
+const outstandingSections = [
+  'open-tasks-summary',
+  'open-tasks-table',
+  'wait-time-table',
+  'tasks-due',
+  'open-tasks-priority',
+  'open-by-name',
+  'open-by-region-location',
+  'criticalTasks',
+] as const;
+
+type OutstandingAjaxSection = (typeof outstandingSections)[number];
+
+const deferredSections = new Set<OutstandingAjaxSection>(outstandingSections);
+
+function resolveOutstandingSection(raw?: string): OutstandingAjaxSection | undefined {
+  if (!raw) {
+    return undefined;
+  }
+  return outstandingSections.includes(raw as OutstandingAjaxSection) ? (raw as OutstandingAjaxSection) : undefined;
+}
+
 export async function buildOutstandingPage(
   filters: AnalyticsFilters,
   sort: OutstandingSort,
-  criticalTasksPage = 1
+  criticalTasksPage = 1,
+  ajaxSection?: string
 ): Promise<OutstandingPageViewModel> {
+  const requestedSection = resolveOutstandingSection(ajaxSection);
+  const shouldFetch = (section: OutstandingAjaxSection): boolean =>
+    requestedSection ? requestedSection === section : !deferredSections.has(section);
   const outstanding = outstandingService.buildOutstanding([]);
   let summary = outstanding.summary;
   let openByNameInitial: { breakdown: PriorityBreakdown[]; totals: PriorityBreakdown; chart: Record<string, unknown> } =
@@ -63,14 +90,26 @@ export async function buildOutstandingPage(
     regionLocationResult,
     criticalTasksResult,
   ] = await Promise.allSettled([
-    openTasksByNameChartService.fetchOpenTasksByName(filters),
-    openTasksCreatedByAssignmentChartService.fetchOpenTasksCreatedByAssignment(filters),
-    waitTimeByAssignedDateChartService.fetchWaitTimeByAssignedDate(filters),
-    tasksDueByDateChartService.fetchTasksDueByDate(filters),
-    tasksDueByPriorityChartService.fetchTasksDueByPriority(filters),
-    openTasksSummaryStatsService.fetchOpenTasksSummary(filters),
-    openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation(filters),
-    criticalTasksTableService.fetchCriticalTasksPage(filters, sort.criticalTasks, criticalTasksPage),
+    shouldFetch('open-by-name') ? openTasksByNameChartService.fetchOpenTasksByName(filters) : Promise.resolve(null),
+    shouldFetch('open-tasks-table')
+      ? openTasksCreatedByAssignmentChartService.fetchOpenTasksCreatedByAssignment(filters)
+      : Promise.resolve([]),
+    shouldFetch('wait-time-table')
+      ? waitTimeByAssignedDateChartService.fetchWaitTimeByAssignedDate(filters)
+      : Promise.resolve([]),
+    shouldFetch('tasks-due') ? tasksDueByDateChartService.fetchTasksDueByDate(filters) : Promise.resolve([]),
+    shouldFetch('open-tasks-priority')
+      ? tasksDueByPriorityChartService.fetchTasksDueByPriority(filters)
+      : Promise.resolve([]),
+    shouldFetch('open-tasks-summary')
+      ? openTasksSummaryStatsService.fetchOpenTasksSummary(filters)
+      : Promise.resolve(null),
+    shouldFetch('open-by-region-location')
+      ? openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation(filters)
+      : Promise.resolve(null),
+    shouldFetch('criticalTasks')
+      ? criticalTasksTableService.fetchCriticalTasksPage(filters, sort.criticalTasks, criticalTasksPage)
+      : Promise.resolve(null),
   ]);
 
   const openByNameValue = settledValueWithError(openByNameResult, 'Failed to fetch open tasks by name');
@@ -120,12 +159,14 @@ export async function buildOutstandingPage(
   const priorityDonutChart = buildPriorityDonutChart(summary);
   const assignmentDonutChart = buildAssignmentDonutChart(summary);
 
-  const filterOptions = await fetchFilterOptionsWithFallback(
-    'Failed to fetch outstanding filter options from database'
-  );
+  const filterOptions = requestedSection
+    ? emptyOverviewFilterOptions()
+    : await fetchFilterOptionsWithFallback('Failed to fetch outstanding filter options from database');
+  const needsRegionDescriptions = shouldFetch('open-by-region-location');
+  const needsLocationDescriptions = shouldFetch('open-by-region-location') || shouldFetch('criticalTasks');
   const [regionDescriptionsResult, locationDescriptionsResult] = await Promise.allSettled([
-    regionService.fetchRegionDescriptions(),
-    courtVenueService.fetchCourtVenueDescriptions(),
+    needsRegionDescriptions ? regionService.fetchRegionDescriptions() : Promise.resolve({}),
+    needsLocationDescriptions ? courtVenueService.fetchCourtVenueDescriptions() : Promise.resolve({}),
   ]);
   const regionDescriptions = settledValueWithFallback(
     regionDescriptionsResult,

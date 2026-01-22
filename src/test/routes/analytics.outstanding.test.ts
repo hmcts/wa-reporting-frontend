@@ -24,5 +24,16 @@ describe('Analytics outstanding route', () => {
       expect(response.text).toContain('Tasks outstanding');
       expect(response.text).toContain('data-module="moj-sortable-table"');
     }, 15000);
+
+    test('should render the open tasks summary partial for ajax requests', async () => {
+      const response = await request(server)
+        .get('/analytics/outstanding?ajaxSection=open-tasks-summary')
+        .set('X-Requested-With', 'fetch')
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('Open tasks');
+      expect(response.text).not.toContain('Tasks outstanding');
+    }, 15000);
   });
 });

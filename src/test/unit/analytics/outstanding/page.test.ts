@@ -98,7 +98,7 @@ describe('buildOutstandingPage', () => {
     jest.clearAllMocks();
   });
 
-  test('builds the view model from service data and chart helpers', async () => {
+  test('builds the view model for full page load using deferred sections', async () => {
     (outstandingService.buildOutstanding as jest.Mock).mockReturnValue({
       summary: {
         open: 0,
@@ -123,37 +123,6 @@ describe('buildOutstandingPage', () => {
       outstandingByRegion: [],
     });
 
-    (openTasksByNameChartService.fetchOpenTasksByName as jest.Mock).mockResolvedValue({
-      breakdown: [{ name: 'Review', urgent: 1, high: 0, medium: 0, low: 0 }],
-      totals: { name: 'Total', urgent: 1, high: 0, medium: 0, low: 0 },
-    });
-    (openTasksCreatedByAssignmentChartService.fetchOpenTasksCreatedByAssignment as jest.Mock).mockResolvedValue([
-      { date: '2024-01-01', open: 1, assigned: 1, unassigned: 0, assignedPct: 100, unassignedPct: 0 },
-    ]);
-    (waitTimeByAssignedDateChartService.fetchWaitTimeByAssignedDate as jest.Mock).mockResolvedValue([
-      { date: '2024-01-01', averageWaitDays: 2, assignedCount: 1, totalWaitDays: 2 },
-    ]);
-    (tasksDueByDateChartService.fetchTasksDueByDate as jest.Mock).mockResolvedValue([
-      { date: '2024-01-01', open: 1, completed: 0, totalDue: 1 },
-    ]);
-    (tasksDueByPriorityChartService.fetchTasksDueByPriority as jest.Mock).mockResolvedValue([
-      { date: '2024-01-01', urgent: 1, high: 0, medium: 0, low: 0 },
-    ]);
-    (openTasksSummaryStatsService.fetchOpenTasksSummary as jest.Mock).mockResolvedValue({
-      open: 1,
-      assigned: 1,
-      unassigned: 0,
-      assignedPct: 100,
-      unassignedPct: 0,
-      urgent: 1,
-      high: 0,
-      medium: 0,
-      low: 0,
-    });
-    (openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation as jest.Mock).mockResolvedValue({
-      locationRows: [{ location: 'Leeds', region: 'North', open: 1, urgent: 1, high: 0, medium: 0, low: 0 }],
-      regionRows: [{ region: 'North', open: 1, urgent: 1, high: 0, medium: 0, low: 0 }],
-    });
     (criticalTasksTableService.fetchCriticalTasksPage as jest.Mock).mockResolvedValue({
       rows: [],
       totalResults: 0,
@@ -176,7 +145,6 @@ describe('buildOutstandingPage', () => {
       taskNames: [],
       users: [],
     });
-    (regionService.fetchRegionDescriptions as jest.Mock).mockResolvedValue({ North: 'North East' });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ Leeds: 'Leeds Crown Court' });
 
     (buildOutstandingViewModel as jest.Mock).mockReturnValue({ view: 'outstanding' });
@@ -184,6 +152,15 @@ describe('buildOutstandingPage', () => {
     const viewModel = await buildOutstandingPage({}, getDefaultOutstandingSort());
 
     expect(viewModel).toEqual({ view: 'outstanding' });
+    expect(openTasksByNameChartService.fetchOpenTasksByName).not.toHaveBeenCalled();
+    expect(openTasksCreatedByAssignmentChartService.fetchOpenTasksCreatedByAssignment).not.toHaveBeenCalled();
+    expect(waitTimeByAssignedDateChartService.fetchWaitTimeByAssignedDate).not.toHaveBeenCalled();
+    expect(tasksDueByDateChartService.fetchTasksDueByDate).not.toHaveBeenCalled();
+    expect(tasksDueByPriorityChartService.fetchTasksDueByPriority).not.toHaveBeenCalled();
+    expect(openTasksSummaryStatsService.fetchOpenTasksSummary).not.toHaveBeenCalled();
+    expect(openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation).not.toHaveBeenCalled();
+    expect(criticalTasksTableService.fetchCriticalTasksPage).not.toHaveBeenCalled();
+    expect(regionService.fetchRegionDescriptions).not.toHaveBeenCalled();
     expect(buildOutstandingViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
         sort: getDefaultOutstandingSort(),
@@ -197,17 +174,117 @@ describe('buildOutstandingPage', () => {
           priorityDonut: 'priorityDonut',
           assignmentDonut: 'assignmentDonut',
         },
+        locationDescriptions: {},
+      })
+    );
+  });
+
+  test('builds only the requested ajax section data', async () => {
+    (outstandingService.buildOutstanding as jest.Mock).mockReturnValue({
+      summary: {
+        open: 0,
+        assigned: 0,
+        unassigned: 0,
+        assignedPct: 0,
+        unassignedPct: 0,
+        urgent: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+      timelines: {
+        openByCreated: [],
+        waitTimeByAssigned: [],
+        dueByDate: [],
+        tasksDueByPriority: [],
+      },
+      openByName: [],
+      criticalTasks: [],
+      outstandingByLocation: [
+        { location: 'Fallback', region: 'Unknown', open: 0, urgent: 0, high: 0, medium: 0, low: 0 },
+      ],
+      outstandingByRegion: [{ region: 'Unknown', open: 0, urgent: 0, high: 0, medium: 0, low: 0 }],
+    });
+
+    (openTasksByNameChartService.fetchOpenTasksByName as jest.Mock).mockResolvedValue({
+      breakdown: [{ name: 'Review', urgent: 1, high: 0, medium: 0, low: 0 }],
+      totals: { name: 'Total', urgent: 1, high: 0, medium: 0, low: 0 },
+    });
+
+    (buildOpenByNameChartConfig as jest.Mock).mockReturnValue({ config: 'openByName' });
+    (buildOpenTasksChart as jest.Mock).mockReturnValue('openTasks');
+    (buildWaitTimeChart as jest.Mock).mockReturnValue('waitTime');
+    (buildTasksDueChart as jest.Mock).mockReturnValue('tasksDue');
+    (buildTasksDuePriorityChart as jest.Mock).mockReturnValue('tasksDueByPriority');
+    (buildPriorityDonutChart as jest.Mock).mockReturnValue('priorityDonut');
+    (buildAssignmentDonutChart as jest.Mock).mockReturnValue('assignmentDonut');
+
+    (buildOutstandingViewModel as jest.Mock).mockReturnValue({ view: 'outstanding-ajax' });
+
+    await buildOutstandingPage({}, getDefaultOutstandingSort(), 1, 'open-by-name');
+
+    expect(fetchFilterOptionsWithFallback).not.toHaveBeenCalled();
+    expect(openTasksCreatedByAssignmentChartService.fetchOpenTasksCreatedByAssignment).not.toHaveBeenCalled();
+    expect(waitTimeByAssignedDateChartService.fetchWaitTimeByAssignedDate).not.toHaveBeenCalled();
+    expect(tasksDueByDateChartService.fetchTasksDueByDate).not.toHaveBeenCalled();
+    expect(tasksDueByPriorityChartService.fetchTasksDueByPriority).not.toHaveBeenCalled();
+    expect(openTasksSummaryStatsService.fetchOpenTasksSummary).not.toHaveBeenCalled();
+    expect(openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation).not.toHaveBeenCalled();
+    expect(criticalTasksTableService.fetchCriticalTasksPage).not.toHaveBeenCalled();
+    expect(buildOutstandingViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
         openByNameInitial: expect.objectContaining({
           breakdown: [{ name: 'Review', urgent: 1, high: 0, medium: 0, low: 0 }],
           totals: { name: 'Total', urgent: 1, high: 0, medium: 0, low: 0 },
-          chart: { config: 'openByName' },
         }),
-        outstandingByLocation: [{ location: 'Leeds', region: 'North', open: 1, urgent: 1, high: 0, medium: 0, low: 0 }],
-        outstandingByRegion: [{ region: 'North', open: 1, urgent: 1, high: 0, medium: 0, low: 0 }],
-        regionDescriptions: { North: 'North East' },
-        locationDescriptions: { Leeds: 'Leeds Crown Court' },
       })
     );
+  });
+
+  test('builds the critical tasks section on demand', async () => {
+    (outstandingService.buildOutstanding as jest.Mock).mockReturnValue({
+      summary: {
+        open: 0,
+        assigned: 0,
+        unassigned: 0,
+        assignedPct: 0,
+        unassignedPct: 0,
+        urgent: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+      timelines: {
+        openByCreated: [],
+        waitTimeByAssigned: [],
+        dueByDate: [],
+        tasksDueByPriority: [],
+      },
+      openByName: [],
+      criticalTasks: [],
+      outstandingByLocation: [],
+      outstandingByRegion: [],
+    });
+
+    (criticalTasksTableService.fetchCriticalTasksPage as jest.Mock).mockResolvedValue({
+      rows: [],
+      totalResults: 0,
+      page: 1,
+    });
+    (buildOpenByNameChartConfig as jest.Mock).mockReturnValue({ config: 'empty' });
+    (buildOpenTasksChart as jest.Mock).mockReturnValue('openTasks');
+    (buildWaitTimeChart as jest.Mock).mockReturnValue('waitTime');
+    (buildTasksDueChart as jest.Mock).mockReturnValue('tasksDue');
+    (buildTasksDuePriorityChart as jest.Mock).mockReturnValue('tasksDueByPriority');
+    (buildPriorityDonutChart as jest.Mock).mockReturnValue('priorityDonut');
+    (buildAssignmentDonutChart as jest.Mock).mockReturnValue('assignmentDonut');
+    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
+    (buildOutstandingViewModel as jest.Mock).mockReturnValue({ view: 'outstanding-critical' });
+
+    await buildOutstandingPage({}, getDefaultOutstandingSort(), 1, 'criticalTasks');
+
+    expect(criticalTasksTableService.fetchCriticalTasksPage).toHaveBeenCalled();
+    expect(fetchFilterOptionsWithFallback).not.toHaveBeenCalled();
   });
 
   test('falls back to safe defaults when open-by-name fails', async () => {
@@ -238,15 +315,6 @@ describe('buildOutstandingPage', () => {
     });
 
     (openTasksByNameChartService.fetchOpenTasksByName as jest.Mock).mockRejectedValue(new Error('db'));
-    (openTasksCreatedByAssignmentChartService.fetchOpenTasksCreatedByAssignment as jest.Mock).mockResolvedValue([]);
-    (waitTimeByAssignedDateChartService.fetchWaitTimeByAssignedDate as jest.Mock).mockResolvedValue([]);
-    (tasksDueByDateChartService.fetchTasksDueByDate as jest.Mock).mockResolvedValue([]);
-    (tasksDueByPriorityChartService.fetchTasksDueByPriority as jest.Mock).mockResolvedValue([]);
-    (openTasksSummaryStatsService.fetchOpenTasksSummary as jest.Mock).mockResolvedValue(null);
-    (openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation as jest.Mock).mockRejectedValue(
-      new Error('db')
-    );
-    (criticalTasksTableService.fetchCriticalTasksPage as jest.Mock).mockRejectedValue(new Error('db'));
 
     (buildOpenByNameChartConfig as jest.Mock).mockReturnValue({ config: 'empty' });
     (buildOpenTasksChart as jest.Mock).mockReturnValue('openTasks');
@@ -256,20 +324,9 @@ describe('buildOutstandingPage', () => {
     (buildPriorityDonutChart as jest.Mock).mockReturnValue('priorityDonut');
     (buildAssignmentDonutChart as jest.Mock).mockReturnValue('assignmentDonut');
 
-    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      users: [],
-    });
-    (regionService.fetchRegionDescriptions as jest.Mock).mockResolvedValue({});
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
-
     (buildOutstandingViewModel as jest.Mock).mockReturnValue({ view: 'outstanding-fallback' });
 
-    await buildOutstandingPage({}, getDefaultOutstandingSort());
+    await buildOutstandingPage({}, getDefaultOutstandingSort(), 1, 'open-by-name');
 
     expect(buildOpenByNameChartConfig).toHaveBeenCalledWith([]);
     expect(buildOutstandingViewModel).toHaveBeenCalledWith(

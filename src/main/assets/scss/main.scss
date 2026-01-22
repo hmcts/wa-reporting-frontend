@@ -175,3 +175,12 @@
   z-index: 2;
   background: govuk-colour('white');
 }
+
+[data-module='moj-sortable-table'][data-sticky-totals='true'] tr:has([data-total-row='true']) > td,
+[data-module='moj-sortable-table'][data-sticky-totals='true'] tr:has([data-total-row='true']) > th {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: govuk-colour('white');
+  box-shadow: 0 -1px 0 $govuk-border-colour;
+}

@@ -10,11 +10,23 @@
     <p class="govuk-body-l">Details of completed tasks</p>
 
     {% include "analytics/completed/completed-filters.njk" %}
-    {% include "analytics/completed/partials/completed-summary.njk" %}
-    {% include "analytics/completed/partials/completed-timeline.njk" %}
-    {% include "analytics/completed/partials/completed-by-name.njk" %}
-    {% include "analytics/completed/partials/task-audit.njk" %}
-    {% include "analytics/completed/partials/completed-by-region-location.njk" %}
-    {% include "analytics/completed/partials/processing-handling-time.njk" %}
+    <div data-section="completed-summary" data-ajax-initial="true">
+      {% include "analytics/completed/partials/completed-summary.njk" %}
+    </div>
+    <div data-section="completed-timeline" data-ajax-initial="true">
+      {% include "analytics/completed/partials/completed-timeline.njk" %}
+    </div>
+    <div data-section="completed-by-name" data-ajax-initial="true">
+      {% include "analytics/completed/partials/completed-by-name.njk" %}
+    </div>
+    <div data-section="completed-task-audit" data-ajax-initial="true">
+      {% include "analytics/completed/partials/task-audit.njk" %}
+    </div>
+    <div data-section="completed-by-region-location" data-ajax-initial="true">
+      {% include "analytics/completed/partials/completed-by-region-location.njk" %}
+    </div>
+    <div data-section="completed-processing-handling-time" data-ajax-initial="true">
+      {% include "analytics/completed/partials/processing-handling-time.njk" %}
+    </div>
   </div>
 {% endblock %}

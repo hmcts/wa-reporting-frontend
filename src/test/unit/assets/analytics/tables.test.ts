@@ -6,9 +6,9 @@ import type { AjaxDeps } from '../../../../main/assets/js/analytics/ajax';
 import { fetchSortedSection } from '../../../../main/assets/js/analytics/ajax';
 import {
   initMojServerSorting,
-  initMojStickyTotals,
+  initMojTotalsRowPinning,
   initTableExports,
-  moveStickyTotalsRow,
+  moveTotalsRowToEnd,
   tableToCsv,
 } from '../../../../main/assets/js/analytics/tables';
 
@@ -204,7 +204,7 @@ describe('analytics tables', () => {
     expect(form.querySelector<HTMLInputElement>('input[name="completedSortDir"]')?.value).toBe('desc');
   });
 
-  test('covers sorting guard clauses and sticky totals', async () => {
+  test('covers sorting guard clauses', async () => {
     const form = document.createElement('form');
     form.dataset.analyticsFilters = 'true';
     form.submit = jest.fn();
@@ -254,19 +254,10 @@ describe('analytics tables', () => {
     mojNoHeading.querySelector('button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     mojNoSortKey.querySelector('button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-    const missingBodyTable = document.createElement('table');
-    moveStickyTotalsRow(missingBodyTable);
-    const missingTotalsTable = document.createElement('table');
-    missingTotalsTable.innerHTML = '<tbody><tr><td>Row</td></tr></tbody>';
-    moveStickyTotalsRow(missingTotalsTable);
+    expect(form.querySelector('input')).toBeNull();
+  });
 
-    const boundSticky = document.createElement('table');
-    boundSticky.dataset.module = 'moj-sortable-table';
-    boundSticky.dataset.stickyTotals = 'true';
-    boundSticky.dataset.mojStickyTotalsBound = 'true';
-    document.body.appendChild(boundSticky);
-    initMojStickyTotals();
-
+  test('pins totals row to the end after sorting', () => {
     const stickyTable = document.createElement('table');
     stickyTable.dataset.module = 'moj-sortable-table';
     stickyTable.dataset.stickyTotals = 'true';
@@ -277,10 +268,15 @@ describe('analytics tables', () => {
       </tbody>
     `;
     document.body.appendChild(stickyTable);
-    initMojStickyTotals();
+
+    moveTotalsRowToEnd(stickyTable);
+    let rows = stickyTable.querySelectorAll('tbody tr');
+    expect(rows[rows.length - 1]?.textContent).toContain('Total');
+
+    initMojTotalsRowPinning();
     stickyTable.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    const stickyRows = stickyTable.querySelectorAll('tbody tr');
-    expect(stickyRows[stickyRows.length - 1]?.textContent).toContain('Total');
+    rows = stickyTable.querySelectorAll('tbody tr');
+    expect(rows[rows.length - 1]?.textContent).toContain('Total');
   });
 
   test('covers export fallbacks and bound exports', () => {

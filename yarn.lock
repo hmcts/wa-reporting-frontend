@@ -12486,10 +12486,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash@npm:4.17.21, lodash@npm:^4.17.11, lodash@npm:^4.17.14, lodash@npm:^4.17.20, lodash@npm:^4.17.21":
-  version: 4.17.21
-  resolution: "lodash@npm:4.17.21"
-  checksum: 10/c08619c038846ea6ac754abd6dd29d2568aa705feb69339e836dfa8d8b09abbb2f859371e86863eda41848221f9af43714491467b5b0299122431e202bb0c532
+"lodash@npm:^4.17.23":
+  version: 4.17.23
+  resolution: "lodash@npm:4.17.23"
+  checksum: 10/82504c88250f58da7a5a4289f57a4f759c44946c005dd232821c7688b5fcfbf4a6268f6a6cdde4b792c91edd2f3b5398c1d2a0998274432cff76def48735e233
   languageName: node
   linkType: hard
 
@@ -14675,12 +14675,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:3.8.0":
-  version: 3.8.0
-  resolution: "prettier@npm:3.8.0"
+"prettier@npm:^3.8.0":
+  version: 3.8.1
+  resolution: "prettier@npm:3.8.1"
   bin:
     prettier: bin/prettier.cjs
-  checksum: 10/a643c62f095c2987a34cea4fceddce8dea12cc3ee024494aff690cfac22ef20be835e212b39b718c833014fd22890ae156be67b75a26e2bc9b7acde9a34d31fa
+  checksum: 10/3da1cf8c1ef9bea828aa618553696c312e951f810bee368f6887109b203f18ee869fe88f66e65f9cf60b7cb1f2eae859892c860a300c062ff8ec69c381fc8dbd
   languageName: node
   linkType: hard
 
@@ -15657,7 +15657,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sass-loader@npm:16.0.6":
+"sass-loader@npm:^16.0.6":
   version: 16.0.6
   resolution: "sass-loader@npm:16.0.6"
   dependencies:
@@ -15683,9 +15683,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sass@npm:1.97.2":
-  version: 1.97.2
-  resolution: "sass@npm:1.97.2"
+"sass@npm:^1.97.2":
+  version: 1.97.3
+  resolution: "sass@npm:1.97.3"
   dependencies:
     "@parcel/watcher": "npm:^2.4.1"
     chokidar: "npm:^4.0.0"
@@ -15696,7 +15696,7 @@ __metadata:
       optional: true
   bin:
     sass: sass.js
-  checksum: 10/a6b27e6a75bc8eedf0ce941a86e996f4a477640dfd214ecdcee5e8d7dca054bb03070974690b7f988a99ea729983cd8ddcdbb887bd068c73fde2d0010d835064
+  checksum: 10/707ef8e525ed32d375e737346140d4b675f44de208df996c2df3407f5e62f3f38226ea1faf41a9fd4b068201e67b3a7e152b9e9c3b098daa847dd480c735f038
   languageName: node
   linkType: hard
 
@@ -17697,7 +17697,6 @@ __metadata:
     jest-junit: "npm:16.0.0"
     jwt-decode: "npm:^4.0.0"
     lint-staged: "npm:16.2.7"
-    lodash: "npm:4.17.21"
     mini-css-extract-plugin: "npm:2.10.0"
     moment: "npm:^2.30.1"
     nock: "npm:14.0.10"
@@ -17709,12 +17708,12 @@ __metadata:
     playwright: "npm:1.57.0"
     plotly.js-basic-dist-min: "npm:^3.3.1"
     postcss: "npm:^8.5.6"
-    prettier: "npm:3.8.0"
+    prettier: "npm:^3.8.0"
     prisma: "npm:^7.2.0"
     redis: "npm:^5.10.0"
     require-directory: "npm:2.1.1"
-    sass: "npm:1.97.2"
-    sass-loader: "npm:16.0.6"
+    sass: "npm:^1.97.2"
+    sass-loader: "npm:^16.0.6"
     serve-favicon: "npm:2.5.1"
     session-file-store: "npm:^1.5.0"
     style-loader: "npm:4.0.0"

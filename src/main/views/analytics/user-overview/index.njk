@@ -10,12 +10,20 @@
 
     {% include "analytics/user-overview/user-overview-filters.njk" %}
 
-    {% include "analytics/user-overview/partials/assigned-tasks.njk" %}
+    <div data-section="user-overview-assigned" data-ajax-initial="true">
+      {% include "analytics/user-overview/partials/assigned-tasks.njk" %}
+    </div>
 
-    {% include "analytics/user-overview/partials/completed-tasks.njk" %}
+    <div data-section="user-overview-completed" data-ajax-initial="true">
+      {% include "analytics/user-overview/partials/completed-tasks.njk" %}
+    </div>
 
-    {% include "analytics/user-overview/partials/completed-by-date.njk" %}
+    <div data-section="user-overview-completed-by-date" data-ajax-initial="true">
+      {% include "analytics/user-overview/partials/completed-by-date.njk" %}
+    </div>
 
-    {% include "analytics/user-overview/partials/completed-by-task-name.njk" %}
+    <div data-section="user-overview-completed-by-task-name" data-ajax-initial="true">
+      {% include "analytics/user-overview/partials/completed-by-task-name.njk" %}
+    </div>
   </div>
 {% endblock %}

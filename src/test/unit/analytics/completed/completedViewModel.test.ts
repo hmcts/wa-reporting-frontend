@@ -545,6 +545,9 @@ describe('buildCompletedViewModel', () => {
     expect(viewModel.processingHandlingRows[0][2].text).toBe('2.50');
     expect(viewModel.processingHandlingRows[0][3].text).toBe('3.00');
     expect(viewModel.processingHandlingRows[0][4].text).toBe('2.00');
+    expect(viewModel.processingHandlingTotalsRow[0].text).toBe('Total');
+    expect(viewModel.processingHandlingTotalsRow[1].text).toBe('2');
+    expect(viewModel.processingHandlingTotalsRow[2].text).toBe('2.50');
     expect(viewModel.processingHandlingOverallAverage).toBe('2.50');
     expect(viewModel.processingHandlingOverallLabel).toBe('Overall average of processing time (days)');
   });

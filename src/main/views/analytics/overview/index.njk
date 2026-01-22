@@ -10,7 +10,11 @@
 
     {% include "analytics/overview/overview-filters.njk" %}
 
-    {% include "analytics/overview/partials/service-performance-table.njk" %}
-    {% include "analytics/overview/partials/task-events-table.njk" %}
+    <div data-section="overview-service-performance" data-ajax-initial="true">
+      {% include "analytics/overview/partials/service-performance-table.njk" %}
+    </div>
+    <div data-section="overview-task-events" data-ajax-initial="true">
+      {% include "analytics/overview/partials/task-events-table.njk" %}
+    </div>
   </div>
 {% endblock %}

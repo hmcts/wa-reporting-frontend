@@ -102,7 +102,7 @@ export function initMojServerSorting(fetchSortedSection: FetchSortedSection): vo
   });
 }
 
-export function moveStickyTotalsRow(table: HTMLTableElement): void {
+export function moveTotalsRowToEnd(table: HTMLTableElement): void {
   const body = table.querySelector('tbody');
   if (!body) {
     return;
@@ -115,19 +115,19 @@ export function moveStickyTotalsRow(table: HTMLTableElement): void {
   body.appendChild(totalsRow);
 }
 
-export function initMojStickyTotals(): void {
+export function initMojTotalsRowPinning(): void {
   const tables = document.querySelectorAll<HTMLTableElement>(
     '[data-module="moj-sortable-table"][data-sticky-totals="true"]'
   );
   tables.forEach(table => {
-    if (table.dataset.mojStickyTotalsBound === 'true') {
+    if (table.dataset.mojTotalsPinnedBound === 'true') {
       return;
     }
     const moveTotals = () => {
-      window.requestAnimationFrame(() => moveStickyTotalsRow(table));
+      window.requestAnimationFrame(() => moveTotalsRowToEnd(table));
     };
     table.addEventListener('click', moveTotals);
-    moveStickyTotalsRow(table);
-    table.dataset.mojStickyTotalsBound = 'true';
+    moveTotalsRowToEnd(table);
+    table.dataset.mojTotalsPinnedBound = 'true';
   });
 }

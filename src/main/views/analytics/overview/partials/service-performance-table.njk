@@ -1,3 +1,7 @@
+{% from "macros/analytics-table.njk" import analyticsTable %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+{% from "macros/csv-download.njk" import csvDownloadButton %}
+
 <h2 class="govuk-heading-m govuk-!-margin-top-6">Open and assigned tasks by service</h2>
 {% set openAssignedTableHtml %}
   <div class="analytics-tab-panel">

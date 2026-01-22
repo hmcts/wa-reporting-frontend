@@ -11,21 +11,37 @@
 
     {% include "analytics/outstanding/outstanding-filters.njk" %}
 
-    {% include "analytics/outstanding/partials/open-tasks-summary.njk" %}
+    <div data-section="open-tasks-summary" data-ajax-initial="true">
+      {% include "analytics/outstanding/partials/open-tasks-summary.njk" %}
+    </div>
 
     <div class="govuk-grid-row govuk-!-margin-bottom-6">
-      {% include "analytics/outstanding/partials/open-tasks-table.njk" %}
-      {% include "analytics/outstanding/partials/wait-time-table.njk" %}
+      <div class="govuk-grid-column-one-half" data-section="open-tasks-table" data-ajax-initial="true">
+        {% include "analytics/outstanding/partials/open-tasks-table.njk" %}
+      </div>
+      <div class="govuk-grid-column-one-half" data-section="wait-time-table" data-ajax-initial="true">
+        {% include "analytics/outstanding/partials/wait-time-table.njk" %}
+      </div>
     </div>
 
-    {% include "analytics/outstanding/partials/critical-tasks.njk" %}
+    <div data-section="criticalTasks" data-ajax-initial="true">
+      {% include "analytics/outstanding/partials/critical-tasks.njk" %}
+    </div>
 
     <div class="govuk-grid-row govuk-!-margin-top-6">
-      {% include "analytics/outstanding/partials/tasks-due.njk" %}
-      {% include "analytics/outstanding/partials/open-tasks-priority.njk" %}
+      <div class="govuk-grid-column-one-half" data-section="tasks-due" data-ajax-initial="true">
+        {% include "analytics/outstanding/partials/tasks-due.njk" %}
+      </div>
+      <div class="govuk-grid-column-one-half" data-section="open-tasks-priority" data-ajax-initial="true">
+        {% include "analytics/outstanding/partials/open-tasks-priority.njk" %}
+      </div>
     </div>
 
-    {% include "analytics/outstanding/partials/open-by-name.njk" %}
-    {% include "analytics/outstanding/partials/open-by-region-location.njk" %}
+    <div data-section="open-by-name" data-ajax-initial="true">
+      {% include "analytics/outstanding/partials/open-by-name.njk" %}
+    </div>
+    <div data-section="open-by-region-location" data-ajax-initial="true">
+      {% include "analytics/outstanding/partials/open-by-region-location.njk" %}
+    </div>
   </div>
 {% endblock %}

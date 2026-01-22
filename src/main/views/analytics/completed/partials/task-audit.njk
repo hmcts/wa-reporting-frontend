@@ -6,9 +6,8 @@
 {% from "macros/case-link.njk" import caseLink %}
 {% from "govuk/components/tabs/macro.njk" import govukTabs %}
 
-<div data-section="completed-task-audit">
-  <h2 class="govuk-heading-m">Task audit</h2>
-  <p class="govuk-body">Search by case number to audit tasks on cases.</p>
+<h2 class="govuk-heading-m">Task audit</h2>
+<p class="govuk-body">Search by case number to audit tasks on cases.</p>
 
   <form method="post" class="govuk-!-margin-bottom-4" data-analytics-filters="true" data-ajax-section="completed-task-audit">
     {{ csrfProtection(csrfToken) }}
@@ -100,10 +99,9 @@
         }) }}
       </div>
   {% endset %}
-  {{ govukTabs({
-    id: "taskAuditTabs",
-    items: [
-      { label: "Data table", id: "taskAuditTable", panel: { html: taskAuditTableHtml } }
-    ]
-  }) }}
-</div>
+{{ govukTabs({
+  id: "taskAuditTabs",
+  items: [
+    { label: "Data table", id: "taskAuditTable", panel: { html: taskAuditTableHtml } }
+  ]
+}) }}
