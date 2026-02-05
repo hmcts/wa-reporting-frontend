@@ -9172,7 +9172,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"express-session@npm:^1.18.2":
+"express-session@npm:^1.19.0":
   version: 1.19.0
   resolution: "express-session@npm:1.19.0"
   dependencies:
@@ -14373,7 +14373,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pg@npm:^8.16.3, pg@npm:^8.17.1":
+"pg@npm:^8.16.3, pg@npm:^8.18.0":
   version: 8.18.0
   resolution: "pg@npm:8.18.0"
   dependencies:
@@ -14702,7 +14702,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prisma@npm:^7.2.0":
+"prisma@npm:^7.3.0":
   version: 7.3.0
   resolution: "prisma@npm:7.3.0"
   dependencies:
@@ -17659,7 +17659,7 @@ __metadata:
     express-nunjucks: "npm:^3.1.2"
     express-openid-connect: "npm:^2.19.4"
     express-rate-limit: "npm:^8.2.1"
-    express-session: "npm:^1.18.2"
+    express-session: "npm:^1.19.0"
     glob: "npm:^13.0.1"
     govuk-frontend: "npm:^5.14.0"
     helmet: "npm:8.1.0"
@@ -17679,12 +17679,12 @@ __metadata:
     nodemon: "npm:3.1.11"
     nunjucks: "npm:3.2.4"
     pa11y: "npm:^9.1.0"
-    pg: "npm:^8.17.1"
+    pg: "npm:^8.18.0"
     playwright: "npm:1.58.1"
     plotly.js-basic-dist-min: "npm:^3.3.1"
     postcss: "npm:^8.5.6"
     prettier: "npm:^3.8.1"
-    prisma: "npm:^7.2.0"
+    prisma: "npm:^7.3.0"
     redis: "npm:^5.10.0"
     require-directory: "npm:2.1.1"
     sass: "npm:^1.97.3"
