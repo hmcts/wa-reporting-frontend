@@ -135,8 +135,7 @@
   },
   "resolutions": {
     "hono": "^4.11.7",
-    "lodash": "^4.17.23",
-    "minimatch": "^10.1.2"
+    "lodash": "^4.17.23"
   },
   "husky": {
     "hooks": {
