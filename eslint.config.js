@@ -20,6 +20,7 @@ module.exports = [
       'src/test/*/codecept.conf.js',
       'src/test/config.ts',
       'playwright.config.mjs',
+      'playwright.a11y.config.mjs',
       '**/*.js',
       '.yarn/**',
       '.pnp.*',

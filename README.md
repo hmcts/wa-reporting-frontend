@@ -119,13 +119,13 @@ Functional tests (Playwright, requires the app running at http://localhost:3100)
 TEST_URL=http://localhost:3100 yarn test:functional
 ```
 
-Running accessibility tests:
+Running accessibility tests (Playwright, starts the app automatically if needed):
 
 ```bash
-yarn test:a11y
+AUTH_ENABLED=false TEST_URL=http://localhost:3100 yarn test:a11y
 ```
 
-Make sure all the paths in your application are covered by accessibility tests (see [a11y.ts](src/test/a11y/a11y.ts)).
+Make sure all the paths in your application are covered by accessibility tests (see `src/test/a11y/*.a11y.spec.ts`).
 
 ### Security
 

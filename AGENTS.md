@@ -9,7 +9,7 @@ Changes must be maintainable: no new duplication, keep cognitive load flat, idio
 ### II. Tests Define Release Readiness
 
 Every feature ships with appropriate unit tests for edge cases and error
-paths, route tests for Express endpoints, automated accessibility coverage (pa11y/jest-a11y), and
+paths, route tests for Express endpoints, automated accessibility coverage (Playwright + AxeUtils), and
 smoke tests for unmocked happy paths. Tests act as living documentation for intended behavior.
 
 ### III. GOV.UK Experience Consistency

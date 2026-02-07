@@ -31,10 +31,13 @@ const reporter = [
   ],
 ];
 
+const serverUrl = new URL(baseUrl);
+const serverPort = serverUrl.port || (serverUrl.protocol === 'https:' ? '443' : '80');
+
 export default defineConfig({
   ...CommonConfig.recommended,
   testDir: './src/test',
-  testMatch: ['**/*.smoke.spec.ts', '**/*.functional.spec.ts', '**/*.a11y.spec.ts'],
+  testMatch: ['**/*.a11y.spec.ts'],
   snapshotDir: './src/test/playwright/snapshots',
   reporter,
   outputDir,
@@ -44,4 +47,10 @@ export default defineConfig({
     headless,
   },
   projects: [ProjectsConfig.chromium],
+  webServer: {
+    command: `AUTH_ENABLED=false PORT=${serverPort} yarn start:dev`,
+    url: baseUrl,
+    reuseExistingServer: true,
+    timeout: 120000,
+  },
 });

@@ -1,4 +1,4 @@
-import { createLogger } from '@hmcts/playwright-common';
+import { AxeUtils, createLogger } from '@hmcts/playwright-common';
 import { test as base, expect } from '@playwright/test';
 
 const serviceName = 'wa-reporting-frontend-tests';
@@ -7,6 +7,7 @@ type Logger = ReturnType<typeof createLogger>;
 
 type Fixtures = {
   logger: Logger;
+  axeUtils: AxeUtils;
 };
 
 export const test = base.extend<Fixtures>({
@@ -18,6 +19,11 @@ export const test = base.extend<Fixtures>({
       },
     });
     await use(logger);
+  },
+  axeUtils: async ({ page }, use, testInfo) => {
+    const axeUtils = new AxeUtils(page);
+    await use(axeUtils);
+    await axeUtils.generateReport(testInfo);
   },
 });
 
