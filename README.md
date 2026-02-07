@@ -101,10 +101,22 @@ the following command:
 yarn test
 ```
 
-Here's how to run functional tests (the template contains just one sample test):
+Route tests:
 
 ```bash
 yarn test:routes
+```
+
+Smoke tests (Playwright, requires the app running at http://localhost:3100):
+
+```bash
+TEST_URL=http://localhost:3100 yarn test:smoke
+```
+
+Functional tests (Playwright, requires the app running at http://localhost:3100):
+
+```bash
+TEST_URL=http://localhost:3100 yarn test:functional
 ```
 
 Running accessibility tests:

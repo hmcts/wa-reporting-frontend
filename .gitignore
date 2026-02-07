@@ -30,6 +30,8 @@ src/main/views/moj
 coverage/
 smoke-output/
 functional-output/
+playwright-report/
+test-results/
 version
 
 .eslintcache

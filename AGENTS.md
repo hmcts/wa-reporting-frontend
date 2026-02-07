@@ -22,6 +22,7 @@ interactive states retain ≥ WCAG AA contrast.
 ## Active Technologies
 
 - TypeScript on Node.js + Express 5, Nunjucks/express-nunjucks, govuk-frontend components, Plotly for charts, axios for API data fetch, Prisma for database integration.
+- Playwright smoke/functional tests with @hmcts/playwright-common (shared Playwright config and helpers).
 - GOV.UK Design System using the `govuk-frontend` library; refer to https://design-system.service.gov.uk/ for official documentation and usage.
 
 ## Project Structure
@@ -40,6 +41,7 @@ src/
     functional/
     a11y/
     smoke/
+    playwright/
 config/
 ```
 

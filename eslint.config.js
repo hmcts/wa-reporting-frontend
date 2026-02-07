@@ -1,5 +1,6 @@
 const { FlatCompat } = require('@eslint/eslintrc');
 const js = require('@eslint/js');
+const playwright = require('eslint-plugin-playwright');
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
@@ -18,6 +19,7 @@ module.exports = [
       'jest.*config.js',
       'src/test/*/codecept.conf.js',
       'src/test/config.ts',
+      'playwright.config.mjs',
       '**/*.js',
       '.yarn/**',
       '.pnp.*',
@@ -94,4 +96,8 @@ module.exports = [
       ],
     },
   }),
+  {
+    files: ['src/test/**/*.spec.ts'],
+    ...playwright.configs['flat/recommended'],
+  },
 ];
