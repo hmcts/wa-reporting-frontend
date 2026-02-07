@@ -42,6 +42,7 @@ src/
     a11y/
     smoke/
     playwright/
+      auth/
 config/
 ```
 
