@@ -113,11 +113,26 @@ Smoke tests (Playwright, requires the app running at http://localhost:3100):
 TEST_URL=http://localhost:3100 yarn test:smoke
 ```
 
+If auth is enabled, provide IDAM credentials so Playwright can log in and cache the session:
+
+```bash
+TEST_URL=http://localhost:3100 \
+TEST_IDAM_USERNAME=caseworker@example.com \
+TEST_IDAM_PASSWORD=*** \
+yarn test:smoke
+```
+
+The first authenticated run performs a full IDAM login and stores cookies in
+`src/test/playwright/.sessions/idam-session.json`. Delete that file to force a
+fresh login. If the session cookie name differs, set `AUTH_SESSION_COOKIE_NAME`.
+
 Functional tests (Playwright, requires the app running at http://localhost:3100):
 
 ```bash
 TEST_URL=http://localhost:3100 yarn test:functional
 ```
+
+If auth is enabled, provide the same IDAM credentials as for smoke tests.
 
 Running accessibility tests (Playwright, starts the app automatically if needed):
 
