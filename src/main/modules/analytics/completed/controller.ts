@@ -1,8 +1,8 @@
 import { Request, Response, Router } from 'express';
 
-import { validateFilters } from '../shared/filters';
+import { BASE_FILTER_KEYS, applyFilterCookieFromConfig } from '../shared/filterCookies';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../shared/partials';
-import { CompletedMetric } from '../shared/types';
+import { AnalyticsFilters, CompletedMetric } from '../shared/types';
 
 import { buildCompletedPage } from './page';
 
@@ -22,6 +22,11 @@ function parseMetric(source: Record<string, unknown>): CompletedMetric {
 }
 
 class CompletedController {
+  private readonly allowedFilterKeys: (keyof AnalyticsFilters)[] = [
+    ...BASE_FILTER_KEYS,
+    'completedFrom',
+    'completedTo',
+  ];
   private readonly partials = {
     'completed-summary': 'analytics/completed/partials/completed-summary',
     'completed-timeline': 'analytics/completed/partials/completed-timeline',
@@ -34,7 +39,12 @@ class CompletedController {
   registerCompletedRoutes(router: Router): void {
     const handler = async (req: Request, res: Response) => {
       const source = (req.method === 'POST' ? req.body : req.query) as Record<string, unknown>;
-      const { filters } = validateFilters(source);
+      const filters = applyFilterCookieFromConfig({
+        req,
+        res,
+        source,
+        allowedKeys: this.allowedFilterKeys,
+      });
       const caseId = parseCaseId(source);
       const metric = parseMetric(source);
       const ajaxSection = typeof source.ajaxSection === 'string' ? source.ajaxSection : undefined;

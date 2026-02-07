@@ -2,11 +2,12 @@ import { Request, Response, Router } from 'express';
 
 import { completedController } from '../../../../main/modules/analytics/completed/controller';
 import { buildCompletedPage } from '../../../../main/modules/analytics/completed/page';
-import { validateFilters } from '../../../../main/modules/analytics/shared/filters';
+import { applyFilterCookieFromConfig } from '../../../../main/modules/analytics/shared/filterCookies';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../../../../main/modules/analytics/shared/partials';
 
-jest.mock('../../../../main/modules/analytics/shared/filters', () => ({
-  validateFilters: jest.fn(),
+jest.mock('../../../../main/modules/analytics/shared/filterCookies', () => ({
+  applyFilterCookieFromConfig: jest.fn(),
+  BASE_FILTER_KEYS: ['service', 'roleCategory', 'region', 'location', 'taskName'],
 }));
 
 jest.mock('../../../../main/modules/analytics/completed/page', () => ({
@@ -35,7 +36,7 @@ describe('completedController', () => {
     const req = { method: 'GET', query: { service: 'Civil' } } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: { service: ['Civil'] } });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({ service: ['Civil'] });
     (buildCompletedPage as jest.Mock).mockResolvedValue({ view: 'completed' });
     (isAjaxRequest as jest.Mock).mockReturnValue(false);
 
@@ -47,7 +48,13 @@ describe('completedController', () => {
     const handler = (router.get as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
-    expect(validateFilters).toHaveBeenCalledWith(req.query);
+    expect(applyFilterCookieFromConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        req,
+        res,
+        source: req.query,
+      })
+    );
     expect(buildCompletedPage).toHaveBeenCalledWith({ service: ['Civil'] }, 'handlingTime', undefined, undefined);
     expect(render).toHaveBeenCalledWith('analytics/completed/index', { view: 'completed' });
   });
@@ -58,7 +65,7 @@ describe('completedController', () => {
     const req = { method: 'POST', body: { taskName: 'Review' } } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: { taskName: ['Review'] } });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({ taskName: ['Review'] });
     (buildCompletedPage as jest.Mock).mockResolvedValue({ view: 'completed-post' });
     (isAjaxRequest as jest.Mock).mockReturnValue(false);
 
@@ -67,7 +74,13 @@ describe('completedController', () => {
     const handler = (router.post as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
-    expect(validateFilters).toHaveBeenCalledWith(req.body);
+    expect(applyFilterCookieFromConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        req,
+        res,
+        source: req.body,
+      })
+    );
     expect(buildCompletedPage).toHaveBeenCalledWith({ taskName: ['Review'] }, 'handlingTime', undefined, undefined);
     expect(render).toHaveBeenCalledWith('analytics/completed/index', { view: 'completed-post' });
   });
@@ -81,7 +94,7 @@ describe('completedController', () => {
     } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: {} });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({});
     (buildCompletedPage as jest.Mock).mockResolvedValue({ view: 'completed-case-id' });
     (isAjaxRequest as jest.Mock).mockReturnValue(false);
 
@@ -100,7 +113,7 @@ describe('completedController', () => {
     const req = { method: 'GET', query: { metric: 'processingTime' } } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: {} });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({});
     (buildCompletedPage as jest.Mock).mockResolvedValue({ view: 'completed-metric' });
     (isAjaxRequest as jest.Mock).mockReturnValue(false);
 
@@ -122,7 +135,7 @@ describe('completedController', () => {
     } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: {} });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({});
     (buildCompletedPage as jest.Mock).mockResolvedValue({ view: 'completed-blank' });
     (isAjaxRequest as jest.Mock).mockReturnValue(false);
 
@@ -145,7 +158,7 @@ describe('completedController', () => {
     } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: { service: ['Crime'] } });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({ service: ['Crime'] });
     (buildCompletedPage as jest.Mock).mockResolvedValue({ view: 'completed-ajax' });
     (isAjaxRequest as jest.Mock).mockReturnValue(true);
     (getAjaxPartialTemplate as jest.Mock).mockReturnValue('analytics/completed/partials/task-audit');
@@ -175,7 +188,7 @@ describe('completedController', () => {
     } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: {} });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({});
     (buildCompletedPage as jest.Mock).mockResolvedValue({ view: 'completed-fallback' });
     (isAjaxRequest as jest.Mock).mockReturnValue(true);
     (getAjaxPartialTemplate as jest.Mock).mockReturnValue(undefined);

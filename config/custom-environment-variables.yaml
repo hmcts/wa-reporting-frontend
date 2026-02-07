@@ -1,6 +1,10 @@
 analytics:
   cacheTtlSeconds: ANALYTICS_CACHE_TTL_SECONDS
   manageCaseBaseUrl: MANAGE_CASE_BASE_URL
+  filtersCookieName: ANALYTICS_FILTERS_COOKIE_NAME
+  filtersCookieMaxAgeDays: ANALYTICS_FILTERS_COOKIE_MAX_AGE_DAYS
+auth:
+  enabled: AUTH_ENABLED
 appInsights:
   connectionString: APPLICATIONINSIGHTS_CONNECTION_STRING
 csrfCookieSecret: CSRF_COOKIE_SECRET

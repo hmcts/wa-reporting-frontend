@@ -58,7 +58,7 @@ app.get('/favicon.ico', limiter, (req, res) => {
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(cookieParser(config.get('session.secret')));
 app.use(compression());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {

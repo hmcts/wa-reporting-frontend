@@ -17,7 +17,9 @@
   },
   "analytics": {
     "cacheTtlSeconds": 900,
-    "manageCaseBaseUrl": "https://manage-case.aat.platform.hmcts.net"
+    "manageCaseBaseUrl": "https://manage-case.aat.platform.hmcts.net",
+    "filtersCookieName": "wa-reporting-analytics-filters",
+    "filtersCookieMaxAgeDays": 365
   },
   "logging": {
     "prismaQueryTimings": false
