@@ -1,21 +1,21 @@
 import type { Request, Response } from 'express';
 
 const getMock = jest.fn();
-const doubleCsrfProtection = jest.fn((req: Request, res: Response, next: () => void) => next());
-const generateCsrfToken = jest.fn();
-const validateRequest = jest.fn();
-const doubleCsrfMock = jest.fn(() => ({
-  doubleCsrfProtection,
-  generateCsrfToken,
-  validateRequest,
+const csrfSynchronisedProtection = jest.fn((req: Request, res: Response, next: () => void) => next());
+const generateToken = jest.fn();
+const isRequestValid = jest.fn();
+const csrfSyncMock = jest.fn(() => ({
+  csrfSynchronisedProtection,
+  generateToken,
+  isRequestValid,
 })) as jest.Mock;
 
 jest.mock('config', () => ({
   get: (...args: unknown[]) => getMock(...args),
 }));
 
-jest.mock('csrf-csrf', () => ({
-  doubleCsrf: doubleCsrfMock,
+jest.mock('csrf-sync', () => ({
+  csrfSync: csrfSyncMock,
 }));
 
 describe('csrfService', () => {
@@ -26,35 +26,27 @@ describe('csrfService', () => {
 
   const loadService = () => require('../../../../main/modules/csrf');
 
-  test('configures csrf-csrf and exposes token helpers when enabled', () => {
+  test('configures csrf-sync and exposes token helpers when enabled', () => {
     getMock.mockImplementation((key: string) => {
       if (key === 'useCSRFProtection') {
         return true;
       }
-      if (key === 'csrfCookieSecret') {
-        return 'test-secret';
-      }
       return undefined;
     });
-    generateCsrfToken.mockReturnValue('token');
-    validateRequest.mockReturnValue(true);
+    generateToken.mockReturnValue('token');
+    isRequestValid.mockReturnValue(true);
 
     const { csrfService } = loadService();
-    expect(doubleCsrfMock).toHaveBeenCalledWith(
+    expect(csrfSyncMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        cookieName: 'x-csrf-token',
-        cookieOptions: expect.objectContaining({
-          httpOnly: true,
-          sameSite: 'strict',
-          secure: true,
-        }),
-        getSecret: expect.any(Function),
-        getSessionIdentifier: expect.any(Function),
-        getCsrfTokenFromRequest: expect.any(Function),
+        ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+        getTokenFromRequest: expect.any(Function),
+        getTokenFromState: expect.any(Function),
+        storeTokenInState: expect.any(Function),
       })
     );
 
-    const req = { cookies: { 'x-csrf-id': 'cookie-id' }, get: jest.fn(), ip: '127.0.0.1' } as unknown as Request;
+    const req = { session: { csrfToken: 'stored-token' } } as unknown as Request;
     const res = {} as Response;
     const token = csrfService.getToken(req, res);
     expect(token).toBe('token');
@@ -65,31 +57,33 @@ describe('csrfService', () => {
     middleware(req, res, next);
     expect(next).toHaveBeenCalled();
 
-    const configArgs = doubleCsrfMock.mock.calls[0]?.[0] as
+    const configArgs = csrfSyncMock.mock.calls[0]?.[0] as
       | {
-          getSessionIdentifier: (request: Request) => string;
-          getCsrfTokenFromRequest: (request: Request) => string | undefined;
+          getTokenFromRequest: (request: Request) => string | undefined;
+          getTokenFromState: (request: Request) => string | undefined;
+          storeTokenInState: (request: Request, token: string) => void;
         }
       | undefined;
     expect(configArgs).toBeDefined();
     if (!configArgs) {
-      throw new Error('Expected csrf-csrf to be configured');
+      throw new Error('Expected csrf-sync to be configured');
     }
-    expect(configArgs.getSessionIdentifier(req)).toBe('cookie-id');
-    expect(configArgs.getSessionIdentifier({ cookies: {} } as Request)).toBe('anonymous');
-    expect(configArgs.getCsrfTokenFromRequest({ body: { _csrf: 'body-token' }, headers: {} } as Request)).toBe(
+    expect(configArgs.getTokenFromState(req)).toBe('stored-token');
+    configArgs.storeTokenInState(req, 'new-token');
+    expect(req.session.csrfToken).toBe('new-token');
+    expect(configArgs.getTokenFromRequest({ body: { _csrf: 'body-token' }, headers: {} } as Request)).toBe(
       'body-token'
     );
-    expect(configArgs.getCsrfTokenFromRequest({ headers: { 'x-csrf-token': 'header-token' } } as Request)).toBe(
+    expect(configArgs.getTokenFromRequest({ headers: { 'x-csrf-token': 'header-token' } } as unknown as Request)).toBe(
       'header-token'
     );
-    expect(
-      configArgs.getCsrfTokenFromRequest({ headers: { 'x-csrf-token': ['array-token'] } } as unknown as Request)
-    ).toBe('array-token');
-    expect(configArgs.getCsrfTokenFromRequest({ headers: {} } as Request)).toBeUndefined();
+    expect(configArgs.getTokenFromRequest({ headers: { 'x-csrf-token': ['array-token'] } } as unknown as Request)).toBe(
+      'array-token'
+    );
+    expect(configArgs.getTokenFromRequest({ headers: {} } as unknown as Request)).toBeUndefined();
   });
 
-  test('disables csrf-csrf when feature flag is off', () => {
+  test('disables csrf-sync when feature flag is off', () => {
     getMock.mockImplementation((key: string) => {
       if (key === 'useCSRFProtection') {
         return false;
@@ -98,7 +92,7 @@ describe('csrfService', () => {
     });
 
     const { csrfService } = loadService();
-    expect(doubleCsrfMock).not.toHaveBeenCalled();
+    expect(csrfSyncMock).not.toHaveBeenCalled();
 
     const req = {} as Request;
     const res = {} as Response;
@@ -112,39 +106,15 @@ describe('csrfService', () => {
   });
 
   test('defaults to enabled when feature flag is undefined', () => {
-    getMock.mockImplementation((key: string) => {
-      if (key === 'csrfCookieSecret') {
-        return 'test-secret';
-      }
+    getMock.mockImplementation((_key: string) => {
       return undefined;
     });
 
     const { csrfService } = loadService();
-    expect(doubleCsrfMock).toHaveBeenCalledTimes(1);
-    const req = {} as Request;
+    expect(csrfSyncMock).toHaveBeenCalledTimes(1);
+    const req = { session: {} } as unknown as Request;
     const res = {} as Response;
     csrfService.getToken(req, res);
     csrfService.validate(req);
-  });
-
-  test('falls back to dummy secret when csrfCookieSecret is empty', () => {
-    getMock.mockImplementation((key: string) => {
-      if (key === 'useCSRFProtection') {
-        return true;
-      }
-      if (key === 'csrfCookieSecret') {
-        return '';
-      }
-      return undefined;
-    });
-
-    loadService();
-
-    const configArgs = doubleCsrfMock.mock.calls[0]?.[0] as { getSecret: () => string } | undefined;
-    expect(configArgs).toBeDefined();
-    if (!configArgs) {
-      throw new Error('Expected csrf-csrf to be configured');
-    }
-    expect(configArgs.getSecret()).toBe('dummy-token');
   });
 });

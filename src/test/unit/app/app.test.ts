@@ -4,10 +4,11 @@ import type { Express, Request, Response } from 'express';
 const buildAppModule = (options: {
   env?: string;
   rebrandEnabled: boolean;
+  authEnabled?: boolean;
   routePaths?: string[];
   routeMocks?: Record<string, jest.Mock>;
 }) => {
-  const { env, rebrandEnabled, routePaths = [], routeMocks = {} } = options;
+  const { env, rebrandEnabled, authEnabled = true, routePaths = [], routeMocks = {} } = options;
 
   if (env === undefined) {
     delete process.env.NODE_ENV;
@@ -18,17 +19,26 @@ const buildAppModule = (options: {
   const setupDev = jest.fn();
   const enableFor = jest.fn();
   const enable = jest.fn();
+  const appSessionEnableFor = jest.fn();
+  const oidcEnableFor = jest.fn();
+  const healthRoute = jest.fn();
+  const infoRoute = jest.fn();
+
+  const configGet = jest.fn((key: string) => {
+    if (key === 'govukFrontend.rebrandEnabled') {
+      return rebrandEnabled;
+    }
+    if (key === 'auth.enabled') {
+      return authEnabled;
+    }
+    if (key === 'security') {
+      return { enabled: true };
+    }
+    return undefined;
+  });
 
   jest.doMock('config', () => ({
-    get: jest.fn((key: string) => {
-      if (key === 'govukFrontend.rebrandEnabled') {
-        return rebrandEnabled;
-      }
-      if (key === 'security') {
-        return { enabled: true };
-      }
-      return undefined;
-    }),
+    get: configGet,
   }));
 
   jest.doMock('glob', () => ({
@@ -62,8 +72,26 @@ const buildAppModule = (options: {
     Nunjucks: jest.fn().mockImplementation(() => ({ enableFor })),
   }));
 
+  jest.doMock('../../../main/modules/session', () => ({
+    AppSession: jest.fn().mockImplementation(() => ({ enableFor: appSessionEnableFor })),
+  }));
+
+  jest.doMock('../../../main/modules/oidc', () => ({
+    OidcMiddleware: jest.fn().mockImplementation(() => ({ enableFor: oidcEnableFor })),
+  }));
+
   jest.doMock('../../../main/modules/properties-volume', () => ({
     PropertiesVolume: jest.fn().mockImplementation(() => ({ enableFor })),
+  }));
+
+  jest.doMock('../../../main/routes/health', () => ({
+    __esModule: true,
+    default: healthRoute,
+  }));
+
+  jest.doMock('../../../main/routes/info', () => ({
+    __esModule: true,
+    default: infoRoute,
   }));
 
   jest.doMock('../../../main/development', () => ({
@@ -86,6 +114,11 @@ const buildAppModule = (options: {
     enable,
     enableFor,
     logger,
+    appSessionEnableFor,
+    oidcEnableFor,
+    healthRoute,
+    infoRoute,
+    configGet,
   };
 };
 
@@ -152,19 +185,39 @@ describe('app bootstrap', () => {
   });
 
   it('initialises middleware, locals, and dev setup in development mode', () => {
-    const { app, setupDev, enable, enableFor } = buildAppModule({ env: 'development', rebrandEnabled: true });
+    const { app, setupDev, enable, enableFor, appSessionEnableFor, oidcEnableFor, healthRoute, infoRoute } =
+      buildAppModule({ env: 'development', rebrandEnabled: true });
 
     expect(app.locals.ENV).toBe('development');
     expect(enableFor).toHaveBeenCalled();
     expect(enable).toHaveBeenCalled();
+    expect(appSessionEnableFor).toHaveBeenCalledWith(app);
+    expect(oidcEnableFor).toHaveBeenCalledWith(app);
+    expect(healthRoute).toHaveBeenCalledWith(app);
+    expect(infoRoute).toHaveBeenCalledWith(app);
     expect(setupDev).toHaveBeenCalledWith(app, true);
   });
 
   it('uses production mode setup when NODE_ENV is not development', () => {
-    const { app, setupDev } = buildAppModule({ env: 'production', rebrandEnabled: false });
+    const { app, setupDev, appSessionEnableFor, oidcEnableFor } = buildAppModule({
+      env: 'production',
+      rebrandEnabled: false,
+    });
 
     expect(app.locals.ENV).toBe('production');
+    expect(appSessionEnableFor).toHaveBeenCalledWith(app);
+    expect(oidcEnableFor).toHaveBeenCalledWith(app);
     expect(setupDev).toHaveBeenCalledWith(app, false);
+  });
+
+  it('skips OIDC when auth is disabled', () => {
+    const { oidcEnableFor } = buildAppModule({
+      env: 'development',
+      rebrandEnabled: false,
+      authEnabled: false,
+    });
+
+    expect(oidcEnableFor).not.toHaveBeenCalled();
   });
 
   it('falls back to the default favicon when the rebrand favicon is missing', () => {
@@ -211,7 +264,7 @@ describe('app bootstrap', () => {
   it('registers routes from glob and enables cache-control headers', () => {
     const fakeRoutePath = path.join(process.cwd(), 'src/main/routes/__fake__.ts');
     const routeHandler = jest.fn();
-    const { app } = buildAppModule({
+    const { app, healthRoute, infoRoute, oidcEnableFor } = buildAppModule({
       env: 'development',
       rebrandEnabled: false,
       routePaths: [fakeRoutePath],
@@ -219,6 +272,8 @@ describe('app bootstrap', () => {
     });
 
     expect(routeHandler).toHaveBeenCalledWith(app);
+    expect(healthRoute.mock.invocationCallOrder[0]).toBeLessThan(oidcEnableFor.mock.invocationCallOrder[0]);
+    expect(infoRoute.mock.invocationCallOrder[0]).toBeLessThan(oidcEnableFor.mock.invocationCallOrder[0]);
 
     const handler = getCacheControlHandler(app);
     const setHeader = jest.fn();
@@ -258,7 +313,10 @@ describe('app bootstrap', () => {
     expect(res.locals.message).toBe('boom');
     expect(res.locals.error).toBe(err);
     expect(status).toHaveBeenCalledWith(500);
-    expect(render).toHaveBeenCalledWith('error');
+    expect(render).toHaveBeenCalledWith('error', {
+      title: 'Sorry, there is a problem with the service',
+      suggestions: ['Please try again later.'],
+    });
   });
 
   it('suppresses error details outside development mode', () => {
@@ -275,7 +333,10 @@ describe('app bootstrap', () => {
     expect(res.locals.message).toBe('boom');
     expect(res.locals.error).toEqual({});
     expect(status).toHaveBeenCalledWith(400);
-    expect(render).toHaveBeenCalledWith('error');
+    expect(render).toHaveBeenCalledWith('error', {
+      title: 'Sorry, there is a problem with the service',
+      suggestions: ['Please try again later.'],
+    });
   });
 
   it('defaults error status to 500 when missing', () => {
@@ -304,5 +365,28 @@ describe('app bootstrap', () => {
     handler(err, {} as Request, res, jest.fn());
 
     expect(logger.error).toHaveBeenCalledWith('[object Object]');
+  });
+
+  it('renders a forbidden summary without logging an error', () => {
+    const { app, logger } = buildAppModule({ env: 'production', rebrandEnabled: false });
+    const handler = getErrorHandler(app);
+
+    const err = { message: 'nope', status: 403 };
+    const status = jest.fn().mockReturnThis();
+    const render = jest.fn();
+    const res = { locals: {}, status, render } as unknown as Response;
+
+    handler(err, {} as Request, res, jest.fn());
+
+    expect(status).toHaveBeenCalledWith(403);
+    expect(render).toHaveBeenCalledWith('error', {
+      title: 'Sorry, access to this resource is forbidden',
+      suggestions: [
+        'Please ensure you have the correct permissions to access this resource.',
+        'Contact a system administrator if you should have access to this resource.',
+      ],
+      signOutUrl: '/logout',
+    });
+    expect(logger.error).not.toHaveBeenCalled();
   });
 });

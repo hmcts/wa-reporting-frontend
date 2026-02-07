@@ -22,24 +22,31 @@
   "logging": {
     "prismaQueryTimings": false
   },
+  "auth": {
+    "enabled": true
+  },
   "services": {
     "idam": {
-      "clientID": "",
-      "clientSecret": "",
-      "scope": "",
+      "clientID": "wa_reporting_frontend",
+      "clientSecret": "wa_reporting_frontend_secret",
+      "scope": "openid profile roles",
       "url": {
-        "wa": "",
-        "public": ""
+        "public": "https://idam-web-public.aat.platform.hmcts.net",
+        "api": "https://idam-api.aat.platform.hmcts.net",
+        "wa": "http://localhost:3100"
       }
     }
   },
   "RBAC": {
-    "access": ""
+    "access": "wa-reports-viewer"
   },
   "session": {
-    "secret": "",
+    "secret": "session-secret",
     "cookie": {
-      "name": ""
+      "name": "wa-reporting-frontend-session"
+    },
+    "appCookie": {
+      "name": "wa-reporting-frontend-app"
     },
     "redis": {
       "host": "",

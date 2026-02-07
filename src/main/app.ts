@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { constants as http } from 'node:http2';
 
 import * as bodyParser from 'body-parser';
 import compression from 'compression';
@@ -12,7 +13,11 @@ import { HTTPError } from './HttpError';
 import { AppInsights } from './modules/appinsights';
 import { Helmet } from './modules/helmet';
 import { Nunjucks } from './modules/nunjucks';
+import { OidcMiddleware } from './modules/oidc';
 import { PropertiesVolume } from './modules/properties-volume';
+import { AppSession } from './modules/session';
+import healthRoutes from './routes/health';
+import infoRoutes from './routes/info';
 
 const { Logger } = require('@hmcts/nodejs-logging');
 
@@ -21,6 +26,7 @@ const { setupDev } = require('./development');
 const env = process.env.NODE_ENV || 'development';
 const developmentMode = env === 'development';
 const rebrandEnabled: boolean = config.get('govukFrontend.rebrandEnabled');
+const authEnabled: boolean = config.get('auth.enabled') ?? true;
 
 const limiter = RateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -60,10 +66,19 @@ app.use((req, res, next) => {
   next();
 });
 
-glob
+healthRoutes(app);
+infoRoutes(app);
+
+new AppSession().enableFor(app);
+if (authEnabled) {
+  new OidcMiddleware().enableFor(app);
+}
+
+const routeFiles = glob
   .sync(__dirname + '/routes/**/*.+(ts|js)')
-  .map(filename => require(filename))
-  .forEach(route => route.default(app));
+  .filter(filename => !['health', 'info'].includes(path.basename(filename, path.extname(filename))));
+
+routeFiles.map(filename => require(filename)).forEach(route => route.default(app));
 
 setupDev(app, developmentMode);
 // returning "not found" page for requests with paths not resolved by the router
@@ -74,11 +89,38 @@ app.use((req, res) => {
 
 // error handler
 app.use((err: HTTPError, req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  logger.error(`${err.stack || err}`);
-
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = env === 'development' ? err : {};
-  res.status(err.status || 500);
-  res.render('error');
+  const status = err.status || 500;
+  const summaries = {
+    [http.HTTP_STATUS_UNAUTHORIZED]: {
+      title: 'Sorry, access to this resource requires authorisation',
+      suggestions: [
+        'Please ensure you have logged into the service.',
+        'Contact a system administrator if you continue to receive this error after signing in.',
+      ],
+      signOutUrl: '/logout',
+    },
+    [http.HTTP_STATUS_FORBIDDEN]: {
+      title: 'Sorry, access to this resource is forbidden',
+      suggestions: [
+        'Please ensure you have the correct permissions to access this resource.',
+        'Contact a system administrator if you should have access to this resource.',
+      ],
+      signOutUrl: '/logout',
+    },
+    default: {
+      title: 'Sorry, there is a problem with the service',
+      suggestions: ['Please try again later.'],
+    },
+  };
+
+  if (![http.HTTP_STATUS_UNAUTHORIZED, http.HTTP_STATUS_FORBIDDEN].includes(status)) {
+    logger.error(`${err.stack || err}`);
+  }
+
+  res.status(status);
+  const summary = summaries[status] ?? summaries.default;
+  res.render('error', summary);
 });

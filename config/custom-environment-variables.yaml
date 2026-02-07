@@ -42,6 +42,8 @@ session:
   secret: SESSION_SECRET
   cookie:
     name: SESSION_COOKIE_NAME
+  appCookie:
+    name: SESSION_APP_COOKIE_NAME
   redis:
     host: REDIS_HOST
     port: REDIS_PORT

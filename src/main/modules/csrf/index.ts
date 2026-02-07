@@ -1,15 +1,16 @@
 import config from 'config';
-import { type DoubleCsrfProtection, doubleCsrf } from 'csrf-csrf';
-import type { Request, Response } from 'express';
+import { csrfSync } from 'csrf-sync';
+import type { NextFunction, Request, Response } from 'express';
 
-type CsrfTokenGenerator = (req: Request, res: Response) => string;
+type CsrfTokenGenerator = (req: Request) => string;
 type CsrfTokenValidator = (req: Request) => boolean;
+type CsrfProtection = (req: Request, res: Response, next: NextFunction) => void;
 
 class CsrfService {
   private readonly enabled: boolean;
   private readonly generateToken: CsrfTokenGenerator;
   private readonly validateToken: CsrfTokenValidator;
-  private readonly protection: DoubleCsrfProtection;
+  private readonly protection: CsrfProtection;
 
   constructor() {
     this.enabled = config.get<boolean>('useCSRFProtection') ?? true;
@@ -21,34 +22,29 @@ class CsrfService {
       return;
     }
 
-    const csrfSecret: string = config.get('csrfCookieSecret') || 'dummy-token';
-
-    const { doubleCsrfProtection, generateCsrfToken, validateRequest } = doubleCsrf({
-      getSecret: () => csrfSecret,
-      getSessionIdentifier: (req: Request) => req.cookies['x-csrf-id'] || 'anonymous',
-      getCsrfTokenFromRequest: (req: Request) => req.body?._csrf || req.headers['x-csrf-token']?.toString(),
-      cookieName: 'x-csrf-token',
-      cookieOptions: {
-        httpOnly: true,
-        sameSite: 'strict',
-        secure: true,
+    const { csrfSynchronisedProtection, generateToken, isRequestValid } = csrfSync({
+      ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+      getTokenFromRequest: (req: Request) => req.body?._csrf || req.headers['x-csrf-token']?.toString(),
+      getTokenFromState: (req: Request) => req.session.csrfToken,
+      storeTokenInState: (req: Request, token) => {
+        req.session.csrfToken = token;
       },
     });
 
-    this.generateToken = generateCsrfToken;
-    this.validateToken = validateRequest;
-    this.protection = doubleCsrfProtection;
+    this.generateToken = (req: Request) => generateToken(req);
+    this.validateToken = isRequestValid;
+    this.protection = csrfSynchronisedProtection;
   }
 
-  public getToken(req: Request, res: Response): string {
-    return this.generateToken(req, res);
+  public getToken(req: Request, _res: Response): string {
+    return this.generateToken(req);
   }
 
   public validate(req: Request): boolean {
     return this.validateToken(req);
   }
 
-  public getProtection(): DoubleCsrfProtection {
+  public getProtection(): CsrfProtection {
     return this.protection;
   }
 }

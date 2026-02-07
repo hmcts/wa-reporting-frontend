@@ -62,3 +62,7 @@ config/
 - Add or update tests under `src/test/` following existing unit/functional/a11y/smoke patterns for the change. Branch and line coverage per file should be at least 95%.
 - Mandatory: the final step after any change is to run `yarn lint`, `yarn test:coverage`, and `yarn build`; do not consider work complete unless all three pass and coverage for files modified as part of the task is above the mandated 95%.
 - Any changes which impact these Development Guidelines should be accompanied with changes to the Development Guidelines.
+
+# ExecPlans
+
+When writing complex features or significant refactors, use an ExecPlan (as described in PLANS.md) from design to implementation.

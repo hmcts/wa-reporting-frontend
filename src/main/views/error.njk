@@ -1,5 +1,17 @@
-{% extends "template.njk" %}
+{% extends "layouts/main.njk" %}
 
 {% block content %}
-  <h1 class="govuk-heading-xl">Something went wrong</h1>
+  <h1 class="govuk-heading-xl">{{ title or "Something went wrong" }}</h1>
+  {% if suggestions and suggestions.length %}
+    <ul class="govuk-list govuk-list--bullet">
+      {% for suggestion in suggestions %}
+        <li>{{ suggestion }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if signOutUrl %}
+    <p class="govuk-body">
+      <a class="govuk-link" href="{{ signOutUrl }}">Sign out</a>
+    </p>
+  {% endif %}
 {% endblock %}
