@@ -81,10 +81,9 @@ describe('Nunjucks module', () => {
     middleware(req, res, jest.fn());
 
     expect(res.locals.pagePath).toBe('/analytics');
-    expect(res.locals.queryString).toBe('service=Crime');
   });
 
-  it('sets empty query string when no query is present', () => {
+  it('does not require query string handling', () => {
     const app = { set: jest.fn(), use: jest.fn() } as unknown as Express;
     const env = { addGlobal: jest.fn(), addFilter: jest.fn() };
 
@@ -106,7 +105,7 @@ describe('Nunjucks module', () => {
     const res = { locals: {} } as Response;
     middleware(req, res, jest.fn());
 
-    expect(res.locals.queryString).toBe('');
+    expect(res.locals.pagePath).toBe('/analytics');
   });
 
   it('covers internal helpers for class and numeric decoration', () => {

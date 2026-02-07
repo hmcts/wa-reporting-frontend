@@ -23,6 +23,7 @@ describe('Analytics outstanding route', () => {
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('Tasks outstanding');
       expect(response.text).toContain('data-module="moj-sortable-table"');
+      expect(response.text).toContain('resetFilters=1');
     }, 15000);
 
     test('should render the open tasks summary partial for ajax requests', async () => {
