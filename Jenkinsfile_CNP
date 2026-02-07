@@ -16,4 +16,8 @@ withPipeline(type, product, component) {
     yarnBuilder.yarn('rebuild puppeteer')
     yarnBuilder.yarn('build')
   }
+
+  afterSuccess('test') {
+    yarnBuilder.yarn('test:routes')
+  }
 }
