@@ -4,7 +4,9 @@ analytics:
   filtersCookieName: ANALYTICS_FILTERS_COOKIE_NAME
   filtersCookieMaxAgeDays: ANALYTICS_FILTERS_COOKIE_MAX_AGE_DAYS
 auth:
-  enabled: AUTH_ENABLED
+  enabled:
+    __name: AUTH_ENABLED
+    __format: boolean
 appInsights:
   connectionString: APPLICATIONINSIGHTS_CONNECTION_STRING
 csrfCookieSecret: CSRF_COOKIE_SECRET
