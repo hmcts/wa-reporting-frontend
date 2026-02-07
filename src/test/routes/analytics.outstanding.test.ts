@@ -1,18 +1,18 @@
 import { Server } from 'http';
 
-import { expect } from '@jest/globals';
 import request from 'supertest';
 
-import { app } from '../../main/app';
+import { buildRouteTestServer, extractCsrfToken } from './routeTestUtils';
 
 let server: Server;
+let closeServer: () => Promise<void>;
 
-beforeAll(() => {
-  server = app.listen(0, '127.0.0.1');
+beforeAll(async () => {
+  ({ server, close: closeServer } = await buildRouteTestServer());
 });
 
 afterAll(() => {
-  return server.close();
+  return closeServer();
 });
 
 describe('Analytics outstanding route', () => {
@@ -35,5 +35,38 @@ describe('Analytics outstanding route', () => {
       expect(response.text).toContain('Open tasks');
       expect(response.text).not.toContain('Tasks outstanding');
     }, 15000);
+
+    test('should fall back to the full page when ajaxSection is unknown', async () => {
+      const response = await request(server)
+        .get('/analytics/outstanding?ajaxSection=unknown-section')
+        .set('X-Requested-With', 'fetch')
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('Tasks outstanding');
+    });
+  });
+
+  describe('on POST', () => {
+    test('should reject requests without a CSRF token', async () => {
+      const response = await request(server).post('/analytics/outstanding').type('form').send({ service: 'Tribunal' });
+
+      expect(response.status).toBe(403);
+    });
+
+    test('should accept requests with a CSRF token', async () => {
+      const agent = request.agent(server);
+      const tokenResponse = await agent.get('/analytics/outstanding').expect(200);
+      const token = extractCsrfToken(tokenResponse.text);
+
+      const response = await agent
+        .post('/analytics/outstanding')
+        .type('form')
+        .send({ _csrf: token, service: 'Tribunal' })
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('Tasks outstanding');
+    });
   });
 });
