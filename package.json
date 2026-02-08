@@ -22,6 +22,7 @@
     "test:smoke": "NODE_TLS_REJECT_UNAUTHORIZED=0 PLAYWRIGHT_HTML_OUTPUT=playwright-report/smoke PLAYWRIGHT_OUTPUT_DIR=test-results/smoke npx playwright test --grep @smoke --project=chromium",
     "test:functional": "NODE_TLS_REJECT_UNAUTHORIZED=0 PLAYWRIGHT_HTML_OUTPUT=playwright-report/functional PLAYWRIGHT_OUTPUT_DIR=test-results/functional npx playwright test --grep @functional --project=chromium --project=firefox --project=webkit --project=edge",
     "test:ui": "npx playwright test --ui",
+    "setup:edge": "PLAYWRIGHT_BROWSERS_PATH=0 yarn playwright install msedge --with-deps",
     "cichecks": "yarn install && yarn build && yarn rebuild puppeteer && yarn lint && yarn test && yarn test:routes && yarn test:a11y",
     "env:aat": "node scripts/get-env.js aat",
     "prepare": "husky install",

@@ -15,6 +15,7 @@
 - `yarn test:functional`
 - `yarn test:smoke`
 - `yarn test:ui` (Playwright UI mode)
+- `yarn setup:edge` (install Edge for Playwright)
 
 ## Accessibility
 - Playwright a11y tests run with `AUTH_ENABLED=false` and perform Axe checks.
@@ -23,6 +24,7 @@
 ## Playwright browsers
 - Functional tests run against Chromium, Firefox, WebKit, and Edge via Playwright projects.
 - Smoke and a11y tests run on Chromium only.
+- Install Edge with `yarn setup:edge` if you see missing `msedge` errors.
 
 ## Playwright common
 - Prefer using `@hmcts/playwright-common` helpers and shared configuration in the first instance for new Playwright tests.
