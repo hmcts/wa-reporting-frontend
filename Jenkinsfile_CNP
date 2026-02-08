@@ -11,6 +11,13 @@ def yarnBuilder = new uk.gov.hmcts.contino.YarnBuilder(this)
 env.AUTH_ENABLED="false"
 
 withPipeline(type, product, component) {
+  def archiveTestReports = {
+    steps.archiveArtifacts(
+      allowEmptyArchive: true,
+      artifacts: 'test-results/**/*,playwright-report/**/*,functional-output/**/*,smoke-output/**/*'
+    )
+  }
+
   afterSuccess('build') {
     yarnBuilder.yarn('playwright install')
     yarnBuilder.yarn('rebuild puppeteer')
@@ -19,5 +26,25 @@ withPipeline(type, product, component) {
 
   afterSuccess('test') {
     yarnBuilder.yarn('test:routes')
+  }
+
+  afterAlways('test') {
+    archiveTestReports()
+  }
+
+  afterAlways('smoketest:preview') {
+    archiveTestReports()
+  }
+
+  afterAlways('smoketest:aat') {
+    archiveTestReports()
+  }
+
+  afterAlways('functionalTest:preview') {
+    archiveTestReports()
+  }
+
+  afterAlways('functionalTest:aat') {
+    archiveTestReports()
   }
 }
