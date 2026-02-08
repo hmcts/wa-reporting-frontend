@@ -11,9 +11,9 @@ nodejs:
     wa:
       secrets:
         - app-insights-connection-string
-        # - redis-hostname
-        # - redis-port
-        # - redis-key
+        - wa-reporting-redis-host
+        - wa-reporting-redis-port
+        - wa-reporting-redis-access-key
         # - idam-client-secret
         # - session-secret
         - cft-task-POSTGRES-USER-FLEXIBLE-REPLICA

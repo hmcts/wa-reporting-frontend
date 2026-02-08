@@ -10,9 +10,9 @@ export class PropertiesVolume {
 
       this.setSecret('secrets.wa.app-insights-connection-string', 'appInsights.connectionString');
 
-      this.setSecret('secrets.wa.redis-hostname', 'session.redis.host');
-      this.setSecret('secrets.wa.redis-port', 'session.redis.port');
-      this.setSecret('secrets.wa.redis-key', 'session.redis.key');
+      this.setSecret('secrets.wa.wa-reporting-redis-host', 'session.redis.host');
+      this.setSecret('secrets.wa.wa-reporting-redis-port', 'session.redis.port');
+      this.setSecret('secrets.wa.wa-reporting-redis-access-key', 'session.redis.key');
 
       this.setSecret('secrets.wa.idam-client-secret', 'idam.clientSecret');
       this.setSecret('secrets.wa.session-secret', 'session.secret');
