@@ -49,5 +49,5 @@ export default defineConfig({
     headless,
     storageState: authEnabled ? authSessionFile : undefined,
   },
-  projects: [ProjectsConfig.chromium],
+  projects: [ProjectsConfig.chromium, ProjectsConfig.firefox, ProjectsConfig.webkit, ProjectsConfig.edge],
 });

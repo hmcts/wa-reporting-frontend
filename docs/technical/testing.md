@@ -19,6 +19,10 @@
 - Playwright a11y tests run with `AUTH_ENABLED=false` and perform Axe checks.
 - Each analytics page should have coverage in the a11y suite.
 
+## Playwright browsers
+- Functional tests run against Chromium, Firefox, WebKit, and Edge via Playwright projects.
+- Smoke and a11y tests run on Chromium only.
+
 ## Playwright common
 - Prefer using `@hmcts/playwright-common` helpers and shared configuration in the first instance for new Playwright tests.
 - Only introduce custom Playwright utilities when a requirement is not covered by the shared helpers.
