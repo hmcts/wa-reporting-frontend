@@ -38,6 +38,6 @@ COPY --from=build $WORKDIR/yarn.lock ./yarn.lock
 COPY --from=build $WORKDIR/dist ./dist
 COPY --from=build $WORKDIR/config ./config
 
-RUN corepack prepare yarn@4.12.0 --activate
+RUN corepack prepare --activate
 
 EXPOSE 3100
