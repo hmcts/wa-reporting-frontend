@@ -15,6 +15,7 @@ data "azurerm_key_vault" "wa_key_vault" {
 module "redis" {
   source        = "git@github.com:hmcts/cnp-module-redis?ref=master"
   product       = var.product
+  name          = "${var.product}-${var.component}-${var.env}"
   location      = var.location
   env           = var.env
   common_tags   = var.common_tags
