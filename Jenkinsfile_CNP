@@ -20,7 +20,6 @@ withPipeline(type, product, component) {
 
   afterSuccess('build') {
     yarnBuilder.yarn('playwright install')
-    yarnBuilder.yarn('setup:edge')
     yarnBuilder.yarn('rebuild puppeteer')
     yarnBuilder.yarn('build')
   }
