@@ -44,95 +44,97 @@ if (telemetryInitialized) {
   logger.info('OpenTelemetry initialized');
 }
 
-new PropertiesVolume().enableFor(app);
-initializeTelemetry();
-new Nunjucks(developmentMode, rebrandEnabled).enableFor(app);
-// secure the application by adding various HTTP headers to its responses
-new Helmet(config.get('security')).enableFor(app);
-
-const assetsDirectory = path.join(__dirname, 'public', 'assets');
-const faviconPath = path.join(assetsDirectory, rebrandEnabled ? 'rebrand/images/favicon.ico' : 'images/favicon.ico');
-const fallbackFaviconPath = path.join(assetsDirectory, 'images/favicon.ico');
-
-app.get('/favicon.ico', limiter, (req, res) => {
-  res.sendFile(faviconPath, err => {
-    if (err && faviconPath !== fallbackFaviconPath) {
-      res.sendFile(fallbackFaviconPath);
-    }
-  });
-});
-
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser(config.get('session.secret')));
-app.use(compression());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate, no-store');
-  next();
-});
-
-healthRoutes(app);
-infoRoutes(app);
-
-new AppSession().enableFor(app);
-if (authEnabled) {
-  new OidcMiddleware().enableFor(app);
-}
-
 type RouteModule = { default?: (app: Express) => void };
 
-const routeFiles: string[] = glob
-  .sync(__dirname + '/routes/**/*.+(ts|js)')
-  .filter((filename: string) => !['health', 'info'].includes(path.basename(filename, path.extname(filename))));
+export const bootstrap = async (): Promise<void> => {
+  new PropertiesVolume().enableFor(app);
+  new Nunjucks(developmentMode, rebrandEnabled).enableFor(app);
+  // secure the application by adding various HTTP headers to its responses
+  new Helmet(config.get('security')).enableFor(app);
 
-routeFiles
-  .map((filename: string) => require(filename) as RouteModule)
-  .forEach((route: RouteModule) => {
-    route.default?.(app);
+  const assetsDirectory = path.join(__dirname, 'public', 'assets');
+  const faviconPath = path.join(assetsDirectory, rebrandEnabled ? 'rebrand/images/favicon.ico' : 'images/favicon.ico');
+  const fallbackFaviconPath = path.join(assetsDirectory, 'images/favicon.ico');
+
+  app.get('/favicon.ico', limiter, (req, res) => {
+    res.sendFile(faviconPath, err => {
+      if (err && faviconPath !== fallbackFaviconPath) {
+        res.sendFile(fallbackFaviconPath);
+      }
+    });
   });
 
-setupDev(app, developmentMode);
-// returning "not found" page for requests with paths not resolved by the router
-app.use((req, res) => {
-  res.status(404);
-  res.render('not-found');
-});
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: false }));
+  app.use(cookieParser(config.get('session.secret')));
+  app.use(compression());
+  app.use(express.static(path.join(__dirname, 'public')));
+  app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate, no-store');
+    next();
+  });
 
-// error handler
-app.use((err: HTTPError, req: Request, res: Response, _next: NextFunction) => {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = env === 'development' ? err : {};
-  const status = err.status || 500;
-  const summaries = {
-    [http.HTTP_STATUS_UNAUTHORIZED]: {
-      title: 'Sorry, access to this resource requires authorisation',
-      suggestions: [
-        'Please ensure you have logged into the service.',
-        'Contact a system administrator if you continue to receive this error after signing in.',
-      ],
-      signOutUrl: '/logout',
-    },
-    [http.HTTP_STATUS_FORBIDDEN]: {
-      title: 'Sorry, access to this resource is forbidden',
-      suggestions: [
-        'Please ensure you have the correct permissions to access this resource.',
-        'Contact a system administrator if you should have access to this resource.',
-      ],
-      signOutUrl: '/logout',
-    },
-    default: {
-      title: 'Sorry, there is a problem with the service',
-      suggestions: ['Please try again later.'],
-    },
-  };
+  healthRoutes(app);
+  infoRoutes(app);
 
-  if (![http.HTTP_STATUS_UNAUTHORIZED, http.HTTP_STATUS_FORBIDDEN].includes(status)) {
-    logger.error(`${err.stack || err}`);
+  new AppSession().enableFor(app);
+  if (authEnabled) {
+    new OidcMiddleware().enableFor(app);
   }
 
-  res.status(status);
-  const summary = summaries[status] ?? summaries.default;
-  res.render('error', summary);
+  const routeFiles: string[] = await glob(path.join(__dirname, 'routes/**/*.+(ts|js)'));
+  routeFiles
+    .filter((filename: string) => !['health', 'info'].includes(path.basename(filename, path.extname(filename))))
+    .map((filename: string) => require(filename) as RouteModule)
+    .forEach((route: RouteModule) => route.default?.(app));
+
+  setupDev(app, developmentMode);
+  // returning "not found" page for requests with paths not resolved by the router
+  app.use((req, res) => {
+    res.status(404);
+    res.render('not-found');
+  });
+
+  // error handler
+  app.use((err: HTTPError, req: Request, res: Response, _next: NextFunction) => {
+    // set locals, only providing error in development
+    res.locals.message = err.message;
+    res.locals.error = env === 'development' ? err : {};
+    const status = err.status || 500;
+    const summaries = {
+      [http.HTTP_STATUS_UNAUTHORIZED]: {
+        title: 'Sorry, access to this resource requires authorisation',
+        suggestions: [
+          'Please ensure you have logged into the service.',
+          'Contact a system administrator if you continue to receive this error after signing in.',
+        ],
+        signOutUrl: '/logout',
+      },
+      [http.HTTP_STATUS_FORBIDDEN]: {
+        title: 'Sorry, access to this resource is forbidden',
+        suggestions: [
+          'Please ensure you have the correct permissions to access this resource.',
+          'Contact a system administrator if you should have access to this resource.',
+        ],
+        signOutUrl: '/logout',
+      },
+      default: {
+        title: 'Sorry, there is a problem with the service',
+        suggestions: ['Please try again later.'],
+      },
+    };
+
+    if (![http.HTTP_STATUS_UNAUTHORIZED, http.HTTP_STATUS_FORBIDDEN].includes(status)) {
+      logger.error(`${err.stack || err}`);
+    }
+
+    res.status(status);
+    const summary = summaries[status] ?? summaries.default;
+    res.render('error', summary);
+  });
+};
+
+bootstrap().catch(err => {
+  logger.error('Failed to bootstrap app:', err);
+  process.exit(1);
 });
