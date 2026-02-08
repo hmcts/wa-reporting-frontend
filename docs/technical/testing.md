@@ -19,10 +19,14 @@
 - Playwright a11y tests run with `AUTH_ENABLED=false` and perform Axe checks.
 - Each analytics page should have coverage in the a11y suite.
 
+## Playwright common
+- Prefer using `@hmcts/playwright-common` helpers and shared configuration in the first instance for new Playwright tests.
+- Only introduce custom Playwright utilities when a requirement is not covered by the shared helpers.
+- Keep new Playwright tests aligned with the shared patterns to reduce maintenance overhead.
+
 ## Coverage targets
 - Project guidelines require at least 95% branch and line coverage on modified files.
 
 ## Linting and formatting
 - `yarn lint` runs stylelint (SCSS), eslint (TS/JS), and prettier checks.
 - `yarn lint:fix` runs auto-fix for ESLint and Prettier.
-
