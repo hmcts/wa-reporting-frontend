@@ -8,3 +8,12 @@ nodejs:
   devmemoryLimits: 2048Mi
   environment:
     AUTH_ENABLED: false
+    REDIS_HOST: ${SERVICE_NAME}-redis-master
+redis:
+  enabled: true
+  architecture: standalone
+  master:
+    persistence:
+      enabled: false
+  auth:
+    enabled: false
