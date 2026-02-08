@@ -55,6 +55,12 @@
   margin-bottom: govuk-spacing(3);
 }
 
+.analytics-service-navigation__item--signout {
+  @media #{govuk-from-breakpoint(tablet)} {
+    margin-left: auto;
+  }
+}
+
 .analytics-multiselect {
   position: relative;
   margin-top: govuk-spacing(1);
