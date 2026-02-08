@@ -133,6 +133,7 @@ TEST_URL=http://localhost:3100 yarn test:functional
 ```
 
 If auth is enabled, provide the same IDAM credentials as for smoke tests.
+If Edge is enabled in Playwright projects, install it first with `yarn setup:edge`.
 
 Running accessibility tests (Playwright, starts the app automatically if needed):
 
