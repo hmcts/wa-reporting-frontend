@@ -9,6 +9,15 @@ services:
         - http_proxy
         - https_proxy
         - no_proxy
+    depends_on:
+      - redis
     ports:
       # TODO: change this mapping to map the port your application listens on
       - '3100:3100'
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - '6379:6379'

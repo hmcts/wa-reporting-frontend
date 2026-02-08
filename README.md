@@ -73,8 +73,8 @@ Run the application by executing the following command:
 docker-compose up
 ```
 
-This will start the frontend container exposing the application's port
-(set to `3100` in this template app).
+This will start the frontend container and a Redis container for session storage,
+exposing the application's port (set to `3100` in this template app).
 
 In order to test if the application is up, you can visit https://localhost:3100 in your browser.
 You should get the analytics landing page.
@@ -133,6 +133,7 @@ TEST_URL=http://localhost:3100 yarn test:functional
 ```
 
 If auth is enabled, provide the same IDAM credentials as for smoke tests.
+If Edge is enabled in Playwright projects, install it first with `yarn setup:edge`.
 
 Running accessibility tests (Playwright, starts the app automatically if needed):
 

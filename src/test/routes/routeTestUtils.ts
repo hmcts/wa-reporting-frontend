@@ -15,6 +15,13 @@ function setRouteTestConfig({ authEnabled = false }: RouteTestConfig): void {
     auth: { enabled: authEnabled },
     useCSRFProtection: true,
   });
+
+  const globalState = globalThis as unknown as {
+    __setRouteTestConfigValues?: (next: Record<string, unknown>) => void;
+  };
+  globalState.__setRouteTestConfigValues?.({
+    'auth.enabled': authEnabled,
+  });
 }
 
 function mockOidcMiddleware(): void {
@@ -97,15 +104,22 @@ function mockAnalyticsRepositories(): void {
 }
 
 export async function buildRouteTestServer(config: RouteTestConfig = {}): Promise<RouteTestServer> {
-  jest.resetModules();
   jest.clearAllMocks();
 
   setRouteTestConfig(config);
   mockOidcMiddleware();
   mockAnalyticsRepositories();
 
-  const { app } = require('../../main/app');
+  let app!: { listen: (port: number, host: string) => Server };
+  jest.isolateModules(() => {
+    ({ app } = require('../../main/app'));
+  });
   const server: Server = app.listen(0, '127.0.0.1');
+  if (!server.listening) {
+    await new Promise<void>(resolve => {
+      server.once('listening', () => resolve());
+    });
+  }
 
   return {
     server,

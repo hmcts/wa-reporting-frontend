@@ -30,7 +30,8 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
   });
   const jwtDecode = jest.fn();
   const redisStore = jest.fn().mockImplementation(() => ({ store: 'redis' }));
-  const redisCtor = jest.fn();
+  const redisClient = { connect: jest.fn() };
+  const createClient = jest.fn(() => redisClient);
   const fileStore = jest.fn().mockImplementation(() => ({ store: 'file' }));
   const fileStoreFactory = jest.fn(() => fileStore);
 
@@ -46,8 +47,8 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
     RedisStore: redisStore,
   }));
 
-  jest.doMock('ioredis', () => ({
-    Redis: redisCtor,
+  jest.doMock('redis', () => ({
+    createClient,
   }));
 
   jest.doMock('session-file-store', () => fileStoreFactory);
@@ -75,7 +76,8 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
     auth,
     jwtDecode,
     redisStore,
-    redisCtor,
+    redisClient,
+    createClient,
     fileStore,
     fileStoreFactory,
     configValues,
@@ -90,7 +92,7 @@ describe('OidcMiddleware', () => {
   });
 
   it('configures auth middleware and uses redis when configured', () => {
-    const { OidcMiddleware, authOptions, redisCtor } = buildOidc();
+    const { OidcMiddleware, authOptions, createClient, redisClient } = buildOidc();
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
 
     const instance = new OidcMiddleware();
@@ -105,7 +107,11 @@ describe('OidcMiddleware', () => {
     expect(useMock).toHaveBeenNthCalledWith(1, 'auth-middleware');
     expect(typeof useMock.mock.calls[1][0]).toBe('function');
     expect(app.locals.redisClient).toBeDefined();
-    expect(redisCtor).toHaveBeenCalledWith({ port: 6379, host: 'redis-host', password: 'redis-pass', tls: {} });
+    expect(createClient).toHaveBeenCalledWith({
+      password: 'redis-pass',
+      socket: { host: 'redis-host', port: 6379, tls: true },
+    });
+    expect(redisClient.connect).toHaveBeenCalled();
   });
 
   it('falls back to file store when redis is not configured', () => {
