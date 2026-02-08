@@ -1,6 +1,9 @@
-import { app } from './app';
+import { AppInsights } from './modules/appinsights';
+
+new AppInsights().enable();
 
 const { Logger } = require('@hmcts/nodejs-logging');
+const { app } = require('./app');
 
 const logger = Logger.getLogger('server');
 
