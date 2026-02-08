@@ -5,7 +5,7 @@ import { RedisStore } from 'connect-redis';
 import { Application, Request, Response } from 'express';
 import { Session, SessionStore, auth } from 'express-openid-connect';
 import session from 'express-session';
-import { Redis } from 'ioredis';
+import { createClient } from 'redis';
 import { jwtDecode } from 'jwt-decode';
 import FileStoreFactory from 'session-file-store';
 
@@ -91,12 +91,15 @@ export class OidcMiddleware {
     const redisPass: string = config.get('session.redis.key');
 
     if (redisHost && redisPass) {
-      const client = new Redis({
-        port: redisPort,
-        host: redisHost,
+      const client = createClient({
         password: redisPass,
-        ...(redisPass ? { tls: {} } : {}),
+        socket: {
+          host: redisHost,
+          port: redisPort,
+          ...(redisPass ? { tls: true } : {}),
+        },
       });
+      void client.connect();
 
       app.locals.redisClient = client;
       return new RedisStore({

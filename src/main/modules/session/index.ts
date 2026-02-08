@@ -2,7 +2,7 @@ import config from 'config';
 import { RedisStore } from 'connect-redis';
 import { Application } from 'express';
 import session from 'express-session';
-import { Redis } from 'ioredis';
+import { createClient } from 'redis';
 import FileStoreFactory from 'session-file-store';
 
 export class AppSession {
@@ -34,13 +34,15 @@ export class AppSession {
     const redisPass: string | undefined = config.get('session.redis.key');
 
     if (redisHost) {
-      const redisOptions = {
-        host: redisHost,
-        port: redisPort,
-        password: redisPass,
-        ...(redisPass ? { tls: {} } : {}),
-      };
-      const client = new Redis(redisOptions);
+      const client = createClient({
+        ...(redisPass ? { password: redisPass } : {}),
+        socket: {
+          host: redisHost,
+          port: redisPort,
+          ...(redisPass ? { tls: true } : {}),
+        },
+      });
+      void client.connect();
 
       app.locals.appRedisClient = client;
 
