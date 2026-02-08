@@ -1,8 +1,31 @@
 # Configuration and operations
 
 ## Configuration files
-- `config/default.json` defines defaults for all runtime configuration.
-- `config/custom-environment-variables.yaml` maps config keys to environment variables.
+- `config/default.json` defines defaults for all runtime configuration (including local development defaults).
+- `config/custom-environment-variables.yaml` maps config keys to environment variables for overrides.
+- `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` define Key Vault secret names that are injected into the app in non-local environments.
+
+## Configuration flow and precedence
+1. `config/default.json` provides the baseline values (used directly for local development).
+2. Environment variables (wired via `config/custom-environment-variables.yaml`) override defaults.
+3. For production-like environments, Key Vault secrets are declared in Helm values (`values.yaml` and `values.preview.template.yaml`) and loaded through Properties Volume under `secrets.wa.<secret-name>`.
+4. `src/main/modules/properties-volume/index.ts` must map every secret from `secrets.wa.<secret-name>` onto the correct config path, and the secret names must match the Helm values list exactly.
+
+## Retrieving config values in the app
+Use the `config` package with dot-notation keys that match `config/default.json` paths:
+
+```ts
+import config from 'config';
+
+const redisHost: string | undefined = config.get('session.redis.host');
+const ttlSeconds: number = config.get<number>('analytics.cacheTtlSeconds');
+
+if (config.has('appInsights.connectionString')) {
+  const connectionString = config.get<string>('appInsights.connectionString');
+}
+```
+
+Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...)` when a value is optional. Secrets injected via Properties Volume are available through these same keys after the mappings in `src/main/modules/properties-volume/index.ts` are applied.
 
 ## Key configuration areas
 
@@ -52,6 +75,8 @@ When not in development, `PropertiesVolume` maps Kubernetes secrets into the con
 - Redis credentials
 - Database credentials
 
+Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` aligned with the mappings in `src/main/modules/properties-volume/index.ts`. Any new secret must be added in all three places.
+
 ## Build and runtime
 
 ### Build
@@ -71,4 +96,3 @@ When not in development, `PropertiesVolume` maps Kubernetes secrets into the con
 ### Logging and monitoring
 - Uses `@hmcts/nodejs-logging` for server logs.
 - Optional Application Insights integration.
-
