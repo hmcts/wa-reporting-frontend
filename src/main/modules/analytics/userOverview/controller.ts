@@ -1,13 +1,20 @@
 import { Request, Response, Router } from 'express';
 
-import { validateFilters } from '../shared/filters';
+import { BASE_FILTER_KEYS, applyFilterCookieFromConfig } from '../shared/filterCookies';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../shared/partials';
+import { AnalyticsFilters } from '../shared/types';
 import { parseUserOverviewSort } from '../shared/userOverviewSort';
 
 import { buildUserOverviewPage } from './page';
 import { parseAssignedPage, parseCompletedPage } from './pagination';
 
 class UserOverviewController {
+  private readonly allowedFilterKeys: (keyof AnalyticsFilters)[] = [
+    ...BASE_FILTER_KEYS,
+    'user',
+    'completedFrom',
+    'completedTo',
+  ];
   private readonly partials = {
     assigned: 'analytics/user-overview/partials/assigned-tasks',
     completed: 'analytics/user-overview/partials/completed-tasks',
@@ -20,7 +27,12 @@ class UserOverviewController {
   registerUserOverviewRoutes(router: Router): void {
     const handler = async (req: Request, res: Response) => {
       const source = (req.method === 'POST' ? req.body : req.query) as Record<string, unknown>;
-      const { filters } = validateFilters(source);
+      const filters = applyFilterCookieFromConfig({
+        req,
+        res,
+        source,
+        allowedKeys: this.allowedFilterKeys,
+      });
       const sort = parseUserOverviewSort(source);
 
       const assignedPage = parseAssignedPage(source.assignedPage);

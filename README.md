@@ -101,19 +101,46 @@ the following command:
 yarn test
 ```
 
-Here's how to run functional tests (the template contains just one sample test):
+Route tests:
 
 ```bash
 yarn test:routes
 ```
 
-Running accessibility tests:
+Smoke tests (Playwright, requires the app running at http://localhost:3100):
 
 ```bash
-yarn test:a11y
+TEST_URL=http://localhost:3100 yarn test:smoke
 ```
 
-Make sure all the paths in your application are covered by accessibility tests (see [a11y.ts](src/test/a11y/a11y.ts)).
+If auth is enabled, provide IDAM credentials so Playwright can log in and cache the session:
+
+```bash
+TEST_URL=http://localhost:3100 \
+TEST_IDAM_USERNAME=caseworker@example.com \
+TEST_IDAM_PASSWORD=*** \
+yarn test:smoke
+```
+
+The first authenticated run performs a full IDAM login and stores cookies in
+`src/test/playwright/.sessions/idam-session.json`. Delete that file to force a
+fresh login. If the session cookie name differs, set `AUTH_SESSION_COOKIE_NAME`.
+
+Functional tests (Playwright, requires the app running at http://localhost:3100):
+
+```bash
+TEST_URL=http://localhost:3100 yarn test:functional
+```
+
+If auth is enabled, provide the same IDAM credentials as for smoke tests.
+
+Running accessibility tests (Playwright, starts the app automatically if needed):
+
+```bash
+AUTH_ENABLED=false TEST_URL=http://localhost:3100 yarn test:a11y
+```
+
+Make sure all the paths in your application are covered by accessibility tests (see `src/test/a11y/*.a11y.spec.ts`).
 
 ### Security
 

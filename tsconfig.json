@@ -22,5 +22,5 @@
     }
   },
   "include": ["**/*.ts"],
-  "exclude": ["**/*.test.ts", "**/codecept.conf.ts", "**/__mocks__/*"]
+  "exclude": ["**/*.test.ts", "**/*.spec.ts", "**/codecept.conf.ts", "**/__mocks__/*", "src/test/**"]
 }

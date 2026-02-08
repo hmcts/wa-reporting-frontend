@@ -1,6 +1,12 @@
 analytics:
   cacheTtlSeconds: ANALYTICS_CACHE_TTL_SECONDS
   manageCaseBaseUrl: MANAGE_CASE_BASE_URL
+  filtersCookieName: ANALYTICS_FILTERS_COOKIE_NAME
+  filtersCookieMaxAgeDays: ANALYTICS_FILTERS_COOKIE_MAX_AGE_DAYS
+auth:
+  enabled:
+    __name: AUTH_ENABLED
+    __format: boolean
 appInsights:
   connectionString: APPLICATIONINSIGHTS_CONNECTION_STRING
 csrfCookieSecret: CSRF_COOKIE_SECRET
@@ -42,6 +48,8 @@ session:
   secret: SESSION_SECRET
   cookie:
     name: SESSION_COOKIE_NAME
+  appCookie:
+    name: SESSION_APP_COOKIE_NAME
   redis:
     host: REDIS_HOST
     port: REDIS_PORT

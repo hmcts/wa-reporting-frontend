@@ -63,75 +63,6 @@ export function initAutoSubmitForms(): void {
   });
 }
 
-export function getFilterStorageKey(_form: HTMLFormElement): string {
-  return 'analyticsFilters:global';
-}
-
-export function getAutoSubmitKey(form: HTMLFormElement): string {
-  const names = Array.from(form.elements)
-    .map(element =>
-      element instanceof HTMLInputElement ||
-      element instanceof HTMLSelectElement ||
-      element instanceof HTMLTextAreaElement
-        ? element.name
-        : ''
-    )
-    .filter(name => name && name !== '_csrf');
-  const unique = Array.from(new Set(names))
-    .sort((a, b) => a.localeCompare(b))
-    .join('|');
-  return `analyticsFilters:autoSubmit:${window.location.pathname}:${unique}`;
-}
-
-export function getFormFieldNames(form: HTMLFormElement): string[] {
-  const names = Array.from(form.elements)
-    .map(element =>
-      element instanceof HTMLInputElement ||
-      element instanceof HTMLSelectElement ||
-      element instanceof HTMLTextAreaElement
-        ? element.name
-        : ''
-    )
-    .filter(name => name && name !== '_csrf');
-  return Array.from(new Set(names));
-}
-
-export function escapeForSelector(value: string): string {
-  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
-    return CSS.escape(value);
-  }
-  return value.replace(/["\\]/g, '\\$&');
-}
-
-export function serialiseFilters(form: HTMLFormElement): Record<string, string[]> {
-  const data: Record<string, string[]> = {};
-  const formData = new FormData(form);
-  formData.forEach((value, key) => {
-    if (key === '_csrf') {
-      return;
-    }
-    const rawValue = String(value);
-    if (!rawValue.trim()) {
-      return;
-    }
-    const current = data[key] ?? [];
-    current.push(rawValue);
-    data[key] = current;
-  });
-  return data;
-}
-
-export function filterDataForForm(form: HTMLFormElement, data: Record<string, string[]>): Record<string, string[]> {
-  const filtered: Record<string, string[]> = {};
-  Object.entries(data).forEach(([name, values]) => {
-    const selector = `[name="${escapeForSelector(name)}"]`;
-    if (form.querySelector(selector)) {
-      filtered[name] = values;
-    }
-  });
-  return filtered;
-}
-
 export function normaliseMultiSelectSelections(form: HTMLFormElement): void {
   const groups = form.querySelectorAll<HTMLDetailsElement>('[data-module="analytics-multiselect"]');
   groups.forEach(details => {
@@ -154,114 +85,16 @@ export function normaliseMultiSelectSelections(form: HTMLFormElement): void {
   });
 }
 
-export function hasStoredValues(data: Record<string, string[]>): boolean {
-  return Object.values(data).some(values => values.length > 0);
-}
-
-export function applyFilters(form: HTMLFormElement, data: Record<string, string[]>): void {
-  Object.entries(data).forEach(([name, values]) => {
-    const selector = `[name="${escapeForSelector(name)}"]`;
-    const elements = Array.from(
-      form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(selector)
-    );
-    elements.forEach(element => {
-      if (element instanceof HTMLInputElement && (element.type === 'checkbox' || element.type === 'radio')) {
-        element.checked = values.includes(element.value);
-        element.dispatchEvent(new Event('change', { bubbles: true }));
-        return;
-      }
-      element.value = values[0] ?? '';
-    });
-  });
-}
-
-export function formHasValues(form: HTMLFormElement): boolean {
-  const elements = Array.from(form.elements) as (HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement)[];
-  return elements.some(element => {
-    if (!('name' in element) || !element.name || element.name === '_csrf') {
-      return false;
-    }
-    if (element instanceof HTMLInputElement) {
-      if (element.type === 'hidden' || element.type === 'submit' || element.type === 'button') {
-        return false;
-      }
-    }
-    if (element instanceof HTMLInputElement && (element.type === 'checkbox' || element.type === 'radio')) {
-      return element.checked;
-    }
-    return element.value.trim().length > 0;
-  });
-}
-
 export function initFilterPersistence(): void {
   const forms = document.querySelectorAll<HTMLFormElement>('form[data-analytics-filters="true"]');
   forms.forEach(form => {
-    const storageKey = getFilterStorageKey(form);
-    const autoSubmitKey = getAutoSubmitKey(form);
-    const resetButtons = form.querySelectorAll<HTMLElement>('[data-analytics-filters-reset="true"]');
-
-    resetButtons.forEach(button => {
-      button.addEventListener('click', () => {
-        window.localStorage.removeItem(storageKey);
-      });
-    });
-
+    if (form.dataset.analyticsFiltersBound === 'true') {
+      return;
+    }
     form.addEventListener('submit', () => {
       normaliseMultiSelectSelections(form);
-      const data = serialiseFilters(form);
-      const existingRaw = window.localStorage.getItem(storageKey);
-      const existing = existingRaw ? (JSON.parse(existingRaw) as Record<string, string[]>) : {};
-      const fieldNames = getFormFieldNames(form);
-      fieldNames.forEach(name => {
-        delete existing[name];
-      });
-      Object.entries(data).forEach(([name, values]) => {
-        if (values.length > 0) {
-          existing[name] = values;
-        }
-      });
-      if (hasStoredValues(existing)) {
-        window.localStorage.setItem(storageKey, JSON.stringify(existing));
-      } else {
-        window.localStorage.removeItem(storageKey);
-      }
     });
-
-    if (formHasValues(form)) {
-      return;
-    }
-
-    const raw = window.localStorage.getItem(storageKey);
-    if (!raw) {
-      return;
-    }
-    try {
-      const data = JSON.parse(raw) as Record<string, string[]>;
-      if (!hasStoredValues(data)) {
-        window.localStorage.removeItem(storageKey);
-        return;
-      }
-      const formData = filterDataForForm(form, data);
-      if (!hasStoredValues(formData)) {
-        return;
-      }
-      applyFilters(form, formData);
-      if (!formHasValues(form)) {
-        return;
-      }
-      const fingerprint = JSON.stringify(formData);
-      if (window.sessionStorage.getItem(autoSubmitKey) === fingerprint) {
-        return;
-      }
-      window.sessionStorage.setItem(autoSubmitKey, fingerprint);
-      if (typeof form.requestSubmit === 'function') {
-        form.requestSubmit();
-      } else {
-        form.submit();
-      }
-    } catch {
-      window.localStorage.removeItem(storageKey);
-    }
+    form.dataset.analyticsFiltersBound = 'true';
   });
 }
 

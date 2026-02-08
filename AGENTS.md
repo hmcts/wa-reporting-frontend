@@ -9,7 +9,7 @@ Changes must be maintainable: no new duplication, keep cognitive load flat, idio
 ### II. Tests Define Release Readiness
 
 Every feature ships with appropriate unit tests for edge cases and error
-paths, route tests for Express endpoints, automated accessibility coverage (pa11y/jest-a11y), and
+paths, route tests for Express endpoints, automated accessibility coverage (Playwright + AxeUtils), and
 smoke tests for unmocked happy paths. Tests act as living documentation for intended behavior.
 
 ### III. GOV.UK Experience Consistency
@@ -22,6 +22,7 @@ interactive states retain ≥ WCAG AA contrast.
 ## Active Technologies
 
 - TypeScript on Node.js + Express 5, Nunjucks/express-nunjucks, govuk-frontend components, Plotly for charts, axios for API data fetch, Prisma for database integration.
+- Playwright smoke/functional tests with @hmcts/playwright-common (shared Playwright config and helpers).
 - GOV.UK Design System using the `govuk-frontend` library; refer to https://design-system.service.gov.uk/ for official documentation and usage.
 
 ## Project Structure
@@ -40,6 +41,8 @@ src/
     functional/
     a11y/
     smoke/
+    playwright/
+      auth/
 config/
 ```
 
@@ -47,6 +50,7 @@ config/
 
 - `yarn test`
 - `yarn test:coverage`
+- `yarn test:routes`
 - `yarn lint`
 - `yarn build`
 - Add dependencies with `yarn add` (or `yarn add -D` for dev deps) to ensure the latest versions are pulled in.
@@ -60,5 +64,9 @@ config/
 - Shared analytics helpers belong in `src/main/modules/analytics/shared/` (filters, services, viewModels, charts, cache, repositories); reuse before adding new helpers.
 - For AJAX section refreshes (e.g., user overview sorting), follow the established pattern: add a `data-section` wrapper around the section partial, submit `ajaxSection` with `X-Requested-With: fetch`, render the specific partial in the controller when the header/section is present, and send URL-encoded form data (including `_csrf`) so `csurf` can validate it.
 - Add or update tests under `src/test/` following existing unit/functional/a11y/smoke patterns for the change. Branch and line coverage per file should be at least 95%.
-- Mandatory: the final step after any change is to run `yarn lint`, `yarn test:coverage`, and `yarn build`; do not consider work complete unless all three pass and coverage for files modified as part of the task is above the mandated 95%.
+- Mandatory: the final step after any change is to run `yarn lint`, `yarn test:coverage`, `yarn test:routes` and `yarn build`; do not consider work complete unless all three pass and coverage for files modified as part of the task is above the mandated 95%.
 - Any changes which impact these Development Guidelines should be accompanied with changes to the Development Guidelines.
+
+# ExecPlans
+
+When writing complex features or significant refactors, use an ExecPlan (as described in PLANS.md) from design to implementation.

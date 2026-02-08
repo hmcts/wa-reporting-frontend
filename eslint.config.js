@@ -1,5 +1,6 @@
 const { FlatCompat } = require('@eslint/eslintrc');
 const js = require('@eslint/js');
+const playwright = require('eslint-plugin-playwright');
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
@@ -18,6 +19,8 @@ module.exports = [
       'jest.*config.js',
       'src/test/*/codecept.conf.js',
       'src/test/config.ts',
+      'playwright.config.mjs',
+      'playwright.a11y.config.mjs',
       '**/*.js',
       '.yarn/**',
       '.pnp.*',
@@ -29,12 +32,9 @@ module.exports = [
     root: true,
     env: { browser: true, es6: true, node: true },
     parser: '@typescript-eslint/parser',
-    plugins: ['@typescript-eslint', 'import', 'jest'],
+    plugins: ['@typescript-eslint', 'jest'],
     extends: [
       'eslint:recommended',
-      'plugin:import/errors',
-      'plugin:import/warnings',
-      'plugin:import/typescript',
       'plugin:jest/recommended',
       'plugin:@typescript-eslint/eslint-recommended',
       'plugin:@typescript-eslint/recommended',
@@ -63,18 +63,6 @@ module.exports = [
       '@typescript-eslint/no-var-requires': 'off',
       curly: 'error',
       eqeqeq: 'error',
-      'import/no-duplicates': 'error',
-      'import/no-named-as-default': 'error',
-      'import/order': [
-        'error',
-        {
-          alphabetize: {
-            caseInsensitive: false,
-            order: 'asc',
-          },
-          'newlines-between': 'always',
-        },
-      ],
       'jest/prefer-to-have-length': 'error',
       'jest/valid-expect': 'off',
       'linebreak-style': ['error', 'unix'],
@@ -109,4 +97,8 @@ module.exports = [
       ],
     },
   }),
+  {
+    files: ['src/test/**/*.spec.ts'],
+    ...playwright.configs['flat/recommended'],
+  },
 ];

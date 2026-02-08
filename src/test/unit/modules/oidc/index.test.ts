@@ -28,7 +28,6 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
     authOptions = options;
     return 'auth-middleware';
   });
-  const logger = { info: jest.fn(), error: jest.fn() };
   const jwtDecode = jest.fn();
   const redisStore = jest.fn().mockImplementation(() => ({ store: 'redis' }));
   const redisCtor = jest.fn();
@@ -37,11 +36,6 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
 
   jest.doMock('config', () => ({
     get: jest.fn((key: string) => configValues[key]),
-  }));
-
-  jest.doMock('../../../../main/modules/logging', () => ({
-    __esModule: true,
-    default: logger,
   }));
 
   jest.doMock('express-openid-connect', () => ({
@@ -79,7 +73,6 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
   return {
     OidcMiddleware,
     auth,
-    logger,
     jwtDecode,
     redisStore,
     redisCtor,
@@ -103,11 +96,14 @@ describe('OidcMiddleware', () => {
     const instance = new OidcMiddleware();
     instance.enableFor(app);
 
+    const useMock = app.use as jest.Mock;
     const options = authOptions() as AuthOptions;
     expect(options.baseURL).toBe('http://wa');
     expect(options.clientID).toBe('client-id');
     expect(options.session.store).toEqual({ store: 'redis' });
-    expect(app.use).toHaveBeenCalledWith('auth-middleware');
+    expect(useMock).toHaveBeenCalledTimes(2);
+    expect(useMock).toHaveBeenNthCalledWith(1, 'auth-middleware');
+    expect(typeof useMock.mock.calls[1][0]).toBe('function');
     expect(app.locals.redisClient).toBeDefined();
     expect(redisCtor).toHaveBeenCalledWith({ port: 6379, host: 'redis-host', password: 'redis-pass', tls: {} });
   });
@@ -138,8 +134,8 @@ describe('OidcMiddleware', () => {
     expect(() => afterCallback({} as Request, okRes, {})).toThrow();
   });
 
-  it('afterCallback logs and rethrows decode errors', () => {
-    const { OidcMiddleware, jwtDecode, logger, authOptions } = buildOidc();
+  it('afterCallback rethrows decode errors', () => {
+    const { OidcMiddleware, jwtDecode, authOptions } = buildOidc();
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
     const instance = new OidcMiddleware();
     instance.enableFor(app);
@@ -154,11 +150,10 @@ describe('OidcMiddleware', () => {
     const session = { id_token: 'token' };
 
     expect(() => afterCallback({} as Request, res, session)).toThrow('bad token');
-    expect(logger.error).toHaveBeenCalledWith('afterCallback: token decode error', expect.any(Error));
   });
 
   it('afterCallback rejects when access role is missing', () => {
-    const { OidcMiddleware, jwtDecode, logger, authOptions } = buildOidc();
+    const { OidcMiddleware, jwtDecode, authOptions } = buildOidc();
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
     const instance = new OidcMiddleware();
     instance.enableFor(app);
@@ -171,11 +166,10 @@ describe('OidcMiddleware', () => {
     const session = { id_token: 'token' };
 
     expect(() => afterCallback({} as Request, res, session)).toThrow();
-    expect(logger.info).toHaveBeenCalledWith('afterCallback: missing access role for user id u1');
   });
 
   it('afterCallback returns enriched session for valid users', () => {
-    const { OidcMiddleware, jwtDecode, logger, authOptions } = buildOidc();
+    const { OidcMiddleware, jwtDecode, authOptions } = buildOidc();
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
     const instance = new OidcMiddleware();
     instance.enableFor(app);
@@ -192,6 +186,35 @@ describe('OidcMiddleware', () => {
     };
 
     expect(result.user).toEqual({ id: 'u1', email: 'user@hmcts.net', roles: ['role-access'] });
-    expect(logger.info).toHaveBeenCalledWith('afterCallback: complete for user id u1');
+  });
+
+  it('rejects unauthenticated or unauthorized requests in the guard', () => {
+    const { OidcMiddleware } = buildOidc();
+    const app = { use: jest.fn(), locals: {} } as unknown as Application;
+    const instance = new OidcMiddleware();
+    instance.enableFor(app);
+
+    const guard = (app.use as jest.Mock).mock.calls[1][0] as (req: Request, res: Response, next: () => void) => void;
+
+    const unauthenticatedReq = { oidc: { isAuthenticated: () => false, user: { roles: ['role-access'] } } } as Request;
+    expect(() => guard(unauthenticatedReq, {} as Response, jest.fn())).toThrow();
+
+    const unauthorizedReq = { oidc: { isAuthenticated: () => true, user: { roles: ['role-other'] } } } as Request;
+    expect(() => guard(unauthorizedReq, {} as Response, jest.fn())).toThrow();
+  });
+
+  it('allows authenticated requests with the access role in the guard', () => {
+    const { OidcMiddleware } = buildOidc();
+    const app = { use: jest.fn(), locals: {} } as unknown as Application;
+    const instance = new OidcMiddleware();
+    instance.enableFor(app);
+
+    const guard = (app.use as jest.Mock).mock.calls[1][0] as (req: Request, res: Response, next: () => void) => void;
+    const next = jest.fn();
+
+    const req = { oidc: { isAuthenticated: () => true, user: { roles: ['role-access'] } } } as Request;
+    guard(req, {} as Response, next);
+
+    expect(next).toHaveBeenCalled();
   });
 });

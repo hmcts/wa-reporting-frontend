@@ -1,14 +1,15 @@
 import { Request, Response, Router } from 'express';
 
-import { validateFilters } from '../../../../main/modules/analytics/shared/filters';
+import { applyFilterCookieFromConfig } from '../../../../main/modules/analytics/shared/filterCookies';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../../../../main/modules/analytics/shared/partials';
 import { parseUserOverviewSort } from '../../../../main/modules/analytics/shared/userOverviewSort';
 import { userOverviewController } from '../../../../main/modules/analytics/userOverview/controller';
 import { buildUserOverviewPage } from '../../../../main/modules/analytics/userOverview/page';
 import { parseAssignedPage, parseCompletedPage } from '../../../../main/modules/analytics/userOverview/pagination';
 
-jest.mock('../../../../main/modules/analytics/shared/filters', () => ({
-  validateFilters: jest.fn(),
+jest.mock('../../../../main/modules/analytics/shared/filterCookies', () => ({
+  applyFilterCookieFromConfig: jest.fn(),
+  BASE_FILTER_KEYS: ['service', 'roleCategory', 'region', 'location', 'taskName'],
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/userOverviewSort', () => ({
@@ -46,7 +47,7 @@ describe('userOverviewController', () => {
     const req = { method: 'GET', query: { user: 'user-1' }, get: jest.fn() } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: { user: ['user-1'] } });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({ user: ['user-1'] });
     (parseUserOverviewSort as jest.Mock).mockReturnValue({
       assigned: { by: 'createdDate', dir: 'desc' },
       completed: { by: 'completedDate', dir: 'desc' },
@@ -64,7 +65,13 @@ describe('userOverviewController', () => {
     const handler = (router.get as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
-    expect(validateFilters).toHaveBeenCalledWith(req.query);
+    expect(applyFilterCookieFromConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        req,
+        res,
+        source: req.query,
+      })
+    );
     expect(parseUserOverviewSort).toHaveBeenCalledWith(req.query);
     expect(buildUserOverviewPage).toHaveBeenCalledWith(
       { user: ['user-1'] },
@@ -86,7 +93,7 @@ describe('userOverviewController', () => {
     const req = { method: 'POST', body: { service: 'Crime' }, get: jest.fn() } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: { service: ['Crime'] } });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({ service: ['Crime'] });
     (parseUserOverviewSort as jest.Mock).mockReturnValue({
       assigned: { by: 'createdDate', dir: 'desc' },
       completed: { by: 'completedDate', dir: 'desc' },
@@ -101,7 +108,13 @@ describe('userOverviewController', () => {
     const handler = (router.post as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
-    expect(validateFilters).toHaveBeenCalledWith(req.body);
+    expect(applyFilterCookieFromConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        req,
+        res,
+        source: req.body,
+      })
+    );
     expect(parseUserOverviewSort).toHaveBeenCalledWith(req.body);
     expect(buildUserOverviewPage).toHaveBeenCalledWith(
       { service: ['Crime'] },
@@ -127,7 +140,7 @@ describe('userOverviewController', () => {
     } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: { user: ['user-1'] } });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({ user: ['user-1'] });
     (parseUserOverviewSort as jest.Mock).mockReturnValue({
       assigned: { by: 'createdDate', dir: 'desc' },
       completed: { by: 'completedDate', dir: 'desc' },
@@ -167,7 +180,7 @@ describe('userOverviewController', () => {
     } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: {} });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({});
     (parseUserOverviewSort as jest.Mock).mockReturnValue({
       assigned: { by: 'createdDate', dir: 'desc' },
       completed: { by: 'completedDate', dir: 'desc' },
