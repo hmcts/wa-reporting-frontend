@@ -56,7 +56,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `useCSRFProtection` and `csrfCookieSecret`.
 - `security.referrerPolicy` and HSTS settings.
 - `logging.prismaQueryTimings`: enable query timing logs.
-- `appInsights.connectionString` for Application Insights.
+- `appInsights.connectionString` for Azure Application Insights (via OpenTelemetry).
 
 ## Environment variables (selected)
 - `AUTH_ENABLED`
@@ -97,4 +97,4 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 
 ### Logging and monitoring
 - Uses `@hmcts/nodejs-logging` for server logs.
-- Optional Application Insights integration.
+- Telemetry is exported via OpenTelemetry with the Azure Monitor exporter when `appInsights.connectionString` is set; the service name sent to App Insights is `wa-reporting-frontend`.

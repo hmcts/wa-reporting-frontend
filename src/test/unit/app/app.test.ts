@@ -18,7 +18,7 @@ const buildAppModule = (options: {
 
   const setupDev = jest.fn();
   const enableFor = jest.fn();
-  const enable = jest.fn();
+  const initializeTelemetry = jest.fn();
   const appSessionEnableFor = jest.fn();
   const oidcEnableFor = jest.fn();
   const healthRoute = jest.fn();
@@ -60,8 +60,8 @@ const buildAppModule = (options: {
     },
   }));
 
-  jest.doMock('../../../main/modules/appinsights', () => ({
-    AppInsights: jest.fn().mockImplementation(() => ({ enable })),
+  jest.doMock('../../../main/modules/opentelemetry', () => ({
+    initializeTelemetry,
   }));
 
   jest.doMock('../../../main/modules/helmet', () => ({
@@ -111,7 +111,7 @@ const buildAppModule = (options: {
   return {
     app,
     setupDev,
-    enable,
+    initializeTelemetry,
     enableFor,
     logger,
     appSessionEnableFor,
@@ -185,12 +185,20 @@ describe('app bootstrap', () => {
   });
 
   it('initialises middleware, locals, and dev setup in development mode', () => {
-    const { app, setupDev, enable, enableFor, appSessionEnableFor, oidcEnableFor, healthRoute, infoRoute } =
-      buildAppModule({ env: 'development', rebrandEnabled: true });
+    const {
+      app,
+      setupDev,
+      initializeTelemetry,
+      enableFor,
+      appSessionEnableFor,
+      oidcEnableFor,
+      healthRoute,
+      infoRoute,
+    } = buildAppModule({ env: 'development', rebrandEnabled: true });
 
     expect(app.locals.ENV).toBe('development');
     expect(enableFor).toHaveBeenCalled();
-    expect(enable).toHaveBeenCalled();
+    expect(initializeTelemetry).toHaveBeenCalled();
     expect(appSessionEnableFor).toHaveBeenCalledWith(app);
     expect(oidcEnableFor).toHaveBeenCalledWith(app);
     expect(healthRoute).toHaveBeenCalledWith(app);

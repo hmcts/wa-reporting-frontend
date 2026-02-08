@@ -10,7 +10,7 @@ import RateLimit from 'express-rate-limit';
 import { glob } from 'glob';
 
 import { HTTPError } from './HttpError';
-import { AppInsights } from './modules/appinsights';
+import { initializeTelemetry } from './modules/opentelemetry';
 import { Helmet } from './modules/helmet';
 import { Nunjucks } from './modules/nunjucks';
 import { OidcMiddleware } from './modules/oidc';
@@ -40,7 +40,7 @@ app.set('trust proxy', 1);
 const logger = Logger.getLogger('app');
 
 new PropertiesVolume().enableFor(app);
-new AppInsights().enable();
+initializeTelemetry();
 new Nunjucks(developmentMode, rebrandEnabled).enableFor(app);
 // secure the application by adding various HTTP headers to its responses
 new Helmet(config.get('security')).enableFor(app);
