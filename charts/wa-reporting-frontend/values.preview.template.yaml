@@ -18,12 +18,3 @@ nodejs:
         - rd-location-ref-api-POSTGRES-PASS
   environment:
     AUTH_ENABLED: false
-    REDIS_HOST: ${SERVICE_NAME}-redis-master
-redis:
-  enabled: true
-  architecture: standalone
-  master:
-    persistence:
-      enabled: false
-  auth:
-    enabled: false
