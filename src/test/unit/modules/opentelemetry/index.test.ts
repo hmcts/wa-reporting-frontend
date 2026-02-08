@@ -3,7 +3,6 @@ describe('OpenTelemetry module', () => {
   const registerInstrumentations = jest.fn();
   const getDelegate = jest.fn();
   const getTracerProvider = jest.fn(() => ({ getDelegate }));
-  const loggerInfo = jest.fn();
   const resourceFromAttributes = jest.fn();
   const ExpressInstrumentation = jest.fn().mockImplementation(() => ({ name: 'express' }));
   const WinstonInstrumentation = jest.fn().mockImplementation(() => ({ name: 'winston' }));
@@ -11,6 +10,7 @@ describe('OpenTelemetry module', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
+    delete (globalThis as { __otelInitialized?: boolean }).__otelInitialized;
 
     jest.doMock('@azure/monitor-opentelemetry', () => ({
       useAzureMonitor,
@@ -40,11 +40,6 @@ describe('OpenTelemetry module', () => {
     jest.doMock('@opentelemetry/semantic-conventions', () => ({
       ATTR_SERVICE_NAME: 'service.name',
     }));
-
-    jest.doMock('../../../../main/modules/logging', () => ({
-      __esModule: true,
-      default: { info: loggerInfo },
-    }));
   });
 
   it('does nothing when connection string is missing', () => {
@@ -54,11 +49,11 @@ describe('OpenTelemetry module', () => {
 
     const { initializeTelemetry } = require('../../../../main/modules/opentelemetry');
 
-    initializeTelemetry();
+    const result = initializeTelemetry();
 
     expect(useAzureMonitor).not.toHaveBeenCalled();
     expect(registerInstrumentations).not.toHaveBeenCalled();
-    expect(loggerInfo).not.toHaveBeenCalled();
+    expect(result).toBe(false);
   });
 
   it('initialises OpenTelemetry when connection string is set', () => {
@@ -70,7 +65,7 @@ describe('OpenTelemetry module', () => {
 
     const { initializeTelemetry } = require('../../../../main/modules/opentelemetry');
 
-    initializeTelemetry();
+    const result = initializeTelemetry();
 
     const options = useAzureMonitor.mock.calls[0][0];
     const httpOptions = options.instrumentationOptions.http;
@@ -97,6 +92,6 @@ describe('OpenTelemetry module', () => {
     );
     expect(getTracerProvider).toHaveBeenCalled();
     expect(getDelegate).toHaveBeenCalled();
-    expect(loggerInfo).toHaveBeenCalledWith('OpenTelemetry initialized');
+    expect(result).toBe(true);
   });
 });

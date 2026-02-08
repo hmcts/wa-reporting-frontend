@@ -10,24 +10,16 @@ import config from 'config';
 import { IncomingMessage } from 'node:http';
 import { RequestOptions } from 'node:https';
 
-const resolveLoggerInfo = (): ((message: string) => void) => {
-  try {
-    const loggingModule = require('../logging');
-    const logger = loggingModule?.default ?? loggingModule;
-    if (logger && typeof logger.info === 'function') {
-      return (message: string) => logger.info(message);
-    }
-  } catch {
-    // Fall back to console when the logger cannot be loaded (e.g. test mocks).
-  }
-  return () => undefined;
-};
-
-export const initializeTelemetry = (): void => {
+export const initializeTelemetry = (): boolean => {
   const connectionString = config.get<string>('appInsights.connectionString');
   if (!connectionString) {
-    return;
+    return false;
   }
+  const globalState = globalThis as { __otelInitialized?: boolean };
+  if (globalState.__otelInitialized) {
+    return false;
+  }
+  globalState.__otelInitialized = true;
 
   const httpInstrumentationConfig: HttpInstrumentationConfig = {
     enabled: true,
@@ -67,5 +59,5 @@ export const initializeTelemetry = (): void => {
     tracerProvider,
   });
 
-  resolveLoggerInfo()('OpenTelemetry initialized');
+  return true;
 };

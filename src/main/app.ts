@@ -1,32 +1,34 @@
 import * as path from 'path';
 import { constants as http } from 'node:http2';
 
-import * as bodyParser from 'body-parser';
-import compression from 'compression';
 import config = require('config');
-import cookieParser from 'cookie-parser';
-import express from 'express';
-import RateLimit from 'express-rate-limit';
-import { glob } from 'glob';
+import type { Express, NextFunction, Request, Response } from 'express';
 
 import { HTTPError } from './HttpError';
 import { initializeTelemetry } from './modules/opentelemetry';
-import { Helmet } from './modules/helmet';
-import { Nunjucks } from './modules/nunjucks';
-import { OidcMiddleware } from './modules/oidc';
-import { PropertiesVolume } from './modules/properties-volume';
-import { AppSession } from './modules/session';
-import healthRoutes from './routes/health';
-import infoRoutes from './routes/info';
-
-const { Logger } = require('@hmcts/nodejs-logging');
-
-const { setupDev } = require('./development');
 
 const env = process.env.NODE_ENV || 'development';
 const developmentMode = env === 'development';
 const rebrandEnabled: boolean = config.get('govukFrontend.rebrandEnabled');
 const authEnabled: boolean = config.get('auth.enabled') ?? true;
+
+const telemetryInitialized = initializeTelemetry();
+
+const bodyParser = require('body-parser');
+const compression = require('compression');
+const cookieParser = require('cookie-parser');
+const express = require('express') as typeof import('express');
+const RateLimit = require('express-rate-limit');
+const { glob } = require('glob');
+const { Logger } = require('@hmcts/nodejs-logging');
+const { Helmet } = require('./modules/helmet');
+const { Nunjucks } = require('./modules/nunjucks');
+const { OidcMiddleware } = require('./modules/oidc');
+const { PropertiesVolume } = require('./modules/properties-volume');
+const { AppSession } = require('./modules/session');
+const healthRoutes = require('./routes/health').default;
+const infoRoutes = require('./routes/info').default;
+const { setupDev } = require('./development');
 
 const limiter = RateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -38,6 +40,9 @@ app.locals.ENV = env;
 app.set('trust proxy', 1);
 
 const logger = Logger.getLogger('app');
+if (telemetryInitialized) {
+  logger.info('OpenTelemetry initialized');
+}
 
 new PropertiesVolume().enableFor(app);
 initializeTelemetry();
@@ -75,11 +80,17 @@ if (authEnabled) {
   new OidcMiddleware().enableFor(app);
 }
 
-const routeFiles = glob
-  .sync(__dirname + '/routes/**/*.+(ts|js)')
-  .filter(filename => !['health', 'info'].includes(path.basename(filename, path.extname(filename))));
+type RouteModule = { default?: (app: Express) => void };
 
-routeFiles.map(filename => require(filename)).forEach(route => route.default(app));
+const routeFiles: string[] = glob
+  .sync(__dirname + '/routes/**/*.+(ts|js)')
+  .filter((filename: string) => !['health', 'info'].includes(path.basename(filename, path.extname(filename))));
+
+routeFiles
+  .map((filename: string) => require(filename) as RouteModule)
+  .forEach((route: RouteModule) => {
+    route.default?.(app);
+  });
 
 setupDev(app, developmentMode);
 // returning "not found" page for requests with paths not resolved by the router
@@ -89,7 +100,7 @@ app.use((req, res) => {
 });
 
 // error handler
-app.use((err: HTTPError, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((err: HTTPError, req: Request, res: Response, _next: NextFunction) => {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = env === 'development' ? err : {};
