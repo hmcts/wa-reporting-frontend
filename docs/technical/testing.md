@@ -14,6 +14,7 @@
 - `yarn test:a11y`
 - `yarn test:functional`
 - `yarn test:smoke`
+- `yarn test:ui` (Playwright UI mode)
 
 ## Accessibility
 - Playwright a11y tests run with `AUTH_ENABLED=false` and perform Axe checks.
