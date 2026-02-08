@@ -6,6 +6,15 @@
 - Analytics layout: `src/main/views/analytics/layout.njk` adds GOV.UK header + service navigation and defines the page content block.
 - Assets are included through `src/main/views/webpack/css.njk` and `src/main/views/webpack/js.njk`.
 
+```mermaid
+flowchart LR
+  Controller["Controller"] --> ViewModel["View model"]
+  ViewModel --> Nunjucks["Nunjucks templates"]
+  Nunjucks --> HTML["HTML + data attributes"]
+  HTML --> JS["Analytics JS (charts, AJAX)"]
+  JS --> UI["Interactive dashboards"]
+```
+
 ## Global Nunjucks helpers
 The Nunjucks environment adds:
 - Global: `manageCaseBaseUrl` (for case links)
@@ -43,6 +52,18 @@ Key behaviors:
 - Multi-select filters support search, select all, and dynamic summary text.
 - Scroll position is stored and restored when table sorting or pagination triggers full page reloads.
 
+```mermaid
+sequenceDiagram
+  participant User as User
+  participant Form as Filter form
+  participant Server as Server
+  participant Section as Page section
+  User->>Form: Submit filters
+  Form->>Server: POST with X-Requested-With: fetch
+  Server-->>Section: Partial HTML
+  Section-->>User: Update section in-place
+```
+
 ## Charts
 - Plotly is bundled and assigned to `window.Plotly` for use by chart components.
 - Base config:
@@ -65,4 +86,3 @@ Key behaviors:
   - Multi-select dropdown and search
   - Tab panel sizing and pagination bar
   - Sticky headers and sticky totals rows
-

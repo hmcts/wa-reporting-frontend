@@ -22,6 +22,17 @@ Connection building:
 - Uses `database.<prefix>.url` when provided; otherwise builds from host/port/user/password/db_name/schema.
 - Optional `schema` is passed via PostgreSQL `search_path` in the connection string.
 
+```mermaid
+flowchart TB
+  App["Analytics module"] --> TMRepo["Task facts + thin repositories"]
+  App --> RefSvc["Reference data services"]
+  TMRepo --> TM["TM analytics DB"]
+  RefSvc --> CRD["CRD DB (caseworkers)"]
+  RefSvc --> LRD["LRD DB (regions/locations)"]
+  TM --> Views["Analytics views (mv_*)"]
+  Views --> Dashboards["Dashboards"]
+```
+
 ## Core analytics views (tm database)
 The application relies on materialized or analytics views in the `analytics` schema. Minimum columns required are listed below (based on query usage).
 
@@ -183,4 +194,3 @@ NodeCache caches these datasets to reduce repeated lookups:
 - Court venues and location descriptions
 
 Cache TTL is configurable via `analytics.cacheTtlSeconds`.
-

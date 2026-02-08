@@ -10,6 +10,23 @@ Key runtime components:
 - Static assets built with webpack and served from `src/main/public`
 - Optional OIDC authentication and RBAC (`src/main/modules/oidc`)
 
+```mermaid
+flowchart TB
+  User["User (browser)"] --> Router["Express router"]
+  Router --> Controllers["Analytics controllers"]
+  Controllers --> Pages["Page builders"]
+  Pages --> Services["Domain services"]
+  Pages --> ViewModels["View models"]
+  Services --> Repos["Repositories"]
+  Repos --> Prisma["Prisma clients"]
+  Prisma --> DBTM["TM analytics DB"]
+  Prisma --> DBCRD["CRD DB"]
+  Prisma --> DBLRD["LRD DB"]
+  ViewModels --> Nunjucks["Nunjucks templates"]
+  Nunjucks --> HTML["HTML response"]
+  HTML --> User
+```
+
 ## Request lifecycle
 1. Express initializes middleware: body parsing, cookies, compression, static assets, caching headers.
 2. Health (`/health`) and info (`/info`) endpoints are registered.
@@ -53,4 +70,3 @@ Shared analytics modules live under `src/main/modules/analytics/shared` and incl
 - Unknown routes return a "not found" page.
 - Errors return custom GOV.UK-style error pages.
 - HTTP 401 and 403 render access-specific messaging with sign-out links.
-

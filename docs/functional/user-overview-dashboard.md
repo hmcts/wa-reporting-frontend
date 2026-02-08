@@ -32,6 +32,16 @@ Provide a user-centric view of assigned and completed tasks, including complianc
 - Donut chart of priority distribution.
 - Pagination page size: 500.
 
+```mermaid
+flowchart TB
+  Filters["Shared filters + user + completed range"] --> Assigned["Assigned tasks table"]
+  Filters --> Completed["Completed tasks table"]
+  Filters --> ByDate["Completed by date"]
+  Filters --> ByName["Completed by task name"]
+  Assigned --> Priority["Priority summary + donut"]
+  Completed --> Compliance["Compliance summary + donut"]
+```
+
 ### 2) Completed tasks
 - Title: "Completed tasks".
 - Table with server-side sorting and pagination.
@@ -76,4 +86,3 @@ Provide a user-centric view of assigned and completed tasks, including complianc
 - CSV export is available for all tables.
 - The user filter is optional; if not selected, results span all users.
 - Sorting state and pagination are preserved through hidden form inputs.
-

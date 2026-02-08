@@ -6,6 +6,18 @@
 - The app validates the `id_token` and enforces a required role (`RBAC.access`, default `caseworker`).
 - Requests from unauthenticated users or users without the required role return HTTP 403.
 
+```mermaid
+sequenceDiagram
+  participant User as User
+  participant App as App
+  participant IDAM as IDAM
+  User->>App: Request dashboard
+  App->>IDAM: OIDC auth (if enabled)
+  IDAM-->>App: ID token
+  App->>App: Validate role (RBAC.access)
+  App-->>User: HTML or 403
+```
+
 ## Sessions
 Two session mechanisms are used:
 1) Application session (`AppSession`):
@@ -40,4 +52,3 @@ Two session mechanisms are used:
   - Path: `/analytics`.
   - Max age: `analytics.filtersCookieMaxAgeDays`.
 - The cookie is cleared on filter reset or when the filter payload exceeds size limits.
-

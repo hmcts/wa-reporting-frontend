@@ -21,6 +21,16 @@ Provide analytics on completed tasks, compliance with due dates, and timing metr
 - Each panel shows totals plus within/beyond due date counts.
 - Each panel has a donut chart for within vs beyond due date.
 
+```mermaid
+flowchart LR
+  Filters["Shared filters + completed range"] --> Summary["Completed summary"]
+  Filters --> Timeline["Completion timeline"]
+  Filters --> ByName["Completed by name"]
+  Filters --> Audit["Task audit (case ID)"]
+  Filters --> RegionLoc["Completed by region/location"]
+  Filters --> Times["Processing/handling time"]
+```
+
 ### 2) Tasks completed timeline
 - Title: "Tasks completed".
 - Chart: stacked bar (within vs beyond due date) plus a 7-day rolling average line.
@@ -76,4 +86,3 @@ Provide analytics on completed tasks, compliance with due dates, and timing metr
 ## Notes
 - All tables include CSV export.
 - Filters apply to all sections; the metric selector only changes the timing chart/table.
-

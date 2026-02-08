@@ -41,7 +41,14 @@ Provide a high-level view of service performance, focusing on open and assigned 
   - Cancelled
 - Totals row included.
 
+```mermaid
+flowchart LR
+  Filters["Shared filters + events range"] --> Events["Events by service query"]
+  Filters --> Overview["Service overview query"]
+  Overview --> OverviewTable["Open/assigned table"]
+  Events --> EventsTable["Created/completed/cancelled table"]
+```
+
 ## Notes
 - The dashboard is designed for broad monitoring rather than deep drill-down.
 - All values are numeric and formatted for readability.
-

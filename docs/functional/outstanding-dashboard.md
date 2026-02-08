@@ -21,6 +21,18 @@ Provide detail on tasks that are open or otherwise not completed, including prio
   - Assignment (Assigned vs Unassigned)
   - Priority (Urgent/High/Medium/Low)
 
+```mermaid
+flowchart TB
+  Filters["Shared filters"] --> Summary["Open tasks summary"]
+  Filters --> Timelines["Open tasks by date, wait time, tasks due"]
+  Filters --> Critical["Critical tasks (paged)"]
+  Filters --> Breakdown["By name/region/location"]
+  Summary --> Donuts["Assignment + Priority donuts"]
+  Timelines --> Charts["Time-series charts + tables"]
+  Critical --> Table["Critical tasks table"]
+  Breakdown --> Tables["Breakdown tables"]
+```
+
 ### 2) Open tasks by created date
 - Title: "Open tasks".
 - Chart: stacked bar time series by created date (Assigned vs Unassigned).
@@ -97,4 +109,3 @@ Provide detail on tasks that are open or otherwise not completed, including prio
 ## Notes
 - CSV export is available for each table section.
 - Filters are applied consistently across all sections.
-
