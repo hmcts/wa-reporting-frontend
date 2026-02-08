@@ -91,7 +91,12 @@ export class OidcMiddleware {
     const redisPass: string = config.get('session.redis.key');
 
     if (redisHost && redisPass) {
-      const client = new Redis({ port: redisPort, host: redisHost, password: redisPass, tls: {} });
+      const client = new Redis({
+        port: redisPort,
+        host: redisHost,
+        password: redisPass,
+        ...(redisPass ? { tls: {} } : {}),
+      });
 
       app.locals.redisClient = client;
       return new RedisStore({

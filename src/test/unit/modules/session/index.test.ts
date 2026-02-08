@@ -39,6 +39,39 @@ describe('AppSession module', () => {
     expect(app.use).toHaveBeenCalledWith('session-middleware');
   });
 
+  it('configures redis without tls when access key is not provided', () => {
+    const configValues: Record<string, unknown> = {
+      'session.secret': 'secret',
+      'session.appCookie.name': 'app-cookie',
+      'session.redis.host': 'redis-host',
+      'session.redis.port': 6379,
+      'session.redis.key': '',
+    };
+
+    const sessionMiddleware = jest.fn(() => 'session-middleware');
+    const redisStore = jest.fn().mockImplementation(() => ({ store: 'redis' }));
+    const redisCtor = jest.fn();
+
+    jest.doMock('config', () => ({
+      get: jest.fn((key: string) => configValues[key]),
+    }));
+    jest.doMock('express-session', () => sessionMiddleware);
+    jest.doMock('connect-redis', () => ({ RedisStore: redisStore }));
+    jest.doMock('ioredis', () => ({ Redis: redisCtor }));
+
+    const app = { use: jest.fn(), locals: {} } as unknown as Application;
+
+    jest.isolateModules(() => {
+      const { AppSession } = require('../../../../main/modules/session');
+      new AppSession().enableFor(app);
+    });
+
+    expect(redisCtor).toHaveBeenCalledWith({ host: 'redis-host', port: 6379, password: '' });
+    expect(app.locals.appRedisClient).toBeDefined();
+    expect(sessionMiddleware).toHaveBeenCalledWith(expect.objectContaining({ store: { store: 'redis' } }));
+    expect(app.use).toHaveBeenCalledWith('session-middleware');
+  });
+
   it('falls back to file store when redis is missing', () => {
     const configValues: Record<string, unknown> = {
       'session.secret': 'secret',

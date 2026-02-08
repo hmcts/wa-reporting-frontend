@@ -34,12 +34,13 @@ export class AppSession {
     const redisPass: string | undefined = config.get('session.redis.key');
 
     if (redisHost) {
-      const client = new Redis({
+      const redisOptions = {
         host: redisHost,
         port: redisPort,
         password: redisPass,
-        tls: {},
-      });
+        ...(redisPass ? { tls: {} } : {}),
+      };
+      const client = new Redis(redisOptions);
 
       app.locals.appRedisClient = client;
 
