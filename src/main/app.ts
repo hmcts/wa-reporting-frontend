@@ -35,6 +35,7 @@ const limiter = RateLimit({
 
 export const app = express();
 app.locals.ENV = env;
+app.set('trust proxy', 1);
 
 const logger = Logger.getLogger('app');
 

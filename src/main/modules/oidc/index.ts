@@ -5,12 +5,12 @@ import { RedisStore } from 'connect-redis';
 import { Application, Request, Response } from 'express';
 import { Session, SessionStore, auth } from 'express-openid-connect';
 import session from 'express-session';
-import { createClient } from 'redis';
 import { jwtDecode } from 'jwt-decode';
 import FileStoreFactory from 'session-file-store';
 
 import { HTTPError } from '../../app/errors/HttpError';
 import { User } from '../../interfaces/User';
+import { getRedisClient } from '../redis';
 
 export class OidcMiddleware {
   private readonly clientId: string = config.get('services.idam.clientID');
@@ -86,22 +86,9 @@ export class OidcMiddleware {
   private getSessionStore(app: Application): SessionStore {
     const fileStore = FileStoreFactory(session);
 
-    const redisHost: string = config.get('session.redis.host');
-    const redisPort: number = config.get('session.redis.port');
-    const redisPass: string = config.get('session.redis.key');
+    const client = getRedisClient(app);
 
-    if (redisHost && redisPass) {
-      const client = createClient({
-        password: redisPass,
-        socket: {
-          host: redisHost,
-          port: redisPort,
-          ...(redisPass ? { tls: true } : {}),
-        },
-      });
-      void client.connect();
-
-      app.locals.redisClient = client;
+    if (client) {
       return new RedisStore({
         client,
         prefix: 'wa-reporting-frontend:',
