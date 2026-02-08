@@ -33,7 +33,7 @@ export class AppSession {
     const redisPort: number | undefined = config.get('session.redis.port');
     const redisPass: string | undefined = config.get('session.redis.key');
 
-    if (redisHost && redisPass) {
+    if (redisHost) {
       const client = new Redis({
         host: redisHost,
         port: redisPort,
