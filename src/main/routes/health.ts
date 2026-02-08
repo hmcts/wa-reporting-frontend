@@ -9,15 +9,21 @@ function shutdownCheck(): boolean {
 }
 
 export default function (app: Application): void {
+  const locals = app.locals ?? {};
+  const redisClient = locals.redisClient as { ping: () => Promise<unknown> } | undefined;
+  const redis = redisClient
+    ? healthcheck.raw(() => redisClient.ping().then(healthcheck.up).catch(healthcheck.down))
+    : null;
+
   const healthCheckConfig = {
     checks: {
-      // TODO: replace this sample check with proper checks for your application
-      sampleCheck: healthcheck.raw(() => healthcheck.up()),
+      ...(redis ? { redis } : {}),
     },
     readinessChecks: {
       shutdownCheck: healthcheck.raw(() => {
         return shutdownCheck() ? healthcheck.down() : healthcheck.up();
       }),
+      ...(redis ? { redis } : {}),
     },
   };
 

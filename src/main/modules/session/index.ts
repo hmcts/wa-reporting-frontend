@@ -2,8 +2,9 @@ import config from 'config';
 import { RedisStore } from 'connect-redis';
 import { Application } from 'express';
 import session from 'express-session';
-import { createClient } from 'redis';
 import FileStoreFactory from 'session-file-store';
+
+import { getRedisClient } from '../redis';
 
 export class AppSession {
   private readonly sessionSecret: string = config.get('session.secret');
@@ -29,23 +30,9 @@ export class AppSession {
   }
 
   private createSessionStore(app: Application) {
-    const redisHost: string | undefined = config.get('session.redis.host');
-    const redisPort: number | undefined = config.get('session.redis.port');
-    const redisPass: string | undefined = config.get('session.redis.key');
+    const client = getRedisClient(app);
 
-    if (redisHost) {
-      const client = createClient({
-        ...(redisPass ? { password: redisPass } : {}),
-        socket: {
-          host: redisHost,
-          port: redisPort,
-          ...(redisPass ? { tls: true } : {}),
-        },
-      });
-      void client.connect();
-
-      app.locals.appRedisClient = client;
-
+    if (client) {
       return new RedisStore({
         client,
         prefix: 'wa-reporting-frontend:',
