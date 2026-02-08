@@ -30,7 +30,7 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
   });
   const jwtDecode = jest.fn();
   const redisStore = jest.fn().mockImplementation(() => ({ store: 'redis' }));
-  const redisClient = { connect: jest.fn() };
+  const redisClient = { connect: jest.fn(), on: jest.fn() };
   const createClient = jest.fn(() => redisClient);
   const fileStore = jest.fn().mockImplementation(() => ({ store: 'file' }));
   const fileStoreFactory = jest.fn(() => fileStore);
@@ -49,6 +49,10 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
 
   jest.doMock('redis', () => ({
     createClient,
+  }));
+
+  jest.doMock('@hmcts/nodejs-logging', () => ({
+    Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
   }));
 
   jest.doMock('session-file-store', () => fileStoreFactory);
@@ -109,13 +113,19 @@ describe('OidcMiddleware', () => {
     expect(app.locals.redisClient).toBeDefined();
     expect(createClient).toHaveBeenCalledWith({
       password: 'redis-pass',
-      socket: { host: 'redis-host', port: 6379, tls: true },
+      socket: {
+        host: 'redis-host',
+        port: 6379,
+        tls: true,
+        connectTimeout: 5000,
+        reconnectStrategy: expect.any(Function),
+      },
     });
     expect(redisClient.connect).toHaveBeenCalled();
   });
 
   it('falls back to file store when redis is not configured', () => {
-    const { OidcMiddleware, fileStore } = buildOidc({ 'session.redis.host': undefined, 'session.redis.key': '' });
+    const { OidcMiddleware, fileStore } = buildOidc({ 'session.redis.host': undefined });
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
 
     const instance = new OidcMiddleware();

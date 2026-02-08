@@ -16,7 +16,7 @@ describe('routes/health', () => {
     jest.doMock('../../../main/app', () => ({ app: appState }));
     jest.doMock('@hmcts/nodejs-healthcheck', () => ({ addTo, raw, up, down }));
 
-    const app = {} as Application;
+    const app = { locals: {} } as Application;
 
     jest.isolateModules(() => {
       const registerHealth = require('../../../main/routes/health').default;
@@ -27,10 +27,33 @@ describe('routes/health', () => {
 
     const config = addTo.mock.calls[0][1];
 
-    expect(config.checks.sampleCheck()).toBe('up');
     expect(config.readinessChecks.shutdownCheck()).toBe('up');
 
     appState.locals.shutdown = true;
     expect(config.readinessChecks.shutdownCheck()).toBe('down');
+  });
+
+  it('adds redis checks when redis client is available', () => {
+    const ping = jest.fn().mockResolvedValue('pong');
+    const appState = { locals: { shutdown: false, redisClient: { ping } } };
+    const addTo = jest.fn();
+    const raw = jest.fn((fn: () => unknown) => fn);
+    const up = jest.fn(() => 'up');
+    const down = jest.fn(() => 'down');
+
+    jest.doMock('../../../main/app', () => ({ app: appState }));
+    jest.doMock('@hmcts/nodejs-healthcheck', () => ({ addTo, raw, up, down }));
+
+    const app = { locals: { redisClient: { ping } } } as unknown as Application;
+
+    jest.isolateModules(() => {
+      const registerHealth = require('../../../main/routes/health').default;
+      registerHealth(app);
+    });
+
+    const config = addTo.mock.calls[0][1];
+
+    expect(config.checks.redis).toBeDefined();
+    expect(config.readinessChecks.redis).toBeDefined();
   });
 });

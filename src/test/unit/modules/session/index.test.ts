@@ -17,7 +17,7 @@ describe('AppSession module', () => {
 
     const sessionMiddleware = jest.fn(() => 'session-middleware');
     const redisStore = jest.fn().mockImplementation(() => ({ store: 'redis' }));
-    const redisClient = { connect: jest.fn() };
+    const redisClient = { connect: jest.fn().mockResolvedValue(undefined), on: jest.fn() };
     const createClient = jest.fn(() => redisClient);
 
     jest.doMock('config', () => ({
@@ -26,6 +26,9 @@ describe('AppSession module', () => {
     jest.doMock('express-session', () => sessionMiddleware);
     jest.doMock('connect-redis', () => ({ RedisStore: redisStore }));
     jest.doMock('redis', () => ({ createClient }));
+    jest.doMock('@hmcts/nodejs-logging', () => ({
+      Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
+    }));
 
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
 
@@ -36,10 +39,17 @@ describe('AppSession module', () => {
 
     expect(createClient).toHaveBeenCalledWith({
       password: 'redis-key',
-      socket: { host: 'redis-host', port: 6379, tls: true },
+      socket: {
+        host: 'redis-host',
+        port: 6379,
+        tls: true,
+        connectTimeout: 5000,
+        reconnectStrategy: expect.any(Function),
+      },
     });
     expect(redisClient.connect).toHaveBeenCalled();
     expect(app.locals.appRedisClient).toBeDefined();
+    expect(app.locals.redisConnectPromise).toBeDefined();
     expect(sessionMiddleware).toHaveBeenCalledWith(expect.objectContaining({ store: { store: 'redis' } }));
     expect(app.use).toHaveBeenCalledWith('session-middleware');
   });
@@ -55,7 +65,7 @@ describe('AppSession module', () => {
 
     const sessionMiddleware = jest.fn(() => 'session-middleware');
     const redisStore = jest.fn().mockImplementation(() => ({ store: 'redis' }));
-    const redisClient = { connect: jest.fn() };
+    const redisClient = { connect: jest.fn().mockResolvedValue(undefined), on: jest.fn() };
     const createClient = jest.fn(() => redisClient);
 
     jest.doMock('config', () => ({
@@ -64,6 +74,9 @@ describe('AppSession module', () => {
     jest.doMock('express-session', () => sessionMiddleware);
     jest.doMock('connect-redis', () => ({ RedisStore: redisStore }));
     jest.doMock('redis', () => ({ createClient }));
+    jest.doMock('@hmcts/nodejs-logging', () => ({
+      Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
+    }));
 
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
 
@@ -72,9 +85,17 @@ describe('AppSession module', () => {
       new AppSession().enableFor(app);
     });
 
-    expect(createClient).toHaveBeenCalledWith({ socket: { host: 'redis-host', port: 6379 } });
+    expect(createClient).toHaveBeenCalledWith({
+      socket: {
+        host: 'redis-host',
+        port: 6379,
+        connectTimeout: 5000,
+        reconnectStrategy: expect.any(Function),
+      },
+    });
     expect(redisClient.connect).toHaveBeenCalled();
     expect(app.locals.appRedisClient).toBeDefined();
+    expect(app.locals.redisConnectPromise).toBeDefined();
     expect(sessionMiddleware).toHaveBeenCalledWith(expect.objectContaining({ store: { store: 'redis' } }));
     expect(app.use).toHaveBeenCalledWith('session-middleware');
   });

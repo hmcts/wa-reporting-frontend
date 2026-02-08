@@ -88,10 +88,12 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 - `yarn start` runs the compiled server from `dist/main/server.js`.
 - `yarn start:dev` runs via nodemon with webpack dev middleware.
 - Default port is 3100 (configurable via `PORT`).
+- Express trusts one proxy hop (`trust proxy = 1`) to support AKS/ingress `X-Forwarded-For` headers.
 
 ### Health and info endpoints
 - `/health` returns liveness and readiness checks.
 - `/info` returns build and runtime metadata.
+- When Redis is configured, `/health` includes a Redis ping check in both liveness and readiness.
 
 ### Logging and monitoring
 - Uses `@hmcts/nodejs-logging` for server logs.
