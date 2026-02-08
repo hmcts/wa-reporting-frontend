@@ -30,12 +30,11 @@
         text: "User overview",
         href: "/analytics/users",
         current: pagePath  == "/analytics/users"
-      },
-      {
-        text: "Sign out",
-        href: "/logout"
       }
-    ]
+    ],
+    slots: {
+      navigationEnd: '<li class="govuk-service-navigation__item analytics-service-navigation__item--signout"><a class="govuk-service-navigation__link" href="/logout">Sign out</a></li>'
+    }
   }) }}
 {% endblock %}
 
