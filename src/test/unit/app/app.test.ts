@@ -42,9 +42,7 @@ const buildAppModule = async (options: {
   }));
 
   jest.doMock('glob', () => ({
-    glob: {
-      sync: jest.fn().mockReturnValue(routePaths),
-    },
+    glob: jest.fn().mockResolvedValue(routePaths),
   }));
 
   routePaths.forEach(routePath => {
@@ -189,7 +187,7 @@ describe('app bootstrap', () => {
     jest.clearAllMocks();
   });
 
-  it('initialises middleware, locals, and dev setup in development mode', () => {
+  it('initialises middleware, locals, and dev setup in development mode', async () => {
     const {
       app,
       setupDev,
