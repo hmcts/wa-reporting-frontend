@@ -78,8 +78,6 @@ export async function buildOutstandingPage(
   let outstandingByLocation = outstanding.outstandingByLocation;
   let outstandingByRegion = outstanding.outstandingByRegion;
   let criticalTasks = outstanding.criticalTasks;
-  let criticalTasksTotalResults = 0;
-  let resolvedCriticalTasksPage = criticalTasksPage;
   const [
     openByNameResult,
     openResult,
@@ -140,8 +138,8 @@ export async function buildOutstandingPage(
     { rows: criticalTasks, totalResults: 0, page: criticalTasksPage }
   );
   criticalTasks = criticalTasksValue.rows;
-  criticalTasksTotalResults = criticalTasksValue.totalResults;
-  resolvedCriticalTasksPage = criticalTasksValue.page;
+  const criticalTasksTotalResults = criticalTasksValue.totalResults;
+  const resolvedCriticalTasksPage = criticalTasksValue.page;
 
   const regionLocationValue = settledValueWithError(
     regionLocationResult,

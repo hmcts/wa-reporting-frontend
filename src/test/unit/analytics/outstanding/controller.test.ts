@@ -3,12 +3,13 @@ import { Request, Response, Router } from 'express';
 import { outstandingController } from '../../../../main/modules/analytics/outstanding/controller';
 import { parseCriticalTasksPage } from '../../../../main/modules/analytics/outstanding/criticalTasksPagination';
 import { buildOutstandingPage } from '../../../../main/modules/analytics/outstanding/page';
-import { validateFilters } from '../../../../main/modules/analytics/shared/filters';
+import { applyFilterCookieFromConfig } from '../../../../main/modules/analytics/shared/filterCookies';
 import { parseOutstandingSort } from '../../../../main/modules/analytics/shared/outstandingSort';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../../../../main/modules/analytics/shared/partials';
 
-jest.mock('../../../../main/modules/analytics/shared/filters', () => ({
-  validateFilters: jest.fn(),
+jest.mock('../../../../main/modules/analytics/shared/filterCookies', () => ({
+  applyFilterCookieFromConfig: jest.fn(),
+  BASE_FILTER_KEYS: ['service', 'roleCategory', 'region', 'location', 'taskName'],
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/outstandingSort', () => ({
@@ -45,7 +46,7 @@ describe('outstandingController', () => {
     const req = { method: 'GET', query: { region: 'North' }, get: jest.fn() } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: { region: ['North'] } });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({ region: ['North'] });
     (parseOutstandingSort as jest.Mock).mockReturnValue({ criticalTasks: { by: 'dueDate', dir: 'asc' } });
     (parseCriticalTasksPage as jest.Mock).mockReturnValue(1);
     (buildOutstandingPage as jest.Mock).mockResolvedValue({ view: 'outstanding' });
@@ -59,7 +60,13 @@ describe('outstandingController', () => {
     const handler = (router.get as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
-    expect(validateFilters).toHaveBeenCalledWith(req.query);
+    expect(applyFilterCookieFromConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        req,
+        res,
+        source: req.query,
+      })
+    );
     expect(parseOutstandingSort).toHaveBeenCalledWith(req.query);
     expect(buildOutstandingPage).toHaveBeenCalledWith(
       { region: ['North'] },
@@ -79,7 +86,7 @@ describe('outstandingController', () => {
     const req = { method: 'POST', body: { service: 'Crime' }, get: jest.fn() } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: { service: ['Crime'] } });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({ service: ['Crime'] });
     (parseOutstandingSort as jest.Mock).mockReturnValue({ criticalTasks: { by: 'dueDate', dir: 'asc' } });
     (parseCriticalTasksPage as jest.Mock).mockReturnValue(3);
     (buildOutstandingPage as jest.Mock).mockResolvedValue({ view: 'outstanding-post' });
@@ -90,7 +97,13 @@ describe('outstandingController', () => {
     const handler = (router.post as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
-    expect(validateFilters).toHaveBeenCalledWith(req.body);
+    expect(applyFilterCookieFromConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        req,
+        res,
+        source: req.body,
+      })
+    );
     expect(parseOutstandingSort).toHaveBeenCalledWith(req.body);
     expect(buildOutstandingPage).toHaveBeenCalledWith(
       { service: ['Crime'] },
@@ -114,7 +127,7 @@ describe('outstandingController', () => {
     } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: { service: ['Crime'] } });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({ service: ['Crime'] });
     (parseOutstandingSort as jest.Mock).mockReturnValue({ criticalTasks: { by: 'dueDate', dir: 'asc' } });
     (parseCriticalTasksPage as jest.Mock).mockReturnValue(2);
     (buildOutstandingPage as jest.Mock).mockResolvedValue({ view: 'outstanding-ajax' });
@@ -148,7 +161,7 @@ describe('outstandingController', () => {
     } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: {} });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({});
     (parseOutstandingSort as jest.Mock).mockReturnValue({ criticalTasks: { by: 'dueDate', dir: 'asc' } });
     (parseCriticalTasksPage as jest.Mock).mockReturnValue(1);
     (buildOutstandingPage as jest.Mock).mockResolvedValue({ view: 'outstanding-fallback' });

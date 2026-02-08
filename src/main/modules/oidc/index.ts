@@ -11,7 +11,6 @@ import FileStoreFactory from 'session-file-store';
 
 import { HTTPError } from '../../app/errors/HttpError';
 import { User } from '../../interfaces/User';
-import logger from '../logging';
 
 export class OidcMiddleware {
   private readonly clientId: string = config.get('services.idam.clientID');
@@ -49,19 +48,12 @@ export class OidcMiddleware {
         },
         afterCallback: (req: Request, res: Response, oidcSession: Session) => {
           if (res.statusCode === http.HTTP_STATUS_OK && oidcSession.id_token) {
-            let tokenUser;
-            try {
-              tokenUser = jwtDecode(oidcSession.id_token) as {
-                uid: string;
-                email: string;
-                roles: string[];
-              };
-            } catch (error) {
-              logger.error('afterCallback: token decode error', error);
-              throw error;
-            }
+            const tokenUser = jwtDecode(oidcSession.id_token) as {
+              uid: string;
+              email: string;
+              roles: string[];
+            };
             if (!tokenUser.roles.includes(this.accessRole)) {
-              logger.info('afterCallback: missing access role for user id ' + tokenUser.uid);
               throw new HTTPError(http.HTTP_STATUS_FORBIDDEN);
             }
             const user = {
@@ -69,15 +61,26 @@ export class OidcMiddleware {
               email: tokenUser.email,
               roles: tokenUser.roles,
             } as User;
-            logger.info('afterCallback: complete for user id ' + tokenUser.uid);
             return { ...oidcSession, user };
           } else {
-            logger.error('afterCallback: failed with response code ' + res.statusCode);
             throw new HTTPError(http.HTTP_STATUS_FORBIDDEN);
           }
         },
       })
     );
+
+    app.use((req, _res, next) => {
+      if (!req.oidc?.isAuthenticated?.()) {
+        throw new HTTPError(http.HTTP_STATUS_FORBIDDEN);
+      }
+
+      const roles = req.oidc?.user?.roles ?? [];
+      if (!roles.includes(this.accessRole)) {
+        throw new HTTPError(http.HTTP_STATUS_FORBIDDEN);
+      }
+
+      next();
+    });
   }
 
   private getSessionStore(app: Application): SessionStore {

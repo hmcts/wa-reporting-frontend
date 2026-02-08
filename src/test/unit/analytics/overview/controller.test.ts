@@ -2,11 +2,12 @@ import { Request, Response, Router } from 'express';
 
 import { overviewController } from '../../../../main/modules/analytics/overview/controller';
 import { buildOverviewPage } from '../../../../main/modules/analytics/overview/page';
-import { validateFilters } from '../../../../main/modules/analytics/shared/filters';
+import { applyFilterCookieFromConfig } from '../../../../main/modules/analytics/shared/filterCookies';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../../../../main/modules/analytics/shared/partials';
 
-jest.mock('../../../../main/modules/analytics/shared/filters', () => ({
-  validateFilters: jest.fn(),
+jest.mock('../../../../main/modules/analytics/shared/filterCookies', () => ({
+  applyFilterCookieFromConfig: jest.fn(),
+  BASE_FILTER_KEYS: ['service', 'roleCategory', 'region', 'location', 'taskName'],
 }));
 
 jest.mock('../../../../main/modules/analytics/overview/page', () => ({
@@ -35,7 +36,7 @@ describe('overviewController', () => {
     const req = { method: 'GET', query: { service: 'Tribunal' }, get: jest.fn() } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: { service: ['Tribunal'] } });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({ service: ['Tribunal'] });
     (buildOverviewPage as jest.Mock).mockResolvedValue({ view: 'overview' });
     (isAjaxRequest as jest.Mock).mockReturnValue(false);
 
@@ -47,7 +48,13 @@ describe('overviewController', () => {
     const handler = (router.get as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
-    expect(validateFilters).toHaveBeenCalledWith(req.query);
+    expect(applyFilterCookieFromConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        req,
+        res,
+        source: req.query,
+      })
+    );
     expect(buildOverviewPage).toHaveBeenCalledWith({ service: ['Tribunal'] }, undefined);
     expect(getAjaxPartialTemplate).not.toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/overview/index', { view: 'overview' });
@@ -59,7 +66,7 @@ describe('overviewController', () => {
     const req = { method: 'POST', body: { location: 'Leeds' }, get: jest.fn() } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: { location: ['Leeds'] } });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({ location: ['Leeds'] });
     (buildOverviewPage as jest.Mock).mockResolvedValue({ view: 'overview-post' });
     (isAjaxRequest as jest.Mock).mockReturnValue(false);
 
@@ -68,7 +75,13 @@ describe('overviewController', () => {
     const handler = (router.post as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
-    expect(validateFilters).toHaveBeenCalledWith(req.body);
+    expect(applyFilterCookieFromConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        req,
+        res,
+        source: req.body,
+      })
+    );
     expect(buildOverviewPage).toHaveBeenCalledWith({ location: ['Leeds'] }, undefined);
     expect(getAjaxPartialTemplate).not.toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/overview/index', { view: 'overview-post' });
@@ -84,7 +97,7 @@ describe('overviewController', () => {
     } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: { service: ['Crime'] } });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({ service: ['Crime'] });
     (buildOverviewPage as jest.Mock).mockResolvedValue({ view: 'overview-ajax' });
     (isAjaxRequest as jest.Mock).mockReturnValue(true);
     (getAjaxPartialTemplate as jest.Mock).mockReturnValue('analytics/overview/partials/task-events-table');
@@ -109,7 +122,7 @@ describe('overviewController', () => {
     } as unknown as Request;
     const res = { render } as unknown as Response;
 
-    (validateFilters as jest.Mock).mockReturnValue({ filters: {} });
+    (applyFilterCookieFromConfig as jest.Mock).mockReturnValue({});
     (buildOverviewPage as jest.Mock).mockResolvedValue({ view: 'overview-fallback' });
     (isAjaxRequest as jest.Mock).mockReturnValue(true);
     (getAjaxPartialTemplate as jest.Mock).mockReturnValue(undefined);

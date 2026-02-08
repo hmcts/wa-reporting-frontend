@@ -8,10 +8,16 @@ def component = "reporting-frontend"
 
 def yarnBuilder = new uk.gov.hmcts.contino.YarnBuilder(this)
 
+env.AUTH_ENABLED="false"
+
 withPipeline(type, product, component) {
   afterSuccess('build') {
     yarnBuilder.yarn('playwright install')
     yarnBuilder.yarn('rebuild puppeteer')
     yarnBuilder.yarn('build')
+  }
+
+  afterSuccess('test') {
+    yarnBuilder.yarn('test:routes')
   }
 }

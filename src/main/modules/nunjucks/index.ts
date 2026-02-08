@@ -97,8 +97,6 @@ export class Nunjucks {
 
     app.use((req, res, next) => {
       res.locals.pagePath = req.path;
-      const [, query] = req.originalUrl.split('?', 2);
-      res.locals.queryString = query ?? '';
       next();
     });
   }
