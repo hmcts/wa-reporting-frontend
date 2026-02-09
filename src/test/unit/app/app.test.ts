@@ -210,23 +210,19 @@ describe('app bootstrap', () => {
     expect(oidcEnableFor).not.toHaveBeenCalled();
   });
 
-  it('falls back to the default favicon when the rebrand favicon is missing', async () => {
+  it('serves the default favicon', async () => {
     const { app } = await buildAppModule({ env: 'development' });
 
     const handler = getRouteHandler(app, '/favicon.ico');
-    const sendFile = jest
-      .fn()
-      .mockImplementationOnce((_: string, cb: (err?: Error) => void) => cb(new Error('missing')))
-      .mockImplementationOnce((_: string, cb?: (err?: Error) => void) => cb?.());
+    const sendFile = jest.fn();
 
     const req = {} as Request;
     const res = { sendFile } as unknown as Response;
 
     handler(req, res);
 
-    expect(sendFile).toHaveBeenCalledTimes(2);
-    expect(sendFile.mock.calls[0][0]).toContain('rebrand');
-    expect(sendFile.mock.calls[1][0]).toContain('images/favicon.ico');
+    expect(sendFile).toHaveBeenCalledTimes(1);
+    expect(sendFile.mock.calls[0][0]).toContain('images/favicon.ico');
   });
 
   it('defaults NODE_ENV to development when unset', async () => {

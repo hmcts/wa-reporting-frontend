@@ -46,15 +46,10 @@ export const bootstrap = async (): Promise<void> => {
   new Helmet(config.get('security')).enableFor(app);
 
   const assetsDirectory = path.join(__dirname, 'public', 'assets');
-  const faviconPath = path.join(assetsDirectory, 'rebrand/images/favicon.ico');
-  const fallbackFaviconPath = path.join(assetsDirectory, 'images/favicon.ico');
+  const faviconPath = path.join(assetsDirectory, 'images/favicon.ico');
 
   app.get('/favicon.ico', limiter, (req, res) => {
-    res.sendFile(faviconPath, err => {
-      if (err && faviconPath !== fallbackFaviconPath) {
-        res.sendFile(fallbackFaviconPath);
-      }
-    });
+    res.sendFile(faviconPath);
   });
 
   app.use(bodyParser.json());

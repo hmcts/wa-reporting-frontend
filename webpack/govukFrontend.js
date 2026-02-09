@@ -11,14 +11,12 @@ const assets = path.resolve(root, 'assets');
 const images = path.resolve(assets, 'images');
 const fonts = path.resolve(assets, 'fonts');
 const manifest = path.resolve(assets, 'manifest.json');
-const rebrandAssets = path.resolve(assets, 'rebrand');
 
 const copyGovukTemplateAssets = new CopyWebpackPlugin({
   patterns: [
     { from: images, to: 'assets/images' },
     { from: fonts, to: 'assets/fonts' },
     { from: manifest, to: 'assets/manifest.json' },
-    { from: rebrandAssets, to: 'assets/rebrand' },
     { from: `${root}/template.njk`, to: '../views/govuk' },
     { from: `${root}/components`, to: '../views/govuk/components' },
     { from: `${root}/macros`, to: '../views/govuk/macros' },
