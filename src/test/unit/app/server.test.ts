@@ -4,7 +4,7 @@ describe('server bootstrap', () => {
     jest.clearAllMocks();
   });
 
-  it('starts the server and handles graceful shutdown', () => {
+  it('starts the server and handles graceful shutdown', async () => {
     const close = jest.fn((cb: () => void) => cb());
     const listen = jest.fn((port: number, cb: () => void) => {
       cb();
@@ -19,9 +19,15 @@ describe('server bootstrap', () => {
 
     const logger = { info: jest.fn(), error: jest.fn() };
 
+    const telemetryHandle = { enabled: true, shutdown: jest.fn().mockResolvedValue(undefined) };
+    const initializeOpenTelemetry = jest.fn(() => telemetryHandle);
+
     jest.doMock('../../../main/app', () => ({ app }));
-    jest.doMock('@hmcts/nodejs-logging', () => ({
+    jest.doMock('../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => logger) },
+    }));
+    jest.doMock('../../../main/modules/opentelemetry', () => ({
+      initializeOpenTelemetry,
     }));
 
     const handlers: Record<string, (signal: string) => void> = {};
@@ -44,14 +50,17 @@ describe('server bootstrap', () => {
       require('../../../main/server');
     });
 
+    expect(initializeOpenTelemetry).toHaveBeenCalledTimes(1);
     expect(listen).toHaveBeenCalledWith(4100, expect.any(Function));
     expect(app.locals.shutdown).toBe(false);
 
     handlers.SIGTERM('SIGTERM');
+    await new Promise(setImmediate);
 
     expect(app.locals.shutdown).toBe(true);
     expect(app.emit).toHaveBeenCalledWith('shutdown');
     expect(close).toHaveBeenCalled();
+    expect(telemetryHandle.shutdown).toHaveBeenCalled();
     expect(exitSpy).toHaveBeenCalledWith(0);
     expect(exitSpy).toHaveBeenCalledWith(1);
 
@@ -74,9 +83,15 @@ describe('server bootstrap', () => {
 
     const logger = { info: jest.fn(), error: jest.fn() };
 
+    const telemetryHandle = { enabled: true, shutdown: jest.fn().mockResolvedValue(undefined) };
+    const initializeOpenTelemetry = jest.fn(() => telemetryHandle);
+
     jest.doMock('../../../main/app', () => ({ app }));
-    jest.doMock('@hmcts/nodejs-logging', () => ({
+    jest.doMock('../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => logger) },
+    }));
+    jest.doMock('../../../main/modules/opentelemetry', () => ({
+      initializeOpenTelemetry,
     }));
 
     const onSpy = jest.spyOn(process, 'on').mockImplementation(() => process);
@@ -87,6 +102,7 @@ describe('server bootstrap', () => {
       require('../../../main/server');
     });
 
+    expect(initializeOpenTelemetry).toHaveBeenCalledTimes(1);
     expect(listen).toHaveBeenCalledWith(3100, expect.any(Function));
 
     onSpy.mockRestore();

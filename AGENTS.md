@@ -25,6 +25,17 @@ interactive states retain ≥ WCAG AA contrast.
 - Playwright smoke/functional tests with @hmcts/playwright-common (shared Playwright config and helpers).
 - GOV.UK Design System using the `govuk-frontend` library; refer to https://design-system.service.gov.uk/ for official documentation and usage.
 
+## Subagents (When Available)
+
+Use subagents to parallelise work that can be done independently, then consolidate findings in the main thread. Good fit examples:
+
+- Broad discovery across multiple areas (e.g., one agent scans `docs/`, another scans `src/main/modules/analytics/`, another scans `src/test/`).
+- Multi-file refactors with independent scopes (e.g., controller/service/viewModel updates vs. Nunjucks template changes).
+- Test coverage work (e.g., one agent identifies missing tests or coverage gaps, another drafts unit/route/a11y tests).
+- Investigations that benefit from parallel tracks (e.g., one agent reproduces or runs tests, another inspects recent specs or config).
+- Documentation sync tasks (e.g., one agent updates `docs/`, another updates code/tests to match).
+- Verification orchestration (e.g., if CI/tooling allows safe parallel runs, delegate lint/tests/build to separate agents and aggregate results).
+
 ## Project Structure
 
 ```text
