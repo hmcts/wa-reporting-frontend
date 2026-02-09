@@ -65,7 +65,6 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 ## Environment variables (selected)
 - `AUTH_ENABLED`
 - `APPLICATIONINSIGHTS_CONNECTION_STRING`
-- `OTEL_SERVICE_NAME` (set to `wa-reporting-frontend`)
 - `IDAM_CLIENT_ID`, `IDAM_CLIENT_SECRET`, `IDAM_CLIENT_SCOPE`
 - `IDAM_PUBLIC_URL`, `WA_BASE_URL`
 - `TM_DB_*`, `CRD_DB_*`, `LRD_DB_*`
@@ -103,4 +102,4 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 
 ### Logging and monitoring
 - Uses a local Winston 3 logger wrapper for server logs. `LOG_LEVEL` controls verbosity (default `info`), and `JSON_PRINT=true` enables JSON output.
-- OpenTelemetry (Azure Monitor) exports traces and logs to Application Insights when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set and `OTEL_SERVICE_NAME=wa-reporting-frontend` is provided.
+- OpenTelemetry (Azure Monitor) exports traces and logs to Application Insights when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set. The service name is configured in code as `wa-reporting-frontend`.
