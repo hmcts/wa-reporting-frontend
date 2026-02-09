@@ -1,8 +1,7 @@
 @use 'govuk-frontend/dist/govuk/index' as * with (
-  $govuk-new-organisation-colours: true,
   $govuk-page-width: 1400px
 );
-@use '@ministryofjustice/frontend/moj/all';
+@import '@ministryofjustice/frontend/moj/moj-frontend.min.css';
 
 :root {
   /* GOV.UK palette alignment for Plotly series */

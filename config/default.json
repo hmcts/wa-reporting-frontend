@@ -8,9 +8,6 @@
       "preload": true
     }
   },
-  "govukFrontend": {
-    "rebrandEnabled": true
-  },
   "analytics": {
     "cacheTtlSeconds": 900,
     "manageCaseBaseUrl": "https://manage-case.aat.platform.hmcts.net",

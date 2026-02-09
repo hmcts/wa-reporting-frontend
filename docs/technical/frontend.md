@@ -18,7 +18,6 @@ flowchart LR
 ## Global Nunjucks helpers
 The Nunjucks environment adds:
 - Global: `manageCaseBaseUrl` (for case links)
-- Global: `govukRebrand` (flag for GOV.UK rebrand UI)
 - Filters: `formatNumber`, `extractNumericColumns`, `decorateNumericRows`
 
 ## Key UI patterns

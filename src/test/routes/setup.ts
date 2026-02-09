@@ -21,7 +21,6 @@ const defaultValues: RouteTestConfigValues = {
   'analytics.filtersCookieMaxAgeDays': 365,
   'analytics.manageCaseBaseUrl': 'https://manage-case.aat.platform.hmcts.net',
   'analytics.cacheTtlSeconds': 900,
-  'govukFrontend.rebrandEnabled': true,
   security: {
     referrerPolicy: 'same-origin',
     hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
