@@ -10,16 +10,16 @@ type AuthOptions = {
 const buildOidc = (overrides: Record<string, unknown> = {}) => {
   const configValues: Record<string, unknown> = {
     'services.idam.clientID': 'client-id',
-    'services.idam.clientSecret': 'client-secret',
+    'secrets.wa.idam-client-secret': 'client-secret',
     'services.idam.scope': 'openid profile',
     'services.idam.url.wa': 'http://wa',
     'services.idam.url.public': 'http://idam',
-    'session.secret': 'session-secret',
+    'secrets.wa.session-secret': 'session-secret',
     'RBAC.access': 'role-access',
     'session.cookie.name': 'session-cookie',
-    'session.redis.host': 'redis-host',
-    'session.redis.port': 6379,
-    'session.redis.key': 'redis-pass',
+    'secrets.wa.wa-reporting-redis-host': 'redis-host',
+    'secrets.wa.wa-reporting-redis-port': 6379,
+    'secrets.wa.wa-reporting-redis-access-key': 'redis-pass',
     ...overrides,
   };
 
@@ -125,7 +125,7 @@ describe('OidcMiddleware', () => {
   });
 
   it('falls back to file store when redis is not configured', () => {
-    const { OidcMiddleware, fileStore } = buildOidc({ 'session.redis.host': undefined });
+    const { OidcMiddleware, fileStore } = buildOidc({ 'secrets.wa.wa-reporting-redis-host': undefined });
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
 
     const instance = new OidcMiddleware();

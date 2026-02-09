@@ -1,9 +1,5 @@
 {
   "useCSRFProtection": true,
-  "csrfCookieSecret": "csrf-cookie-secret",
-  "appInsights": {
-    "connectionString": false
-  },
   "security": {
     "referrerPolicy": "same-origin",
     "hsts": {
@@ -30,7 +26,6 @@
   "services": {
     "idam": {
       "clientID": "wa_reporting_frontend",
-      "clientSecret": "wa_reporting_frontend_secret",
       "scope": "openid profile roles",
       "url": {
         "public": "https://idam-web-public.aat.platform.hmcts.net",
@@ -43,25 +38,17 @@
     "access": "wa-reports-viewer"
   },
   "session": {
-    "secret": "session-secret",
     "cookie": {
       "name": "wa-reporting-frontend-session"
     },
     "appCookie": {
       "name": "wa-reporting-frontend-app"
-    },
-    "redis": {
-      "host": "",
-      "port": 6379,
-      "key": ""
     }
   },
   "database": {
     "tm": {
       "host": "localhost",
       "port": 5432,
-      "user": "postgres",
-      "password": "password",
       "db_name": "cft_task_db",
       "schema": "analytics",
       "options": ""
@@ -69,8 +56,6 @@
     "crd": {
       "host": "localhost",
       "port": 5432,
-      "user": "postgres",
-      "password": "password",
       "db_name": "dbrdcaseworker",
       "schema": "rdstaffreport",
       "options": ""
@@ -78,11 +63,26 @@
     "lrd": {
       "host": "localhost",
       "port": 5432,
-      "user": "postgres",
-      "password": "password",
       "db_name": "dbrdlocationref",
       "schema": "locrefdata",
       "options": ""
+    }
+  },
+  "secrets": {
+    "wa": {
+      "app-insights-connection-string": false,
+      "wa-reporting-redis-host": "",
+      "wa-reporting-redis-port": 6379,
+      "wa-reporting-redis-access-key": "",
+      "idam-client-secret": "wa_reporting_frontend_secret",
+      "session-secret": "session-secret",
+      "csrf-cookie-secret": "csrf-cookie-secret",
+      "tm-db-user": "postgres",
+      "tm-db-password": "password",
+      "crd-db-user": "postgres",
+      "crd-db-password": "password",
+      "lrd-db-user": "postgres",
+      "lrd-db-password": "password"
     }
   }
 }

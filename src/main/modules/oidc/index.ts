@@ -14,11 +14,11 @@ import { getRedisClient } from '../redis';
 
 export class OidcMiddleware {
   private readonly clientId: string = config.get('services.idam.clientID');
-  private readonly clientSecret: string = config.get('services.idam.clientSecret');
+  private readonly clientSecret: string = config.get('secrets.wa.idam-client-secret');
   private readonly clientScope: string = config.get('services.idam.scope');
   private readonly baseUrl: string = config.get('services.idam.url.wa');
   private readonly idamBaseUrl: string = config.get('services.idam.url.public');
-  private readonly sessionSecret: string = config.get('session.secret');
+  private readonly sessionSecret: string = config.get('secrets.wa.session-secret');
   private readonly accessRole: string = config.get('RBAC.access');
   private readonly sessionCookieName: string = config.get('session.cookie.name');
 

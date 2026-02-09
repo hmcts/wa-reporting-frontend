@@ -9,7 +9,7 @@
 1. `config/default.json` provides the baseline values (used directly for local development).
 2. Environment variables (wired via `config/custom-environment-variables.yaml`) override defaults.
 3. For production-like environments, Key Vault secrets are declared in Helm values (`values.yaml` and `values.preview.template.yaml`) and loaded through Properties Volume under `secrets.wa.<secret-name>`.
-4. `src/main/modules/properties-volume/index.ts` must map every secret from `secrets.wa.<secret-name>` onto the correct config path, and the secret names must match the Helm values list exactly.
+4. Application code reads secrets directly from `secrets.wa.<secret-name>` paths.
 
 ## Retrieving config values in the app
 Use the `config` package with dot-notation keys that match `config/default.json` paths:
@@ -17,15 +17,15 @@ Use the `config` package with dot-notation keys that match `config/default.json`
 ```ts
 import config from 'config';
 
-const redisHost: string | undefined = config.get('session.redis.host');
+const redisHost: string | undefined = config.get('secrets.wa.wa-reporting-redis-host');
 const ttlSeconds: number = config.get<number>('analytics.cacheTtlSeconds');
 
-if (config.has('appInsights.connectionString')) {
-  const connectionString = config.get<string>('appInsights.connectionString');
+if (config.has('secrets.wa.app-insights-connection-string')) {
+  const connectionString = config.get<string>('secrets.wa.app-insights-connection-string');
 }
 ```
 
-Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...)` when a value is optional. Secrets injected via Properties Volume are available through these same keys after the mappings in `src/main/modules/properties-volume/index.ts` are applied.
+Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...)` when a value is optional. Secrets injected via Properties Volume are available through the `secrets.wa.*` keys.
 
 ## Key configuration areas
 
@@ -37,26 +37,30 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 
 ### Authentication
 - `auth.enabled`: enables/disables OIDC and RBAC.
-- `services.idam.clientID`, `clientSecret`, `scope`.
+- `services.idam.clientID`, `scope`.
 - `services.idam.url.public`: IDAM base URL.
 - `services.idam.url.wa`: base URL of this application.
 - `RBAC.access`: required role for access.
+- `secrets.wa.idam-client-secret`: IDAM client secret.
 
 ### Session
-- `session.secret`: session signing secret.
+- `secrets.wa.session-secret`: session signing secret.
 - `session.cookie.name`: cookie for OIDC session.
 - `session.appCookie.name`: cookie for app session.
-- `session.redis.host`, `port`, `key`: Redis connection for session storage.
+- `secrets.wa.wa-reporting-redis-host`, `wa-reporting-redis-port`, `wa-reporting-redis-access-key`: Redis connection for session storage.
 
 ### Database
 - `database.tm`, `database.crd`, `database.lrd`: PostgreSQL connection details.
 - Supports `url` overrides and `schema` for search_path.
+- `secrets.wa.tm-db-user`/`secrets.wa.tm-db-password`: TM database credentials.
+- `secrets.wa.crd-db-user`/`secrets.wa.crd-db-password`: CRD database credentials.
+- `secrets.wa.lrd-db-user`/`secrets.wa.lrd-db-password`: LRD database credentials.
 
 ### Security and logging
-- `useCSRFProtection` and `csrfCookieSecret`.
+- `useCSRFProtection` and `secrets.wa.csrf-cookie-secret`.
 - `security.referrerPolicy` and HSTS settings.
 - `logging.prismaQueryTimings`: enable query timing logs.
-- `appInsights.connectionString` for Azure Application Insights (via OpenTelemetry).
+- `secrets.wa.app-insights-connection-string` for Azure Application Insights (via OpenTelemetry).
 
 ## Environment variables (selected)
 - `AUTH_ENABLED`
@@ -66,16 +70,17 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `TM_DB_*`, `CRD_DB_*`, `LRD_DB_*`
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_KEY`
 - `SESSION_SECRET`, `SESSION_COOKIE_NAME`, `SESSION_APP_COOKIE_NAME`
+- `CSRF_COOKIE_SECRET`
 
 ## Secrets via Properties Volume
-When not in development, `PropertiesVolume` maps Kubernetes secrets into the configuration, including:
+When not in development, `PropertiesVolume` loads Kubernetes secrets into the configuration under `secrets.wa.*`, including:
 - IDAM client secret
 - Session secret
 - CSRF cookie secret
 - Redis credentials
 - Database credentials
 
-Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` aligned with the mappings in `src/main/modules/properties-volume/index.ts`. Any new secret must be added in all three places.
+Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` aligned with the secrets consumed by the app. Any new secret must be added in all three places.
 
 ## Build and runtime
 
@@ -97,4 +102,4 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 
 ### Logging and monitoring
 - Uses `@hmcts/nodejs-logging` for server logs.
-- Telemetry is exported via OpenTelemetry with the Azure Monitor exporter when `appInsights.connectionString` is set; the service name sent to App Insights is `wa-reporting-frontend`.
+- Telemetry is exported via OpenTelemetry with the Azure Monitor exporter when `secrets.wa.app-insights-connection-string` is set; the service name sent to App Insights is `wa-reporting-frontend`.

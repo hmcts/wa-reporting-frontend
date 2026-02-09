@@ -11,7 +11,7 @@ import { IncomingMessage } from 'node:http';
 import { RequestOptions } from 'node:https';
 
 export const initializeTelemetry = (): boolean => {
-  const connectionString = config.get<string>('appInsights.connectionString');
+  const connectionString = config.get<string>('secrets.wa.app-insights-connection-string');
   if (!connectionString) {
     return false;
   }

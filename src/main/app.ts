@@ -66,7 +66,7 @@ export const bootstrap = async (): Promise<void> => {
 
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: false }));
-  app.use(cookieParser(config.get('session.secret')));
+  app.use(cookieParser(config.get('secrets.wa.session-secret')));
   app.use(compression());
   app.use(express.static(path.join(__dirname, 'public')));
   app.use((req, res, next) => {

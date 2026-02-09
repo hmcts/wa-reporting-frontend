@@ -8,11 +8,11 @@ describe('AppSession module', () => {
 
   it('configures redis-backed sessions when redis is available', () => {
     const configValues: Record<string, unknown> = {
-      'session.secret': 'secret',
+      'secrets.wa.session-secret': 'secret',
       'session.appCookie.name': 'app-cookie',
-      'session.redis.host': 'redis-host',
-      'session.redis.port': 6379,
-      'session.redis.key': 'redis-key',
+      'secrets.wa.wa-reporting-redis-host': 'redis-host',
+      'secrets.wa.wa-reporting-redis-port': 6379,
+      'secrets.wa.wa-reporting-redis-access-key': 'redis-key',
     };
 
     const sessionMiddleware = jest.fn(() => 'session-middleware');
@@ -56,11 +56,11 @@ describe('AppSession module', () => {
 
   it('configures redis without tls when access key is not provided', () => {
     const configValues: Record<string, unknown> = {
-      'session.secret': 'secret',
+      'secrets.wa.session-secret': 'secret',
       'session.appCookie.name': 'app-cookie',
-      'session.redis.host': 'redis-host',
-      'session.redis.port': 6379,
-      'session.redis.key': '',
+      'secrets.wa.wa-reporting-redis-host': 'redis-host',
+      'secrets.wa.wa-reporting-redis-port': 6379,
+      'secrets.wa.wa-reporting-redis-access-key': '',
     };
 
     const sessionMiddleware = jest.fn(() => 'session-middleware');
@@ -102,11 +102,11 @@ describe('AppSession module', () => {
 
   it('falls back to file store when redis is missing', () => {
     const configValues: Record<string, unknown> = {
-      'session.secret': 'secret',
+      'secrets.wa.session-secret': 'secret',
       'session.appCookie.name': 'app-cookie',
-      'session.redis.host': undefined,
-      'session.redis.port': undefined,
-      'session.redis.key': undefined,
+      'secrets.wa.wa-reporting-redis-host': undefined,
+      'secrets.wa.wa-reporting-redis-port': undefined,
+      'secrets.wa.wa-reporting-redis-access-key': undefined,
     };
 
     const sessionMiddleware = jest.fn(() => 'session-middleware');
