@@ -5,14 +5,11 @@ import config = require('config');
 import type { Express, NextFunction, Request, Response } from 'express';
 
 import { HTTPError } from './HttpError';
-import { initializeTelemetry } from './modules/opentelemetry';
 
 const env = process.env.NODE_ENV || 'development';
 const developmentMode = env === 'development';
 const rebrandEnabled: boolean = config.get('govukFrontend.rebrandEnabled');
 const authEnabled: boolean = config.get('auth.enabled') ?? true;
-
-const telemetryInitialized = initializeTelemetry();
 
 const bodyParser = require('body-parser');
 const compression = require('compression');
@@ -20,7 +17,7 @@ const cookieParser = require('cookie-parser');
 const express = require('express') as typeof import('express');
 const RateLimit = require('express-rate-limit');
 const { glob } = require('glob');
-const { Logger } = require('@hmcts/nodejs-logging');
+const { Logger } = require('./modules/logging');
 const { Helmet } = require('./modules/helmet');
 const { Nunjucks } = require('./modules/nunjucks');
 const { OidcMiddleware } = require('./modules/oidc');
@@ -40,9 +37,6 @@ app.locals.ENV = env;
 app.set('trust proxy', 1);
 
 const logger = Logger.getLogger('app');
-if (telemetryInitialized) {
-  logger.info('OpenTelemetry initialized');
-}
 
 type RouteModule = { default?: (app: Express) => void };
 

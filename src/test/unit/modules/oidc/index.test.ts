@@ -51,7 +51,7 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
     createClient,
   }));
 
-  jest.doMock('@hmcts/nodejs-logging', () => ({
+  jest.doMock('../../../../main/modules/logging', () => ({
     Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
   }));
 

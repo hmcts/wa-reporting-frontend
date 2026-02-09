@@ -2,7 +2,7 @@ import config from 'config';
 import { Application } from 'express';
 import { createClient } from 'redis';
 
-const { Logger } = require('@hmcts/nodejs-logging');
+const { Logger } = require('../logging');
 
 const logger = Logger.getLogger('redis');
 

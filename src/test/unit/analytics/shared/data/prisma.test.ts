@@ -20,7 +20,7 @@ jest.mock('@prisma/client', () => ({
     raw: jest.fn(),
   },
 }));
-jest.mock('@hmcts/nodejs-logging', () => ({
+jest.mock('../../../../../main/modules/logging', () => ({
   Logger: {
     getLogger: jest.fn(() => ({ info: loggerInfoMock })),
   },

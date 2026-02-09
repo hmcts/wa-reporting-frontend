@@ -60,11 +60,12 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `useCSRFProtection` and `secrets.wa.csrf-cookie-secret`.
 - `security.referrerPolicy` and HSTS settings.
 - `logging.prismaQueryTimings`: enable query timing logs.
-- `secrets.wa.app-insights-connection-string` for Azure Application Insights (via OpenTelemetry).
+- `secrets.wa.app-insights-connection-string` for Azure Application Insights.
 
 ## Environment variables (selected)
 - `AUTH_ENABLED`
 - `APPLICATIONINSIGHTS_CONNECTION_STRING`
+- `OTEL_SERVICE_NAME` (set to `wa-reporting-frontend`)
 - `IDAM_CLIENT_ID`, `IDAM_CLIENT_SECRET`, `IDAM_CLIENT_SCOPE`
 - `IDAM_PUBLIC_URL`, `WA_BASE_URL`
 - `TM_DB_*`, `CRD_DB_*`, `LRD_DB_*`
@@ -101,5 +102,5 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 - When Redis is configured, `/health` includes a Redis ping check in both liveness and readiness.
 
 ### Logging and monitoring
-- Uses `@hmcts/nodejs-logging` for server logs.
-- Telemetry is exported via OpenTelemetry with the Azure Monitor exporter when `secrets.wa.app-insights-connection-string` is set; the service name sent to App Insights is `wa-reporting-frontend`.
+- Uses a local Winston 3 logger wrapper for server logs. `LOG_LEVEL` controls verbosity (default `info`), and `JSON_PRINT=true` enables JSON output.
+- OpenTelemetry (Azure Monitor) exports traces and logs to Application Insights when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set and `OTEL_SERVICE_NAME=wa-reporting-frontend` is provided.

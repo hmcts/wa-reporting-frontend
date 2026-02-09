@@ -1,63 +1,92 @@
-import { AzureMonitorOpenTelemetryOptions, useAzureMonitor } from '@azure/monitor-opentelemetry';
-import { ProxyTracerProvider, trace } from '@opentelemetry/api';
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
-import { WinstonInstrumentation } from '@opentelemetry/instrumentation-winston';
-import { resourceFromAttributes } from '@opentelemetry/resources';
-import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import config from 'config';
-import { IncomingMessage } from 'node:http';
-import { RequestOptions } from 'node:https';
 
-export const initializeTelemetry = (): boolean => {
-  const connectionString = config.get<string>('secrets.wa.app-insights-connection-string');
+import {
+  type AzureMonitorOpenTelemetryOptions,
+  shutdownAzureMonitor,
+  useAzureMonitor,
+} from '@azure/monitor-opentelemetry';
+import { type InstrumentationConfig, registerInstrumentations } from '@opentelemetry/instrumentation';
+import { ExpressInstrumentation, ExpressLayerType } from '@opentelemetry/instrumentation-express';
+
+export type OpenTelemetryHandle = {
+  enabled: boolean;
+  shutdown: () => Promise<void>;
+};
+
+let handle: OpenTelemetryHandle | null = null;
+
+const readConnectionString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const getConnectionString = (): string | undefined => {
+  const fromEnv = readConnectionString(process.env.APPLICATIONINSIGHTS_CONNECTION_STRING);
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  if (!config.has('secrets.wa.app-insights-connection-string')) {
+    return undefined;
+  }
+  const value = config.get<string | boolean>('secrets.wa.app-insights-connection-string');
+  return readConnectionString(value);
+};
+
+const tryRegisterExpressInstrumentation = (): void => {
+  try {
+    registerInstrumentations({
+      instrumentations: [
+        new ExpressInstrumentation({
+          ignoreLayersType: [ExpressLayerType.MIDDLEWARE, ExpressLayerType.ROUTER],
+        }),
+      ],
+    });
+  } catch (error) {
+    // Express instrumentation is optional; fall back to HTTP spans if it fails.
+    const message = error instanceof Error ? error.stack || error.message : String(error);
+    process.stderr.write(`OpenTelemetry Express instrumentation disabled: ${message}\n`);
+  }
+};
+
+export const initializeOpenTelemetry = (): OpenTelemetryHandle => {
+  if (handle) {
+    return handle;
+  }
+
+  const connectionString = getConnectionString();
   if (!connectionString) {
-    return false;
+    handle = {
+      enabled: false,
+      shutdown: async () => Promise.resolve(),
+    };
+    return handle;
   }
-  const globalState = globalThis as { __otelInitialized?: boolean };
-  if (globalState.__otelInitialized) {
-    return false;
-  }
-  globalState.__otelInitialized = true;
 
-  const httpInstrumentationConfig: HttpInstrumentationConfig = {
-    enabled: true,
-    ignoreIncomingRequestHook: (request: IncomingMessage) => {
-      if (request.method === 'OPTIONS') {
-        return true;
-      }
-      if (request.url?.match(/\/assets\/|\.js|\.css/)) {
-        return true;
-      }
-      return false;
-    },
-    ignoreOutgoingRequestHook: (options: RequestOptions) => options.path === '/health',
-  };
-
-  const resource = resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: 'wa-reporting-frontend',
-  });
+  process.env.APPLICATIONINSIGHTS_CONNECTION_STRING = connectionString;
+  process.env.OTEL_SERVICE_NAME = 'wa-reporting-frontend';
 
   const options: AzureMonitorOpenTelemetryOptions = {
-    azureMonitorExporterOptions: {
-      connectionString,
-    },
-    samplingRatio: 1.0,
-    resource,
+    azureMonitorExporterOptions: { connectionString },
+    samplingRatio: 1,
     instrumentationOptions: {
-      http: httpInstrumentationConfig,
-      azureSdk: { enabled: true },
+      http: { enabled: true },
+      postgreSql: { enabled: true, requireParentSpan: true } as InstrumentationConfig,
+      redis: { enabled: false },
+      winston: { enabled: true },
     },
   };
 
   useAzureMonitor(options);
+  tryRegisterExpressInstrumentation();
 
-  const tracerProvider = (trace.getTracerProvider() as ProxyTracerProvider).getDelegate();
-  registerInstrumentations({
-    instrumentations: [new ExpressInstrumentation(), new WinstonInstrumentation()],
-    tracerProvider,
-  });
+  handle = {
+    enabled: true,
+    shutdown: async () => shutdownAzureMonitor(),
+  };
 
-  return true;
+  return handle;
 };

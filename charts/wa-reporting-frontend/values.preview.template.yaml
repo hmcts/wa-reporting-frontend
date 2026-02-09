@@ -24,6 +24,7 @@ nodejs:
           alias: lrd-db-password
   environment:
     AUTH_ENABLED: false
+    OTEL_SERVICE_NAME: wa-reporting-frontend
     REDIS_HOST: ${SERVICE_NAME}-redis-master
 redis:
   enabled: true

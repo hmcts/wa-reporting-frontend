@@ -26,7 +26,7 @@ describe('AppSession module', () => {
     jest.doMock('express-session', () => sessionMiddleware);
     jest.doMock('connect-redis', () => ({ RedisStore: redisStore }));
     jest.doMock('redis', () => ({ createClient }));
-    jest.doMock('@hmcts/nodejs-logging', () => ({
+    jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
 
@@ -74,7 +74,7 @@ describe('AppSession module', () => {
     jest.doMock('express-session', () => sessionMiddleware);
     jest.doMock('connect-redis', () => ({ RedisStore: redisStore }));
     jest.doMock('redis', () => ({ createClient }));
-    jest.doMock('@hmcts/nodejs-logging', () => ({
+    jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
 

@@ -18,7 +18,6 @@ const buildAppModule = async (options: {
 
   const setupDev = jest.fn();
   const enableFor = jest.fn();
-  const initializeTelemetry = jest.fn();
   const appSessionEnableFor = jest.fn();
   const oidcEnableFor = jest.fn();
   const healthRoute = jest.fn();
@@ -52,14 +51,10 @@ const buildAppModule = async (options: {
 
   const logger = { error: jest.fn(), info: jest.fn() };
 
-  jest.doMock('@hmcts/nodejs-logging', () => ({
+  jest.doMock('../../../main/modules/logging', () => ({
     Logger: {
       getLogger: jest.fn(() => logger),
     },
-  }));
-
-  jest.doMock('../../../main/modules/opentelemetry', () => ({
-    initializeTelemetry,
   }));
 
   jest.doMock('../../../main/modules/helmet', () => ({
@@ -114,7 +109,6 @@ const buildAppModule = async (options: {
   return {
     app,
     setupDev,
-    initializeTelemetry,
     enableFor,
     logger,
     appSessionEnableFor,
@@ -188,20 +182,11 @@ describe('app bootstrap', () => {
   });
 
   it('initialises middleware, locals, and dev setup in development mode', async () => {
-    const {
-      app,
-      setupDev,
-      initializeTelemetry,
-      enableFor,
-      appSessionEnableFor,
-      oidcEnableFor,
-      healthRoute,
-      infoRoute,
-    } = await buildAppModule({ env: 'development', rebrandEnabled: true });
+    const { app, setupDev, enableFor, appSessionEnableFor, oidcEnableFor, healthRoute, infoRoute } =
+      await buildAppModule({ env: 'development', rebrandEnabled: true });
 
     expect(app.locals.ENV).toBe('development');
     expect(enableFor).toHaveBeenCalled();
-    expect(initializeTelemetry).toHaveBeenCalled();
     expect(appSessionEnableFor).toHaveBeenCalledWith(app);
     expect(oidcEnableFor).toHaveBeenCalledWith(app);
     expect(healthRoute).toHaveBeenCalledWith(app);

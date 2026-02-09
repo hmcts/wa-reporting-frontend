@@ -17,7 +17,7 @@ describe('redis module', () => {
 
     const createClient = jest.fn();
     jest.doMock('redis', () => ({ createClient }));
-    jest.doMock('@hmcts/nodejs-logging', () => ({
+    jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
 
@@ -48,7 +48,7 @@ describe('redis module', () => {
       get: jest.fn((key: string) => configValues[key]),
     }));
     jest.doMock('redis', () => ({ createClient }));
-    jest.doMock('@hmcts/nodejs-logging', () => ({
+    jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
 
@@ -93,7 +93,7 @@ describe('redis module', () => {
       get: jest.fn((key: string) => configValues[key]),
     }));
     jest.doMock('redis', () => ({ createClient }));
-    jest.doMock('@hmcts/nodejs-logging', () => ({
+    jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
 
@@ -125,7 +125,7 @@ describe('redis module', () => {
 
     const createClient = jest.fn();
     jest.doMock('redis', () => ({ createClient }));
-    jest.doMock('@hmcts/nodejs-logging', () => ({
+    jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
 

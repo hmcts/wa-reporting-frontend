@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import config from 'config';
 import { Pool } from 'pg';
 
-const { Logger } = require('@hmcts/nodejs-logging');
+const { Logger } = require('../../../logging');
 
 const logger = Logger.getLogger('db');
 
