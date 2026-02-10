@@ -60,10 +60,7 @@ function decorateNumericRows(
 }
 
 export class Nunjucks {
-  constructor(
-    public developmentMode: boolean,
-    private readonly rebrandEnabled = false
-  ) {
+  constructor(public developmentMode: boolean) {
     this.developmentMode = developmentMode;
   }
 
@@ -79,7 +76,6 @@ export class Nunjucks {
       express: app,
     });
 
-    nunjucksEnv.addGlobal('govukRebrand', this.rebrandEnabled);
     nunjucksEnv.addGlobal('manageCaseBaseUrl', config.get('analytics.manageCaseBaseUrl'));
     nunjucksEnv.addFilter('formatNumber', (value: unknown, options: Intl.NumberFormatOptions = {}) => {
       if (typeof value !== 'number') {

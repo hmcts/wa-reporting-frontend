@@ -3,12 +3,11 @@ import path from 'path';
 import type { Express, Request, Response } from 'express';
 const buildAppModule = async (options: {
   env?: string;
-  rebrandEnabled: boolean;
   authEnabled?: boolean;
   routePaths?: string[];
   routeMocks?: Record<string, jest.Mock>;
 }) => {
-  const { env, rebrandEnabled, authEnabled = true, routePaths = [], routeMocks = {} } = options;
+  const { env, authEnabled = true, routePaths = [], routeMocks = {} } = options;
 
   if (env === undefined) {
     delete process.env.NODE_ENV;
@@ -24,9 +23,6 @@ const buildAppModule = async (options: {
   const infoRoute = jest.fn();
 
   const configGet = jest.fn((key: string) => {
-    if (key === 'govukFrontend.rebrandEnabled') {
-      return rebrandEnabled;
-    }
     if (key === 'auth.enabled') {
       return authEnabled;
     }
@@ -183,7 +179,7 @@ describe('app bootstrap', () => {
 
   it('initialises middleware, locals, and dev setup in development mode', async () => {
     const { app, setupDev, enableFor, appSessionEnableFor, oidcEnableFor, healthRoute, infoRoute } =
-      await buildAppModule({ env: 'development', rebrandEnabled: true });
+      await buildAppModule({ env: 'development' });
 
     expect(app.locals.ENV).toBe('development');
     expect(enableFor).toHaveBeenCalled();
@@ -197,7 +193,6 @@ describe('app bootstrap', () => {
   it('uses production mode setup when NODE_ENV is not development', async () => {
     const { app, setupDev, appSessionEnableFor, oidcEnableFor } = await buildAppModule({
       env: 'production',
-      rebrandEnabled: false,
     });
 
     expect(app.locals.ENV).toBe('production');
@@ -209,45 +204,18 @@ describe('app bootstrap', () => {
   it('skips OIDC when auth is disabled', async () => {
     const { oidcEnableFor } = await buildAppModule({
       env: 'development',
-      rebrandEnabled: false,
       authEnabled: false,
     });
 
     expect(oidcEnableFor).not.toHaveBeenCalled();
   });
 
-  it('falls back to the default favicon when the rebrand favicon is missing', async () => {
-    const { app } = await buildAppModule({ env: 'development', rebrandEnabled: true });
+  it('serves the default favicon', async () => {
+    const { app } = await buildAppModule({ env: 'development' });
 
     const handler = getRouteHandler(app, '/favicon.ico');
-    const sendFile = jest
-      .fn()
-      .mockImplementationOnce((_: string, cb: (err?: Error) => void) => cb(new Error('missing')))
-      .mockImplementationOnce((_: string, cb?: (err?: Error) => void) => cb?.());
+    const sendFile = jest.fn();
 
-    const req = {} as Request;
-    const res = { sendFile } as unknown as Response;
-
-    handler(req, res);
-
-    expect(sendFile).toHaveBeenCalledTimes(2);
-    expect(sendFile.mock.calls[0][0]).toContain('rebrand');
-    expect(sendFile.mock.calls[1][0]).toContain('images/favicon.ico');
-  });
-
-  it('defaults NODE_ENV to development when unset', async () => {
-    const { app, setupDev } = await buildAppModule({ rebrandEnabled: false });
-
-    expect(app.locals.ENV).toBe('development');
-    expect(setupDev).toHaveBeenCalledWith(app, true);
-  });
-
-  it('does not fall back to the favicon when already using the default path', async () => {
-    const { app } = await buildAppModule({ env: 'development', rebrandEnabled: false });
-    const handler = getRouteHandler(app, '/favicon.ico');
-    const sendFile = jest
-      .fn()
-      .mockImplementationOnce((_: string, cb: (err?: Error) => void) => cb(new Error('missing')));
     const req = {} as Request;
     const res = { sendFile } as unknown as Response;
 
@@ -257,12 +225,18 @@ describe('app bootstrap', () => {
     expect(sendFile.mock.calls[0][0]).toContain('images/favicon.ico');
   });
 
+  it('defaults NODE_ENV to development when unset', async () => {
+    const { app, setupDev } = await buildAppModule({});
+
+    expect(app.locals.ENV).toBe('development');
+    expect(setupDev).toHaveBeenCalledWith(app, true);
+  });
+
   it('registers routes from glob and enables cache-control headers', async () => {
     const fakeRoutePath = path.join(process.cwd(), 'src/main/routes/__fake__.ts');
     const routeHandler = jest.fn();
     const { app, healthRoute, infoRoute, oidcEnableFor } = await buildAppModule({
       env: 'development',
-      rebrandEnabled: false,
       routePaths: [fakeRoutePath],
       routeMocks: { [fakeRoutePath]: routeHandler },
     });
@@ -281,7 +255,7 @@ describe('app bootstrap', () => {
   });
 
   it('renders not found for unmatched routes', async () => {
-    const { app } = await buildAppModule({ env: 'development', rebrandEnabled: false });
+    const { app } = await buildAppModule({ env: 'development' });
     const handler = getNotFoundHandler(app);
 
     const status = jest.fn().mockReturnThis();
@@ -296,7 +270,7 @@ describe('app bootstrap', () => {
   });
 
   it('renders error details in development mode', async () => {
-    const { app } = await buildAppModule({ env: 'development', rebrandEnabled: false });
+    const { app } = await buildAppModule({ env: 'development' });
     const handler = getErrorHandler(app);
 
     const err = { message: 'boom', status: 500, stack: 'trace' };
@@ -316,7 +290,7 @@ describe('app bootstrap', () => {
   });
 
   it('suppresses error details outside development mode', async () => {
-    const { app } = await buildAppModule({ env: 'production', rebrandEnabled: false });
+    const { app } = await buildAppModule({ env: 'production' });
     const handler = getErrorHandler(app);
 
     const err = { message: 'boom', status: 400, stack: 'trace' };
@@ -336,7 +310,7 @@ describe('app bootstrap', () => {
   });
 
   it('defaults error status to 500 when missing', async () => {
-    const { app } = await buildAppModule({ env: 'production', rebrandEnabled: false });
+    const { app } = await buildAppModule({ env: 'production' });
     const handler = getErrorHandler(app);
 
     const err = { message: 'boom', stack: 'trace' };
@@ -350,7 +324,7 @@ describe('app bootstrap', () => {
   });
 
   it('logs the raw error when no stack is provided', async () => {
-    const { app, logger } = await buildAppModule({ env: 'production', rebrandEnabled: false });
+    const { app, logger } = await buildAppModule({ env: 'production' });
     const handler = getErrorHandler(app);
 
     const err = { message: 'boom', status: 500 };
@@ -364,7 +338,7 @@ describe('app bootstrap', () => {
   });
 
   it('renders a forbidden summary without logging an error', async () => {
-    const { app, logger } = await buildAppModule({ env: 'production', rebrandEnabled: false });
+    const { app, logger } = await buildAppModule({ env: 'production' });
     const handler = getErrorHandler(app);
 
     const err = { message: 'nope', status: 403 };

@@ -8,7 +8,6 @@ import { HTTPError } from './HttpError';
 
 const env = process.env.NODE_ENV || 'development';
 const developmentMode = env === 'development';
-const rebrandEnabled: boolean = config.get('govukFrontend.rebrandEnabled');
 const authEnabled: boolean = config.get('auth.enabled') ?? true;
 
 const bodyParser = require('body-parser');
@@ -42,20 +41,15 @@ type RouteModule = { default?: (app: Express) => void };
 
 export const bootstrap = async (): Promise<void> => {
   new PropertiesVolume().enableFor(app);
-  new Nunjucks(developmentMode, rebrandEnabled).enableFor(app);
+  new Nunjucks(developmentMode).enableFor(app);
   // secure the application by adding various HTTP headers to its responses
   new Helmet(config.get('security')).enableFor(app);
 
   const assetsDirectory = path.join(__dirname, 'public', 'assets');
-  const faviconPath = path.join(assetsDirectory, rebrandEnabled ? 'rebrand/images/favicon.ico' : 'images/favicon.ico');
-  const fallbackFaviconPath = path.join(assetsDirectory, 'images/favicon.ico');
+  const faviconPath = path.join(assetsDirectory, 'images/favicon.ico');
 
   app.get('/favicon.ico', limiter, (req, res) => {
-    res.sendFile(faviconPath, err => {
-      if (err && faviconPath !== fallbackFaviconPath) {
-        res.sendFile(fallbackFaviconPath);
-      }
-    });
+    res.sendFile(faviconPath);
   });
 
   app.use(bodyParser.json());

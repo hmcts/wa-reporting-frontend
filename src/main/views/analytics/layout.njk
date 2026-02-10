@@ -1,12 +1,11 @@
 {% extends "layouts/main.njk" %}
 {% from "govuk/components/header/macro.njk" import govukHeader %}
 {% from "govuk/components/service-navigation/macro.njk" import govukServiceNavigation %}
-{% set _rebrand = govukRebrand() if govukRebrand is callable else govukRebrand %}
 
 {% block pageTitle %}Analytics{% endblock %}
 
 {% block header %}
-  {{ govukHeader({ rebrand: _rebrand }) }}
+  {{ govukHeader() }}
   {{ govukServiceNavigation({
     serviceName: "Task Management Report",
     serviceUrl: "/analytics",
