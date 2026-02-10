@@ -7,13 +7,9 @@ auth:
   enabled:
     __name: AUTH_ENABLED
     __format: boolean
-appInsights:
-  connectionString: APPLICATIONINSIGHTS_CONNECTION_STRING
-csrfCookieSecret: CSRF_COOKIE_SECRET
 services:
   idam:
     clientID: IDAM_CLIENT_ID
-    clientSecret: IDAM_CLIENT_SECRET
     scope: IDAM_CLIENT_SCOPE
     url:
       wa: WA_BASE_URL
@@ -22,8 +18,6 @@ database:
   tm:
     host: TM_DB_HOST
     port: TM_DB_PORT
-    user: TM_DB_USER
-    password: TM_DB_PASSWORD
     db_name: TM_DB_NAME
     schema: TM_DB_SCHEMA
     url: TM_DB_URL
@@ -31,28 +25,34 @@ database:
   crd:
     host: CRD_DB_HOST
     port: CRD_DB_PORT
-    user: CRD_DB_USER
-    password: CRD_DB_PASSWORD
     db_name: CRD_DB_NAME
     schema: CRD_DB_SCHEMA
     options: CRD_DB_OPTIONS
   lrd:
     host: LRD_DB_HOST
     port: LRD_DB_PORT
-    user: LRD_DB_USER
-    password: LRD_DB_PASSWORD
     db_name: LRD_DB_NAME
     schema: LRD_DB_SCHEMA
     options: LRD_DB_OPTIONS
 session:
-  secret: SESSION_SECRET
   cookie:
     name: SESSION_COOKIE_NAME
   appCookie:
     name: SESSION_APP_COOKIE_NAME
-  redis:
-    host: REDIS_HOST
-    port: REDIS_PORT
-    key: REDIS_KEY
 RBAC:
   access: RBAC_ACCESS
+secrets:
+  wa:
+    app-insights-connection-string: APPLICATIONINSIGHTS_CONNECTION_STRING
+    wa-reporting-redis-host: REDIS_HOST
+    wa-reporting-redis-port: REDIS_PORT
+    wa-reporting-redis-access-key: REDIS_KEY
+    idam-client-secret: IDAM_CLIENT_SECRET
+    session-secret: SESSION_SECRET
+    csrf-cookie-secret: CSRF_COOKIE_SECRET
+    tm-db-user: TM_DB_USER
+    tm-db-password: TM_DB_PASSWORD
+    crd-db-user: CRD_DB_USER
+    crd-db-password: CRD_DB_PASSWORD
+    lrd-db-user: LRD_DB_USER
+    lrd-db-password: LRD_DB_PASSWORD

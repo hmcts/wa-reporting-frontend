@@ -20,7 +20,7 @@ jest.mock('@prisma/client', () => ({
     raw: jest.fn(),
   },
 }));
-jest.mock('@hmcts/nodejs-logging', () => ({
+jest.mock('../../../../../main/modules/logging', () => ({
   Logger: {
     getLogger: jest.fn(() => ({ info: loggerInfoMock })),
   },
@@ -73,8 +73,8 @@ describe('analytics prisma configuration', () => {
     loadModule({
       'database.tm.host': 'localhost',
       'database.tm.port': 5432,
-      'database.tm.user': 'user',
-      'database.tm.password': 'p@ss',
+      'secrets.wa.tm-db-user': 'user',
+      'secrets.wa.tm-db-password': 'p@ss',
       'database.tm.db_name': 'tasks',
       'database.tm.schema': 'analytics',
     });
@@ -92,7 +92,7 @@ describe('analytics prisma configuration', () => {
   test('builds a URL without password or schema when omitted', () => {
     loadModule({
       'database.tm.host': 'db.host',
-      'database.tm.user': 'readonly',
+      'secrets.wa.tm-db-user': 'readonly',
       'database.tm.db_name': 'tasks',
     });
 
@@ -105,7 +105,7 @@ describe('analytics prisma configuration', () => {
   test('builds a URL with options when configured', () => {
     loadModule({
       'database.tm.host': 'db.host',
-      'database.tm.user': 'readonly',
+      'secrets.wa.tm-db-user': 'readonly',
       'database.tm.db_name': 'tasks',
       'database.tm.options': 'sslmode=require',
       'database.tm.schema': 'analytics',
@@ -161,7 +161,7 @@ describe('analytics prisma configuration', () => {
   test('returns undefined when config is incomplete', () => {
     loadModule({
       'database.tm.host': 'db.host',
-      'database.tm.user': 'readonly',
+      'secrets.wa.tm-db-user': 'readonly',
     });
 
     expect(PrismaClient).toHaveBeenNthCalledWith(1);

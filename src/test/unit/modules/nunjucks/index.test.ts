@@ -37,11 +37,10 @@ describe('Nunjucks module', () => {
 
     jest.isolateModules(() => {
       const { Nunjucks } = require('../../../../main/modules/nunjucks');
-      new Nunjucks(true, true).enableFor(app);
+      new Nunjucks(true).enableFor(app);
     });
 
     expect(app.set).toHaveBeenCalledWith('view engine', 'njk');
-    expect(env.addGlobal).toHaveBeenCalledWith('govukRebrand', true);
     expect(env.addGlobal).toHaveBeenCalledWith('manageCaseBaseUrl', 'http://manage-case');
 
     const formatNumber = filters.formatNumber;
@@ -97,7 +96,7 @@ describe('Nunjucks module', () => {
 
     jest.isolateModules(() => {
       const { Nunjucks } = require('../../../../main/modules/nunjucks');
-      new Nunjucks(false, false).enableFor(app);
+      new Nunjucks(false).enableFor(app);
     });
 
     const middleware = (app.use as jest.Mock).mock.calls.find(call => call[0].length === 3)?.[0];
@@ -121,24 +120,5 @@ describe('Nunjucks module', () => {
       const defaultRows = __testing.decorateNumericRows([[{ text: '2' }]]);
       expect(defaultRows[0][0].format).toBeUndefined();
     });
-  });
-
-  it('uses default rebrand option when not provided', () => {
-    const app = { set: jest.fn(), use: jest.fn() } as unknown as Express;
-
-    jest.doMock('nunjucks', () => ({
-      configure: jest.fn(() => ({ addGlobal: jest.fn(), addFilter: jest.fn() })),
-    }));
-
-    jest.doMock('config', () => ({
-      get: jest.fn(() => undefined),
-    }));
-
-    jest.isolateModules(() => {
-      const { Nunjucks } = require('../../../../main/modules/nunjucks');
-      new Nunjucks(false).enableFor(app);
-    });
-
-    expect(app.set).toHaveBeenCalledWith('view engine', 'njk');
   });
 });

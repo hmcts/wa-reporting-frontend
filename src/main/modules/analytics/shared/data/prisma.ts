@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import config from 'config';
 import { Pool } from 'pg';
 
-const { Logger } = require('@hmcts/nodejs-logging');
+const { Logger } = require('../../../logging');
 
 const logger = Logger.getLogger('db');
 
@@ -11,7 +11,8 @@ function getConfigValue<T>(path: string): T | undefined {
   return config.has(path) ? config.get<T>(path) : undefined;
 }
 
-function buildDatabaseUrlFromConfig(prefix: string): string | undefined {
+function buildDatabaseUrlFromConfig(key: string): string | undefined {
+  const prefix = `database.${key}`;
   const directUrl = getConfigValue<string>(`${prefix}.url`);
   if (directUrl) {
     return directUrl;
@@ -19,8 +20,8 @@ function buildDatabaseUrlFromConfig(prefix: string): string | undefined {
 
   const host = getConfigValue<string>(`${prefix}.host`);
   const port = getConfigValue<number | string>(`${prefix}.port`) ?? '5432';
-  const user = getConfigValue<string>(`${prefix}.user`);
-  const password = getConfigValue<string>(`${prefix}.password`);
+  const user = getConfigValue<string>(`secrets.wa.${key}-db-user`);
+  const password = getConfigValue<string>(`secrets.wa.${key}-db-password`);
   const database = getConfigValue<string>(`${prefix}.db_name`);
   const schema = getConfigValue<string>(`${prefix}.schema`);
   const options = getConfigValue<string>(`${prefix}.options`);
@@ -74,9 +75,9 @@ export function createPrismaClient(databaseUrl?: string): PrismaClient {
   return client;
 }
 
-const tmDatabaseUrl = buildDatabaseUrlFromConfig('database.tm');
-const crdDatabaseUrl = buildDatabaseUrlFromConfig('database.crd');
-const lrdDatabaseUrl = buildDatabaseUrlFromConfig('database.lrd');
+const tmDatabaseUrl = buildDatabaseUrlFromConfig('tm');
+const crdDatabaseUrl = buildDatabaseUrlFromConfig('crd');
+const lrdDatabaseUrl = buildDatabaseUrlFromConfig('lrd');
 
 export const tmPrisma = createPrismaClient(tmDatabaseUrl);
 export const crdPrisma = createPrismaClient(crdDatabaseUrl);

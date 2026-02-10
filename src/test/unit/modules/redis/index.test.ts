@@ -8,7 +8,7 @@ describe('redis module', () => {
 
   it('returns null when redis host is not configured', () => {
     const configValues: Record<string, unknown> = {
-      'session.redis.host': undefined,
+      'secrets.wa.wa-reporting-redis-host': undefined,
     };
 
     jest.doMock('config', () => ({
@@ -17,7 +17,7 @@ describe('redis module', () => {
 
     const createClient = jest.fn();
     jest.doMock('redis', () => ({ createClient }));
-    jest.doMock('@hmcts/nodejs-logging', () => ({
+    jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
 
@@ -34,9 +34,9 @@ describe('redis module', () => {
 
   it('creates and caches a redis client when host is configured', () => {
     const configValues: Record<string, unknown> = {
-      'session.redis.host': 'redis-host',
-      'session.redis.port': 6379,
-      'session.redis.key': 'redis-key',
+      'secrets.wa.wa-reporting-redis-host': 'redis-host',
+      'secrets.wa.wa-reporting-redis-port': 6379,
+      'secrets.wa.wa-reporting-redis-access-key': 'redis-key',
     };
 
     const connect = jest.fn().mockResolvedValue(undefined);
@@ -48,7 +48,7 @@ describe('redis module', () => {
       get: jest.fn((key: string) => configValues[key]),
     }));
     jest.doMock('redis', () => ({ createClient }));
-    jest.doMock('@hmcts/nodejs-logging', () => ({
+    jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
 
@@ -79,9 +79,9 @@ describe('redis module', () => {
 
   it('does not set tls when redis key is missing', () => {
     const configValues: Record<string, unknown> = {
-      'session.redis.host': 'redis-host',
-      'session.redis.port': 6379,
-      'session.redis.key': '',
+      'secrets.wa.wa-reporting-redis-host': 'redis-host',
+      'secrets.wa.wa-reporting-redis-port': 6379,
+      'secrets.wa.wa-reporting-redis-access-key': '',
     };
 
     const connect = jest.fn().mockResolvedValue(undefined);
@@ -93,7 +93,7 @@ describe('redis module', () => {
       get: jest.fn((key: string) => configValues[key]),
     }));
     jest.doMock('redis', () => ({ createClient }));
-    jest.doMock('@hmcts/nodejs-logging', () => ({
+    jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
 
@@ -116,7 +116,7 @@ describe('redis module', () => {
 
   it('reuses an existing redis client stored on app locals', () => {
     const configValues: Record<string, unknown> = {
-      'session.redis.host': 'redis-host',
+      'secrets.wa.wa-reporting-redis-host': 'redis-host',
     };
 
     jest.doMock('config', () => ({
@@ -125,7 +125,7 @@ describe('redis module', () => {
 
     const createClient = jest.fn();
     jest.doMock('redis', () => ({ createClient }));
-    jest.doMock('@hmcts/nodejs-logging', () => ({
+    jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
 
