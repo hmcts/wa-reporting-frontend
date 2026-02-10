@@ -71,7 +71,7 @@
       "wa-reporting-redis-host": "",
       "wa-reporting-redis-port": 6379,
       "wa-reporting-redis-access-key": "",
-      "idam-client-secret": "wa_reporting_frontend_secret",
+      "wa-reporting-frontend-client-secret": "wa_reporting_frontend_secret",
       "session-secret": "session-secret",
       "csrf-cookie-secret": "csrf-cookie-secret",
       "tm-db-user": "postgres",

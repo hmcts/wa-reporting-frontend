@@ -41,7 +41,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `services.idam.url.public`: IDAM base URL.
 - `services.idam.url.wa`: base URL of this application.
 - `RBAC.access`: required role for access.
-- `secrets.wa.idam-client-secret`: IDAM client secret.
+- `secrets.wa.wa-reporting-frontend-client-secret`: IDAM client secret.
 
 ### Session
 - `secrets.wa.session-secret`: session signing secret.
@@ -65,7 +65,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 ## Environment variables (selected)
 - `AUTH_ENABLED`
 - `APPLICATIONINSIGHTS_CONNECTION_STRING`
-- `IDAM_CLIENT_ID`, `IDAM_CLIENT_SECRET`, `IDAM_CLIENT_SCOPE`
+- `IDAM_CLIENT_ID`, `WA_REPORTING_FRONTEND_CLIENT_SECRET`, `IDAM_CLIENT_SCOPE`
 - `IDAM_PUBLIC_URL`, `WA_BASE_URL`
 - `TM_DB_*`, `CRD_DB_*`, `LRD_DB_*`
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_KEY`
