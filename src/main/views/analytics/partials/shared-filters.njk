@@ -74,6 +74,20 @@
       }) }}
     </div>
     <div class="govuk-grid-column-one-third">
+      {{ analyticsMultiSelect({
+        id: "workType",
+        name: "workType",
+        label: { text: "Work type", classes: "govuk-label--s" },
+        items: workTypeOptions | default([{ value: "", text: "All work types" }]),
+        values: filters.workType | default([]),
+        allText: "All",
+        search: { enabled: true, label: "Filter work types", placeholder: "Type to filter work types" }
+      }) }}
+    </div>
+  </div>
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-one-third">
       {% if showUserFilter %}
         {{ analyticsMultiSelect({
           id: "user",

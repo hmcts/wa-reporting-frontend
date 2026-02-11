@@ -34,6 +34,7 @@ The shared filter block appears on all dashboard pages. It provides multi-select
 - Region
 - Location
 - Task name
+- Work type
 - User (only on User overview)
 
 Behavior:
@@ -69,4 +70,3 @@ CSV export:
 ## Error and empty states
 - If a partial fails to load via AJAX, the UI falls back to a full page submission.
 - Certain sections show empty-state messages (for example, task audit without a case ID).
-

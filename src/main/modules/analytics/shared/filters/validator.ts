@@ -59,6 +59,7 @@ export function validateFilters(raw: Record<string, unknown>): FilterValidationR
     region: toOptionalStringArray(raw.region),
     location: toOptionalStringArray(raw.location),
     taskName: toOptionalStringArray(raw.taskName),
+    workType: toOptionalStringArray(raw.workType),
     user: toOptionalStringArray(raw.user),
   };
 

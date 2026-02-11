@@ -48,6 +48,7 @@ function mockAnalyticsRepositories(): void {
         regions: [],
         locations: [],
         taskNames: [],
+        workTypes: [],
         assignees: [],
       }),
       fetchOpenTasksCreatedByAssignmentRows: jest.fn().mockResolvedValue([]),

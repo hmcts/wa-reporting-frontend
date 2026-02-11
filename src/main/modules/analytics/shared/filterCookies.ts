@@ -4,10 +4,17 @@ import type { CookieOptions, Request, Response } from 'express';
 import { validateFilters } from './filters';
 import { AnalyticsFilters } from './types';
 
-type ArrayFilterKey = 'service' | 'roleCategory' | 'region' | 'location' | 'taskName' | 'user';
+type ArrayFilterKey = 'service' | 'roleCategory' | 'region' | 'location' | 'taskName' | 'workType' | 'user';
 type DateFilterKey = 'completedFrom' | 'completedTo' | 'eventsFrom' | 'eventsTo';
 
-export const BASE_FILTER_KEYS: ArrayFilterKey[] = ['service', 'roleCategory', 'region', 'location', 'taskName'];
+export const BASE_FILTER_KEYS: ArrayFilterKey[] = [
+  'service',
+  'roleCategory',
+  'region',
+  'location',
+  'taskName',
+  'workType',
+];
 
 const ARRAY_FILTER_KEYS: ArrayFilterKey[] = [...BASE_FILTER_KEYS, 'user'];
 const DATE_FILTER_KEYS: DateFilterKey[] = ['completedFrom', 'completedTo', 'eventsFrom', 'eventsTo'];
@@ -23,6 +30,7 @@ type CookiePayload = {
   r?: string[]; // region filter values
   l?: string[]; // location filter values
   t?: string[]; // task name filter values
+  wt?: string[]; // work type filter values
   u?: string[]; // user filter values
   cf?: string; // completed from date (YYYY-MM-DD)
   ct?: string; // completed to date (YYYY-MM-DD)
@@ -47,6 +55,7 @@ function buildPayload(filters: AnalyticsFilters): CookiePayload {
     r: filters.region && filters.region.length > 0 ? filters.region : undefined,
     l: filters.location && filters.location.length > 0 ? filters.location : undefined,
     t: filters.taskName && filters.taskName.length > 0 ? filters.taskName : undefined,
+    wt: filters.workType && filters.workType.length > 0 ? filters.workType : undefined,
     u: filters.user && filters.user.length > 0 ? filters.user : undefined,
     cf: toDateString(filters.completedFrom),
     ct: toDateString(filters.completedTo),
@@ -88,6 +97,7 @@ export function decodeFilterCookie(raw: string | undefined): AnalyticsFilters {
       region: payload.r,
       location: payload.l,
       taskName: payload.t,
+      workType: payload.wt,
       user: payload.u,
       completedFrom: payload.cf,
       completedTo: payload.ct,

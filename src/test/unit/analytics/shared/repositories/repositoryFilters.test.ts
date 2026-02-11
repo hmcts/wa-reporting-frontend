@@ -11,6 +11,7 @@ describe('buildAnalyticsWhere', () => {
         region: ['North'],
         location: ['Leeds'],
         taskName: ['Review'],
+        workType: ['Hearing'],
       },
       [Prisma.sql`date_role = 'due'`]
     );
@@ -20,6 +21,7 @@ describe('buildAnalyticsWhere', () => {
     expect(sql.sql).toContain('region');
     expect(sql.sql).toContain('location');
     expect(sql.sql).toContain('task_name');
+    expect(sql.sql).toContain('work_type');
   });
 
   test('returns empty when no conditions are provided', () => {

@@ -6,6 +6,7 @@ export function emptyOverviewFilterOptions(): FilterOptions {
     regions: [],
     locations: [],
     taskNames: [],
+    workTypes: [],
     users: [],
   };
 }

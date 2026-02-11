@@ -45,6 +45,7 @@ Required columns:
 - region
 - location
 - task_name
+- work_type
 - assignment_state (Assigned/Unassigned)
 - task_status (open/completed)
 - date_role (created/completed/cancelled/due)
@@ -67,6 +68,7 @@ Required columns:
 - case_type_label
 - jurisdiction_label
 - role_category_label
+- work_type
 - region
 - location
 - created_date
@@ -89,6 +91,7 @@ Used for user overview aggregated charts.
 Required columns:
 - completed_date
 - task_name
+- work_type
 - tasks
 - within_due
 - beyond_due
@@ -103,6 +106,7 @@ Used for open tasks by name and priority.
 
 Required columns:
 - task_name
+- work_type
 - priority_bucket (Urgent/High/Medium/Low)
 - task_count
 
@@ -112,6 +116,7 @@ Used for outstanding by region/location tables.
 Required columns:
 - region
 - location
+- work_type
 - priority_bucket (Urgent/High/Medium/Low)
 - task_count
 
@@ -120,6 +125,7 @@ Used for open tasks summary counts.
 
 Required columns:
 - state (ASSIGNED or not)
+- work_type
 - priority_bucket
 - task_count
 
@@ -128,6 +134,7 @@ Used for wait time by assigned date.
 
 Required columns:
 - reference_date
+- work_type
 - assigned_task_count
 - total_wait_time_days
 
@@ -165,6 +172,7 @@ The shared filter block maps UI filters to database columns in analytics views:
 - Region -> region
 - Location -> location
 - Task name -> task_name
+- Work type -> work_type
 - User -> assignee (only in user overview and related queries)
 
 Date filters:

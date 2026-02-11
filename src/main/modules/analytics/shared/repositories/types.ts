@@ -208,5 +208,6 @@ export type OverviewFilterOptionsRows = {
   regions: FilterValueRow[];
   locations: FilterValueRow[];
   taskNames: FilterValueRow[];
+  workTypes: FilterValueRow[];
   assignees: FilterValueRow[];
 };

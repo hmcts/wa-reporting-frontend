@@ -22,6 +22,7 @@ describe('Analytics user overview route', () => {
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('User overview');
+      expect(response.text).toContain('Work type');
       expect(response.text).toContain('data-module="moj-sortable-table"');
     });
 

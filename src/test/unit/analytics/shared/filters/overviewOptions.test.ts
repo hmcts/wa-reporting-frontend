@@ -8,6 +8,7 @@ describe('emptyOverviewFilterOptions', () => {
       regions: [],
       locations: [],
       taskNames: [],
+      workTypes: [],
       users: [],
     });
   });

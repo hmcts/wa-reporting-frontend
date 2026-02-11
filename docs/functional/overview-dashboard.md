@@ -7,7 +7,7 @@ Provide a high-level view of service performance, focusing on open and assigned 
 - `/analytics/overview`
 
 ## Filters
-- Shared filters: service, role category, region, location, task name.
+- Shared filters: service, role category, region, location, task name, work type.
 - Task events date range:
   - Events from (`eventsFrom`)
   - Events to (`eventsTo`)

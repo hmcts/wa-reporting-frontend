@@ -160,6 +160,7 @@ describe('buildOverviewPage', () => {
       regions: [],
       locations: [],
       taskNames: [],
+      workTypes: [],
       users: [],
     });
     (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-empty' });

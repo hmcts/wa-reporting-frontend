@@ -7,7 +7,7 @@ Provide analytics on completed tasks, compliance with due dates, and timing metr
 - `/analytics/completed`
 
 ## Filters
-- Shared filters: service, role category, region, location, task name.
+- Shared filters: service, role category, region, location, task name, work type.
 - Date range filters for completed tasks:
   - Completed from (`completedFrom`)
   - Completed to (`completedTo`)
