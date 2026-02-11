@@ -36,6 +36,11 @@ Use subagents to parallelise work that can be done independently, then consolida
 - Documentation sync tasks (e.g., one agent updates `docs/`, another updates code/tests to match).
 - Verification orchestration (e.g., if CI/tooling allows safe parallel runs, delegate lint/tests/build to separate agents and aggregate results).
 
+For verification after code changes, use subagents by default and run independent checks in parallel:
+
+- Spawn one subagent each for `yarn lint`, `yarn test:coverage`, `yarn test:routes`, and `yarn build`.
+- Run these checks in parallel unless a concrete dependency requires sequencing.
+
 ## Project Structure
 
 ```text
@@ -77,7 +82,7 @@ config/
 - When changing code or behavior, update the corresponding `docs/` files to keep the specifications in sync with the implementation.
 - For AJAX section refreshes (e.g., user overview sorting), follow the established pattern: add a `data-section` wrapper around the section partial, submit `ajaxSection` with `X-Requested-With: fetch`, render the specific partial in the controller when the header/section is present, and send URL-encoded form data (including `_csrf`) so `csurf` can validate it.
 - Add or update tests under `src/test/` following existing unit/functional/a11y/smoke patterns for the change. Branch and line coverage per file should be at least 95%.
-- Mandatory: the final step after any change is to run `yarn lint`, `yarn test:coverage`, `yarn test:routes` and `yarn build`; do not consider work complete unless all three pass and coverage for files modified as part of the task is above the mandated 95%.
+- Mandatory: the final step after any change is to run `yarn lint`, `yarn test:coverage`, `yarn test:routes` and `yarn build`; do not consider work complete unless all four pass and coverage for files modified as part of the task is above the mandated 95%.
 - Any changes which impact these Development Guidelines should be accompanied with changes to the Development Guidelines.
 
 # ExecPlans
