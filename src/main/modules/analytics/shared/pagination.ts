@@ -108,6 +108,7 @@ function buildAnalyticsQueryParams(filters: AnalyticsFilters, extraParams?: Reco
   appendArray(params, 'region', filters.region);
   appendArray(params, 'location', filters.location);
   appendArray(params, 'taskName', filters.taskName);
+  appendArray(params, 'workType', filters.workType);
   appendArray(params, 'user', filters.user);
   appendDate(params, 'completedFrom', filters.completedFrom);
   appendDate(params, 'completedTo', filters.completedTo);
