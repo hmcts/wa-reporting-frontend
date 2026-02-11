@@ -88,7 +88,7 @@ describe('analytics bootstrap', () => {
   test('runs DOMContentLoaded bootstrap without throwing', async () => {
     document.dispatchEvent(new Event('DOMContentLoaded'));
     await flushPromises();
-    expect(initMojAll).toHaveBeenCalled();
+    expect(initMojAll).not.toHaveBeenCalled();
     expect(renderCharts).toHaveBeenCalled();
     expect(initTableExports).toHaveBeenCalled();
     expect(initMojServerSorting).toHaveBeenCalledWith(expect.any(Function));
@@ -117,8 +117,12 @@ describe('analytics bootstrap', () => {
 
     await fetchSectionUpdateWithDeps(form, 'summary');
     expect(fetchSectionUpdate).toHaveBeenCalledWith(form, 'summary', expect.any(Object));
-    const deps = (fetchSectionUpdate as jest.Mock).mock.calls[0][2] as { initAll: typeof initAll };
+    const deps = (fetchSectionUpdate as jest.Mock).mock.calls[0][2] as {
+      initAll: typeof initAll;
+      initMojAll: typeof initMojAll;
+    };
     expect(deps.initAll).toBe(initAll);
+    expect(deps.initMojAll).toBe(initMojAll);
 
     await fetchSortedSectionWithDeps(form, 'assigned', 'section-id');
     expect(fetchSortedSection).toHaveBeenCalledWith(form, 'assigned', 'section-id', expect.any(Object));

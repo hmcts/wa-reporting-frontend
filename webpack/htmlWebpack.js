@@ -2,6 +2,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
 const cssPath = path.resolve(__dirname, '../src/main/views/webpack/css-template.njk');
 const jsPath = path.resolve(__dirname, '../src/main/views/webpack/js-template.njk');
+const analyticsJsPath = path.resolve(__dirname, '../src/main/views/webpack/analytics-js-template.njk');
 
 const cssWebPackPlugin = new HtmlWebpackPlugin({
   template: cssPath,
@@ -17,6 +18,13 @@ const jsWebPackPlugin = new HtmlWebpackPlugin({
   inject: false,
 });
 
+const analyticsJsWebPackPlugin = new HtmlWebpackPlugin({
+  template: analyticsJsPath,
+  publicPath: '/',
+  filename: analyticsJsPath.replace('-template', ''),
+  inject: false,
+});
+
 module.exports = {
-  plugins: [cssWebPackPlugin, jsWebPackPlugin],
+  plugins: [cssWebPackPlugin, jsWebPackPlugin, analyticsJsWebPackPlugin],
 };

@@ -40,3 +40,8 @@
 {% block content %}
   {% block analyticsContent %}{% endblock %}
 {% endblock %}
+
+{% block pageScripts %}
+  {{ super() }}
+  {% include "webpack/analytics-js.njk" %}
+{% endblock %}

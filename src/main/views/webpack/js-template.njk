@@ -1,3 +1,6 @@
 <% htmlWebpackPlugin.files.js.forEach(function(file) { %>
-<script src="/<%= file.substr(htmlWebpackPlugin.files.publicPath.length) %>"></script>
+<% const filename = file.substr(htmlWebpackPlugin.files.publicPath.length); %>
+<% if (/^main(\.|-).+\.js$/.test(filename)) { %>
+<script src="/<%= filename %>"></script>
+<% } %>
 <% }); %>
