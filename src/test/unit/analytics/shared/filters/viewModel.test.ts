@@ -32,6 +32,9 @@ describe('buildFilterOptionsViewModel', () => {
 
     expect(viewModel.regionOptions).toEqual([{ value: 'N', text: 'North' }]);
     expect(viewModel.locationOptions).toEqual([{ value: 'L', text: 'Leeds' }]);
-    expect(viewModel.workTypeOptions).toEqual([{ value: 'hearing-work-type', text: 'Hearing work' }]);
+    expect(viewModel.workTypeOptions).toEqual([
+      { value: '', text: 'All work types' },
+      { value: 'hearing-work-type', text: 'Hearing work' },
+    ]);
   });
 });

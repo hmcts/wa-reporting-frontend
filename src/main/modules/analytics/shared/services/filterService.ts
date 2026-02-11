@@ -96,10 +96,7 @@ class FilterService {
       regions: regionOptions,
       locations: locationOptions,
       taskNames: taskNames.map(row => row.value),
-      workTypes: [
-        { value: '', text: 'All work types' },
-        ...workTypes.map(row => ({ value: row.value, text: row.text })),
-      ],
+      workTypes: workTypes.map(row => ({ value: row.value, text: row.text })),
       users: userOptions,
     };
 

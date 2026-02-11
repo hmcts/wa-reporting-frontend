@@ -12,4 +12,22 @@ describe('buildSelectOptions', () => {
       { value: 'Beta', text: 'Beta' },
     ]);
   });
+
+  test('builds unique sorted options from SelectOption rows', () => {
+    const options = buildSelectOptions(
+      [
+        { value: 'id-b', text: 'Beta' },
+        { value: '', text: '(Blank)' },
+        { value: 'id-a', text: 'Alpha' },
+        { value: 'id-a', text: 'Alpha (duplicate)' },
+      ],
+      'work types'
+    );
+
+    expect(options).toEqual([
+      { value: '', text: 'All work types' },
+      { value: 'id-a', text: 'Alpha' },
+      { value: 'id-b', text: 'Beta' },
+    ]);
+  });
 });

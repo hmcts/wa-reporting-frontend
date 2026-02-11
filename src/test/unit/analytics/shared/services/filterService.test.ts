@@ -68,10 +68,7 @@ describe('filterService', () => {
     expect(result.services).toEqual(['Service A']);
     expect(result.roleCategories).toEqual(['Ops']);
     expect(result.taskNames).toEqual(['Review']);
-    expect(result.workTypes).toEqual([
-      { value: '', text: 'All work types' },
-      { value: 'hearing-work-type', text: 'Hearing work' },
-    ]);
+    expect(result.workTypes).toEqual([{ value: 'hearing-work-type', text: 'Hearing work' }]);
     expect(result.regions).toEqual([
       { value: '', text: 'All regions' },
       { value: '', text: '(Blank)' },
