@@ -10,7 +10,7 @@ type AuthOptions = {
 const buildOidc = (overrides: Record<string, unknown> = {}) => {
   const configValues: Record<string, unknown> = {
     'services.idam.clientID': 'client-id',
-    'secrets.wa.idam-client-secret': 'client-secret',
+    'secrets.wa.wa-reporting-frontend-client-secret': 'client-secret',
     'services.idam.scope': 'openid profile',
     'services.idam.url.wa': 'http://wa',
     'services.idam.url.public': 'http://idam',
