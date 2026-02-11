@@ -24,7 +24,7 @@ describe('buildFilterOptionsViewModel', () => {
         regions: [{ value: 'N', text: 'North' }],
         locations: [{ value: 'L', text: 'Leeds' }],
         taskNames: [],
-        workTypes: ['Hearing'],
+        workTypes: [{ value: 'hearing-work-type', text: 'Hearing work' }],
         users: [],
       },
       []
@@ -32,9 +32,6 @@ describe('buildFilterOptionsViewModel', () => {
 
     expect(viewModel.regionOptions).toEqual([{ value: 'N', text: 'North' }]);
     expect(viewModel.locationOptions).toEqual([{ value: 'L', text: 'Leeds' }]);
-    expect(viewModel.workTypeOptions).toEqual([
-      { value: '', text: 'All work types' },
-      { value: 'Hearing', text: 'Hearing' },
-    ]);
+    expect(viewModel.workTypeOptions).toEqual([{ value: 'hearing-work-type', text: 'Hearing work' }]);
   });
 });

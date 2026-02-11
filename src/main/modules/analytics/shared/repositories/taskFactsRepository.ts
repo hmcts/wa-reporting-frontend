@@ -15,6 +15,7 @@ import {
   CompletedSummaryRow,
   CompletedTimelineRow,
   FilterValueRow,
+  FilterValueWithTextRow,
   OverviewFilterOptionsRows,
   ServiceOverviewDbRow,
   TaskEventsByServiceDbRow,
@@ -114,11 +115,15 @@ export class TaskFactsRepository {
         WHERE task_name IS NOT NULL
         ORDER BY value
       `),
-      tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
-        SELECT DISTINCT work_type AS value
-        FROM analytics.mv_task_daily_facts
-        WHERE work_type IS NOT NULL
-        ORDER BY value
+      tmPrisma.$queryRaw<FilterValueWithTextRow[]>(Prisma.sql`
+        SELECT DISTINCT
+          facts.work_type AS value,
+          COALESCE(work_types.label, facts.work_type) AS text
+        FROM analytics.mv_task_daily_facts facts
+        LEFT JOIN cft_task_db.work_types work_types
+          ON work_types.work_type_id = facts.work_type
+        WHERE facts.work_type IS NOT NULL
+        ORDER BY text, value
       `),
       tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
         SELECT DISTINCT assignee AS value

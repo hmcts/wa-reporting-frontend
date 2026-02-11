@@ -175,6 +175,10 @@ The shared filter block maps UI filters to database columns in analytics views:
 - Work type -> work_type
 - User -> assignee (only in user overview and related queries)
 
+Work type display values:
+- The filter still submits `work_type` IDs for querying.
+- Dropdown labels are sourced from `cft_task_db.work_types.label` with fallback to the ID when no label is present.
+
 Date filters:
 - completedFrom/completedTo -> completed_date in mv_reportable_task_thin or reference_date in mv_task_daily_facts.
 - eventsFrom/eventsTo -> reference_date in mv_task_daily_facts for created/completed/cancelled events.

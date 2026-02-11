@@ -37,6 +37,7 @@ export function buildFilterOptionsViewModel(
       filterOptions.taskNames.length > 0 ? filterOptions.taskNames : allTasks.map(task => task.taskName),
       'task names'
     ),
-    workTypeOptions: buildSelectOptions(filterOptions.workTypes, 'work types'),
+    workTypeOptions:
+      filterOptions.workTypes.length > 0 ? filterOptions.workTypes : [{ value: '', text: 'All work types' }],
   };
 }

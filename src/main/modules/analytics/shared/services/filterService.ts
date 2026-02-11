@@ -11,7 +11,7 @@ export type FilterOptions = {
   regions: SelectOption[];
   locations: SelectOption[];
   taskNames: string[];
-  workTypes: string[];
+  workTypes: SelectOption[];
   users: SelectOption[];
 };
 
@@ -96,7 +96,10 @@ class FilterService {
       regions: regionOptions,
       locations: locationOptions,
       taskNames: taskNames.map(row => row.value),
-      workTypes: workTypes.map(row => row.value),
+      workTypes: [
+        { value: '', text: 'All work types' },
+        ...workTypes.map(row => ({ value: row.value, text: row.text })),
+      ],
       users: userOptions,
     };
 
