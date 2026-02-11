@@ -16,6 +16,7 @@ SELECT
   state,
   termination_reason,
   termination_process_label,
+  work_type,
   is_within_sla,
   created_date,
   due_date,
@@ -51,7 +52,7 @@ CREATE INDEX ix_thin_is_within_sla
   ON analytics.mv_reportable_task_thin(is_within_sla);
 
 CREATE INDEX ix_thin_slicers
-  ON analytics.mv_reportable_task_thin(jurisdiction_label, role_category_label, region, location, task_name);
+  ON analytics.mv_reportable_task_thin(jurisdiction_label, role_category_label, region, location, task_name, work_type);
 
 CREATE INDEX ix_thin_state
   ON analytics.mv_reportable_task_thin(state);
@@ -85,6 +86,7 @@ SELECT
   region,
   location,
   task_name,
+  work_type,
   completed_date::date AS completed_date,
   COUNT(*)::int AS tasks,
   SUM(CASE WHEN is_within_sla = 'Yes' THEN 1 ELSE 0 END)::int AS within_due,
@@ -109,6 +111,7 @@ GROUP BY
   region,
   location,
   task_name,
+  work_type,
   completed_date::date;
 
 CREATE UNIQUE INDEX ux_mv_user_completed_facts_key
@@ -119,6 +122,7 @@ CREATE UNIQUE INDEX ux_mv_user_completed_facts_key
     region,
     location,
     task_name,
+    work_type,
     completed_date
   );
 
@@ -129,7 +133,7 @@ CREATE INDEX ix_user_completed_assignee_task_name
   ON analytics.mv_user_completed_facts(assignee, task_name);
 
 CREATE INDEX ix_user_completed_slicers
-  ON analytics.mv_user_completed_facts(jurisdiction_label, role_category_label, region, location, task_name);
+  ON analytics.mv_user_completed_facts(jurisdiction_label, role_category_label, region, location, task_name, work_type);
 
 CREATE INDEX ix_user_completed_completed_date
   ON analytics.mv_user_completed_facts(completed_date);
@@ -144,6 +148,7 @@ WITH base AS (
     role_category_label,
     region,
     location,
+    work_type,
     major_priority AS priority,
     state,
     termination_reason,
@@ -171,6 +176,7 @@ SELECT
   region,
   location,
   task_name,
+  work_type,
 
   priority,
 
@@ -208,7 +214,7 @@ WHERE due_date IS NOT NULL
     OR (termination_reason = 'completed' AND state IN ('COMPLETED','TERMINATED'))
   )
 GROUP BY
-  1,2,3,4,5,6,7,8,9,10,11
+  1,2,3,4,5,6,7,8,9,10,11,12
 
 UNION ALL
 
@@ -222,6 +228,7 @@ SELECT
   region,
   location,
   task_name,
+  work_type,
 
   priority,
 
@@ -244,7 +251,7 @@ FROM base
 WHERE created_date IS NOT NULL
   AND state IN ('ASSIGNED','UNASSIGNED','PENDING AUTO ASSIGN','UNCONFIGURED')
 GROUP BY
-  1,2,3,4,5,6,7,8,9,10
+  1,2,3,4,5,6,7,8,9,10,11
 
 UNION ALL
 
@@ -258,6 +265,7 @@ SELECT
   region,
   location,
   task_name,
+  work_type,
 
   priority,
 
@@ -282,7 +290,7 @@ WHERE completed_date IS NOT NULL
   AND termination_reason = 'completed'
   AND state IN ('COMPLETED','TERMINATED')
 GROUP BY
-  1,2,3,4,5,6,7,8,9,10,11
+  1,2,3,4,5,6,7,8,9,10,11,12
 
 UNION ALL
 
@@ -296,6 +304,7 @@ SELECT
   region,
   location,
   task_name,
+  work_type,
 
   priority,
 
@@ -316,7 +325,7 @@ WHERE completed_date IS NOT NULL
   AND termination_reason = 'cancelled'
   AND state IN ('CANCELLED','TERMINATED')
 GROUP BY
-  1,2,3,4,5,6,7,8,9,10,11;
+  1,2,3,4,5,6,7,8,9,10,11,12;
 
 CREATE UNIQUE INDEX ux_mv_task_daily_facts_key
   ON analytics.mv_task_daily_facts(
@@ -327,6 +336,7 @@ CREATE UNIQUE INDEX ux_mv_task_daily_facts_key
     region,
     location,
     task_name,
+    work_type,
     priority,
     task_status,
     assignment_state,
@@ -356,7 +366,7 @@ CREATE INDEX ix_facts_created_open_date_assignment_cover
 
 CREATE INDEX ix_facts_slicers
   ON analytics.mv_task_daily_facts
-  (jurisdiction_label, role_category_label, region, location, task_name);
+  (jurisdiction_label, role_category_label, region, location, task_name, work_type);
 
 CREATE INDEX ix_facts_status
   ON analytics.mv_task_daily_facts(task_status);
@@ -379,6 +389,7 @@ SELECT
   region,
   location,
   task_name,
+  work_type,
   CASE
     WHEN due_date IS NULL THEN 'No due date'
     WHEN major_priority <= 2000 THEN 'Urgent'
@@ -396,6 +407,7 @@ GROUP BY
   region,
   location,
   task_name,
+  work_type,
   priority_bucket;
 
 CREATE UNIQUE INDEX ux_mv_open_tasks_by_name_key
@@ -405,11 +417,12 @@ CREATE UNIQUE INDEX ux_mv_open_tasks_by_name_key
     region,
     location,
     task_name,
+    work_type,
     priority_bucket
   );
 
 CREATE INDEX ix_open_tasks_by_name_slicers
-  ON analytics.mv_open_tasks_by_name(jurisdiction_label, role_category_label, region, location, task_name);
+  ON analytics.mv_open_tasks_by_name(jurisdiction_label, role_category_label, region, location, task_name, work_type);
 
 CREATE INDEX ix_open_tasks_by_name_priority
   ON analytics.mv_open_tasks_by_name(priority_bucket);
@@ -423,6 +436,7 @@ SELECT
   region,
   location,
   task_name,
+  work_type,
   CASE
     WHEN due_date IS NULL THEN 'No due date'
     WHEN major_priority <= 2000 THEN 'Urgent'
@@ -440,6 +454,7 @@ GROUP BY
   region,
   location,
   task_name,
+  work_type,
   priority_bucket;
 
 CREATE UNIQUE INDEX ux_mv_open_tasks_by_region_location_key
@@ -449,11 +464,12 @@ CREATE UNIQUE INDEX ux_mv_open_tasks_by_region_location_key
     region,
     location,
     task_name,
+    work_type,
     priority_bucket
   );
 
 CREATE INDEX ix_open_tasks_by_region_location_slicers
-  ON analytics.mv_open_tasks_by_region_location(jurisdiction_label, role_category_label, region, location, task_name);
+  ON analytics.mv_open_tasks_by_region_location(jurisdiction_label, role_category_label, region, location, task_name, work_type);
 
 CREATE INDEX ix_open_tasks_by_region_location_priority
   ON analytics.mv_open_tasks_by_region_location(priority_bucket);
@@ -467,6 +483,7 @@ SELECT
   region,
   location,
   task_name,
+  work_type,
   state,
   CASE
     WHEN due_date IS NULL THEN 'No due date'
@@ -485,6 +502,7 @@ GROUP BY
   region,
   location,
   task_name,
+  work_type,
   state,
   priority_bucket;
 
@@ -495,12 +513,13 @@ CREATE UNIQUE INDEX ux_mv_open_tasks_summary_key
     region,
     location,
     task_name,
+    work_type,
     state,
     priority_bucket
   );
 
 CREATE INDEX ix_open_tasks_summary_slicers
-  ON analytics.mv_open_tasks_summary(jurisdiction_label, role_category_label, region, location, task_name);
+  ON analytics.mv_open_tasks_summary(jurisdiction_label, role_category_label, region, location, task_name, work_type);
 
 CREATE INDEX ix_open_tasks_summary_state
   ON analytics.mv_open_tasks_summary(state);
@@ -517,6 +536,7 @@ SELECT
   region,
   location,
   task_name,
+  work_type,
   first_assigned_date AS reference_date,
   SUM(wait_time_days)::numeric AS total_wait_time_days,
   COUNT(*)::bigint AS assigned_task_count
@@ -528,6 +548,7 @@ GROUP BY
   region,
   location,
   task_name,
+  work_type,
   first_assigned_date;
 
 CREATE UNIQUE INDEX ux_mv_open_tasks_wait_time_by_assigned_date_key
@@ -537,11 +558,12 @@ CREATE UNIQUE INDEX ux_mv_open_tasks_wait_time_by_assigned_date_key
     region,
     location,
     task_name,
+    work_type,
     reference_date
   );
 
 CREATE INDEX ix_open_tasks_wait_time_slicers
-  ON analytics.mv_open_tasks_wait_time_by_assigned_date(jurisdiction_label, role_category_label, region, location, task_name);
+  ON analytics.mv_open_tasks_wait_time_by_assigned_date(jurisdiction_label, role_category_label, region, location, task_name, work_type);
 
 CREATE INDEX ix_open_tasks_wait_time_reference_date
   ON analytics.mv_open_tasks_wait_time_by_assigned_date(reference_date);

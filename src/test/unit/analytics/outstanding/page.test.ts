@@ -143,6 +143,7 @@ describe('buildOutstandingPage', () => {
       regions: [],
       locations: [],
       taskNames: [],
+      workTypes: [],
       users: [],
     });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ Leeds: 'Leeds Crown Court' });

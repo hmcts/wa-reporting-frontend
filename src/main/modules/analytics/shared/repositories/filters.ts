@@ -14,6 +14,7 @@ export function buildAnalyticsWhere(filters: AnalyticsFilters, baseConditions: P
     { column: 'region', values: filters.region },
     { column: 'location', values: filters.location },
     { column: 'task_name', values: filters.taskName },
+    { column: 'work_type', values: filters.workType },
   ];
 
   for (const { column, values } of filterMappings) {

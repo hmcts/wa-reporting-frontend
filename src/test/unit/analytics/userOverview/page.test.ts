@@ -166,6 +166,7 @@ describe('buildUserOverviewPage', () => {
       regions: [],
       locations: [],
       taskNames: [],
+      workTypes: [],
       users: [],
     });
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-full' });
@@ -221,6 +222,7 @@ describe('buildUserOverviewPage', () => {
       regions: [],
       locations: [],
       taskNames: [],
+      workTypes: [],
       users: [],
     });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
@@ -274,6 +276,7 @@ describe('buildUserOverviewPage', () => {
       regions: [],
       locations: [],
       taskNames: [],
+      workTypes: [],
       users: [],
     });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
@@ -350,6 +353,7 @@ describe('buildUserOverviewPage', () => {
       regions: [],
       locations: [],
       taskNames: [],
+      workTypes: [],
       users: [],
     });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});

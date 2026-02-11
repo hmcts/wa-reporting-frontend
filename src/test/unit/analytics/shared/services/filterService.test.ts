@@ -35,6 +35,7 @@ describe('filterService', () => {
       regions: [],
       locations: [],
       taskNames: [],
+      workTypes: [],
       users: [],
     });
 
@@ -52,6 +53,7 @@ describe('filterService', () => {
       regions: [{ value: '1' }, { value: '' }, { value: '99' }],
       locations: [{ value: '100' }, { value: '' }, { value: '999' }],
       taskNames: [{ value: 'Review' }],
+      workTypes: [{ value: 'hearing-work-type', text: 'Hearing work' }],
       assignees: [{ value: 'user-1' }, { value: 'user-2' }],
     });
     (regionService.fetchRegions as jest.Mock).mockResolvedValue([{ region_id: '1', description: 'North' }]);
@@ -66,6 +68,7 @@ describe('filterService', () => {
     expect(result.services).toEqual(['Service A']);
     expect(result.roleCategories).toEqual(['Ops']);
     expect(result.taskNames).toEqual(['Review']);
+    expect(result.workTypes).toEqual([{ value: 'hearing-work-type', text: 'Hearing work' }]);
     expect(result.regions).toEqual([
       { value: '', text: 'All regions' },
       { value: '', text: '(Blank)' },

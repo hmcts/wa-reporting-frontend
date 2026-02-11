@@ -202,11 +202,17 @@ export type FilterValueRow = {
   value: string;
 };
 
+export type FilterValueWithTextRow = {
+  value: string;
+  text: string;
+};
+
 export type OverviewFilterOptionsRows = {
   services: FilterValueRow[];
   roleCategories: FilterValueRow[];
   regions: FilterValueRow[];
   locations: FilterValueRow[];
   taskNames: FilterValueRow[];
+  workTypes: FilterValueWithTextRow[];
   assignees: FilterValueRow[];
 };

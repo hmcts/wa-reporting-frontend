@@ -15,6 +15,7 @@ import {
   CompletedSummaryRow,
   CompletedTimelineRow,
   FilterValueRow,
+  FilterValueWithTextRow,
   OverviewFilterOptionsRows,
   ServiceOverviewDbRow,
   TaskEventsByServiceDbRow,
@@ -83,7 +84,7 @@ export class TaskFactsRepository {
   }
 
   async fetchOverviewFilterOptionsRows(): Promise<OverviewFilterOptionsRows> {
-    const [services, roleCategories, regions, locations, taskNames, assignees] = await Promise.all([
+    const [services, roleCategories, regions, locations, taskNames, workTypes, assignees] = await Promise.all([
       tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
         SELECT DISTINCT jurisdiction_label AS value
         FROM analytics.mv_task_daily_facts
@@ -114,6 +115,16 @@ export class TaskFactsRepository {
         WHERE task_name IS NOT NULL
         ORDER BY value
       `),
+      tmPrisma.$queryRaw<FilterValueWithTextRow[]>(Prisma.sql`
+        SELECT DISTINCT
+          facts.work_type AS value,
+          COALESCE(work_types.label, facts.work_type) AS text
+        FROM analytics.mv_task_daily_facts facts
+        LEFT JOIN cft_task_db.work_types work_types
+          ON work_types.work_type_id = facts.work_type
+        WHERE facts.work_type IS NOT NULL
+        ORDER BY text, value
+      `),
       tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
         SELECT DISTINCT assignee AS value
         FROM analytics.mv_reportable_task_thin
@@ -122,7 +133,7 @@ export class TaskFactsRepository {
       `),
     ]);
 
-    return { services, roleCategories, regions, locations, taskNames, assignees };
+    return { services, roleCategories, regions, locations, taskNames, workTypes, assignees };
   }
 
   async fetchOpenTasksCreatedByAssignmentRows(filters: AnalyticsFilters): Promise<AssignmentRow[]> {

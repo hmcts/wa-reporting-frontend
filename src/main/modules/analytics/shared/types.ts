@@ -13,6 +13,7 @@ export interface AnalyticsFilters {
   region?: string[];
   location?: string[];
   taskName?: string[];
+  workType?: string[];
   user?: string[];
   completedFrom?: Date;
   completedTo?: Date;

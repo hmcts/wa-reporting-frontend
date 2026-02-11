@@ -5,6 +5,7 @@ describe('validateFilters', () => {
     const result = validateFilters({
       service: 'Probate ',
       roleCategory: 'Admin',
+      workType: ['Task'],
       completedFrom: '2024-01-01',
       completedTo: '2024-01-31',
     });
@@ -12,6 +13,7 @@ describe('validateFilters', () => {
     expect(result.errors).toHaveLength(0);
     expect(result.filters.service).toEqual(['Probate ']);
     expect(result.filters.roleCategory).toEqual(['Admin']);
+    expect(result.filters.workType).toEqual(['Task']);
     expect(result.filters.completedFrom).toBeInstanceOf(Date);
     expect(result.filters.completedTo).toBeInstanceOf(Date);
   });

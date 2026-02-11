@@ -64,6 +64,7 @@ describe('filterCookies', () => {
       region: ['South'],
       location: ['London'],
       taskName: ['Review'],
+      workType: ['Hearing'],
       user: ['user-1'],
     };
 
@@ -73,6 +74,7 @@ describe('filterCookies', () => {
     expect(decoded.region).toEqual(['South']);
     expect(decoded.location).toEqual(['London']);
     expect(decoded.taskName).toEqual(['Review']);
+    expect(decoded.workType).toEqual(['Hearing']);
     expect(decoded.user).toEqual(['user-1']);
   });
 

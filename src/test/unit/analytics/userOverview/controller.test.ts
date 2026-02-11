@@ -9,7 +9,7 @@ import { parseAssignedPage, parseCompletedPage } from '../../../../main/modules/
 
 jest.mock('../../../../main/modules/analytics/shared/filterCookies', () => ({
   applyFilterCookieFromConfig: jest.fn(),
-  BASE_FILTER_KEYS: ['service', 'roleCategory', 'region', 'location', 'taskName'],
+  BASE_FILTER_KEYS: ['service', 'roleCategory', 'region', 'location', 'taskName', 'workType'],
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/userOverviewSort', () => ({

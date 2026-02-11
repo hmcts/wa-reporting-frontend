@@ -3,7 +3,7 @@ import { buildFilterOptionsViewModel } from '../../../../../main/modules/analyti
 describe('buildFilterOptionsViewModel', () => {
   test('uses all tasks when filter options are empty', () => {
     const viewModel = buildFilterOptionsViewModel(
-      { services: [], roleCategories: [], regions: [], locations: [], taskNames: [], users: [] },
+      { services: [], roleCategories: [], regions: [], locations: [], taskNames: [], workTypes: [], users: [] },
       [
         { service: 'Service A', roleCategory: 'Ops', region: 'North', location: 'Leeds', taskName: 'Review' },
         { service: 'Service B', roleCategory: 'Admin', region: 'South', location: 'London', taskName: 'Approve' },
@@ -13,6 +13,7 @@ describe('buildFilterOptionsViewModel', () => {
     expect(viewModel.serviceOptions[0].text).toBe('All services');
     expect(viewModel.serviceOptions[1].value).toBe('Service A');
     expect(viewModel.roleCategoryOptions[1].value).toBe('Admin');
+    expect(viewModel.workTypeOptions).toEqual([{ value: '', text: 'All work types' }]);
   });
 
   test('uses provided region and location options when available', () => {
@@ -22,7 +23,8 @@ describe('buildFilterOptionsViewModel', () => {
         roleCategories: ['Ops'],
         regions: [{ value: 'N', text: 'North' }],
         locations: [{ value: 'L', text: 'Leeds' }],
-        taskNames: ['Review'],
+        taskNames: [],
+        workTypes: [{ value: 'hearing-work-type', text: 'Hearing work' }],
         users: [],
       },
       []
@@ -30,5 +32,9 @@ describe('buildFilterOptionsViewModel', () => {
 
     expect(viewModel.regionOptions).toEqual([{ value: 'N', text: 'North' }]);
     expect(viewModel.locationOptions).toEqual([{ value: 'L', text: 'Leeds' }]);
+    expect(viewModel.workTypeOptions).toEqual([
+      { value: '', text: 'All work types' },
+      { value: 'hearing-work-type', text: 'Hearing work' },
+    ]);
   });
 });

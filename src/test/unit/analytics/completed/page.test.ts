@@ -177,6 +177,7 @@ describe('buildCompletedPage', () => {
       regions: [],
       locations: [],
       taskNames: [],
+      workTypes: [],
       users: [],
     });
     (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-empty' });
@@ -224,6 +225,7 @@ describe('buildCompletedPage', () => {
       regions: [],
       locations: [],
       taskNames: [],
+      workTypes: [],
       users: [],
     });
     (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-unknown' });
