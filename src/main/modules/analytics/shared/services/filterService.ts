@@ -11,6 +11,7 @@ export type FilterOptions = {
   regions: SelectOption[];
   locations: SelectOption[];
   taskNames: string[];
+  workTypes: string[];
   users: SelectOption[];
 };
 
@@ -71,7 +72,7 @@ class FilterService {
       return cached;
     }
 
-    const { services, roleCategories, regions, locations, taskNames, assignees } =
+    const { services, roleCategories, regions, locations, taskNames, workTypes, assignees } =
       await taskFactsRepository.fetchOverviewFilterOptionsRows();
     const regionRecords = await regionService.fetchRegions();
     const courtVenues = await courtVenueService.fetchCourtVenues();
@@ -95,6 +96,7 @@ class FilterService {
       regions: regionOptions,
       locations: locationOptions,
       taskNames: taskNames.map(row => row.value),
+      workTypes: workTypes.map(row => row.value),
       users: userOptions,
     };
 
