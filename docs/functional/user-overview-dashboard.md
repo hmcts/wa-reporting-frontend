@@ -7,7 +7,7 @@ Provide a user-centric view of assigned and completed tasks, including complianc
 - `/analytics/users`
 
 ## Filters
-- Shared filters: service, role category, region, location, task name.
+- Shared filters: service, role category, region, location, task name, work type.
 - User filter (assignee).
 - Date range filters for completed tasks: completedFrom/completedTo.
 

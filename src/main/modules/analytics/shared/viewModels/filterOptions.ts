@@ -6,6 +6,7 @@ export type FilterOptionsViewModel = {
   regionOptions: SelectOption[];
   locationOptions: SelectOption[];
   taskNameOptions: SelectOption[];
+  workTypeOptions: SelectOption[];
   userOptions?: SelectOption[];
 };
 

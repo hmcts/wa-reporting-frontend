@@ -22,6 +22,7 @@ describe('Analytics completed routes', () => {
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('Completed tasks');
+      expect(response.text).toContain('Work type');
       expect(response.text).toContain('Processing and handling time');
       expect(response.text).toContain('data-module="moj-sortable-table"');
     });

@@ -7,7 +7,7 @@ Provide detail on tasks that are open or otherwise not completed, including prio
 - `/analytics/outstanding`
 
 ## Filters
-- Shared filters: service, role category, region, location, task name.
+- Shared filters: service, role category, region, location, task name, work type.
 - No date range filters on this page (other than due dates within the data itself).
 
 ## Sections and behaviors

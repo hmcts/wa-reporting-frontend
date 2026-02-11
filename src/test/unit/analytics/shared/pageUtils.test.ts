@@ -29,6 +29,7 @@ describe('pageUtils', () => {
       regions: [],
       locations: [],
       taskNames: [],
+      workTypes: [],
       users: [],
     });
 
@@ -49,6 +50,7 @@ describe('pageUtils', () => {
       regions: [],
       locations: [],
       taskNames: [],
+      workTypes: [],
       users: [],
     });
     expect(logDbError).toHaveBeenCalledWith('Failed', expect.any(Error));
