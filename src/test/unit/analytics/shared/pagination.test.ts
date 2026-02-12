@@ -18,7 +18,7 @@ describe('pagination helpers', () => {
   test('buildAnalyticsPaginationHref includes filters and extra params', () => {
     const href = buildAnalyticsPaginationHref({
       basePath: '/analytics/users',
-      filters: { service: ['Crime'], user: ['user-1'] },
+      filters: { service: ['Crime'], workType: ['hearing-work-type'], user: ['user-1'] },
       pageParam: 'assignedPage',
       page: 2,
       extraParams: { assignedSortBy: 'createdDate', assignedSortDir: 'asc' },
@@ -26,6 +26,7 @@ describe('pagination helpers', () => {
 
     expect(href).toContain('/analytics/users?');
     expect(href).toContain('service=Crime');
+    expect(href).toContain('workType=hearing-work-type');
     expect(href).toContain('user=user-1');
     expect(href).toContain('assignedSortBy=createdDate');
     expect(href).toContain('assignedSortDir=asc');
