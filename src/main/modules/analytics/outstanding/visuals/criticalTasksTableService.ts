@@ -1,5 +1,5 @@
 import { OutstandingSort } from '../../shared/outstandingSort';
-import { normalisePage } from '../../shared/pagination';
+import { getCappedTotalPages, normalisePage } from '../../shared/pagination';
 import { taskThinRepository } from '../../shared/repositories';
 import { caseWorkerProfileService } from '../../shared/services';
 import { AnalyticsFilters, CriticalTask } from '../../shared/types';
@@ -23,7 +23,7 @@ class CriticalTasksTableService {
       taskThinRepository.fetchOutstandingCriticalTaskCount(filters),
       caseWorkerProfileService.fetchCaseWorkerProfileNames(),
     ]);
-    const totalPages = Math.max(1, Math.ceil(totalResults / pageSize));
+    const totalPages = getCappedTotalPages(totalResults, pageSize);
     const currentPage = normalisePage(page, totalPages);
     if (totalResults === 0) {
       return { rows: [], totalResults, page: currentPage };

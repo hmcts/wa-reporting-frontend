@@ -183,6 +183,138 @@ describe('buildUserOverviewPage', () => {
     expect(viewModel).toEqual({ view: 'user-overview-full' });
   });
 
+  test('treats unknown ajax sections as full-page requests', async () => {
+    const sort = getDefaultUserOverviewSort();
+    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      users: [],
+    });
+    (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-unknown' });
+
+    const viewModel = await buildUserOverviewPage({}, sort, 1, 1, 'unknown-section');
+
+    expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).not.toHaveBeenCalled();
+    expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
+    expect(fetchFilterOptionsWithFallback).toHaveBeenCalled();
+    expect(viewModel).toEqual({ view: 'user-overview-unknown' });
+  });
+
+  test('supports legacy assigned ajax section alias', async () => {
+    const sort = getDefaultUserOverviewSort();
+    (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(1);
+    (taskThinRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue([]);
+    (userOverviewService.buildUserOverview as jest.Mock).mockReturnValue({
+      assigned: [],
+      completed: [],
+      prioritySummary: { urgent: 0, high: 0, medium: 0, low: 0 },
+      completedSummary: { total: 0, withinDueYes: 0, withinDueNo: 0 },
+      completedByDate: [],
+    });
+    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
+    (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
+    (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-assigned-alias' });
+
+    await buildUserOverviewPage({}, sort, 1, 1, 'assigned');
+
+    expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).toHaveBeenCalledWith({});
+    expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith({}, sort.assigned, {
+      page: 1,
+      pageSize: 500,
+    });
+    expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).not.toHaveBeenCalled();
+  });
+
+  test('supports legacy completed ajax section alias and clamps oversized pages', async () => {
+    const sort = getDefaultUserOverviewSort();
+    (taskThinRepository.fetchUserOverviewCompletedTaskCount as jest.Mock).mockResolvedValue(20000);
+    (taskThinRepository.fetchUserOverviewCompletedTaskRows as jest.Mock).mockResolvedValue([
+      {
+        case_id: 'CASE-2',
+        task_id: 'CASE-2',
+        task_name: 'Validate',
+        jurisdiction_label: 'Service B',
+        role_category_label: 'Ops',
+        region: 'South',
+        location: 'Leeds',
+        created_date: '2024-01-01',
+        first_assigned_date: '2024-01-02',
+        due_date: '2024-01-03',
+        completed_date: '2024-01-04',
+        handling_time_days: 2,
+        is_within_sla: 'Yes',
+        priority: 'high',
+        assignee: 'user-1',
+        number_of_reassignments: 0,
+      },
+    ]);
+    (taskThinRepository.fetchUserOverviewCompletedByDateRows as jest.Mock).mockResolvedValue([]);
+    (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock).mockResolvedValue({
+      total: 1,
+      within: 1,
+    });
+    (userOverviewService.buildUserOverview as jest.Mock).mockReturnValue({
+      assigned: [],
+      completed: [],
+      prioritySummary: { urgent: 0, high: 0, medium: 0, low: 0 },
+      completedSummary: { total: 0, withinDueYes: 0, withinDueNo: 0 },
+      completedByDate: [],
+    });
+    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
+    (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({
+      'user-1': 'Sam Taylor',
+    });
+    (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-completed-alias' });
+
+    await buildUserOverviewPage({}, sort, 1, 999, 'completed');
+
+    expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).toHaveBeenCalledWith({});
+    expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).toHaveBeenCalledWith({}, sort.completed, {
+      page: 10,
+      pageSize: 500,
+    });
+    expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        completedPage: 10,
+        completedTasks: [expect.objectContaining({ withinSla: true, status: 'completed' })],
+        completedComplianceSummary: { total: 1, withinDueYes: 1, withinDueNo: 0 },
+      })
+    );
+  });
+
+  test('clamps oversized assigned page requests to the 5,000-result window', async () => {
+    const sort = getDefaultUserOverviewSort();
+    (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(20000);
+    (taskThinRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue([]);
+    (userOverviewService.buildUserOverview as jest.Mock).mockReturnValue({
+      assigned: [],
+      completed: [],
+      prioritySummary: { urgent: 0, high: 0, medium: 0, low: 0 },
+      completedSummary: { total: 0, withinDueYes: 0, withinDueNo: 0 },
+      completedByDate: [],
+    });
+    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
+    (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
+    (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-clamped' });
+
+    await buildUserOverviewPage({}, sort, 999, 1, 'user-overview-assigned');
+
+    expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenNthCalledWith(1, {}, sort.assigned, {
+      page: 10,
+      pageSize: 500,
+    });
+    expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assignedPage: 10,
+        assignedTotalResults: 20000,
+      })
+    );
+  });
+
   test('maps optional fields when building tasks', async () => {
     const sort = getDefaultUserOverviewSort();
     const assignedRows = [

@@ -3,6 +3,8 @@ import {
   __testing,
   buildAnalyticsPaginationHref,
   buildPaginationMeta,
+  getCappedTotalPages,
+  getMaxPaginationPage,
   paginateRows,
   parsePageParam,
 } from '../../../../main/modules/analytics/shared/pagination';
@@ -90,6 +92,18 @@ describe('pagination helpers', () => {
 
     expect(pagination.totalResults).toBe(MAX_PAGINATION_RESULTS);
     expect(pagination.totalPages).toBe(10);
+  });
+
+  test('getCappedTotalPages applies MAX_PAGINATION_RESULTS cap', () => {
+    expect(getCappedTotalPages(MAX_PAGINATION_RESULTS + 1500, 500)).toBe(10);
+    expect(getCappedTotalPages(1500, 500)).toBe(3);
+    expect(getCappedTotalPages(0, 500)).toBe(1);
+  });
+
+  test('getMaxPaginationPage limits pages for a page size', () => {
+    expect(getMaxPaginationPage(500)).toBe(10);
+    expect(getMaxPaginationPage(1)).toBe(MAX_PAGINATION_RESULTS);
+    expect(getMaxPaginationPage(MAX_PAGINATION_RESULTS + 1)).toBe(1);
   });
 
   test('normalises pages and parses non-finite values', () => {
