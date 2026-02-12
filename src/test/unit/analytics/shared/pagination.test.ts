@@ -18,7 +18,7 @@ describe('pagination helpers', () => {
   test('buildAnalyticsPaginationHref includes filters and extra params', () => {
     const href = buildAnalyticsPaginationHref({
       basePath: '/users',
-      filters: { service: ['Crime'], user: ['user-1'] },
+      filters: { service: ['Crime'], workType: ['hearing-work-type'], user: ['user-1'] },
       pageParam: 'assignedPage',
       page: 2,
       extraParams: { assignedSortBy: 'createdDate', assignedSortDir: 'asc' },
