@@ -18,7 +18,7 @@ afterAll(() => {
 describe('Analytics user overview route', () => {
   describe('on GET', () => {
     test('should render the user overview page', async () => {
-      const response = await request(server).get('/analytics/users').expect(200);
+      const response = await request(server).get('/users').expect(200);
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('User overview');
@@ -28,7 +28,7 @@ describe('Analytics user overview route', () => {
 
     test('should render the assigned tasks partial for ajax requests', async () => {
       const response = await request(server)
-        .get('/analytics/users?ajaxSection=user-overview-assigned')
+        .get('/users?ajaxSection=user-overview-assigned')
         .set('X-Requested-With', 'fetch')
         .expect(200);
 
@@ -39,7 +39,7 @@ describe('Analytics user overview route', () => {
 
     test('should fall back to the full page when ajaxSection is unknown', async () => {
       const response = await request(server)
-        .get('/analytics/users?ajaxSection=unknown-section')
+        .get('/users?ajaxSection=unknown-section')
         .set('X-Requested-With', 'fetch')
         .expect(200);
 
@@ -50,21 +50,17 @@ describe('Analytics user overview route', () => {
 
   describe('on POST', () => {
     test('should reject requests without a CSRF token', async () => {
-      const response = await request(server).post('/analytics/users').type('form').send({ user: '123' });
+      const response = await request(server).post('/users').type('form').send({ user: '123' });
 
       expect(response.status).toBe(403);
     });
 
     test('should accept requests with a CSRF token', async () => {
       const agent = request.agent(server);
-      const tokenResponse = await agent.get('/analytics/users').expect(200);
+      const tokenResponse = await agent.get('/users').expect(200);
       const token = extractCsrfToken(tokenResponse.text);
 
-      const response = await agent
-        .post('/analytics/users')
-        .type('form')
-        .send({ _csrf: token, user: '123' })
-        .expect(200);
+      const response = await agent.post('/users').type('form').send({ _csrf: token, user: '123' }).expect(200);
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('User overview');

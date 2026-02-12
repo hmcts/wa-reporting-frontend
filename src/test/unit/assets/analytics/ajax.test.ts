@@ -39,7 +39,7 @@ describe('analytics ajax', () => {
   test('falls back to full submit when ajax requests fail', async () => {
     const form = document.createElement('form');
     form.dataset.ajaxSection = 'summary';
-    form.action = '/analytics/overview';
+    form.action = '/';
     const submitSpy = jest.spyOn(form, 'submit').mockImplementation(() => {});
     document.body.appendChild(form);
     const section = document.createElement('div');
@@ -57,7 +57,7 @@ describe('analytics ajax', () => {
   test('builds encoded bodies and paginates sections', async () => {
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = '/analytics/outstanding';
+    form.action = '/outstanding';
     const textInput = document.createElement('input');
     textInput.name = 'search';
     textInput.value = 'alpha';
@@ -116,7 +116,7 @@ describe('analytics ajax', () => {
 
   test('falls back when paginated updates fail', async () => {
     const form = document.createElement('form');
-    form.action = '/analytics/outstanding';
+    form.action = '/outstanding';
     form.method = 'POST';
     form.submit = jest.fn();
     document.body.appendChild(form);
@@ -178,7 +178,7 @@ describe('analytics ajax', () => {
     await fetchSortedSection(form, 'assigned', 'missing', ajaxDeps);
     expect(form.submit).toHaveBeenCalled();
 
-    form.action = '/analytics/users';
+    form.action = '/users';
     form.method = 'POST';
 
     const defaultSection = sortedSection;
@@ -209,7 +209,7 @@ describe('analytics ajax', () => {
   test('initialises ajax section filters and guards missing ids', async () => {
     const ajaxForm = document.createElement('form');
     ajaxForm.dataset.ajaxSection = 'completed-summary';
-    ajaxForm.action = '/analytics/completed';
+    ajaxForm.action = '/completed';
     document.body.appendChild(ajaxForm);
     const ajaxSection = document.createElement('div');
     ajaxSection.dataset.section = 'completed-summary';

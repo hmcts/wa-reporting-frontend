@@ -6,7 +6,7 @@ export class AnalyticsOutstandingPage {
   constructor(private readonly page: Page) {}
 
   async goto(): Promise<void> {
-    await this.page.goto(buildUrl('/analytics/outstanding'));
+    await this.page.goto(buildUrl('/outstanding'));
   }
 
   get heading(): Locator {

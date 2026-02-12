@@ -16,10 +16,6 @@ export function createAnalyticsRouter(): Router {
     next();
   });
 
-  router.get('/', (req: Request, res: Response) => {
-    res.render('analytics/index');
-  });
-
   overviewController.registerOverviewRoutes(router);
   outstandingController.registerOutstandingRoutes(router);
   completedController.registerCompletedRoutes(router);

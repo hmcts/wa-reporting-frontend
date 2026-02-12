@@ -3,7 +3,7 @@ export const setupAnalyticsDom = (): void => {
   window.localStorage.clear();
   window.sessionStorage.clear();
   jest.clearAllMocks();
-  history.pushState({}, '', '/analytics/completed');
+  history.pushState({}, '', '/completed');
   window.scrollTo = jest.fn();
   Object.defineProperty(window, 'scrollY', { value: 120, writable: true });
   window.requestAnimationFrame = jest.fn(callback => {

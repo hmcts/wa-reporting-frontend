@@ -18,7 +18,7 @@ afterAll(() => {
 describe('Analytics overview route', () => {
   describe('on GET', () => {
     test('should render the overview page', async () => {
-      const response = await request(server).get('/analytics/overview').expect(200);
+      const response = await request(server).get('/').expect(200);
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('Service performance overview');
@@ -29,7 +29,7 @@ describe('Analytics overview route', () => {
 
     test('should render the service performance partial for ajax requests', async () => {
       const response = await request(server)
-        .get('/analytics/overview?ajaxSection=overview-service-performance')
+        .get('/?ajaxSection=overview-service-performance')
         .set('X-Requested-With', 'fetch')
         .expect(200);
 
@@ -40,7 +40,7 @@ describe('Analytics overview route', () => {
 
     test('should fall back to the full page when ajaxSection is unknown', async () => {
       const response = await request(server)
-        .get('/analytics/overview?ajaxSection=unknown-section')
+        .get('/?ajaxSection=unknown-section')
         .set('X-Requested-With', 'fetch')
         .expect(200);
 
@@ -51,21 +51,17 @@ describe('Analytics overview route', () => {
 
   describe('on POST', () => {
     test('should reject requests without a CSRF token', async () => {
-      const response = await request(server).post('/analytics/overview').type('form').send({ service: 'Tribunal' });
+      const response = await request(server).post('/').type('form').send({ service: 'Tribunal' });
 
       expect(response.status).toBe(403);
     });
 
     test('should accept requests with a CSRF token and set the filter cookie', async () => {
       const agent = request.agent(server);
-      const tokenResponse = await agent.get('/analytics/overview').expect(200);
+      const tokenResponse = await agent.get('/').expect(200);
       const token = extractCsrfToken(tokenResponse.text);
 
-      const response = await agent
-        .post('/analytics/overview')
-        .type('form')
-        .send({ _csrf: token, service: 'Tribunal' })
-        .expect(200);
+      const response = await agent.post('/').type('form').send({ _csrf: token, service: 'Tribunal' }).expect(200);
 
       const cookieName = getFilterCookieName();
       const rawCookies = response.headers['set-cookie'];
@@ -75,11 +71,11 @@ describe('Analytics overview route', () => {
 
     test('should render the service performance partial for ajax requests', async () => {
       const agent = request.agent(server);
-      const tokenResponse = await agent.get('/analytics/overview').expect(200);
+      const tokenResponse = await agent.get('/').expect(200);
       const token = extractCsrfToken(tokenResponse.text);
 
       const response = await agent
-        .post('/analytics/overview')
+        .post('/')
         .set('X-Requested-With', 'fetch')
         .type('form')
         .send({ _csrf: token, ajaxSection: 'overview-service-performance' })
@@ -105,7 +101,7 @@ describe('Analytics overview route with authentication enabled', () => {
   });
 
   test('should forbid unauthenticated access', async () => {
-    const response = await request(authServer).get('/analytics/overview').expect(403);
+    const response = await request(authServer).get('/').expect(403);
 
     expect(response.headers['content-type']).toContain('text/html');
     expect(response.text).toContain('Sorry, access to this resource is forbidden');

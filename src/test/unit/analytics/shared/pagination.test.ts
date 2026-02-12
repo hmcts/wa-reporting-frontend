@@ -17,14 +17,14 @@ describe('pagination helpers', () => {
 
   test('buildAnalyticsPaginationHref includes filters and extra params', () => {
     const href = buildAnalyticsPaginationHref({
-      basePath: '/analytics/users',
+      basePath: '/users',
       filters: { service: ['Crime'], workType: ['hearing-work-type'], user: ['user-1'] },
       pageParam: 'assignedPage',
       page: 2,
       extraParams: { assignedSortBy: 'createdDate', assignedSortDir: 'asc' },
     });
 
-    expect(href).toContain('/analytics/users?');
+    expect(href).toContain('/users?');
     expect(href).toContain('service=Crime');
     expect(href).toContain('workType=hearing-work-type');
     expect(href).toContain('user=user-1');
@@ -35,7 +35,7 @@ describe('pagination helpers', () => {
 
   test('buildAnalyticsPaginationHref skips empty filters and optional extras', () => {
     const href = buildAnalyticsPaginationHref({
-      basePath: '/analytics',
+      basePath: '/',
       filters: { service: [' ', 'Crime'], user: [''] },
       pageParam: 'page',
       page: 1,

@@ -49,6 +49,6 @@ Two session mechanisms are used:
 ## Cookies and filter persistence
 - Analytics filters are stored in a signed cookie:
   - Name: `analytics.filtersCookieName` (default `wa-reporting-analytics-filters`).
-  - Path: `/analytics`.
+  - Path: `/`.
   - Max age: `analytics.filtersCookieMaxAgeDays`.
 - The cookie is cleared on filter reset or when the filter payload exceeds size limits.

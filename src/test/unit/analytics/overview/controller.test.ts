@@ -42,8 +42,8 @@ describe('overviewController', () => {
 
     overviewController.registerOverviewRoutes(router);
 
-    expect(router.get).toHaveBeenCalledWith('/overview', expect.any(Function));
-    expect(router.post).toHaveBeenCalledWith('/overview', expect.any(Function));
+    expect(router.get).toHaveBeenCalledWith('/', expect.any(Function));
+    expect(router.post).toHaveBeenCalledWith('/', expect.any(Function));
 
     const handler = (router.get as jest.Mock).mock.calls[0][1];
     await handler(req, res);

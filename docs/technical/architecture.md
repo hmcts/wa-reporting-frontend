@@ -32,18 +32,17 @@ flowchart TB
 2. Health (`/health`) and info (`/info`) endpoints are registered.
 3. Session middleware is initialized (AppSession).
 4. Optional OIDC middleware enforces authentication and RBAC access role.
-5. Analytics routes are registered on both `/` and `/analytics`.
+5. Analytics routes are registered on `/`.
 6. Requests are rendered via Nunjucks templates.
 7. Errors are handled with GOV.UK-friendly error pages.
 
 ## Routing
-- `src/main/routes/index.ts` registers analytics router at `/` and `/analytics`.
+- `src/main/routes/index.ts` registers analytics router at `/`.
 - Analytics router (`src/main/modules/analytics/index.ts`) defines:
-  - `/analytics` landing page
-  - `/analytics/overview`
-  - `/analytics/outstanding`
-  - `/analytics/completed`
-  - `/analytics/users`
+  - `/` (Overview)
+  - `/outstanding`
+  - `/completed`
+  - `/users`
 - Health endpoint: `/health`.
 - Info endpoint: `/info`.
 
