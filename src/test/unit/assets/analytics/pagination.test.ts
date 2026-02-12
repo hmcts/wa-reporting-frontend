@@ -49,7 +49,7 @@ describe('analytics pagination', () => {
 
     const pagination = document.createElement('nav');
     pagination.dataset.criticalTasksPagination = 'true';
-    pagination.innerHTML = '<a href="/analytics/outstanding?criticalTasksPage=2">Page 2</a>';
+    pagination.innerHTML = '<a href="/outstanding?criticalTasksPage=2">Page 2</a>';
     document.body.appendChild(pagination);
 
     global.fetch = jest.fn().mockResolvedValue({
@@ -66,7 +66,7 @@ describe('analytics pagination', () => {
 
     const userPagination = document.createElement('nav');
     userPagination.dataset.userOverviewPagination = 'completed';
-    userPagination.innerHTML = '<a href="/analytics/users?completedPage=3">Page 3</a>';
+    userPagination.innerHTML = '<a href="/users?completedPage=3">Page 3</a>';
     document.body.appendChild(userPagination);
 
     initUserOverviewPagination(fetchPaginatedSectionWithDeps);
@@ -79,7 +79,7 @@ describe('analytics pagination', () => {
     expect(initAll).toHaveBeenCalledWith({ scope: userSection });
     expect(initMojAll).toHaveBeenCalledWith({ scope: userSection });
 
-    expect(getPaginationParamFromHref('/analytics/outstanding?criticalTasksPage=2', 'criticalTasksPage')).toBe('2');
+    expect(getPaginationParamFromHref('/outstanding?criticalTasksPage=2', 'criticalTasksPage')).toBe('2');
     expect(getPaginationParamFromHref('http://[invalid', 'criticalTasksPage')).toBeNull();
   });
 
@@ -92,7 +92,7 @@ describe('analytics pagination', () => {
 
     const missingPageLink = document.createElement('nav');
     missingPageLink.dataset.criticalTasksPagination = 'true';
-    missingPageLink.innerHTML = '<a href="/analytics/outstanding">Page</a>';
+    missingPageLink.innerHTML = '<a href="/outstanding">Page</a>';
     document.body.appendChild(missingPageLink);
     initCriticalTasksPagination(fetchPaginatedSectionWithDeps);
     missingPageLink.querySelector('a')?.addEventListener('click', event => event.preventDefault());
@@ -100,7 +100,7 @@ describe('analytics pagination', () => {
 
     const missingFormPagination = document.createElement('nav');
     missingFormPagination.dataset.criticalTasksPagination = 'true';
-    missingFormPagination.innerHTML = '<a href="/analytics/outstanding?criticalTasksPage=2">Page</a>';
+    missingFormPagination.innerHTML = '<a href="/outstanding?criticalTasksPage=2">Page</a>';
     document.body.appendChild(missingFormPagination);
     initCriticalTasksPagination(fetchPaginatedSectionWithDeps);
     missingFormPagination.querySelector('a')?.addEventListener('click', event => event.preventDefault());
@@ -115,7 +115,7 @@ describe('analytics pagination', () => {
 
     const missingPage = document.createElement('nav');
     missingPage.dataset.userOverviewPagination = 'assigned';
-    missingPage.innerHTML = '<a href="/analytics/users">Page</a>';
+    missingPage.innerHTML = '<a href="/users">Page</a>';
     document.body.appendChild(missingPage);
     initUserOverviewPagination(fetchPaginatedSectionWithDeps);
     missingPage.querySelector('a')?.addEventListener('click', event => event.preventDefault());
@@ -123,7 +123,7 @@ describe('analytics pagination', () => {
 
     const missingForm = document.createElement('nav');
     missingForm.dataset.userOverviewPagination = 'completed';
-    missingForm.innerHTML = '<a href="/analytics/users?completedPage=2">Page</a>';
+    missingForm.innerHTML = '<a href="/users?completedPage=2">Page</a>';
     document.body.appendChild(missingForm);
     initUserOverviewPagination(fetchPaginatedSectionWithDeps);
     missingForm.querySelector('a')?.addEventListener('click', event => event.preventDefault());

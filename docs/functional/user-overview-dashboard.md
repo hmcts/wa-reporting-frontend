@@ -4,7 +4,7 @@
 Provide a user-centric view of assigned and completed tasks, including compliance and performance metrics.
 
 ## URL
-- `/analytics/users`
+- `/users`
 
 ## Filters
 - Shared filters: service, role category, region, location, task name, work type.

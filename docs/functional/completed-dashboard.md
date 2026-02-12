@@ -4,7 +4,7 @@
 Provide analytics on completed tasks, compliance with due dates, and timing metrics.
 
 ## URL
-- `/analytics/completed`
+- `/completed`
 
 ## Filters
 - Shared filters: service, role category, region, location, task name, work type.

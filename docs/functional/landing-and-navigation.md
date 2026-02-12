@@ -1,19 +1,14 @@
 # Functional specification: Landing and navigation
 
-## Analytics landing page
-URL: `/` and `/analytics`
+## Analytics default page
+URL: `/`
 
 Purpose:
-- Provide a simple entry point listing the available dashboards.
+- Provide the default Overview dashboard as the analytics entry point.
 
 Content:
-- Page title: "Analytics".
-- Intro copy: "Select a dashboard to view task analytics."
-- Links:
-  - Overview (`/analytics/overview`)
-  - Tasks outstanding (`/analytics/outstanding`)
-  - Tasks completed (`/analytics/completed`)
-  - User overview (`/analytics/users`)
+- Page title: "Service performance overview".
+- Shows the Overview dashboard sections directly.
 
 ## Global navigation
 All analytics pages share a common header and service navigation (GOV.UK header + service nav).

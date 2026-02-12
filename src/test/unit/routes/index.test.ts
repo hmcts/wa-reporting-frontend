@@ -6,7 +6,7 @@ describe('routes/index', () => {
     jest.clearAllMocks();
   });
 
-  it('registers analytics router on base paths', () => {
+  it('registers analytics router on base path', () => {
     const createAnalyticsRouter = jest.fn(() => 'router');
     const app = { use: jest.fn() } as unknown as Application;
 
@@ -19,8 +19,7 @@ describe('routes/index', () => {
       registerRoutes(app);
     });
 
-    expect(createAnalyticsRouter).toHaveBeenCalledTimes(2);
+    expect(createAnalyticsRouter).toHaveBeenCalledTimes(1);
     expect(app.use).toHaveBeenCalledWith('/', 'router');
-    expect(app.use).toHaveBeenCalledWith('/analytics', 'router');
   });
 });

@@ -75,11 +75,11 @@ describe('Nunjucks module', () => {
     expect(undecorated[0][1].format).toBe('text');
 
     const middleware = (app.use as jest.Mock).mock.calls.find(call => call[0].length === 3)?.[0];
-    const req = { path: '/analytics', originalUrl: '/analytics?service=Crime' } as Request;
+    const req = { path: '/', originalUrl: '/?service=Crime' } as Request;
     const res = { locals: {} } as Response;
     middleware(req, res, jest.fn());
 
-    expect(res.locals.pagePath).toBe('/analytics');
+    expect(res.locals.pagePath).toBe('/');
   });
 
   it('does not require query string handling', () => {
@@ -100,11 +100,11 @@ describe('Nunjucks module', () => {
     });
 
     const middleware = (app.use as jest.Mock).mock.calls.find(call => call[0].length === 3)?.[0];
-    const req = { path: '/analytics', originalUrl: '/analytics' } as Request;
+    const req = { path: '/', originalUrl: '/' } as Request;
     const res = { locals: {} } as Response;
     middleware(req, res, jest.fn());
 
-    expect(res.locals.pagePath).toBe('/analytics');
+    expect(res.locals.pagePath).toBe('/');
   });
 
   it('covers internal helpers for class and numeric decoration', () => {

@@ -35,7 +35,7 @@ describe('criticalTasksPagination', () => {
       sort: { by: 'dueDate', dir: 'asc' },
       page: 2,
       pageSize: CRITICAL_TASKS_PAGE_SIZE,
-      basePath: '/analytics/outstanding',
+      basePath: '/outstanding',
     });
 
     expect(pagedTasks).toHaveLength(500);
