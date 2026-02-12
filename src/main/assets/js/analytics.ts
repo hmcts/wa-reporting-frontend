@@ -58,7 +58,6 @@ const fetchPaginatedSectionWithDeps = (
 
 document.addEventListener('DOMContentLoaded', () => {
   renderCharts();
-  initMojAll();
   initTableExports();
   initMojServerSorting(fetchSortedSectionWithDeps);
   initMojTotalsRowPinning();
