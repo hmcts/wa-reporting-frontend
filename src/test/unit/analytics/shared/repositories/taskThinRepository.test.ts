@@ -175,4 +175,17 @@ describe('taskThinRepository', () => {
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();
   });
+
+  test('caps LIMIT/OFFSET values for oversized pagination requests', async () => {
+    const sort = getDefaultOutstandingSort().criticalTasks;
+
+    await taskThinRepository.fetchOutstandingCriticalTaskRows({}, sort, { page: 999, pageSize: 500 });
+    const firstQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
+    expect(firstQuery.values.slice(-2)).toEqual([500, 4500]);
+
+    (tmPrisma.$queryRaw as jest.Mock).mockClear();
+    await taskThinRepository.fetchOutstandingCriticalTaskRows({}, sort, { page: 2, pageSize: 9000 });
+    const secondQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
+    expect(secondQuery.values.slice(-2)).toEqual([5000, 0]);
+  });
 });
