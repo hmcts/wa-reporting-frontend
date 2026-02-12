@@ -1,7 +1,0 @@
-<%
-const files = htmlWebpackPlugin.files.js
-  .map(file => file.substr(htmlWebpackPlugin.files.publicPath.length))
-  .filter(filename => /^analytics(\.|-).+\.js$/.test(filename))
-  .map(filename => `<script src="/${filename}"></script>`);
-%>
-<%= files.join('\n') %>
