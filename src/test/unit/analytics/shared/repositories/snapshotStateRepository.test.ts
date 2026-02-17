@@ -27,12 +27,18 @@ describe('snapshotStateRepository', () => {
     });
   });
 
-  test('throws when snapshot id is invalid', async () => {
+  test('returns null when snapshot id is invalid', async () => {
     (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([
       { published_snapshot_id: 'bad', published_at: '2026-02-17T10:15:00.000Z' },
     ]);
 
-    await expect(snapshotStateRepository.fetchPublishedSnapshot()).rejects.toThrow('Invalid published snapshot id');
+    await expect(snapshotStateRepository.fetchPublishedSnapshot()).resolves.toBeNull();
+  });
+
+  test('returns null when fetchPublishedSnapshot query fails', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockRejectedValueOnce(new Error('relation does not exist'));
+
+    await expect(snapshotStateRepository.fetchPublishedSnapshot()).resolves.toBeNull();
   });
 
   test('fetchSnapshotById returns null when snapshot does not exist', async () => {
@@ -50,5 +56,11 @@ describe('snapshotStateRepository', () => {
       snapshotId: 77,
       publishedAt: new Date('2026-02-17T11:00:00.000Z'),
     });
+  });
+
+  test('fetchSnapshotById returns null when query fails', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockRejectedValueOnce(new Error('query failed'));
+
+    await expect(snapshotStateRepository.fetchSnapshotById(77)).resolves.toBeNull();
   });
 });
