@@ -49,7 +49,7 @@ export default defineConfig({
   },
   projects: [ProjectsConfig.chromium],
   webServer: {
-    command: `AUTH_ENABLED=false PORT=${serverPort} yarn start`,
+    command: `AUTH_ENABLED=false PORT=${serverPort} yarn start:dev`,
     url: readinessUrl,
     reuseExistingServer: true,
     timeout: 120000,
