@@ -44,6 +44,9 @@ For verification after code changes, use subagents by default and run independen
 ## Project Structure
 
 ```text
+docs/
+  functional/
+  technical/
 src/
   main/
     modules/
@@ -60,6 +63,8 @@ src/
     playwright/
       auth/
 config/
+prisma/
+scripts/
 ```
 
 ## Key commands
