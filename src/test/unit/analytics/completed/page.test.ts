@@ -453,4 +453,116 @@ describe('buildCompletedPage', () => {
       })
     );
   });
+
+  test('uses exact completed filter-options fallback message on full page load', async () => {
+    const fallback = {
+      summary: {
+        completedToday: 0,
+        completedInRange: 0,
+        withinDueYes: 0,
+        withinDueNo: 0,
+        withinDueTodayYes: 0,
+        withinDueTodayNo: 0,
+      },
+      timeline: [],
+      completedByName: [],
+      handlingTimeStats: { metric: 'handlingTime', averageDays: 0, lowerRange: 0, upperRange: 0 },
+      processingHandlingTime: [],
+    };
+
+    (completedService.buildCompleted as jest.Mock).mockReturnValue(fallback);
+    (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue({ byLocation: [], byRegion: [] });
+    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      users: [],
+    });
+    (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-filter-options' });
+
+    await buildCompletedPage({}, 'handlingTime', undefined, 'unknown-section');
+
+    expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
+      'Failed to fetch completed filter options from database'
+    );
+  });
+
+  test('logs exact section fallback messages for completed page fetch failures', async () => {
+    const fallback = {
+      summary: {
+        completedToday: 0,
+        completedInRange: 0,
+        withinDueYes: 0,
+        withinDueNo: 0,
+        withinDueTodayYes: 0,
+        withinDueTodayNo: 0,
+      },
+      timeline: [],
+      completedByName: [],
+      handlingTimeStats: { metric: 'handlingTime', averageDays: 0, lowerRange: 0, upperRange: 0 },
+      processingHandlingTime: [],
+    };
+
+    (completedService.buildCompleted as jest.Mock).mockReturnValue(fallback);
+    (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue({ byLocation: [], byRegion: [] });
+    (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock).mockRejectedValue(new Error('db'));
+    (completedTimelineChartService.fetchCompletedTimeline as jest.Mock).mockRejectedValue(new Error('db'));
+    (completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime as jest.Mock).mockRejectedValue(
+      new Error('db')
+    );
+    (completedByNameChartService.fetchCompletedByName as jest.Mock).mockRejectedValue(new Error('db'));
+    (completedRegionLocationTableService.fetchCompletedByLocation as jest.Mock).mockRejectedValue(new Error('db'));
+    (completedRegionLocationTableService.fetchCompletedByRegion as jest.Mock).mockRejectedValue(new Error('db'));
+    (taskThinRepository.fetchCompletedTaskAuditRows as jest.Mock).mockRejectedValue(new Error('db'));
+    (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockRejectedValue(new Error('db'));
+    (regionService.fetchRegionDescriptions as jest.Mock).mockRejectedValue(new Error('db'));
+    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockRejectedValue(new Error('db'));
+    (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-errors' });
+
+    await buildCompletedPage({}, 'handlingTime', 'CASE-FAIL', 'completed-task-audit');
+    await buildCompletedPage({}, 'handlingTime', undefined, 'completed-summary');
+    await buildCompletedPage({}, 'handlingTime', undefined, 'completed-timeline');
+    await buildCompletedPage({}, 'handlingTime', undefined, 'completed-processing-handling-time');
+    await buildCompletedPage({}, 'handlingTime', undefined, 'completed-by-name');
+    await buildCompletedPage({}, 'handlingTime', undefined, 'completed-by-region-location');
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to fetch completed summary from database', expect.any(Error));
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to fetch completed today summary from database',
+      expect.any(Error)
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to fetch completed timeline from database', expect.any(Error));
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to fetch processing/handling time stats from database',
+      expect.any(Error)
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to fetch completed by name from database', expect.any(Error));
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to fetch completed by location from database',
+      expect.any(Error)
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to fetch completed by region from database',
+      expect.any(Error)
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to fetch completed task audit rows from database',
+      expect.any(Error)
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to fetch case worker profiles from database',
+      expect.any(Error)
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to fetch region descriptions from database',
+      expect.any(Error)
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to fetch court venue descriptions from database',
+      expect.any(Error)
+    );
+  });
 });

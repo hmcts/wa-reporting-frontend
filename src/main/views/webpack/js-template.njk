@@ -1,3 +1,9 @@
-<% htmlWebpackPlugin.files.js.forEach(function(file) { %>
-<script src="/<%= file.substr(htmlWebpackPlugin.files.publicPath.length) %>"></script>
-<% }); %>
+<%
+const chunkPrefix = htmlWebpackPlugin.options.chunkPrefix || 'main';
+const chunkRegex = new RegExp(`^${chunkPrefix}(\\.|-).+\\.js$`);
+const files = htmlWebpackPlugin.files.js
+  .map(file => file.substr(htmlWebpackPlugin.files.publicPath.length))
+  .filter(filename => chunkRegex.test(filename))
+  .map(filename => `<script src="/${filename}"></script>`);
+%>
+<%= files.join('\n') %>

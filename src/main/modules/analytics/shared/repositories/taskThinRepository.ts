@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 
 import { tmPrisma } from '../data/prisma';
 import { CriticalTasksSortBy } from '../outstandingSort';
+import { MAX_PAGINATION_RESULTS, getMaxPaginationPage, normalisePage } from '../pagination';
 import { priorityBucketSql } from '../priority/priorityBucketSql';
 import { AnalyticsFilters } from '../types';
 import { AssignedSortBy, CompletedSortBy, SortDirection, SortState } from '../userOverviewSort';
@@ -76,9 +77,14 @@ function buildPaginationClauses(pagination?: PaginationOptions | null): {
   if (!pagination) {
     return { limitClause: Prisma.empty, offsetClause: Prisma.empty };
   }
-  const offset = Math.max(pagination.page - 1, 0) * pagination.pageSize;
+  const pageSize = Number.isFinite(pagination.pageSize)
+    ? Math.min(Math.max(Math.floor(pagination.pageSize), 1), MAX_PAGINATION_RESULTS)
+    : 1;
+  const maxPage = getMaxPaginationPage(pageSize);
+  const page = normalisePage(pagination.page, maxPage);
+  const offset = (page - 1) * pageSize;
   return {
-    limitClause: Prisma.sql`LIMIT ${pagination.pageSize}`,
+    limitClause: Prisma.sql`LIMIT ${pageSize}`,
     offsetClause: Prisma.sql`OFFSET ${offset}`,
   };
 }

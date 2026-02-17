@@ -8,7 +8,7 @@ import {
 import { AnalyticsFilters, CriticalTask } from '../shared/types';
 
 export const CRITICAL_TASKS_PAGE_SIZE = 500;
-const OUTSTANDING_PATH = '/analytics/outstanding';
+const OUTSTANDING_PATH = '/outstanding';
 
 type PaginateCriticalTasksParams = {
   tasks: CriticalTask[];

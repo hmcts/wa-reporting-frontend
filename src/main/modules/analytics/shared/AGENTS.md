@@ -14,3 +14,5 @@
   reuse `shared/charts/colors` for palette consistency.
 - Use `shared/formatting` and `shared/utils` helpers instead of reimplementing
   formatting or label normalization.
+- Because `shared/` modules are mutation-hotspots, run focused mutation checks
+  when changing them (for example `yarn test:mutation --mutate <changed-file>`).

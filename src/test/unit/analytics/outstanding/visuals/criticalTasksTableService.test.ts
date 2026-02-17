@@ -109,4 +109,36 @@ describe('criticalTasksTableService', () => {
       }
     );
   });
+
+  test('clamps oversized critical task page requests to the 5,000-result window', async () => {
+    (taskThinRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(15000);
+    (taskThinRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([]);
+    (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
+
+    const result = await criticalTasksTableService.fetchCriticalTasksPage({}, { by: 'dueDate', dir: 'asc' }, 999);
+
+    expect(taskThinRepository.fetchOutstandingCriticalTaskRows).toHaveBeenCalledWith(
+      {},
+      { by: 'dueDate', dir: 'asc' },
+      {
+        page: 10,
+        pageSize: 500,
+      }
+    );
+    expect(result.page).toBe(10);
+  });
+
+  test('returns early with empty rows when no critical tasks exist', async () => {
+    (taskThinRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(0);
+    (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
+
+    const result = await criticalTasksTableService.fetchCriticalTasksPage({}, { by: 'dueDate', dir: 'asc' }, 99);
+
+    expect(taskThinRepository.fetchOutstandingCriticalTaskRows).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      rows: [],
+      totalResults: 0,
+      page: 1,
+    });
+  });
 });

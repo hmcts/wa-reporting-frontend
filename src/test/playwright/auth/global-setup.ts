@@ -26,13 +26,13 @@ const createFreshSession = async (sessionFile: string, username: string, passwor
   const idamLoginPage = new IdamLoginPage(page);
 
   try {
-    await page.goto(buildUrl('/analytics'));
+    await page.goto(buildUrl('/'));
 
     const loginVisible = await idamLoginPage.isLoginVisible(15_000);
     if (loginVisible) {
       await idamLoginPage.login(username, password);
     } else {
-      const analyticsHeading = page.getByRole('heading', { name: 'Analytics', level: 1 });
+      const analyticsHeading = page.getByRole('heading', { name: 'Service performance overview', level: 1 });
       const analyticsVisible = await analyticsHeading.waitFor({ state: 'visible', timeout: 15_000 }).then(
         () => true,
         () => false
@@ -42,7 +42,7 @@ const createFreshSession = async (sessionFile: string, username: string, passwor
       }
     }
 
-    await page.waitForURL('**/analytics**', { timeout: 60_000 });
+    await page.getByRole('heading', { name: 'Service performance overview', level: 1 }).waitFor({ timeout: 60_000 });
     await page.context().storageState({ path: sessionFile });
   } finally {
     await browser.close();

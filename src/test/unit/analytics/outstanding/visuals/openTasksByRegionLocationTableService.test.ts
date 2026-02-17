@@ -75,4 +75,71 @@ describe('openTasksByRegionLocationTableService', () => {
     ]);
     expect(result.regionRows).toEqual([{ region: 'North', open: 0, urgent: 0, high: 0, medium: 0, low: 0 }]);
   });
+
+  test('sorts location rows by location then region', async () => {
+    (taskThinRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
+      {
+        region: 'South',
+        location: 'Leeds',
+        open_tasks: 1,
+        urgent: 0,
+        high: 1,
+        medium: 0,
+        low: 0,
+      },
+      {
+        region: 'North',
+        location: 'Leeds',
+        open_tasks: 2,
+        urgent: 1,
+        high: 0,
+        medium: 1,
+        low: 0,
+      },
+      {
+        region: 'North',
+        location: 'Bradford',
+        open_tasks: 3,
+        urgent: 0,
+        high: 1,
+        medium: 1,
+        low: 1,
+      },
+    ]);
+
+    const result = await openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation({});
+
+    expect(result.locationRows.map(row => `${row.location}:${row.region}`)).toEqual([
+      'Bradford:North',
+      'Leeds:North',
+      'Leeds:South',
+    ]);
+  });
+
+  test('sorts region totals alphabetically regardless of insertion order', async () => {
+    (taskThinRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
+      {
+        region: 'South',
+        location: 'Leeds',
+        open_tasks: 2,
+        urgent: 0,
+        high: 1,
+        medium: 1,
+        low: 0,
+      },
+      {
+        region: 'North',
+        location: 'York',
+        open_tasks: 1,
+        urgent: 1,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+    ]);
+
+    const result = await openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation({});
+
+    expect(result.regionRows.map(row => row.region)).toEqual(['North', 'South']);
+  });
 });

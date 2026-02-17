@@ -198,6 +198,7 @@ describe('buildOverviewPage', () => {
 
     await buildOverviewPage({}, 'overview-service-performance');
 
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to fetch service overview from database', expect.any(Error));
     expect(buildOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
         overview: fallback,
@@ -223,7 +224,16 @@ describe('buildOverviewPage', () => {
     (overviewService.buildOverview as jest.Mock).mockReturnValue(fallback);
     (serviceOverviewTableService.fetchServiceOverview as jest.Mock).mockResolvedValue({
       serviceRows: [],
-      totals: fallback.totals,
+      totals: {
+        service: 'Mutated',
+        open: 99,
+        assigned: 88,
+        assignedPct: 12,
+        urgent: 9,
+        high: 8,
+        medium: 7,
+        low: 6,
+      },
     });
     (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-empty' });
 
@@ -233,6 +243,120 @@ describe('buildOverviewPage', () => {
       expect.objectContaining({
         overview: fallback,
       })
+    );
+  });
+
+  test('passes explicit events range to task-events fetcher', async () => {
+    const fallback = {
+      serviceRows: [],
+      totals: {
+        service: 'Total',
+        open: 0,
+        assigned: 0,
+        assignedPct: 0,
+        urgent: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+    };
+
+    (overviewService.buildOverview as jest.Mock).mockReturnValue(fallback);
+    (taskEventsByServiceChartService.fetchTaskEventsByService as jest.Mock).mockResolvedValue({
+      rows: [],
+      totals: { service: 'Total', completed: 0, cancelled: 0, created: 0 },
+    });
+    (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-task-events' });
+
+    await buildOverviewPage(
+      {
+        eventsFrom: new Date('2024-02-01T00:00:00.000Z'),
+        eventsTo: new Date('2024-02-05T00:00:00.000Z'),
+      },
+      'overview-task-events'
+    );
+
+    expect(taskEventsByServiceChartService.fetchTaskEventsByService).toHaveBeenCalledWith(
+      {
+        eventsFrom: new Date('2024-02-01T00:00:00.000Z'),
+        eventsTo: new Date('2024-02-05T00:00:00.000Z'),
+      },
+      expect.objectContaining({
+        from: new Date('2024-02-01T00:00:00.000Z'),
+        to: new Date('2024-02-05T00:00:00.000Z'),
+      })
+    );
+    expect(buildOverviewViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskEventsTotals: { service: 'Total', completed: 0, cancelled: 0, created: 0 },
+      })
+    );
+  });
+
+  test('logs exact task-event failure message and keeps fallback totals', async () => {
+    const fallback = {
+      serviceRows: [],
+      totals: {
+        service: 'Total',
+        open: 0,
+        assigned: 0,
+        assignedPct: 0,
+        urgent: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+    };
+
+    (overviewService.buildOverview as jest.Mock).mockReturnValue(fallback);
+    (taskEventsByServiceChartService.fetchTaskEventsByService as jest.Mock).mockRejectedValue(new Error('db'));
+    (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-task-events-fallback' });
+
+    await buildOverviewPage({}, 'overview-task-events');
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to fetch task events by service from database',
+      expect.any(Error)
+    );
+    expect(buildOverviewViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskEventsRows: [],
+        taskEventsTotals: { service: 'Total', completed: 0, cancelled: 0, created: 0 },
+      })
+    );
+  });
+
+  test('uses exact overview filter-options fallback message on full page load', async () => {
+    const fallback = {
+      serviceRows: [],
+      totals: {
+        service: 'Total',
+        open: 0,
+        assigned: 0,
+        assignedPct: 0,
+        urgent: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+    };
+
+    (overviewService.buildOverview as jest.Mock).mockReturnValue(fallback);
+    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      users: [],
+    });
+    (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-empty' });
+
+    await buildOverviewPage({});
+
+    expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
+      'Failed to fetch overview filter options from database'
     );
   });
 });

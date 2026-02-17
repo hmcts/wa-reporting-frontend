@@ -36,8 +36,8 @@ class OverviewController {
       res.render('analytics/overview/index', viewModel);
     };
 
-    router.get('/overview', handler);
-    router.post('/overview', handler);
+    router.get('/', handler);
+    router.post('/', handler);
   }
 }
 

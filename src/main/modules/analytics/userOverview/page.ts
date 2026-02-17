@@ -6,7 +6,7 @@ import {
   settledArrayWithFallback,
   settledValueWithFallback,
 } from '../shared/pageUtils';
-import { normalisePage } from '../shared/pagination';
+import { getCappedTotalPages, normalisePage } from '../shared/pagination';
 import { UserOverviewTaskRow, taskThinRepository } from '../shared/repositories';
 import { caseWorkerProfileService, courtVenueService } from '../shared/services';
 import { AnalyticsFilters, Task, TaskPriority, TaskStatus } from '../shared/types';
@@ -110,8 +110,8 @@ export async function buildUserOverviewPage(
     'Failed to fetch user overview completed tasks count from database',
     0
   );
-  const assignedTotalPages = Math.max(1, Math.ceil(assignedTotalResults / USER_OVERVIEW_PAGE_SIZE));
-  const completedTotalPages = Math.max(1, Math.ceil(completedTotalResults / USER_OVERVIEW_PAGE_SIZE));
+  const assignedTotalPages = getCappedTotalPages(assignedTotalResults, USER_OVERVIEW_PAGE_SIZE);
+  const completedTotalPages = getCappedTotalPages(completedTotalResults, USER_OVERVIEW_PAGE_SIZE);
   const resolvedAssignedPage = normalisePage(assignedPage, assignedTotalPages);
   const resolvedCompletedPage = normalisePage(completedPage, completedTotalPages);
   const [

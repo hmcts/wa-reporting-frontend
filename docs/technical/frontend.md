@@ -42,6 +42,11 @@ Entry points:
 - `src/main/assets/js/index.ts` (global GOV.UK/MOJ init)
 - `src/main/assets/js/analytics.ts` (analytics-specific behaviors)
 
+Script loading:
+- `src/main/views/webpack/js.njk` loads the global `main` bundle on all pages.
+- `src/main/views/webpack/analytics-js.njk` loads the `analytics` bundle.
+- `src/main/views/analytics/layout.njk` includes `webpack/analytics-js.njk` so the analytics bundle is loaded only for analytics routes.
+
 Key behaviors:
 - Plotly charts are rendered from JSON configs in `data-chart-config` attributes.
 - Sections marked with `data-ajax-initial` are refreshed by an AJAX call after initial page load.
@@ -50,6 +55,7 @@ Key behaviors:
 - Pagination uses hidden inputs and submits filtered form to fetch the next page.
 - Multi-select filters support search, select all, and dynamic summary text.
 - Scroll position is stored and restored when table sorting or pagination triggers full page reloads.
+- Global page initialization is owned by `index.ts`; analytics AJAX refreshes re-initialize only the replaced section scope in `src/main/assets/js/analytics/ajax.ts`.
 
 ```mermaid
 sequenceDiagram

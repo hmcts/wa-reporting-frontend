@@ -23,6 +23,20 @@ describe('userOverviewSort', () => {
     });
   });
 
+  test('accepts trimmed sort inputs', () => {
+    const sort = parseUserOverviewSort({
+      assignedSortBy: ' taskName ',
+      assignedSortDir: ' asc ',
+      completedSortBy: ' handlingTimeDays ',
+      completedSortDir: ' desc ',
+    });
+
+    expect(sort).toEqual({
+      assigned: { by: 'taskName', dir: 'asc' },
+      completed: { by: 'handlingTimeDays', dir: 'desc' },
+    });
+  });
+
   test('falls back to defaults for invalid sort values', () => {
     const sort = parseUserOverviewSort({
       assignedSortBy: 'unknown',

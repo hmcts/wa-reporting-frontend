@@ -43,12 +43,37 @@ type PaginationHrefParams = {
 export const MAX_PAGINATION_RESULTS = 5000;
 
 const DEFAULT_PAGE = 1;
+const MIN_PAGE_SIZE = 1;
 
 export function normalisePage(value: number, totalPages: number): number {
   if (totalPages <= 0) {
     return DEFAULT_PAGE;
   }
   return Math.min(Math.max(value, DEFAULT_PAGE), totalPages);
+}
+
+function normalisePageSize(pageSize: number): number {
+  if (!Number.isFinite(pageSize)) {
+    return MIN_PAGE_SIZE;
+  }
+  return Math.max(Math.floor(pageSize), MIN_PAGE_SIZE);
+}
+
+export function getCappedTotalResults(totalResults: number): number {
+  if (!Number.isFinite(totalResults) || totalResults <= 0) {
+    return 0;
+  }
+  return Math.min(Math.floor(totalResults), MAX_PAGINATION_RESULTS);
+}
+
+export function getCappedTotalPages(totalResults: number, pageSize: number): number {
+  const resolvedPageSize = normalisePageSize(pageSize);
+  const cappedTotalResults = getCappedTotalResults(totalResults);
+  return Math.max(1, Math.ceil(cappedTotalResults / resolvedPageSize));
+}
+
+export function getMaxPaginationPage(pageSize: number): number {
+  return getCappedTotalPages(MAX_PAGINATION_RESULTS, pageSize);
 }
 
 function parsePageValue(value: unknown): number | undefined {
@@ -108,6 +133,7 @@ function buildAnalyticsQueryParams(filters: AnalyticsFilters, extraParams?: Reco
   appendArray(params, 'region', filters.region);
   appendArray(params, 'location', filters.location);
   appendArray(params, 'taskName', filters.taskName);
+  appendArray(params, 'workType', filters.workType);
   appendArray(params, 'user', filters.user);
   appendDate(params, 'completedFrom', filters.completedFrom);
   appendDate(params, 'completedTo', filters.completedTo);
@@ -157,11 +183,12 @@ export function buildPaginationMeta(params: {
   landmarkLabel: string;
 }): PaginationMeta {
   const { totalResults, page, pageSize, buildHref, landmarkLabel } = params;
-  const cappedTotalResults = Math.min(totalResults, MAX_PAGINATION_RESULTS);
-  const totalPages = Math.max(1, Math.ceil(cappedTotalResults / pageSize));
+  const resolvedPageSize = normalisePageSize(pageSize);
+  const cappedTotalResults = getCappedTotalResults(totalResults);
+  const totalPages = getCappedTotalPages(totalResults, resolvedPageSize);
   const currentPage = normalisePage(page, totalPages);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = Math.min(cappedTotalResults, startIndex + pageSize);
+  const startIndex = (currentPage - 1) * resolvedPageSize;
+  const endIndex = Math.min(cappedTotalResults, startIndex + resolvedPageSize);
   const startResult = cappedTotalResults === 0 ? 0 : startIndex + 1;
   const endResult = cappedTotalResults === 0 ? 0 : endIndex;
   const show = totalPages > 1;
@@ -169,7 +196,7 @@ export function buildPaginationMeta(params: {
 
   return {
     page: currentPage,
-    pageSize,
+    pageSize: resolvedPageSize,
     totalResults: cappedTotalResults,
     totalPages,
     startResult,
@@ -195,8 +222,8 @@ export function paginateRows<T>({ rows, page, pageSize, buildHref, landmarkLabel
     buildHref,
     landmarkLabel,
   });
-  const startIndex = (pagination.page - 1) * pageSize;
-  const endIndex = Math.min(rows.length, startIndex + pageSize);
+  const startIndex = (pagination.page - 1) * pagination.pageSize;
+  const endIndex = Math.min(rows.length, startIndex + pagination.pageSize);
 
   return {
     pagedRows: rows.slice(startIndex, endIndex),

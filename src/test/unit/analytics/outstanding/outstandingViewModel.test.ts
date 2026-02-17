@@ -247,4 +247,139 @@ describe('buildOutstandingViewModel', () => {
       expect(isolated.buildPercentCell(12.5).text).toContain('12');
     });
   });
+
+  test('builds consistent totals for region, location, and region-location tables', () => {
+    const viewModel = buildOutstandingViewModel({
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
+      sort: getDefaultOutstandingSort(),
+      criticalTasksPage: 1,
+      criticalTasksTotalResults: 0,
+      allTasks: [],
+      summary: {
+        open: 3,
+        assigned: 1,
+        unassigned: 2,
+        assignedPct: 33.3,
+        unassignedPct: 66.7,
+        urgent: 1,
+        high: 1,
+        medium: 1,
+        low: 0,
+      },
+      charts: {
+        openTasks: '',
+        waitTime: '',
+        tasksDue: '',
+        tasksDueByPriority: '',
+        priorityDonut: '',
+        assignmentDonut: '',
+      },
+      openByNameInitial: {
+        breakdown: [],
+        totals: { name: 'Total', urgent: 0, high: 0, medium: 0, low: 0 },
+        chart: {},
+      },
+      openByCreated: [],
+      waitTime: [],
+      dueByDate: [],
+      priorityByDueDate: [],
+      criticalTasks: [],
+      outstandingByLocation: [
+        { location: 'L1', region: 'R1', open: 1, urgent: 1, high: 0, medium: 0, low: 0 },
+        { location: 'L2', region: 'R2', open: 2, urgent: 0, high: 1, medium: 1, low: 0 },
+      ],
+      outstandingByRegion: [
+        { region: 'R1', open: 1, urgent: 1, high: 0, medium: 0, low: 0 },
+        { region: 'R2', open: 2, urgent: 0, high: 1, medium: 1, low: 0 },
+      ],
+      regionDescriptions: {},
+      locationDescriptions: {},
+    });
+
+    expect(viewModel.outstandingByRegionTotalsRow.map(cell => cell.text)).toEqual(['Total', '3', '1', '1', '1', '0']);
+    expect(viewModel.outstandingByLocationTotalsRow.map(cell => cell.text)).toEqual(['Total', '3', '1', '1', '1', '0']);
+    expect(viewModel.outstandingByRegionLocationTotalsRow.map(cell => cell.text)).toEqual([
+      'Total',
+      '',
+      '3',
+      '1',
+      '1',
+      '1',
+      '0',
+    ]);
+  });
+
+  test('falls back to raw location label when description lookup is missing', () => {
+    const viewModel = buildOutstandingViewModel({
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
+      sort: getDefaultOutstandingSort(),
+      criticalTasksPage: 1,
+      criticalTasksTotalResults: 1,
+      allTasks: [],
+      summary: {
+        open: 1,
+        assigned: 1,
+        unassigned: 0,
+        assignedPct: 100,
+        unassignedPct: 0,
+        urgent: 1,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+      charts: {
+        openTasks: '',
+        waitTime: '',
+        tasksDue: '',
+        tasksDueByPriority: '',
+        priorityDonut: '',
+        assignmentDonut: '',
+      },
+      openByNameInitial: {
+        breakdown: [],
+        totals: { name: 'Total', urgent: 0, high: 0, medium: 0, low: 0 },
+        chart: {},
+      },
+      openByCreated: [],
+      waitTime: [],
+      dueByDate: [],
+      priorityByDueDate: [],
+      criticalTasks: [
+        {
+          caseId: 'CASE-X',
+          caseType: 'Service A',
+          location: 'LOC-X',
+          taskName: 'Review',
+          createdDate: '2024-01-01',
+          dueDate: '2024-01-10',
+          priority: 'urgent',
+          agentName: 'Pat',
+        },
+      ],
+      outstandingByLocation: [{ location: 'LOC-X', region: 'REG-X', open: 1, urgent: 1, high: 0, medium: 0, low: 0 }],
+      outstandingByRegion: [{ region: 'REG-X', open: 1, urgent: 1, high: 0, medium: 0, low: 0 }],
+      regionDescriptions: {},
+      locationDescriptions: {},
+    });
+
+    expect(viewModel.criticalTasks[0].location).toBe('LOC-X');
+  });
 });

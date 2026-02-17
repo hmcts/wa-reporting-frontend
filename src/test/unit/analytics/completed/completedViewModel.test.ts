@@ -542,7 +542,7 @@ describe('buildCompletedViewModel', () => {
           handlingSumDays: 2,
           handlingCount: 2,
           processingAverageDays: 2.5,
-          processingStdDevDays: 0.5,
+          processingStdDevDays: 1.0,
           processingSumDays: 5,
           processingCount: 2,
         },
@@ -572,8 +572,8 @@ describe('buildCompletedViewModel', () => {
     });
 
     expect(viewModel.processingHandlingRows[0][2].text).toBe('2.50');
-    expect(viewModel.processingHandlingRows[0][3].text).toBe('3.00');
-    expect(viewModel.processingHandlingRows[0][4].text).toBe('2.00');
+    expect(viewModel.processingHandlingRows[0][3].text).toBe('3.50');
+    expect(viewModel.processingHandlingRows[0][4].text).toBe('1.50');
     expect(viewModel.processingHandlingTotalsRow[0].text).toBe('Total');
     expect(viewModel.processingHandlingTotalsRow[1].text).toBe('2');
     expect(viewModel.processingHandlingTotalsRow[2].text).toBe('2.50');
@@ -616,12 +616,293 @@ describe('buildCompletedViewModel', () => {
   test('exposes numeric helper formatting for totals and percentages', () => {
     const { buildPercentCell, buildOptionalNumericCell, buildTotalsRowWithLabelColumns } = __testing;
 
-    expect(buildPercentCell(12.5, { minimumFractionDigits: 1 }).text).toContain('12.5');
+    const percentCell = buildPercentCell(12.5, { minimumFractionDigits: 1 });
+    expect(percentCell.text).toContain('12.5');
+    expect(percentCell.attributes?.['data-sort-value']).toBe('12.5');
     expect(buildOptionalNumericCell(undefined).text).toBe('-');
     expect(buildOptionalNumericCell(3).attributes?.['data-sort-value']).toBe('3');
 
     const totals = buildTotalsRowWithLabelColumns('Total', 3, [1, 2], 1);
     expect(totals[0].attributes?.['data-total-row']).toBe('true');
     expect(totals[totals.length - 1].text).toBe('');
+
+    const zeroLabelColumns = buildTotalsRowWithLabelColumns('Total', 0, [7], 0);
+    expect(zeroLabelColumns).toEqual([
+      { text: 'Total', attributes: { 'data-total-row': 'true' } },
+      { text: '7', attributes: { 'data-sort-value': '7' } },
+    ]);
+  });
+
+  test('builds complete labels and totals for timeline and region/location tables', () => {
+    const completed: CompletedResponse = {
+      summary: {
+        completedToday: 1,
+        completedInRange: 4,
+        withinDueYes: 3,
+        withinDueNo: 1,
+        withinDueTodayYes: 1,
+        withinDueTodayNo: 0,
+      },
+      timeline: [
+        { date: '2024-05-01', completed: 3, withinDue: 2, beyondDue: 1 },
+        { date: '2024-05-02', completed: 1, withinDue: 1, beyondDue: 0 },
+      ],
+      completedByName: [
+        { taskName: 'Task B', tasks: 2, withinDue: 1, beyondDue: 1 },
+        { taskName: 'Task A', tasks: 2, withinDue: 2, beyondDue: 0 },
+      ],
+      handlingTimeStats: {
+        metric: 'handlingTime',
+        averageDays: 1.5,
+        lowerRange: 0.5,
+        upperRange: 2.5,
+      },
+      processingHandlingTime: [
+        {
+          date: '2024-05-01',
+          tasks: 3,
+          handlingAverageDays: 1,
+          handlingStdDevDays: 2,
+          handlingSumDays: 3,
+          handlingCount: 3,
+          processingAverageDays: 2,
+          processingStdDevDays: 1,
+          processingSumDays: 6,
+          processingCount: 3,
+        },
+        {
+          date: '2024-05-02',
+          tasks: 1,
+          handlingAverageDays: 2,
+          handlingStdDevDays: 0.5,
+          handlingSumDays: 2,
+          handlingCount: 1,
+          processingAverageDays: 1,
+          processingStdDevDays: 0.5,
+          processingSumDays: 1,
+          processingCount: 1,
+        },
+      ],
+    };
+
+    const viewModel = buildCompletedViewModel({
+      filters: {},
+      completed,
+      allTasks: [],
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
+      completedByLocation: [
+        {
+          location: 'loc-1',
+          region: 'reg-1',
+          tasks: 3,
+          withinDue: 2,
+          beyondDue: 1,
+          handlingTimeDays: 1.2,
+          processingTimeDays: 1.8,
+        },
+        {
+          location: 'loc-2',
+          region: 'reg-2',
+          tasks: 1,
+          withinDue: 1,
+          beyondDue: 0,
+          handlingTimeDays: 2.4,
+          processingTimeDays: 2.1,
+        },
+      ],
+      completedByRegion: [
+        {
+          region: 'reg-1',
+          tasks: 3,
+          withinDue: 2,
+          beyondDue: 1,
+          handlingTimeDays: 1.2,
+          processingTimeDays: 1.8,
+        },
+        {
+          region: 'reg-2',
+          tasks: 1,
+          withinDue: 1,
+          beyondDue: 0,
+          handlingTimeDays: 2.4,
+          processingTimeDays: 2.1,
+        },
+      ],
+      regionDescriptions: { 'reg-1': 'North', 'reg-2': 'South' },
+      locationDescriptions: { 'loc-1': 'Leeds', 'loc-2': 'York' },
+      taskAuditRows: [],
+      taskAuditCaseId: '',
+      selectedMetric: 'handlingTime',
+    });
+
+    expect(viewModel.complianceTodayRows).toEqual([
+      { key: { text: 'Within due date' }, value: { text: '1' } },
+      { key: { text: 'Beyond due date' }, value: { text: '0' } },
+    ]);
+    expect(viewModel.complianceRangeRows).toEqual([
+      { key: { text: 'Within due date' }, value: { text: '3' } },
+      { key: { text: 'Beyond due date' }, value: { text: '1' } },
+    ]);
+    expect(viewModel.completedByNameRows[0][0].text).toBe('Task B');
+    expect(viewModel.completedByNameRows[1][0].text).toBe('Task A');
+    expect(viewModel.completedByNameTotalsRow[1].text).toBe('4');
+    expect(viewModel.completedByNameTotalsRow[2].text).toBe('3');
+    expect(viewModel.completedByNameTotalsRow[3].text).toContain('75');
+    expect(viewModel.completedByNameTotalsRow[4].text).toBe('1');
+
+    expect(viewModel.timelineRows[0][3].text).toContain('66');
+    expect(viewModel.timelineRows[1][3].text).toContain('100');
+    expect(viewModel.timelineTotalsRow[1].text).toBe('4');
+    expect(viewModel.timelineTotalsRow[2].text).toBe('3');
+    expect(viewModel.timelineTotalsRow[3].text).toContain('75');
+    expect(viewModel.timelineTotalsRow[4].text).toBe('1');
+    expect(viewModel.timelineTotalsRow[5].text).toBe('2');
+
+    expect(viewModel.handlingRows[0].key.text).toBe('Average days');
+    expect(viewModel.handlingRows[1].key.text).toBe('Lower range');
+    expect(viewModel.handlingRows[2].key.text).toBe('Upper range');
+    expect(viewModel.handlingRows[0].value.text).toBe('1.5');
+    expect(viewModel.processingHandlingRows[0][2].text).toBe('1.00');
+    expect(viewModel.processingHandlingRows[0][3].text).toBe('3.00');
+    expect(viewModel.processingHandlingRows[0][4].text).toBe('0.00');
+    expect(viewModel.processingHandlingTotalsRow[1].text).toBe('4');
+    expect(viewModel.processingHandlingTotalsRow[2].text).toBe('1.25');
+    expect(viewModel.processingHandlingOverallAverage).toBe('1.25');
+    expect(viewModel.processingHandlingOverallLabel).toBe('Overall average of handling time (days)');
+
+    expect(viewModel.completedByRegionTotalsRow.map(cell => cell.text)).toEqual(['Total', '4', '3', '1', '', '']);
+    expect(viewModel.completedByLocationTotalsRow.map(cell => cell.text)).toEqual(['Total', '4', '3', '1', '', '']);
+    expect(viewModel.completedByRegionLocationTotalsRow.map(cell => cell.text)).toEqual([
+      'Total',
+      '',
+      '4',
+      '3',
+      '1',
+      '',
+      '',
+    ]);
+  });
+
+  test('uses zero overall averages and dash placeholders when processing rows are empty', () => {
+    const completed: CompletedResponse = {
+      summary: {
+        completedToday: 0,
+        completedInRange: 0,
+        withinDueYes: 0,
+        withinDueNo: 0,
+        withinDueTodayYes: 0,
+        withinDueTodayNo: 0,
+      },
+      timeline: [],
+      completedByName: [],
+      handlingTimeStats: {
+        metric: 'handlingTime',
+        averageDays: 0,
+        lowerRange: 0,
+        upperRange: 0,
+      },
+      processingHandlingTime: [],
+    };
+
+    const viewModel = buildCompletedViewModel({
+      filters: {},
+      completed,
+      allTasks: [],
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
+      completedByLocation: [],
+      completedByRegion: [],
+      regionDescriptions: {},
+      locationDescriptions: {},
+      taskAuditRows: [],
+      taskAuditCaseId: '',
+      selectedMetric: 'handlingTime',
+    });
+
+    expect(viewModel.processingHandlingTotalsRow[0].text).toBe('Total');
+    expect(viewModel.processingHandlingTotalsRow[1].text).toBe('0');
+    expect(viewModel.processingHandlingTotalsRow[2].text).toBe('0.00');
+    expect(viewModel.processingHandlingTotalsRow[3].text).toBe('-');
+    expect(viewModel.processingHandlingTotalsRow[4].text).toBe('-');
+    expect(viewModel.processingHandlingOverallAverage).toBe('0.00');
+    expect(viewModel.processingHandlingOverallLabel).toBe('Overall average of handling time (days)');
+  });
+
+  test('keeps input order when includeRegion is false and labels tie', () => {
+    const rows = __testing.buildCompletedLocationRows(
+      [
+        {
+          region: 'North',
+          location: 'Same',
+          tasks: 2,
+          withinDue: 1,
+          beyondDue: 1,
+          handlingTimeDays: undefined,
+          processingTimeDays: undefined,
+        },
+        {
+          region: 'South',
+          location: 'Same',
+          tasks: 1,
+          withinDue: 1,
+          beyondDue: 0,
+          handlingTimeDays: undefined,
+          processingTimeDays: undefined,
+        },
+      ],
+      false,
+      { Same: 'Same Location' },
+      { North: 'North Region', South: 'South Region' }
+    );
+
+    expect(rows[0][1].text).toBe('2');
+    expect(rows[1][1].text).toBe('1');
+  });
+
+  test('sorts by region first when includeRegion is true', () => {
+    const rows = __testing.buildCompletedLocationRows(
+      [
+        {
+          region: 'South',
+          location: 'A',
+          tasks: 1,
+          withinDue: 1,
+          beyondDue: 0,
+          handlingTimeDays: undefined,
+          processingTimeDays: undefined,
+        },
+        {
+          region: 'North',
+          location: 'Z',
+          tasks: 1,
+          withinDue: 1,
+          beyondDue: 0,
+          handlingTimeDays: undefined,
+          processingTimeDays: undefined,
+        },
+      ],
+      true,
+      { A: 'A Court', Z: 'Z Court' },
+      { North: 'North Region', South: 'South Region' }
+    );
+
+    expect(rows[0][0].text).toBe('North Region');
+    expect(rows[0][1].text).toBe('Z Court');
+    expect(rows[1][0].text).toBe('South Region');
   });
 });

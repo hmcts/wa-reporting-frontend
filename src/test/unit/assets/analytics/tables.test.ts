@@ -73,7 +73,7 @@ describe('analytics tables', () => {
   test('handles moj server sorting for tables', async () => {
     const form = document.createElement('form');
     form.dataset.analyticsFilters = 'true';
-    form.action = '/analytics/completed';
+    form.action = '/completed';
     document.body.appendChild(form);
 
     const mojTable = document.createElement('table');

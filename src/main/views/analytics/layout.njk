@@ -8,27 +8,27 @@
   {{ govukHeader() }}
   {{ govukServiceNavigation({
     serviceName: "Task Management Report",
-    serviceUrl: "/analytics",
+    serviceUrl: "/",
     navigation: [
       {
         text: "Overview",
-        href: "/analytics/overview",
-        current: pagePath == "/analytics/overview"
+        href: "/",
+        current: pagePath == "/"
       },
       {
         text: "Tasks outstanding",
-        href: "/analytics/outstanding",
-        current: pagePath == "/analytics/outstanding"
+        href: "/outstanding",
+        current: pagePath == "/outstanding"
       },
       {
         text: "Tasks completed",
-        href: "/analytics/completed",
-        current: pagePath == "/analytics/completed"
+        href: "/completed",
+        current: pagePath == "/completed"
       },
       {
         text: "User overview",
-        href: "/analytics/users",
-        current: pagePath  == "/analytics/users"
+        href: "/users",
+        current: pagePath  == "/users"
       }
     ],
     slots: {
@@ -39,4 +39,9 @@
 
 {% block content %}
   {% block analyticsContent %}{% endblock %}
+{% endblock %}
+
+{% block pageScripts %}
+  {{ super() }}
+  {% include "webpack/analytics-js.njk" %}
 {% endblock %}

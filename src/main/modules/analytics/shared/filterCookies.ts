@@ -21,7 +21,7 @@ const DATE_FILTER_KEYS: DateFilterKey[] = ['completedFrom', 'completedTo', 'even
 
 const COOKIE_VERSION = 1;
 const MAX_COOKIE_BYTES = 3800;
-const DEFAULT_COOKIE_PATH = '/analytics';
+const DEFAULT_COOKIE_PATH = '/';
 
 type CookiePayload = {
   v: number; // payload version for backward compatibility

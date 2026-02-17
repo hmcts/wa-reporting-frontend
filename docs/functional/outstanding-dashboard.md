@@ -4,7 +4,7 @@
 Provide detail on tasks that are open or otherwise not completed, including priority, wait time, and location/region breakdowns.
 
 ## URL
-- `/analytics/outstanding`
+- `/outstanding`
 
 ## Filters
 - Shared filters: service, role category, region, location, task name, work type.

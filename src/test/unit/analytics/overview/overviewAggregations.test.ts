@@ -168,4 +168,65 @@ describe('buildOverview', () => {
     expect(overview.serviceRows[0].medium).toBe(0);
     expect(overview.serviceRows[0].low).toBe(0);
   });
+
+  test('builds totals row with summed priorities and fixed label', () => {
+    const tasks: Task[] = [
+      {
+        caseId: 'CASE-30',
+        taskId: 'TASK-30',
+        service: 'Service G',
+        roleCategory: 'Ops',
+        region: 'North',
+        location: 'Leeds',
+        taskName: 'Review',
+        priority: 'urgent',
+        status: 'open',
+        createdDate: '2024-03-01',
+      },
+      {
+        caseId: 'CASE-31',
+        taskId: 'TASK-31',
+        service: 'Service H',
+        roleCategory: 'Ops',
+        region: 'South',
+        location: 'London',
+        taskName: 'Review',
+        priority: 'high',
+        status: 'assigned',
+        createdDate: '2024-03-02',
+      },
+      {
+        caseId: 'CASE-32',
+        taskId: 'TASK-32',
+        service: 'Service H',
+        roleCategory: 'Ops',
+        region: 'South',
+        location: 'London',
+        taskName: 'Review',
+        priority: 'medium',
+        status: 'assigned',
+        createdDate: '2024-03-03',
+      },
+      {
+        caseId: 'CASE-33',
+        taskId: 'TASK-33',
+        service: 'Service H',
+        roleCategory: 'Ops',
+        region: 'South',
+        location: 'London',
+        taskName: 'Review',
+        priority: 'low',
+        status: 'open',
+        createdDate: '2024-03-04',
+      },
+    ];
+
+    const overview = overviewService.buildOverview(tasks);
+
+    expect(overview.totals.service).toBe('Total');
+    expect(overview.totals.urgent).toBe(1);
+    expect(overview.totals.high).toBe(1);
+    expect(overview.totals.medium).toBe(1);
+    expect(overview.totals.low).toBe(1);
+  });
 });

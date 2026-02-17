@@ -112,9 +112,16 @@ export async function buildRouteTestServer(config: RouteTestConfig = {}): Promis
   mockAnalyticsRepositories();
 
   let app!: { listen: (port: number, host: string) => Server };
+  let bootstrapPromise: Promise<void> | undefined;
   jest.isolateModules(() => {
-    ({ app } = require('../../main/app'));
+    const appModule = require('../../main/app') as {
+      app: { listen: (port: number, host: string) => Server };
+      bootstrapPromise?: Promise<void>;
+    };
+    app = appModule.app;
+    bootstrapPromise = appModule.bootstrapPromise;
   });
+  await bootstrapPromise;
   const server: Server = app.listen(0, '127.0.0.1');
   if (!server.listening) {
     await new Promise<void>(resolve => {

@@ -4,7 +4,7 @@
 Provide a high-level view of service performance, focusing on open and assigned tasks and recent task events by service.
 
 ## URL
-- `/analytics/overview`
+- `/`
 
 ## Filters
 - Shared filters: service, role category, region, location, task name, work type.

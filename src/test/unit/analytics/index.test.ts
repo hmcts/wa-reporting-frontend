@@ -49,23 +49,16 @@ describe('createAnalyticsRouter', () => {
     expect(userOverviewController.registerUserOverviewRoutes).toHaveBeenCalledWith(router);
   });
 
-  test('sets csrf token and renders the analytics index', () => {
+  test('sets csrf token in locals middleware', () => {
     const router = createAnalyticsRouter();
     const middlewareLayers = (router as Router & { stack: RouterLayer[] }).stack.filter(layer => !layer.route);
     const localsHandler = middlewareLayers[1].handle;
     const req = {} as unknown as Request;
-    const res = { locals: {}, render: jest.fn() } as unknown as Response;
+    const res = { locals: {} } as unknown as Response;
     csrfServiceMock.getToken.mockReturnValue('token');
 
     localsHandler(req, res, jest.fn());
 
     expect(res.locals.csrfToken).toBe('token');
-
-    const rootLayer = (router as Router & { stack: RouterLayer[] }).stack.find(layer => layer.route?.path === '/');
-    expect(rootLayer).toBeDefined();
-
-    rootLayer?.route?.stack[0].handle(req, res, jest.fn());
-
-    expect(res.render).toHaveBeenCalledWith('analytics/index');
   });
 });
