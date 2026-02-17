@@ -26,7 +26,6 @@
       "scope": "openid profile roles",
       "url": {
         "public": "https://hmcts-access.aat.platform.hmcts.net",
-        "api": "https://idam-api.aat.platform.hmcts.net",
         "wa": "http://localhost:3100"
       }
     }
