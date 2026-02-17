@@ -463,4 +463,161 @@ describe('buildOutstanding', () => {
     expect(metrics.timelines.waitTimeByAssigned).toHaveLength(1);
     expect(metrics.timelines.waitTimeByAssigned[0].averageWaitDays).toBe(0);
   });
+
+  test('builds critical tasks from urgent/high only and orders by due date', () => {
+    const tasks: Task[] = [
+      {
+        caseId: 'CASE-200',
+        taskId: 'TASK-200',
+        service: 'Service A',
+        roleCategory: 'Ops',
+        region: 'North',
+        location: 'Leeds',
+        taskName: 'Old urgent',
+        status: 'open',
+        priority: 'urgent',
+        createdDate: '2024-01-01',
+        dueDate: '2024-01-09',
+      },
+      {
+        caseId: 'CASE-201',
+        taskId: 'TASK-201',
+        service: 'Service A',
+        roleCategory: 'Ops',
+        region: 'North',
+        location: 'Leeds',
+        taskName: 'Old high',
+        status: 'open',
+        priority: 'high',
+        createdDate: '2024-01-01',
+        dueDate: '2024-01-08',
+        assigneeName: 'Taylor',
+      },
+      {
+        caseId: 'CASE-202',
+        taskId: 'TASK-202',
+        service: 'Service A',
+        roleCategory: 'Ops',
+        region: 'North',
+        location: 'Leeds',
+        taskName: 'Low should be excluded',
+        status: 'open',
+        priority: 'low',
+        createdDate: '2024-01-01',
+        dueDate: '2024-01-07',
+      },
+    ];
+
+    const metrics = outstandingService.buildOutstanding(tasks);
+
+    expect(metrics.criticalTasks.map(task => task.caseId)).toEqual(['CASE-201', 'CASE-200']);
+    expect(metrics.criticalTasks.map(task => task.priority)).toEqual(['high', 'urgent']);
+    expect(metrics.criticalTasks[0].agentName).toBe('Taylor');
+    expect(metrics.criticalTasks[1].agentName).toBe('');
+  });
+
+  test('caps critical tasks to 10 rows', () => {
+    const tasks: Task[] = Array.from({ length: 12 }, (_, index) => ({
+      caseId: `CASE-${index + 1}`,
+      taskId: `TASK-${index + 1}`,
+      service: 'Service A',
+      roleCategory: 'Ops',
+      region: 'North',
+      location: 'Leeds',
+      taskName: 'Review',
+      status: 'open',
+      priority: index % 2 === 0 ? 'urgent' : 'high',
+      createdDate: '2024-01-01',
+      dueDate: `2024-01-${String(index + 1).padStart(2, '0')}`,
+    }));
+
+    const metrics = outstandingService.buildOutstanding(tasks);
+
+    expect(metrics.criticalTasks).toHaveLength(10);
+    expect(metrics.criticalTasks[0].caseId).toBe('CASE-1');
+    expect(metrics.criticalTasks[9].caseId).toBe('CASE-10');
+  });
+
+  test('computes wait-time totals with negative date differences clamped to zero', () => {
+    const tasks: Task[] = [
+      {
+        caseId: 'CASE-300',
+        taskId: 'TASK-300',
+        service: 'Service A',
+        roleCategory: 'Ops',
+        region: 'North',
+        location: 'Leeds',
+        taskName: 'Reverse dates',
+        status: 'assigned',
+        priority: 'high',
+        createdDate: '2024-01-10',
+        assignedDate: '2024-01-09',
+        dueDate: '2024-01-15',
+      },
+      {
+        caseId: 'CASE-301',
+        taskId: 'TASK-301',
+        service: 'Service A',
+        roleCategory: 'Ops',
+        region: 'North',
+        location: 'Leeds',
+        taskName: 'Normal dates',
+        status: 'assigned',
+        priority: 'high',
+        createdDate: '2024-01-01',
+        assignedDate: '2024-01-03',
+        dueDate: '2024-01-15',
+      },
+    ];
+
+    const metrics = outstandingService.buildOutstanding(tasks);
+    const point = metrics.timelines.waitTimeByAssigned.find(row => row.date === '2024-01-09');
+    const second = metrics.timelines.waitTimeByAssigned.find(row => row.date === '2024-01-03');
+
+    expect(point?.totalWaitDays).toBe(0);
+    expect(point?.averageWaitDays).toBe(0);
+    expect(second?.totalWaitDays).toBe(2);
+  });
+
+  test('tracks due-by-date open/completed totals by due date key', () => {
+    const tasks: Task[] = [
+      {
+        caseId: 'CASE-400',
+        taskId: 'TASK-400',
+        service: 'Service A',
+        roleCategory: 'Ops',
+        region: 'North',
+        location: 'Leeds',
+        taskName: 'Open one',
+        status: 'open',
+        priority: 'low',
+        createdDate: '2024-01-01',
+        dueDate: '2024-02-01',
+      },
+      {
+        caseId: 'CASE-401',
+        taskId: 'TASK-401',
+        service: 'Service A',
+        roleCategory: 'Ops',
+        region: 'North',
+        location: 'Leeds',
+        taskName: 'Completed one',
+        status: 'completed',
+        priority: 'low',
+        createdDate: '2024-01-02',
+        completedDate: '2024-02-01',
+        dueDate: '2024-02-01',
+      },
+    ];
+
+    const metrics = outstandingService.buildOutstanding(tasks);
+    const dueRow = metrics.timelines.dueByDate.find(row => row.date === '2024-02-01');
+
+    expect(dueRow).toEqual({
+      date: '2024-02-01',
+      totalDue: 2,
+      open: 1,
+      completed: 1,
+    });
+  });
 });

@@ -66,11 +66,34 @@ describe('pageUtils', () => {
     expect(normaliseDateRange()).toBeUndefined();
   });
 
+  test('normaliseDateRange keeps single-sided ranges', () => {
+    const from = new Date('2024-05-01T00:00:00.000Z');
+
+    expect(normaliseDateRange({ from })).toEqual({ from, to: undefined });
+  });
+
+  test('normaliseDateRange does not swap equal ranges', () => {
+    const from = new Date('2024-05-01T00:00:00.000Z');
+    const to = new Date('2024-05-01T00:00:00.000Z');
+
+    const range = normaliseDateRange({ from, to });
+
+    expect(range?.from).toBe(from);
+    expect(range?.to).toBe(to);
+  });
+
   test('resolveDateRangeWithDefaults returns a 30-day window by default', () => {
     const { from, to } = resolveDateRangeWithDefaults({});
 
     const diffDays = Math.round((to.getTime() - from.getTime()) / 86400000);
     expect(diffDays).toBe(30);
+  });
+
+  test('resolveDateRangeWithDefaults uses custom daysBack values', () => {
+    const { from, to } = resolveDateRangeWithDefaults({ daysBack: 7 });
+
+    const diffDays = Math.round((to.getTime() - from.getTime()) / 86400000);
+    expect(diffDays).toBe(7);
   });
 
   test('resolveDateRangeWithDefaults swaps inverted ranges', () => {
@@ -81,6 +104,16 @@ describe('pageUtils', () => {
 
     expect(from).toEqual(new Date('2024-05-01'));
     expect(to).toEqual(new Date('2024-05-10'));
+  });
+
+  test('resolveDateRangeWithDefaults keeps equal provided dates in place', () => {
+    const from = new Date('2024-05-01T00:00:00.000Z');
+    const to = new Date('2024-05-01T00:00:00.000Z');
+
+    const range = resolveDateRangeWithDefaults({ from, to });
+
+    expect(range.from).toBe(from);
+    expect(range.to).toBe(to);
   });
 
   test('settledValueWithFallback uses fallback when rejected', () => {

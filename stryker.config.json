@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "jest",
+  "coverageAnalysis": "perTest",
+  "concurrency": 2,
+  "checkers": ["typescript"],
+  "tsconfigFile": "tsconfig.json",
+  "jest": {
+    "projectType": "custom",
+    "configFile": "jest.config.js"
+  },
+  "mutate": [
+    "src/main/modules/analytics/shared/**/*.ts",
+    "src/main/modules/analytics/completed/**/*.ts",
+    "src/main/modules/analytics/overview/**/*.ts",
+    "src/main/modules/analytics/outstanding/**/*.ts",
+    "src/main/modules/analytics/userOverview/**/*.ts",
+    "!src/main/modules/analytics/**/index.ts",
+    "!src/main/modules/analytics/**/controller.ts",
+    "!src/main/modules/analytics/shared/data/prisma.ts"
+  ],
+  "reporters": ["clear-text", "progress", "html"],
+  "htmlReporter": {
+    "fileName": "reports/mutation/html/report.html"
+  },
+  "thresholds": {
+    "high": 80,
+    "low": 70,
+    "break": 80
+  }
+}

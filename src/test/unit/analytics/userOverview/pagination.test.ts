@@ -25,8 +25,12 @@ describe('user overview pagination', () => {
 
     expect(pagedRows).toEqual(['a', 'b']);
     expect(pagination.pageSize).toBe(2);
+    expect(pagination.pagination.landmarkLabel).toBe('Assigned tasks pagination');
     expect(pagination.pagination.items[0]?.href).toContain('assignedSortBy=assignee');
     expect(pagination.pagination.items[0]?.href).toContain('assignedSortDir=asc');
+    const assignedUrl = new URL(`https://example.test${pagination.pagination.items[0]?.href ?? ''}`);
+    expect(assignedUrl.pathname).toBe('/users');
+    expect(assignedUrl.searchParams.get('assignedPage')).toBe('1');
   });
 
   test('paginates completed tasks using default page size', () => {
@@ -41,7 +45,11 @@ describe('user overview pagination', () => {
 
     expect(pagination.page).toBe(2);
     expect(pagination.totalPages).toBe(2);
+    expect(pagination.pagination.landmarkLabel).toBe('Completed tasks pagination');
     expect(pagination.pagination.items[1]?.href).toContain('completedSortBy=completedDate');
     expect(pagination.pagination.items[1]?.href).toContain('completedSortDir=desc');
+    const completedUrl = new URL(`https://example.test${pagination.pagination.items[1]?.href ?? ''}`);
+    expect(completedUrl.pathname).toBe('/users');
+    expect(completedUrl.searchParams.get('completedPage')).toBe('2');
   });
 });

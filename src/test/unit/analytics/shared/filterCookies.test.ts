@@ -52,6 +52,20 @@ describe('filterCookies', () => {
     expect(encodeFilterCookie({})).toBeNull();
   });
 
+  test('returns null when only empty array filters are provided', () => {
+    const filters: AnalyticsFilters = {
+      service: [],
+      roleCategory: [],
+      region: [],
+      location: [],
+      taskName: [],
+      workType: [],
+      user: [],
+    };
+
+    expect(encodeFilterCookie(filters)).toBeNull();
+  });
+
   test('returns null when encoded payload exceeds cookie size', () => {
     const oversized = 'x'.repeat(5000);
     const encoded = encodeFilterCookie({ service: [oversized] });
@@ -89,6 +103,18 @@ describe('filterCookies', () => {
     expect(picked).toEqual({ service: ['Civil'] });
   });
 
+  test('pickFilters drops empty arrays and non-Date values for date fields', () => {
+    const picked = pickFilters(
+      {
+        service: [],
+        completedFrom: '2026-01-01' as unknown as Date,
+      },
+      ['service', 'completedFrom']
+    );
+
+    expect(picked).toEqual({});
+  });
+
   test('picks date filters when allowed', () => {
     const filters: AnalyticsFilters = {
       completedFrom: new Date('2026-01-01T00:00:00.000Z'),
@@ -110,6 +136,10 @@ describe('filterCookies', () => {
     expect(hasFilters({})).toBe(false);
     expect(hasFilters({ service: ['Civil'] })).toBe(true);
     expect(hasFilters({ completedFrom: new Date('2026-01-01T00:00:00.000Z') })).toBe(true);
+  });
+
+  test('does not treat empty arrays as active filters', () => {
+    expect(hasFilters({ service: [] })).toBe(false);
   });
 
   test('decodes empty and invalid cookie values', () => {
@@ -135,6 +165,23 @@ describe('filterCookies', () => {
     expect(filters).toEqual({});
     expect(res.clearCookie).toHaveBeenCalledWith(cookieName, cookieOptions);
     expect(res.cookie).not.toHaveBeenCalled();
+  });
+
+  test('applyFilterCookie clears cookie on numeric reset value', () => {
+    const req = { method: 'GET', signedCookies: {} } as unknown as Request;
+    const res = { cookie: jest.fn(), clearCookie: jest.fn() } as unknown as Response;
+
+    const filters = applyFilterCookie({
+      req,
+      res,
+      source: { resetFilters: 1 },
+      allowedKeys: baseKeys,
+      cookieName,
+      cookieOptions,
+    });
+
+    expect(filters).toEqual({});
+    expect(res.clearCookie).toHaveBeenCalledWith(cookieName, cookieOptions);
   });
 
   test('applyFilterCookie writes cookie when request supplies filters', () => {
@@ -227,6 +274,22 @@ describe('filterCookies', () => {
     expect(filters).toEqual({});
   });
 
+  test('applyFilterCookie handles missing signedCookies object', () => {
+    const req = { method: 'GET' } as unknown as Request;
+    const res = { cookie: jest.fn(), clearCookie: jest.fn() } as unknown as Response;
+
+    const filters = applyFilterCookie({
+      req,
+      res,
+      source: {},
+      allowedKeys: baseKeys,
+      cookieName,
+      cookieOptions,
+    });
+
+    expect(filters).toEqual({});
+  });
+
   test('applyFilterCookie does not clear cookie for ajax submissions without filters', () => {
     const encoded = encodeFilterCookie({ service: ['Civil'] }) ?? '';
     const req = { method: 'POST', signedCookies: { [cookieName]: encoded } } as unknown as Request;
@@ -249,7 +312,20 @@ describe('filterCookies', () => {
     const context = getFilterCookieContext();
     expect(context.cookieName).toBe('analytics-filters');
     expect(context.cookieOptions.maxAge).toBe(30 * 24 * 60 * 60 * 1000);
+    expect(context.cookieOptions.httpOnly).toBe(true);
     expect(context.cookieOptions.signed).toBe(true);
+    expect(context.cookieOptions.path).toBe('/');
+  });
+
+  test('getFilterCookieContext enables secure cookies in production', () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const context = getFilterCookieContext();
+      expect(context.cookieOptions.secure).toBe(true);
+    } finally {
+      process.env.NODE_ENV = previous;
+    }
   });
 
   test('applyFilterCookieFromConfig writes cookie using configured options', () => {

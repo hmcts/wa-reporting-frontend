@@ -28,4 +28,15 @@ describe('outstandingSort', () => {
 
     expect(sort).toEqual(getDefaultOutstandingSort());
   });
+
+  test('accepts trimmed critical task sort values', () => {
+    const sort = parseOutstandingSort({
+      criticalTasksSortBy: ' priority ',
+      criticalTasksSortDir: ' desc ',
+    });
+
+    expect(sort).toEqual({
+      criticalTasks: { by: 'priority', dir: 'desc' },
+    });
+  });
 });

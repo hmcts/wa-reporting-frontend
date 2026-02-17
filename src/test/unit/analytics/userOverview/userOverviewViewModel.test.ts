@@ -569,9 +569,12 @@ describe('buildUserOverviewViewModel', () => {
     const { buildPercentCell } = __testing;
 
     expect(buildPercentCell(33.3, { minimumFractionDigits: 1 }).text).toContain('33');
+    expect(buildPercentCell(33.3, { minimumFractionDigits: 1 }).attributes?.['data-sort-value']).toBe('33.3');
     jest.isolateModules(() => {
       const { __testing: isolated } = require('../../../../main/modules/analytics/userOverview/viewModel');
-      expect(isolated.buildPercentCell(10).text).toContain('10');
+      const helperCell = isolated.buildPercentCell(10);
+      expect(helperCell.text).toContain('10');
+      expect(helperCell.attributes?.['data-sort-value']).toBe('10');
     });
   });
 
@@ -685,5 +688,255 @@ describe('buildUserOverviewViewModel', () => {
       expect(isolated.mapAssignedRow(nullAssignments, locationDescriptions).totalAssignments).toBe('0');
       expect(isolated.mapCompletedRow(nullAssignments, locationDescriptions).totalAssignments).toBe('0');
     });
+  });
+
+  test('renders complete table heads and aggregate totals', () => {
+    const overview: UserOverviewMetrics = {
+      assigned: [
+        {
+          caseId: 'A-100',
+          taskName: 'Task Z',
+          createdDate: '2024-01-01',
+          assignedDate: '2024-01-02',
+          dueDate: '2024-01-03',
+          completedDate: undefined,
+          priority: 'urgent',
+          totalAssignments: 2,
+          assigneeName: 'User A',
+          location: 'Leeds',
+          status: 'open',
+        },
+      ],
+      completed: [
+        {
+          caseId: 'C-100',
+          taskName: 'Task Y',
+          createdDate: '2024-01-01',
+          assignedDate: '2024-01-02',
+          dueDate: '2024-01-03',
+          completedDate: '2024-01-04',
+          priority: 'high',
+          totalAssignments: 1,
+          assigneeName: 'User B',
+          location: 'London',
+          handlingTimeDays: 2.5,
+          withinDue: true,
+          status: 'completed',
+        },
+      ],
+      prioritySummary: { urgent: 1, high: 1, medium: 0, low: 0 },
+      completedSummary: { total: 2, withinDueYes: 1, withinDueNo: 1 },
+      completedByDate: [],
+    };
+
+    const viewModel = buildUserOverviewViewModel({
+      filters: {},
+      overview,
+      allTasks: [],
+      assignedTasks: buildTasks(overview.assigned, 'assigned'),
+      completedTasks: buildTasks(overview.completed, 'completed'),
+      assignedTotalResults: 1,
+      completedTotalResults: 1,
+      completedComplianceSummary: {
+        total: 2,
+        withinDueYes: 1,
+        withinDueNo: 1,
+      },
+      completedByDate: [
+        { date: '2024-01-04', tasks: 3, withinDue: 2, beyondDue: 1, handlingTimeSum: 9, handlingTimeCount: 3 },
+        { date: '2024-01-05', tasks: 1, withinDue: 1, beyondDue: 0, handlingTimeSum: 2, handlingTimeCount: 1 },
+      ],
+      completedByTaskName: [
+        {
+          taskName: 'Gamma',
+          tasks: 2,
+          handlingTimeSum: 6,
+          handlingTimeCount: 2,
+          daysBeyondSum: 4,
+          daysBeyondCount: 2,
+        },
+        {
+          taskName: 'Alpha',
+          tasks: 2,
+          handlingTimeSum: 1,
+          handlingTimeCount: 1,
+          daysBeyondSum: 0,
+          daysBeyondCount: 1,
+        },
+      ],
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [{ value: 'user-1', text: 'User One' }],
+      },
+      locationDescriptions: { Leeds: 'Leeds Crown Court' },
+      sort: getDefaultUserOverviewSort(),
+      assignedPage: 1,
+      completedPage: 1,
+    });
+
+    expect(viewModel.userOptions).toEqual([{ value: 'user-1', text: 'User One' }]);
+    expect(viewModel.assignedHead.map(cell => cell.text)).toEqual([
+      'Case ID',
+      'Created date',
+      'Task name',
+      'Assigned date',
+      'Due date',
+      'Priority',
+      'Total assignments',
+      'Assignee',
+      'Location',
+    ]);
+    expect(viewModel.completedHead.map(cell => cell.text)).toEqual([
+      'Case ID',
+      'Created date',
+      'Task name',
+      'Assigned date',
+      'Due date',
+      'Completed date',
+      'Handling time (days)',
+      'Within due date',
+      'Total assignments',
+      'Assignee',
+      'Location',
+    ]);
+    expect(viewModel.assignedHead.map(cell => cell.attributes?.['data-sort-key'])).toEqual([
+      'caseId',
+      'createdDate',
+      'taskName',
+      'assignedDate',
+      'dueDate',
+      'priority',
+      'totalAssignments',
+      'assignee',
+      'location',
+    ]);
+    expect(viewModel.completedHead.map(cell => cell.attributes?.['data-sort-key'])).toEqual([
+      'caseId',
+      'createdDate',
+      'taskName',
+      'assignedDate',
+      'dueDate',
+      'completedDate',
+      'handlingTimeDays',
+      'withinDue',
+      'totalAssignments',
+      'assignee',
+      'location',
+    ]);
+
+    expect(viewModel.completedSummaryRows[0].key.text).toBe('Completed');
+    expect(viewModel.completedSummaryRows[1].key.text).toBe('Within due date');
+    expect(viewModel.completedSummaryRows[2].key.text).toBe('Beyond due date');
+    expect(viewModel.assignedRows[0].location).toBe('Leeds Crown Court');
+
+    expect(viewModel.completedByTaskNameRows[0][0].text).toBe('Alpha');
+    expect(viewModel.completedByTaskNameRows[1][0].text).toBe('Gamma');
+    expect(viewModel.completedByTaskNameTotalsRow[1].text).toBe('4');
+    expect(viewModel.completedByTaskNameTotalsRow[2].text).toBe('2.33');
+    expect(viewModel.completedByTaskNameTotalsRow[3].text).toBe('1.33');
+
+    expect(viewModel.completedByDateRows[0][5].text).toBe('3.00');
+    expect(viewModel.completedByDateRows[1][5].text).toBe('2.00');
+    expect(viewModel.completedByDateTotalsRow[1].text).toBe('4');
+    expect(viewModel.completedByDateTotalsRow[2].text).toBe('3');
+    expect(viewModel.completedByDateTotalsRow[3].text).toContain('75');
+    expect(viewModel.completedByDateTotalsRow[4].text).toBe('1');
+    expect(viewModel.completedByDateTotalsRow[5].text).toBe('2.75');
+  });
+
+  test('uses placeholder and unknown-label defaults in mapped rows and aggregates', () => {
+    const overview: UserOverviewMetrics = {
+      assigned: [
+        {
+          caseId: 'A-200',
+          taskName: 'Task A',
+          createdDate: '2024-02-01',
+          assignedDate: undefined,
+          dueDate: undefined,
+          completedDate: undefined,
+          priority: 'low',
+          totalAssignments: 0,
+          assigneeName: undefined,
+          location: 'Leeds',
+          status: 'open',
+        },
+      ],
+      completed: [
+        {
+          caseId: 'C-200',
+          taskName: 'Task B',
+          createdDate: '2024-02-01',
+          assignedDate: undefined,
+          dueDate: undefined,
+          completedDate: undefined,
+          priority: 'medium',
+          totalAssignments: 0,
+          assigneeName: undefined,
+          location: 'Leeds',
+          handlingTimeDays: undefined,
+          withinDue: undefined,
+          status: 'completed',
+        },
+      ],
+      prioritySummary: { urgent: 0, high: 0, medium: 1, low: 1 },
+      completedSummary: { total: 3, withinDueYes: 2, withinDueNo: 1 },
+      completedByDate: [],
+    };
+
+    const viewModel = buildUserOverviewViewModel({
+      filters: {},
+      overview,
+      allTasks: [],
+      assignedTasks: buildTasks(overview.assigned, 'assigned'),
+      completedTasks: buildTasks(overview.completed, 'completed'),
+      assignedTotalResults: 1,
+      completedTotalResults: 1,
+      completedComplianceSummary: { total: 3, withinDueYes: 2, withinDueNo: 1 },
+      completedByDate: [
+        { date: '2024-02-02', tasks: 3, withinDue: 2, beyondDue: 1, handlingTimeSum: 4, handlingTimeCount: 2 },
+      ],
+      completedByTaskName: [
+        {
+          taskName: '',
+          tasks: 3,
+          handlingTimeSum: 6,
+          handlingTimeCount: 3,
+          daysBeyondSum: 2,
+          daysBeyondCount: 3,
+        },
+      ],
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
+      locationDescriptions: {},
+      sort: getDefaultUserOverviewSort(),
+      assignedPage: 1,
+      completedPage: 1,
+    });
+
+    expect(viewModel.userOptions).toEqual([{ value: '', text: 'All users' }]);
+    expect(viewModel.assignedRows[0].assigneeName).toBe('');
+    expect(viewModel.completedRows[0].assigneeName).toBe('');
+    expect(viewModel.completedRows[0].handlingTimeDays).toBe('-');
+    expect(viewModel.completedRows[0].withinDue).toBe('-');
+    expect(viewModel.assignedHead[6].format).toBe('numeric');
+    expect(viewModel.completedHead[8].format).toBe('numeric');
+    expect(viewModel.completedByTaskNameRows[0][0].text).toBe('Unknown');
+    expect(viewModel.completedByDateRows[0][3].text).toBe('66.7%');
+    expect(viewModel.completedByDateRows[0][3].attributes?.['data-sort-value']).toBe(String((2 / 3) * 100));
+    expect(viewModel.completedByDateTotalsRow[0].text).toBe('Total');
+    expect(viewModel.completedByDateTotalsRow[3].text).toBe('66.7%');
+    expect(viewModel.completedByDateTotalsRow[3].attributes?.['data-sort-value']).toBe(String((2 / 3) * 100));
   });
 });

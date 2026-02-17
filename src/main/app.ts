@@ -122,7 +122,9 @@ export const bootstrap = async (): Promise<void> => {
   });
 };
 
-bootstrap().catch(err => {
+export const bootstrapPromise = bootstrap();
+
+bootstrapPromise.catch(err => {
   logger.error('Failed to bootstrap app:', err);
   process.exit(1);
 });

@@ -350,4 +350,72 @@ describe('buildCompleted', () => {
     expect(stats.lowerRange).toBe(4);
     expect(stats.upperRange).toBe(6);
   });
+
+  test('builds exact timeline, by-name and region/location counters', () => {
+    const tasks: Task[] = [
+      {
+        caseId: 'CASE-40',
+        taskId: 'TASK-40',
+        service: 'Service A',
+        roleCategory: 'Ops',
+        region: 'North',
+        location: 'Leeds',
+        taskName: 'Review',
+        priority: 'urgent',
+        status: 'completed',
+        createdDate: '2024-09-01',
+        completedDate: '2024-09-03',
+        dueDate: '2024-09-04',
+      },
+      {
+        caseId: 'CASE-41',
+        taskId: 'TASK-41',
+        service: 'Service A',
+        roleCategory: 'Ops',
+        region: 'North',
+        location: 'Leeds',
+        taskName: 'Review',
+        priority: 'high',
+        status: 'completed',
+        createdDate: '2024-09-01',
+        completedDate: '2024-09-03',
+        dueDate: '2024-09-02',
+      },
+      {
+        caseId: 'CASE-42',
+        taskId: 'TASK-42',
+        service: 'Service A',
+        roleCategory: 'Ops',
+        region: undefined as unknown as string,
+        location: undefined as unknown as string,
+        taskName: 'Audit',
+        priority: 'medium',
+        status: 'completed',
+        createdDate: '2024-09-01',
+        completedDate: '2024-09-04',
+        dueDate: '2024-09-05',
+      },
+    ];
+
+    const completed = completedService.buildCompleted(tasks);
+    const grouped = completedService.buildCompletedByRegionLocation(tasks);
+
+    expect(completed.timeline).toEqual([
+      { date: '2024-09-03', completed: 2, withinDue: 1, beyondDue: 1 },
+      { date: '2024-09-04', completed: 1, withinDue: 1, beyondDue: 0 },
+    ]);
+    expect(completed.completedByName).toEqual([
+      { taskName: 'Review', tasks: 2, withinDue: 1, beyondDue: 1 },
+      { taskName: 'Audit', tasks: 1, withinDue: 1, beyondDue: 0 },
+    ]);
+
+    expect(grouped.byLocation).toEqual([
+      { location: 'Leeds', region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 },
+      { location: 'Unknown', region: 'Unknown', tasks: 1, withinDue: 1, beyondDue: 0 },
+    ]);
+    expect(grouped.byRegion).toEqual([
+      { region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 },
+      { region: 'Unknown', tasks: 1, withinDue: 1, beyondDue: 0 },
+    ]);
+  });
 });
