@@ -19,6 +19,8 @@ export type PublishedSnapshotContext = {
   freshnessInsetText: string;
 };
 
+const UNPUBLISHED_SNAPSHOT_ID = 0;
+
 function signSnapshotId(snapshotId: number): string {
   return createHmac('sha256', snapshotTokenSecret).update(String(snapshotId)).digest('base64url');
 }
@@ -45,6 +47,15 @@ function toPublishedSnapshotContext(snapshot: { snapshotId: number; publishedAt:
   };
 }
 
+function toUnpublishedSnapshotContext(): PublishedSnapshotContext {
+  return {
+    snapshotId: UNPUBLISHED_SNAPSHOT_ID,
+    snapshotToken: '',
+    publishedAt: new Date(0),
+    freshnessInsetText: '',
+  };
+}
+
 export async function fetchPublishedSnapshotContext(requestedSnapshotId?: number): Promise<PublishedSnapshotContext> {
   if (requestedSnapshotId !== undefined) {
     const requested = await snapshotStateRepository.fetchSnapshotById(requestedSnapshotId);
@@ -55,7 +66,7 @@ export async function fetchPublishedSnapshotContext(requestedSnapshotId?: number
 
   const snapshot = await snapshotStateRepository.fetchPublishedSnapshot();
   if (!snapshot) {
-    throw new Error('No published analytics snapshot found. Run bootstrap batch before enabling pinned reads.');
+    return toUnpublishedSnapshotContext();
   }
   return toPublishedSnapshotContext(snapshot);
 }

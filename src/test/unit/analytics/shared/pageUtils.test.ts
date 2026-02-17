@@ -80,12 +80,16 @@ describe('pageUtils', () => {
     expect(result.freshnessInsetText).toContain('Data last refreshed:');
   });
 
-  test('fetchPublishedSnapshotContext throws when no snapshot is published', async () => {
+  test('fetchPublishedSnapshotContext returns empty context when no snapshot is published', async () => {
     const { snapshotStateRepository } = jest.requireMock('../../../../main/modules/analytics/shared/repositories');
     (snapshotStateRepository.fetchSnapshotById as jest.Mock).mockResolvedValue(null);
     (snapshotStateRepository.fetchPublishedSnapshot as jest.Mock).mockResolvedValue(null);
 
-    await expect(fetchPublishedSnapshotContext()).rejects.toThrow('No published analytics snapshot found');
+    const result = await fetchPublishedSnapshotContext();
+
+    expect(result.snapshotId).toBe(0);
+    expect(result.snapshotToken).toBe('');
+    expect(result.freshnessInsetText).toBe('');
   });
 
   test('fetchPublishedSnapshotContext uses requested snapshot when available', async () => {
