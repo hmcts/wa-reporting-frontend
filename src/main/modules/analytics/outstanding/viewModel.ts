@@ -57,6 +57,9 @@ function buildTotalsRowWithLabelColumns(label: string, labelColumns: number, val
 
 export type OutstandingViewModel = FilterOptionsViewModel & {
   filters: AnalyticsFilters;
+  snapshotId?: number;
+  snapshotToken?: string;
+  freshnessInsetText: string;
   criticalTasksSort: OutstandingSort['criticalTasks'];
   criticalTasksHead: TableHeadCell[];
   criticalTasks: CriticalTaskView[];
@@ -327,6 +330,9 @@ function buildOutstandingLocationRows(
 
 export function buildOutstandingViewModel(params: {
   filters: AnalyticsFilters;
+  snapshotId?: number;
+  snapshotToken?: string;
+  freshnessInsetText: string;
   filterOptions: FilterOptions;
   sort: OutstandingSort;
   criticalTasksPage: number;
@@ -364,6 +370,9 @@ export function buildOutstandingViewModel(params: {
 }): OutstandingViewModel {
   const {
     filters,
+    snapshotId,
+    snapshotToken,
+    freshnessInsetText,
     filterOptions,
     sort,
     criticalTasksPage,
@@ -399,6 +408,9 @@ export function buildOutstandingViewModel(params: {
 
   return {
     filters,
+    snapshotId,
+    snapshotToken,
+    freshnessInsetText,
     ...filterViewModel,
     criticalTasksSort: sort.criticalTasks,
     criticalTasksHead: buildCriticalTasksHead(sort),

@@ -6,6 +6,8 @@ jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('fetchOpenTasksByName', () => {
+  const snapshotId = 301;
+
   beforeEach(() => {
     (taskThinRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([]);
   });
@@ -20,9 +22,9 @@ describe('fetchOpenTasksByName', () => {
       user: ['user-1'],
     };
 
-    await openTasksByNameChartService.fetchOpenTasksByName(filters);
+    await openTasksByNameChartService.fetchOpenTasksByName(snapshotId, filters);
 
-    expect(taskThinRepository.fetchOpenTasksByNameRows).toHaveBeenCalledWith(filters);
+    expect(taskThinRepository.fetchOpenTasksByNameRows).toHaveBeenCalledWith(snapshotId, filters);
   });
 
   test('builds breakdown totals and ordering', async () => {
@@ -32,7 +34,7 @@ describe('fetchOpenTasksByName', () => {
       { task_name: null, urgent: 0, high: 0, medium: 0, low: 2 },
     ]);
 
-    const result = await openTasksByNameChartService.fetchOpenTasksByName({});
+    const result = await openTasksByNameChartService.fetchOpenTasksByName(snapshotId, {});
 
     expect(result.breakdown.map(row => row.name)).toEqual(['Task B', 'Task A', 'Unknown task']);
     expect(result.breakdown[0].urgent).toBe(2);
@@ -50,7 +52,7 @@ describe('fetchOpenTasksByName', () => {
       { task_name: 'Task A', urgent: 0, high: 1, medium: 0, low: 0 },
     ]);
 
-    const result = await openTasksByNameChartService.fetchOpenTasksByName({});
+    const result = await openTasksByNameChartService.fetchOpenTasksByName(snapshotId, {});
 
     expect(result.breakdown.map(row => row.name)).toEqual(['Task A', 'Task B']);
   });
@@ -61,7 +63,7 @@ describe('fetchOpenTasksByName', () => {
       { task_name: 'Task A', urgent: 0, high: 2, medium: 0, low: 0 },
     ]);
 
-    const result = await openTasksByNameChartService.fetchOpenTasksByName({});
+    const result = await openTasksByNameChartService.fetchOpenTasksByName(snapshotId, {});
 
     expect(result.breakdown.map(row => row.name)).toEqual(['Task B', 'Task A']);
   });
@@ -71,7 +73,7 @@ describe('fetchOpenTasksByName', () => {
       { task_name: 'Task A', urgent: null, high: null, medium: null, low: null },
     ]);
 
-    const result = await openTasksByNameChartService.fetchOpenTasksByName({});
+    const result = await openTasksByNameChartService.fetchOpenTasksByName(snapshotId, {});
 
     expect(result.breakdown).toEqual([{ name: 'Task A', urgent: 0, high: 0, medium: 0, low: 0 }]);
   });

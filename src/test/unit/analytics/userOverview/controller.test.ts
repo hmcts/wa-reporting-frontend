@@ -2,6 +2,7 @@ import { Request, Response, Router } from 'express';
 
 import { applyFilterCookieFromConfig } from '../../../../main/modules/analytics/shared/filterCookies';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../../../../main/modules/analytics/shared/partials';
+import { createSnapshotToken } from '../../../../main/modules/analytics/shared/pageUtils';
 import { parseUserOverviewSort } from '../../../../main/modules/analytics/shared/userOverviewSort';
 import { userOverviewController } from '../../../../main/modules/analytics/userOverview/controller';
 import { buildUserOverviewPage } from '../../../../main/modules/analytics/userOverview/page';
@@ -135,7 +136,7 @@ describe('userOverviewController', () => {
     const render = jest.fn();
     const req = {
       method: 'POST',
-      body: { user: 'user-1', ajaxSection: 'assigned' },
+      body: { user: 'user-1', ajaxSection: 'assigned', snapshotToken: createSnapshotToken(77) },
       get: jest.fn().mockReturnValue('fetch'),
     } as unknown as Request;
     const res = { render } as unknown as Response;
@@ -164,7 +165,8 @@ describe('userOverviewController', () => {
       },
       2,
       1,
-      'assigned'
+      'assigned',
+      77
     );
     expect(getAjaxPartialTemplate).toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/user-overview/partials/assigned-tasks', { view: 'users-ajax' });

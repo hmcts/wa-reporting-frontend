@@ -18,6 +18,9 @@ type TableRows = TableRow[];
 
 type OverviewViewModel = FilterOptionsViewModel & {
   filters: AnalyticsFilters;
+  snapshotId?: number;
+  snapshotToken?: string;
+  freshnessInsetText: string;
   rows: OverviewResponse['serviceRows'];
   totals: OverviewResponse['totals'];
   tableRows: TableRows;
@@ -89,19 +92,36 @@ function buildTaskEventsTotalsRow(totals: TaskEventsRow): TableRow {
 
 export function buildOverviewViewModel(params: {
   filters: AnalyticsFilters;
+  snapshotId?: number;
+  snapshotToken?: string;
   overview: OverviewResponse;
   filterOptions: FilterOptions;
   allTasks: AnalyticsTask[];
   taskEventsRows: TaskEventsRow[];
   taskEventsTotals: TaskEventsRow;
   eventsRange: { from: Date; to: Date };
+  freshnessInsetText?: string;
 }): OverviewViewModel {
-  const { filters, overview, filterOptions, allTasks, taskEventsRows, taskEventsTotals, eventsRange } = params;
+  const {
+    filters,
+    snapshotId,
+    snapshotToken,
+    overview,
+    filterOptions,
+    allTasks,
+    taskEventsRows,
+    taskEventsTotals,
+    eventsRange,
+    freshnessInsetText = 'Data freshness unavailable.',
+  } = params;
   const filterViewModel = buildFilterOptionsViewModel(filterOptions, allTasks);
   const sortedRows = [...overview.serviceRows].sort((a, b) => a.service.localeCompare(b.service));
 
   return {
     filters,
+    snapshotId,
+    snapshotToken,
+    freshnessInsetText,
     ...filterViewModel,
     rows: sortedRows,
     totals: overview.totals,

@@ -5,6 +5,7 @@ describe('buildOutstandingViewModel', () => {
   test('builds totals rows and chart bindings', () => {
     const viewModel = buildOutstandingViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       filterOptions: {
         services: [],
         roleCategories: [],
@@ -73,6 +74,7 @@ describe('buildOutstandingViewModel', () => {
   test('handles empty timelines and builds region/location rows', () => {
     const viewModel = buildOutstandingViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       filterOptions: {
         services: [],
         roleCategories: [],
@@ -143,6 +145,7 @@ describe('buildOutstandingViewModel', () => {
   test('sorts region and region-location rows consistently', () => {
     const viewModel = buildOutstandingViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       filterOptions: {
         services: [],
         roleCategories: [],
@@ -251,6 +254,7 @@ describe('buildOutstandingViewModel', () => {
   test('builds consistent totals for region, location, and region-location tables', () => {
     const viewModel = buildOutstandingViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       filterOptions: {
         services: [],
         roleCategories: [],
@@ -321,6 +325,7 @@ describe('buildOutstandingViewModel', () => {
   test('falls back to raw location label when description lookup is missing', () => {
     const viewModel = buildOutstandingViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       filterOptions: {
         services: [],
         roleCategories: [],

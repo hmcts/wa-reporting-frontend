@@ -5,6 +5,7 @@ import { parseCriticalTasksPage } from '../../../../main/modules/analytics/outst
 import { buildOutstandingPage } from '../../../../main/modules/analytics/outstanding/page';
 import { applyFilterCookieFromConfig } from '../../../../main/modules/analytics/shared/filterCookies';
 import { parseOutstandingSort } from '../../../../main/modules/analytics/shared/outstandingSort';
+import { createSnapshotToken } from '../../../../main/modules/analytics/shared/pageUtils';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../../../../main/modules/analytics/shared/partials';
 
 jest.mock('../../../../main/modules/analytics/shared/filterCookies', () => ({
@@ -122,7 +123,7 @@ describe('outstandingController', () => {
     const render = jest.fn();
     const req = {
       method: 'POST',
-      body: { service: 'Crime', ajaxSection: 'criticalTasks' },
+      body: { service: 'Crime', ajaxSection: 'criticalTasks', snapshotToken: createSnapshotToken(55) },
       get: jest.fn().mockReturnValue('fetch'),
     } as unknown as Request;
     const res = { render } as unknown as Response;
@@ -145,7 +146,8 @@ describe('outstandingController', () => {
         criticalTasks: { by: 'dueDate', dir: 'asc' },
       },
       2,
-      'criticalTasks'
+      'criticalTasks',
+      55
     );
     expect(getAjaxPartialTemplate).toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/outstanding/partials/critical-tasks', { view: 'outstanding-ajax' });

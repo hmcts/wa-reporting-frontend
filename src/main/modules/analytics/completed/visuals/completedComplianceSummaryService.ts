@@ -9,10 +9,11 @@ type CompletedSummary = {
 
 class CompletedComplianceSummaryService {
   async fetchCompletedSummary(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedSummary | null> {
-    const rows = await taskFactsRepository.fetchCompletedSummaryRows(filters, range);
+    const rows = await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, filters, range);
     if (rows.length === 0) {
       return null;
     }

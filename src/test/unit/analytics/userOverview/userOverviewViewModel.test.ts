@@ -98,6 +98,7 @@ describe('buildUserOverviewViewModel', () => {
 
     const viewModel = buildUserOverviewViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       overview,
       allTasks,
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
@@ -155,6 +156,7 @@ describe('buildUserOverviewViewModel', () => {
         completedFrom: new Date('2024-02-01'),
         completedTo: new Date('2024-02-15'),
       },
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       overview,
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
@@ -199,6 +201,7 @@ describe('buildUserOverviewViewModel', () => {
 
     const viewModel = buildUserOverviewViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       overview,
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
@@ -281,6 +284,7 @@ describe('buildUserOverviewViewModel', () => {
 
     const viewModel = buildUserOverviewViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       overview,
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
@@ -349,6 +353,7 @@ describe('buildUserOverviewViewModel', () => {
 
     const viewModel = buildUserOverviewViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       overview,
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
@@ -455,6 +460,7 @@ describe('buildUserOverviewViewModel', () => {
 
     const viewModel = buildUserOverviewViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       overview,
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
@@ -532,6 +538,7 @@ describe('buildUserOverviewViewModel', () => {
 
     const viewModel = buildUserOverviewViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       overview,
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
@@ -618,6 +625,7 @@ describe('buildUserOverviewViewModel', () => {
 
     const viewModel = buildUserOverviewViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       overview,
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
@@ -731,6 +739,7 @@ describe('buildUserOverviewViewModel', () => {
 
     const viewModel = buildUserOverviewViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       overview,
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),
@@ -890,6 +899,7 @@ describe('buildUserOverviewViewModel', () => {
 
     const viewModel = buildUserOverviewViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       overview,
       allTasks: [],
       assignedTasks: buildTasks(overview.assigned, 'assigned'),

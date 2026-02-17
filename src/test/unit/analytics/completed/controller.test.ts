@@ -3,6 +3,7 @@ import { Request, Response, Router } from 'express';
 import { completedController } from '../../../../main/modules/analytics/completed/controller';
 import { buildCompletedPage } from '../../../../main/modules/analytics/completed/page';
 import { applyFilterCookieFromConfig } from '../../../../main/modules/analytics/shared/filterCookies';
+import { createSnapshotToken } from '../../../../main/modules/analytics/shared/pageUtils';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../../../../main/modules/analytics/shared/partials';
 
 jest.mock('../../../../main/modules/analytics/shared/filterCookies', () => ({
@@ -153,7 +154,7 @@ describe('completedController', () => {
     const render = jest.fn();
     const req = {
       method: 'POST',
-      body: { ajaxSection: 'completed-task-audit', caseId: '174' },
+      body: { ajaxSection: 'completed-task-audit', caseId: '174', snapshotToken: createSnapshotToken(66) },
       get: jest.fn().mockReturnValue('fetch'),
     } as unknown as Request;
     const res = { render } as unknown as Response;
@@ -173,7 +174,8 @@ describe('completedController', () => {
       { service: ['Crime'] },
       'handlingTime',
       '174',
-      'completed-task-audit'
+      'completed-task-audit',
+      66
     );
     expect(render).toHaveBeenCalledWith('analytics/completed/partials/task-audit', { view: 'completed-ajax' });
   });

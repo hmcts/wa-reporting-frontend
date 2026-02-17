@@ -2,6 +2,7 @@ import { emptyOverviewFilterOptions } from '../shared/filters';
 import { OutstandingSort } from '../shared/outstandingSort';
 import {
   fetchFilterOptionsWithFallback,
+  fetchPublishedSnapshotContext,
   settledArrayWithFallback,
   settledValueWithError,
   settledValueWithFallback,
@@ -57,8 +58,10 @@ export async function buildOutstandingPage(
   filters: AnalyticsFilters,
   sort: OutstandingSort,
   criticalTasksPage = 1,
-  ajaxSection?: string
+  ajaxSection?: string,
+  requestedSnapshotId?: number
 ): Promise<OutstandingPageViewModel> {
+  const snapshotContext = await fetchPublishedSnapshotContext(requestedSnapshotId);
   const requestedSection = resolveOutstandingSection(ajaxSection);
   const shouldFetch = (section: OutstandingAjaxSection): boolean =>
     requestedSection ? requestedSection === section : !deferredSections.has(section);
@@ -88,25 +91,34 @@ export async function buildOutstandingPage(
     regionLocationResult,
     criticalTasksResult,
   ] = await Promise.allSettled([
-    shouldFetch('open-by-name') ? openTasksByNameChartService.fetchOpenTasksByName(filters) : Promise.resolve(null),
+    shouldFetch('open-by-name')
+      ? openTasksByNameChartService.fetchOpenTasksByName(snapshotContext.snapshotId, filters)
+      : Promise.resolve(null),
     shouldFetch('open-tasks-table')
-      ? openTasksCreatedByAssignmentChartService.fetchOpenTasksCreatedByAssignment(filters)
+      ? openTasksCreatedByAssignmentChartService.fetchOpenTasksCreatedByAssignment(snapshotContext.snapshotId, filters)
       : Promise.resolve([]),
     shouldFetch('wait-time-table')
-      ? waitTimeByAssignedDateChartService.fetchWaitTimeByAssignedDate(filters)
+      ? waitTimeByAssignedDateChartService.fetchWaitTimeByAssignedDate(snapshotContext.snapshotId, filters)
       : Promise.resolve([]),
-    shouldFetch('tasks-due') ? tasksDueByDateChartService.fetchTasksDueByDate(filters) : Promise.resolve([]),
+    shouldFetch('tasks-due')
+      ? tasksDueByDateChartService.fetchTasksDueByDate(snapshotContext.snapshotId, filters)
+      : Promise.resolve([]),
     shouldFetch('open-tasks-priority')
-      ? tasksDueByPriorityChartService.fetchTasksDueByPriority(filters)
+      ? tasksDueByPriorityChartService.fetchTasksDueByPriority(snapshotContext.snapshotId, filters)
       : Promise.resolve([]),
     shouldFetch('open-tasks-summary')
-      ? openTasksSummaryStatsService.fetchOpenTasksSummary(filters)
+      ? openTasksSummaryStatsService.fetchOpenTasksSummary(snapshotContext.snapshotId, filters)
       : Promise.resolve(null),
     shouldFetch('open-by-region-location')
-      ? openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation(filters)
+      ? openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation(snapshotContext.snapshotId, filters)
       : Promise.resolve(null),
     shouldFetch('criticalTasks')
-      ? criticalTasksTableService.fetchCriticalTasksPage(filters, sort.criticalTasks, criticalTasksPage)
+      ? criticalTasksTableService.fetchCriticalTasksPage(
+          snapshotContext.snapshotId,
+          filters,
+          sort.criticalTasks,
+          criticalTasksPage
+        )
       : Promise.resolve(null),
   ]);
 
@@ -159,7 +171,10 @@ export async function buildOutstandingPage(
 
   const filterOptions = requestedSection
     ? emptyOverviewFilterOptions()
-    : await fetchFilterOptionsWithFallback('Failed to fetch outstanding filter options from database');
+    : await fetchFilterOptionsWithFallback(
+        'Failed to fetch outstanding filter options from database',
+        snapshotContext.snapshotId
+      );
   const needsRegionDescriptions = shouldFetch('open-by-region-location');
   const needsLocationDescriptions = shouldFetch('open-by-region-location') || shouldFetch('criticalTasks');
   const [regionDescriptionsResult, locationDescriptionsResult] = await Promise.allSettled([
@@ -180,6 +195,8 @@ export async function buildOutstandingPage(
 
   return buildOutstandingViewModel({
     filters,
+    snapshotId: snapshotContext.snapshotId,
+    snapshotToken: snapshotContext.snapshotToken,
     filterOptions,
     sort,
     criticalTasksPage: resolvedCriticalTasksPage,
@@ -204,6 +221,7 @@ export async function buildOutstandingPage(
     outstandingByRegion,
     regionDescriptions,
     locationDescriptions,
+    freshnessInsetText: snapshotContext.freshnessInsetText,
   });
 }
 
@@ -214,7 +232,11 @@ type OpenByNameResponse = {
 };
 
 export async function fetchOpenByNameResponse(filters: AnalyticsFilters): Promise<OpenByNameResponse> {
-  const { breakdown, totals } = await openTasksByNameChartService.fetchOpenTasksByName(filters);
+  const snapshotContext = await fetchPublishedSnapshotContext();
+  const { breakdown, totals } = await openTasksByNameChartService.fetchOpenTasksByName(
+    snapshotContext.snapshotId,
+    filters
+  );
   return {
     breakdown,
     totals,

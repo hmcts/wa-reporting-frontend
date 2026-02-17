@@ -6,6 +6,8 @@ jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('completedTimelineChartService', () => {
+  const snapshotId = 405;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -16,7 +18,7 @@ describe('completedTimelineChartService', () => {
       { date_key: '2024-01-02', total: null, within: undefined },
     ]);
 
-    const result = await completedTimelineChartService.fetchCompletedTimeline({});
+    const result = await completedTimelineChartService.fetchCompletedTimeline(snapshotId, {});
 
     expect(result).toEqual([
       { date: '2024-01-01', completed: 4, withinDue: 3, beyondDue: 1 },

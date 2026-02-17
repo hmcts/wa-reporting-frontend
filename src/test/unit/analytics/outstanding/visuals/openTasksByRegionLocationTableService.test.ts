@@ -6,6 +6,8 @@ jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('openTasksByRegionLocationTableService', () => {
+  const snapshotId = 305;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -41,7 +43,7 @@ describe('openTasksByRegionLocationTableService', () => {
       },
     ]);
 
-    const result = await openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation({});
+    const result = await openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation(snapshotId, {});
 
     expect(result.locationRows).toEqual([
       { location: 'Leeds', region: 'North', open: 3, urgent: 1, high: 1, medium: 1, low: 0 },
@@ -68,7 +70,7 @@ describe('openTasksByRegionLocationTableService', () => {
       },
     ]);
 
-    const result = await openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation({});
+    const result = await openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation(snapshotId, {});
 
     expect(result.locationRows).toEqual([
       { location: 'Leeds', region: 'North', open: 0, urgent: 0, high: 0, medium: 0, low: 0 },
@@ -107,7 +109,7 @@ describe('openTasksByRegionLocationTableService', () => {
       },
     ]);
 
-    const result = await openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation({});
+    const result = await openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation(snapshotId, {});
 
     expect(result.locationRows.map(row => `${row.location}:${row.region}`)).toEqual([
       'Bradford:North',
@@ -138,7 +140,7 @@ describe('openTasksByRegionLocationTableService', () => {
       },
     ]);
 
-    const result = await openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation({});
+    const result = await openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation(snapshotId, {});
 
     expect(result.regionRows.map(row => row.region)).toEqual(['North', 'South']);
   });

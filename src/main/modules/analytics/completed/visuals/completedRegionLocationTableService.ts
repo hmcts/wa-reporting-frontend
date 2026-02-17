@@ -16,10 +16,11 @@ function averageFromTotals(sum: unknown, count: unknown): number | null {
 
 class CompletedRegionLocationTableService {
   async fetchCompletedByLocation(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedByLocationRow[]> {
-    const rows = await taskFactsRepository.fetchCompletedByLocationRows(filters, range);
+    const rows = await taskFactsRepository.fetchCompletedByLocationRows(snapshotId, filters, range);
     return rows.map(row => {
       const tasks = toNumber(row.total);
       const withinDue = toNumber(row.within);
@@ -38,10 +39,11 @@ class CompletedRegionLocationTableService {
   }
 
   async fetchCompletedByRegion(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedByRegionRow[]> {
-    const rows = await taskFactsRepository.fetchCompletedByRegionRows(filters, range);
+    const rows = await taskFactsRepository.fetchCompletedByRegionRows(snapshotId, filters, range);
     return rows.map(row => {
       const tasks = toNumber(row.total);
       const withinDue = toNumber(row.within);

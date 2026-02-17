@@ -8,6 +8,8 @@ jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('fetchOpenTasksSummary', () => {
+  const snapshotId = 302;
+
   beforeEach(() => {
     (taskThinRepository.fetchOpenTasksSummaryRows as jest.Mock).mockReset();
   });
@@ -15,7 +17,7 @@ describe('fetchOpenTasksSummary', () => {
   it('returns null when there are no rows', async () => {
     (taskThinRepository.fetchOpenTasksSummaryRows as jest.Mock).mockResolvedValue([]);
 
-    const result = await openTasksSummaryStatsService.fetchOpenTasksSummary({});
+    const result = await openTasksSummaryStatsService.fetchOpenTasksSummary(snapshotId, {});
 
     expect(result).toBeNull();
   });
@@ -32,9 +34,9 @@ describe('fetchOpenTasksSummary', () => {
       },
     ]);
 
-    const result = await openTasksSummaryStatsService.fetchOpenTasksSummary({ region: ['North'] });
+    const result = await openTasksSummaryStatsService.fetchOpenTasksSummary(snapshotId, { region: ['North'] });
 
-    expect(taskThinRepository.fetchOpenTasksSummaryRows).toHaveBeenCalledWith({ region: ['North'] });
+    expect(taskThinRepository.fetchOpenTasksSummaryRows).toHaveBeenCalledWith(snapshotId, { region: ['North'] });
     expect(result).toEqual({
       open: 100,
       assigned: 20,
@@ -60,7 +62,7 @@ describe('fetchOpenTasksSummary', () => {
       },
     ]);
 
-    const result = await openTasksSummaryStatsService.fetchOpenTasksSummary({});
+    const result = await openTasksSummaryStatsService.fetchOpenTasksSummary(snapshotId, {});
 
     expect(result).toEqual({
       open: 0,
@@ -87,7 +89,7 @@ describe('fetchOpenTasksSummary', () => {
       },
     ]);
 
-    const result = await openTasksSummaryStatsService.fetchOpenTasksSummary({});
+    const result = await openTasksSummaryStatsService.fetchOpenTasksSummary(snapshotId, {});
 
     expect(result).toEqual({
       open: 0,

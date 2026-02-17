@@ -4,10 +4,11 @@ import { toNumber } from '../../shared/utils';
 
 class CompletedProcessingHandlingTimeService {
   async fetchCompletedProcessingHandlingTime(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedProcessingHandlingPoint[]> {
-    const rows = await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(filters, range);
+    const rows = await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, filters, range);
 
     return rows.map(row => ({
       date: row.date_key,

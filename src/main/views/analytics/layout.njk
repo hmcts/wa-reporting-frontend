@@ -5,6 +5,20 @@
 {% block pageTitle %}Analytics{% endblock %}
 
 {% block header %}
+  {% set freshnessNavigationText = "Last refreshed: unavailable." %}
+  {% if freshnessInsetText %}
+    {% set freshnessNavigationText = freshnessInsetText
+      | replace("Data last refreshed: ", "Last refreshed: ")
+      | replace("Data freshness unavailable.", "Last refreshed: unavailable.") %}
+  {% endif %}
+  {% set navigationEndHtml %}
+    <li class="govuk-service-navigation__item analytics-service-navigation__item--freshness">
+      <span class="analytics-service-navigation__freshness-text">{{ freshnessNavigationText }}</span>
+    </li>
+    <li class="govuk-service-navigation__item analytics-service-navigation__item--signout">
+      <a class="govuk-service-navigation__link" href="/logout">Sign out</a>
+    </li>
+  {% endset %}
   {{ govukHeader() }}
   {{ govukServiceNavigation({
     serviceName: "Task Management Report",
@@ -32,7 +46,7 @@
       }
     ],
     slots: {
-      navigationEnd: '<li class="govuk-service-navigation__item analytics-service-navigation__item--signout"><a class="govuk-service-navigation__link" href="/logout">Sign out</a></li>'
+      navigationEnd: navigationEndHtml | trim
     }
   }) }}
 {% endblock %}

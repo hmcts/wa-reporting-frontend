@@ -2,6 +2,7 @@ import { Request, Response, Router } from 'express';
 
 import { BASE_FILTER_KEYS, applyFilterCookieFromConfig } from '../shared/filterCookies';
 import { parseOutstandingSort } from '../shared/outstandingSort';
+import { parseSnapshotTokenInput } from '../shared/pageUtils';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../shared/partials';
 import { AnalyticsFilters } from '../shared/types';
 
@@ -33,7 +34,11 @@ class OutstandingController {
       const sort = parseOutstandingSort(source);
       const criticalTasksPage = parseCriticalTasksPage(source.criticalTasksPage);
       const ajaxSection = typeof source.ajaxSection === 'string' ? source.ajaxSection : undefined;
-      const viewModel = await buildOutstandingPage(filters, sort, criticalTasksPage, ajaxSection);
+      const requestedSnapshotId = parseSnapshotTokenInput(source.snapshotToken);
+      const viewModel =
+        requestedSnapshotId !== undefined
+          ? await buildOutstandingPage(filters, sort, criticalTasksPage, ajaxSection, requestedSnapshotId)
+          : await buildOutstandingPage(filters, sort, criticalTasksPage, ajaxSection);
       if (isAjaxRequest(req)) {
         const template = getAjaxPartialTemplate({
           source,

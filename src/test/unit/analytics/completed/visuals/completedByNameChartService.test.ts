@@ -6,6 +6,8 @@ jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('completedByNameChartService', () => {
+  const snapshotId = 401;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -17,9 +19,9 @@ describe('completedByNameChartService', () => {
       { task_name: 'Task A', total: 3, within: 2 },
     ]);
 
-    const result = await completedByNameChartService.fetchCompletedByName({});
+    const result = await completedByNameChartService.fetchCompletedByName(snapshotId, {});
 
-    expect(taskFactsRepository.fetchCompletedByNameRows).toHaveBeenCalledWith({}, undefined);
+    expect(taskFactsRepository.fetchCompletedByNameRows).toHaveBeenCalledWith(snapshotId, {}, undefined);
     expect(result).toEqual([
       { taskName: 'Task A', tasks: 3, withinDue: 2, beyondDue: 1 },
       { taskName: 'Task B', tasks: 2, withinDue: 1, beyondDue: 1 },
@@ -33,7 +35,7 @@ describe('completedByNameChartService', () => {
       { task_name: 'Alpha', total: 1, within: 0 },
     ]);
 
-    const result = await completedByNameChartService.fetchCompletedByName({});
+    const result = await completedByNameChartService.fetchCompletedByName(snapshotId, {});
 
     expect(result.map(row => row.taskName)).toEqual(['Alpha', 'Beta']);
   });
@@ -43,7 +45,7 @@ describe('completedByNameChartService', () => {
       { task_name: 'Task C', total: null, within: null },
     ]);
 
-    const result = await completedByNameChartService.fetchCompletedByName({});
+    const result = await completedByNameChartService.fetchCompletedByName(snapshotId, {});
 
     expect(result).toEqual([{ taskName: 'Task C', tasks: 0, withinDue: 0, beyondDue: 0 }]);
   });

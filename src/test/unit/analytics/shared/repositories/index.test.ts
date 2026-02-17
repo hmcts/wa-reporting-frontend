@@ -5,6 +5,7 @@ describe('repositories index', () => {
     expect(repositories.caseWorkerProfileRepository).toBeDefined();
     expect(repositories.regionRepository).toBeDefined();
     expect(repositories.courtVenueRepository).toBeDefined();
+    expect(repositories.snapshotStateRepository).toBeDefined();
     expect(repositories.taskFactsRepository).toBeDefined();
     expect(repositories.taskThinRepository).toBeDefined();
   });

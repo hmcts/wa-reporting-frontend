@@ -11,8 +11,11 @@ const assignmentMap: Record<string, AssignmentKey> = {
 };
 
 class OpenTasksCreatedByAssignmentChartService {
-  async fetchOpenTasksCreatedByAssignment(filters: AnalyticsFilters): Promise<AssignmentSeriesPoint[]> {
-    const rows = await taskFactsRepository.fetchOpenTasksCreatedByAssignmentRows(filters);
+  async fetchOpenTasksCreatedByAssignment(
+    snapshotId: number,
+    filters: AnalyticsFilters
+  ): Promise<AssignmentSeriesPoint[]> {
+    const rows = await taskFactsRepository.fetchOpenTasksCreatedByAssignmentRows(snapshotId, filters);
     return groupByDateKey(
       rows,
       row => row.date_key,

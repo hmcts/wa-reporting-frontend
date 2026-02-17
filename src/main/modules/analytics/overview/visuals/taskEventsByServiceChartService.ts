@@ -5,10 +5,11 @@ import { toNumber } from '../../shared/utils';
 
 class TaskEventsByServiceChartService {
   async fetchTaskEventsByService(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range: { from: Date; to: Date }
   ): Promise<TaskEventsByServiceResponse> {
-    const rows = await taskFactsRepository.fetchTaskEventsByServiceRows(filters, range);
+    const rows = await taskFactsRepository.fetchTaskEventsByServiceRows(snapshotId, filters, range);
 
     const mappedRows = rows.map(row => ({
       service: row.service,

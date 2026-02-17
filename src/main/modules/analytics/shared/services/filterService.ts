@@ -1,4 +1,4 @@
-import { CacheKeys, getCache, setCache } from '../cache/cache';
+import { CacheKeys, buildSnapshotScopedCacheKey, getCache, setCache } from '../cache/cache';
 import { taskFactsRepository } from '../repositories';
 import type { CaseWorkerProfileRow } from '../repositories';
 import type { SelectOption } from '../viewModels/filterOptions';
@@ -66,14 +66,15 @@ function buildLocationOptions(
 }
 
 class FilterService {
-  async fetchFilterOptions(): Promise<FilterOptions> {
-    const cached = getCache<FilterOptions>(CacheKeys.filterOptions);
+  async fetchFilterOptions(snapshotId: number): Promise<FilterOptions> {
+    const cacheKey = buildSnapshotScopedCacheKey(CacheKeys.filterOptions, snapshotId);
+    const cached = getCache<FilterOptions>(cacheKey);
     if (cached) {
       return cached;
     }
 
     const { services, roleCategories, regions, locations, taskNames, workTypes, assignees } =
-      await taskFactsRepository.fetchOverviewFilterOptionsRows();
+      await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId);
     const regionRecords = await regionService.fetchRegions();
     const courtVenues = await courtVenueService.fetchCourtVenues();
     const profiles = await caseWorkerProfileService.fetchCaseWorkerProfiles();
@@ -100,7 +101,7 @@ class FilterService {
       users: userOptions,
     };
 
-    setCache(CacheKeys.filterOptions, options);
+    setCache(cacheKey, options);
     return options;
   }
 }

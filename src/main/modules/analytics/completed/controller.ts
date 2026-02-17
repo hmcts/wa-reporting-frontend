@@ -1,6 +1,7 @@
 import { Request, Response, Router } from 'express';
 
 import { BASE_FILTER_KEYS, applyFilterCookieFromConfig } from '../shared/filterCookies';
+import { parseSnapshotTokenInput } from '../shared/pageUtils';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../shared/partials';
 import { AnalyticsFilters, CompletedMetric } from '../shared/types';
 
@@ -48,7 +49,11 @@ class CompletedController {
       const caseId = parseCaseId(source);
       const metric = parseMetric(source);
       const ajaxSection = typeof source.ajaxSection === 'string' ? source.ajaxSection : undefined;
-      const viewModel = await buildCompletedPage(filters, metric, caseId, ajaxSection);
+      const requestedSnapshotId = parseSnapshotTokenInput(source.snapshotToken);
+      const viewModel =
+        requestedSnapshotId !== undefined
+          ? await buildCompletedPage(filters, metric, caseId, ajaxSection, requestedSnapshotId)
+          : await buildCompletedPage(filters, metric, caseId, ajaxSection);
 
       if (isAjaxRequest(req)) {
         const template = getAjaxPartialTemplate({

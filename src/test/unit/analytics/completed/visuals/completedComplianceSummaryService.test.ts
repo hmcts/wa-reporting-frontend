@@ -6,6 +6,8 @@ jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('completedComplianceSummaryService', () => {
+  const snapshotId = 402;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -13,7 +15,7 @@ describe('completedComplianceSummaryService', () => {
   test('returns null when there are no rows', async () => {
     (taskFactsRepository.fetchCompletedSummaryRows as jest.Mock).mockResolvedValue([]);
 
-    const result = await completedComplianceSummaryService.fetchCompletedSummary({});
+    const result = await completedComplianceSummaryService.fetchCompletedSummary(snapshotId, {});
 
     expect(result).toBeNull();
   });
@@ -21,9 +23,13 @@ describe('completedComplianceSummaryService', () => {
   test('maps totals from the first row', async () => {
     (taskFactsRepository.fetchCompletedSummaryRows as jest.Mock).mockResolvedValue([{ total: 10, within: 7 }]);
 
-    const result = await completedComplianceSummaryService.fetchCompletedSummary({ service: ['Civil'] });
+    const result = await completedComplianceSummaryService.fetchCompletedSummary(snapshotId, { service: ['Civil'] });
 
-    expect(taskFactsRepository.fetchCompletedSummaryRows).toHaveBeenCalledWith({ service: ['Civil'] }, undefined);
+    expect(taskFactsRepository.fetchCompletedSummaryRows).toHaveBeenCalledWith(
+      snapshotId,
+      { service: ['Civil'] },
+      undefined
+    );
     expect(result).toEqual({ total: 10, within: 7 });
   });
 
@@ -32,7 +38,7 @@ describe('completedComplianceSummaryService', () => {
       { total: null, within: undefined },
     ]);
 
-    const result = await completedComplianceSummaryService.fetchCompletedSummary({});
+    const result = await completedComplianceSummaryService.fetchCompletedSummary(snapshotId, {});
 
     expect(result).toEqual({ total: 0, within: 0 });
   });

@@ -6,7 +6,10 @@ import { completedComplianceSummaryService } from '../../../../main/modules/anal
 import { completedProcessingHandlingTimeService } from '../../../../main/modules/analytics/completed/visuals/completedProcessingHandlingTimeService';
 import { completedRegionLocationTableService } from '../../../../main/modules/analytics/completed/visuals/completedRegionLocationTableService';
 import { completedTimelineChartService } from '../../../../main/modules/analytics/completed/visuals/completedTimelineChartService';
-import { fetchFilterOptionsWithFallback } from '../../../../main/modules/analytics/shared/pageUtils';
+import {
+  fetchFilterOptionsWithFallback,
+  fetchPublishedSnapshotContext,
+} from '../../../../main/modules/analytics/shared/pageUtils';
 import { taskThinRepository } from '../../../../main/modules/analytics/shared/repositories';
 import {
   caseWorkerProfileService,
@@ -48,6 +51,7 @@ jest.mock('../../../../main/modules/analytics/completed/visuals/completedTimelin
 
 jest.mock('../../../../main/modules/analytics/shared/pageUtils', () => ({
   fetchFilterOptionsWithFallback: jest.fn(),
+  fetchPublishedSnapshotContext: jest.fn(),
   normaliseDateRange: jest.requireActual('../../../../main/modules/analytics/shared/pageUtils').normaliseDateRange,
   settledArrayWithFallback: jest.requireActual('../../../../main/modules/analytics/shared/pageUtils')
     .settledArrayWithFallback,
@@ -68,6 +72,7 @@ jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('buildCompletedPage', () => {
+  const snapshotId = 103;
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
   afterAll(() => {
@@ -76,6 +81,11 @@ describe('buildCompletedPage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (fetchPublishedSnapshotContext as jest.Mock).mockResolvedValue({
+      snapshotId,
+      publishedAt: new Date('2026-02-17T10:15:00.000Z'),
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
+    });
   });
 
   test('builds the summary section when requested', async () => {
@@ -124,6 +134,7 @@ describe('buildCompletedPage', () => {
     expect(courtVenueService.fetchCourtVenueDescriptions).not.toHaveBeenCalled();
     expect(caseWorkerProfileService.fetchCaseWorkerProfileNames).not.toHaveBeenCalled();
     expect(completedComplianceSummaryService.fetchCompletedSummary).toHaveBeenCalledWith(
+      snapshotId,
       filters,
       expect.objectContaining({ from: new Date('2024-05-01'), to: new Date('2024-05-10') })
     );
@@ -486,7 +497,8 @@ describe('buildCompletedPage', () => {
     await buildCompletedPage({}, 'handlingTime', undefined, 'unknown-section');
 
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
-      'Failed to fetch completed filter options from database'
+      'Failed to fetch completed filter options from database',
+      snapshotId
     );
   });
 

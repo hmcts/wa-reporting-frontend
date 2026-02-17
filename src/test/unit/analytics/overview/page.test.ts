@@ -3,7 +3,10 @@ import { overviewService } from '../../../../main/modules/analytics/overview/ser
 import { buildOverviewViewModel } from '../../../../main/modules/analytics/overview/viewModel';
 import { serviceOverviewTableService } from '../../../../main/modules/analytics/overview/visuals/serviceOverviewTableService';
 import { taskEventsByServiceChartService } from '../../../../main/modules/analytics/overview/visuals/taskEventsByServiceChartService';
-import { fetchFilterOptionsWithFallback } from '../../../../main/modules/analytics/shared/pageUtils';
+import {
+  fetchFilterOptionsWithFallback,
+  fetchPublishedSnapshotContext,
+} from '../../../../main/modules/analytics/shared/pageUtils';
 
 jest.mock('../../../../main/modules/analytics/overview/service', () => ({
   overviewService: { buildOverview: jest.fn() },
@@ -23,6 +26,7 @@ jest.mock('../../../../main/modules/analytics/overview/visuals/taskEventsByServi
 
 jest.mock('../../../../main/modules/analytics/shared/pageUtils', () => ({
   fetchFilterOptionsWithFallback: jest.fn(),
+  fetchPublishedSnapshotContext: jest.fn(),
   resolveDateRangeWithDefaults: jest.requireActual('../../../../main/modules/analytics/shared/pageUtils')
     .resolveDateRangeWithDefaults,
   settledValueWithError: jest.requireActual('../../../../main/modules/analytics/shared/pageUtils')
@@ -30,6 +34,7 @@ jest.mock('../../../../main/modules/analytics/shared/pageUtils', () => ({
 }));
 
 describe('buildOverviewPage', () => {
+  const snapshotId = 101;
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
   afterAll(() => {
@@ -38,6 +43,11 @@ describe('buildOverviewPage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (fetchPublishedSnapshotContext as jest.Mock).mockResolvedValue({
+      snapshotId,
+      publishedAt: new Date('2026-02-17T10:15:00.000Z'),
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
+    });
   });
 
   test('builds service performance overview when requested', async () => {
@@ -277,6 +287,7 @@ describe('buildOverviewPage', () => {
     );
 
     expect(taskEventsByServiceChartService.fetchTaskEventsByService).toHaveBeenCalledWith(
+      snapshotId,
       {
         eventsFrom: new Date('2024-02-01T00:00:00.000Z'),
         eventsTo: new Date('2024-02-05T00:00:00.000Z'),
@@ -356,7 +367,8 @@ describe('buildOverviewPage', () => {
     await buildOverviewPage({});
 
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
-      'Failed to fetch overview filter options from database'
+      'Failed to fetch overview filter options from database',
+      snapshotId
     );
   });
 });

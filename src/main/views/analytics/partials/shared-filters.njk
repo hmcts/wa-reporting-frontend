@@ -14,6 +14,9 @@
 <p class="govuk-body govuk-!-font-size-24 govuk-!-font-weight-bold">Select filters to apply to dashboard</p>
 <form method="post" data-analytics-filters="true">
   {{ csrfProtection(csrfToken) }}
+  {% if snapshotToken %}
+    <input type="hidden" name="snapshotToken" value="{{ snapshotToken }}">
+  {% endif %}
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-one-third">
       {{ analyticsMultiSelect({

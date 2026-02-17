@@ -22,8 +22,8 @@ export interface OpenTasksByNameResult {
 }
 
 class OpenTasksByNameChartService {
-  async fetchOpenTasksByName(filters: AnalyticsFilters): Promise<OpenTasksByNameResult> {
-    const rows: OpenTasksByNameRow[] = await taskThinRepository.fetchOpenTasksByNameRows(filters);
+  async fetchOpenTasksByName(snapshotId: number, filters: AnalyticsFilters): Promise<OpenTasksByNameResult> {
+    const rows: OpenTasksByNameRow[] = await taskThinRepository.fetchOpenTasksByNameRows(snapshotId, filters);
     const breakdown = sortPriorityBreakdowns(
       rows.map(row => ({
         name: normaliseLabel(row.task_name, 'Unknown task'),
