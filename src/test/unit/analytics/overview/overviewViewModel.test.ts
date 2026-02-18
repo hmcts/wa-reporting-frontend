@@ -4,6 +4,7 @@ describe('buildOverviewViewModel', () => {
   test('builds table rows and date picker values', () => {
     const viewModel = buildOverviewViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       overview: {
         serviceRows: [
           {
@@ -54,6 +55,7 @@ describe('buildOverviewViewModel', () => {
   test('sorts rows alphabetically and builds totals rows', () => {
     const viewModel = buildOverviewViewModel({
       filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
       overview: {
         serviceRows: [
           {

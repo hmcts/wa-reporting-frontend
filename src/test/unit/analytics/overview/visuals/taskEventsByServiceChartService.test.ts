@@ -6,6 +6,8 @@ jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('taskEventsByServiceChartService', () => {
+  const snapshotId = 202;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -18,6 +20,7 @@ describe('taskEventsByServiceChartService', () => {
     ]);
 
     const result = await taskEventsByServiceChartService.fetchTaskEventsByService(
+      snapshotId,
       {},
       {
         from: new Date('2024-01-01'),
@@ -37,6 +40,7 @@ describe('taskEventsByServiceChartService', () => {
     (taskFactsRepository.fetchTaskEventsByServiceRows as jest.Mock).mockResolvedValue([]);
 
     const result = await taskEventsByServiceChartService.fetchTaskEventsByService(
+      snapshotId,
       {},
       {
         from: new Date('2024-02-01'),

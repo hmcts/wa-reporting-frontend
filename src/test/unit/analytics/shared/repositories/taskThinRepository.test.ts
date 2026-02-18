@@ -17,6 +17,8 @@ jest.mock('../../../../../main/modules/analytics/shared/data/prisma', () => ({
 }));
 
 describe('taskThinRepository', () => {
+  const snapshotId = 502;
+
   const latestQuery = (): { sql: string; values: unknown[] } => {
     const calls = (tmPrisma.$queryRaw as jest.Mock).mock.calls;
     return calls[calls.length - 1][0];
@@ -30,24 +32,30 @@ describe('taskThinRepository', () => {
   test('executes core query methods', async () => {
     const sort = getDefaultUserOverviewSort();
     const outstandingSort = getDefaultOutstandingSort();
-    await taskThinRepository.fetchUserOverviewAssignedTaskRows({}, sort.assigned, { page: 1, pageSize: 20 });
-    await taskThinRepository.fetchUserOverviewAssignedTaskRows({}, sort.assigned, null);
-    await taskThinRepository.fetchUserOverviewCompletedTaskRows({}, sort.completed, { page: 1, pageSize: 20 });
-    await taskThinRepository.fetchUserOverviewCompletedTaskRows({}, sort.completed, null);
-    await taskThinRepository.fetchUserOverviewAssignedTaskCount({});
-    await taskThinRepository.fetchUserOverviewCompletedTaskCount({});
-    await taskThinRepository.fetchUserOverviewCompletedByDateRows({});
-    await taskThinRepository.fetchUserOverviewCompletedByTaskNameRows({});
-    await taskThinRepository.fetchOutstandingCriticalTaskRows({}, outstandingSort.criticalTasks, {
+    await taskThinRepository.fetchUserOverviewAssignedTaskRows(snapshotId, {}, sort.assigned, {
       page: 1,
       pageSize: 20,
     });
-    await taskThinRepository.fetchOutstandingCriticalTaskCount({});
-    await taskThinRepository.fetchOpenTasksByNameRows({});
-    await taskThinRepository.fetchOpenTasksByRegionLocationRows({});
-    await taskThinRepository.fetchOpenTasksSummaryRows({});
-    await taskThinRepository.fetchWaitTimeByAssignedDateRows({});
-    await taskThinRepository.fetchTasksDueByDateRows({});
+    await taskThinRepository.fetchUserOverviewAssignedTaskRows(snapshotId, {}, sort.assigned, null);
+    await taskThinRepository.fetchUserOverviewCompletedTaskRows(snapshotId, {}, sort.completed, {
+      page: 1,
+      pageSize: 20,
+    });
+    await taskThinRepository.fetchUserOverviewCompletedTaskRows(snapshotId, {}, sort.completed, null);
+    await taskThinRepository.fetchUserOverviewAssignedTaskCount(snapshotId, {});
+    await taskThinRepository.fetchUserOverviewCompletedTaskCount(snapshotId, {});
+    await taskThinRepository.fetchUserOverviewCompletedByDateRows(snapshotId, {});
+    await taskThinRepository.fetchUserOverviewCompletedByTaskNameRows(snapshotId, {});
+    await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, outstandingSort.criticalTasks, {
+      page: 1,
+      pageSize: 20,
+    });
+    await taskThinRepository.fetchOutstandingCriticalTaskCount(snapshotId, {});
+    await taskThinRepository.fetchOpenTasksByNameRows(snapshotId, {});
+    await taskThinRepository.fetchOpenTasksByRegionLocationRows(snapshotId, {});
+    await taskThinRepository.fetchOpenTasksSummaryRows(snapshotId, {});
+    await taskThinRepository.fetchWaitTimeByAssignedDateRows(snapshotId, {});
+    await taskThinRepository.fetchTasksDueByDateRows(snapshotId, {});
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();
   });
@@ -55,7 +63,7 @@ describe('taskThinRepository', () => {
   test('maps assignee ids', async () => {
     (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ value: 'user-1' }, { value: 'user-2' }]);
 
-    const result = await taskThinRepository.fetchAssigneeIds();
+    const result = await taskThinRepository.fetchAssigneeIds(snapshotId);
 
     expect(result).toEqual(['user-1', 'user-2']);
   });
@@ -88,6 +96,7 @@ describe('taskThinRepository', () => {
 
     for (const key of sortKeys) {
       await taskThinRepository.fetchUserOverviewAssignedTaskRows(
+        snapshotId,
         {},
         { ...baseSort, by: key, dir: 'asc' },
         { page: 1, pageSize: 20 }
@@ -99,6 +108,7 @@ describe('taskThinRepository', () => {
     }
 
     await taskThinRepository.fetchUserOverviewAssignedTaskRows(
+      snapshotId,
       { user: ['user-1'] },
       { ...baseSort, by: 'caseId', dir: 'asc' },
       { page: 1, pageSize: 20 }
@@ -108,6 +118,7 @@ describe('taskThinRepository', () => {
     expect(userFiltered.values).toContain('user-1');
 
     await taskThinRepository.fetchUserOverviewAssignedTaskRows(
+      snapshotId,
       {},
       {
         ...baseSort,
@@ -155,6 +166,7 @@ describe('taskThinRepository', () => {
     for (const key of sortKeys) {
       const filters = { completedFrom: new Date('2024-01-01'), completedTo: new Date('2024-01-10') };
       await taskThinRepository.fetchUserOverviewCompletedTaskRows(
+        snapshotId,
         filters,
         { ...baseSort, by: key, dir: 'asc' },
         { page: 1, pageSize: 20 }
@@ -170,6 +182,7 @@ describe('taskThinRepository', () => {
     }
 
     await taskThinRepository.fetchUserOverviewCompletedTaskRows(
+      snapshotId,
       { completedFrom: new Date('2024-01-01'), completedTo: new Date('2024-01-10') },
       { ...baseSort, by: 'unknown' as CompletedSortBy, dir: 'desc' },
       { page: 1, pageSize: 20 }
@@ -181,14 +194,18 @@ describe('taskThinRepository', () => {
   });
 
   test('adds user filters for completed-by-date and completed-by-task-name queries', async () => {
-    await taskThinRepository.fetchUserOverviewCompletedByDateRows({ user: ['user-1'] });
-    await taskThinRepository.fetchUserOverviewCompletedByTaskNameRows({ user: ['user-1'] });
+    await taskThinRepository.fetchUserOverviewCompletedByDateRows(snapshotId, { user: ['user-1'] });
+    await taskThinRepository.fetchUserOverviewCompletedByTaskNameRows(snapshotId, { user: ['user-1'] });
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();
   });
 
   test('includes case ID filters when fetching completed task audits', async () => {
-    await taskThinRepository.fetchCompletedTaskAuditRows({ completedFrom: new Date('2024-01-01') }, 'CASE-123');
+    await taskThinRepository.fetchCompletedTaskAuditRows(
+      snapshotId,
+      { completedFrom: new Date('2024-01-01') },
+      'CASE-123'
+    );
     const query = latestQuery();
 
     expect(query.sql).toContain('case_id =');
@@ -197,7 +214,7 @@ describe('taskThinRepository', () => {
   });
 
   test('builds user overview where clauses for user-only filters', () => {
-    const whereClause = __testing.buildUserOverviewWhere({ user: ['user-1'] }, []);
+    const whereClause = __testing.buildUserOverviewWhere(snapshotId, { user: ['user-1'] }, []);
 
     expect(whereClause.sql).toContain('WHERE');
   });
@@ -246,6 +263,7 @@ describe('taskThinRepository', () => {
 
     for (const key of sortKeys) {
       await taskThinRepository.fetchOutstandingCriticalTaskRows(
+        snapshotId,
         { user: ['user-1'] },
         { ...outstandingSort, by: key },
         { page: 1, pageSize: 20 }
@@ -257,6 +275,7 @@ describe('taskThinRepository', () => {
     }
 
     await taskThinRepository.fetchOutstandingCriticalTaskRows(
+      snapshotId,
       { user: ['user-1'] },
       { ...outstandingSort, by: 'unknown' as typeof outstandingSort.by, dir: 'desc' },
       { page: 1, pageSize: 20 }
@@ -270,12 +289,12 @@ describe('taskThinRepository', () => {
   test('caps LIMIT/OFFSET values for oversized pagination requests', async () => {
     const sort = getDefaultOutstandingSort().criticalTasks;
 
-    await taskThinRepository.fetchOutstandingCriticalTaskRows({}, sort, { page: 999, pageSize: 500 });
+    await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 999, pageSize: 500 });
     const firstQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
     expect(firstQuery.values.slice(-2)).toEqual([500, 4500]);
 
     (tmPrisma.$queryRaw as jest.Mock).mockClear();
-    await taskThinRepository.fetchOutstandingCriticalTaskRows({}, sort, { page: 2, pageSize: 9000 });
+    await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 2, pageSize: 9000 });
     const secondQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
     expect(secondQuery.values.slice(-2)).toEqual([5000, 0]);
   });
@@ -283,15 +302,15 @@ describe('taskThinRepository', () => {
   test('normalises pagination with non-finite and negative page sizes', async () => {
     const sort = getDefaultOutstandingSort().criticalTasks;
 
-    await taskThinRepository.fetchOutstandingCriticalTaskRows({}, sort, { page: 7, pageSize: Number.NaN });
+    await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 7, pageSize: Number.NaN });
     const nonFinite = latestQuery();
     expect(nonFinite.values.slice(-2)).toEqual([1, 6]);
 
-    await taskThinRepository.fetchOutstandingCriticalTaskRows({}, sort, { page: 1, pageSize: -20 });
+    await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 1, pageSize: -20 });
     const negative = latestQuery();
     expect(negative.values.slice(-2)).toEqual([1, 0]);
 
-    await taskThinRepository.fetchOutstandingCriticalTaskRows({}, sort, { page: 2, pageSize: 2.9 });
+    await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 2, pageSize: 2.9 });
     const decimal = latestQuery();
     expect(decimal.values.slice(-2)).toEqual([2, 2]);
   });
@@ -301,6 +320,7 @@ describe('taskThinRepository', () => {
     const outstandingSort = getDefaultOutstandingSort().criticalTasks;
 
     await taskThinRepository.fetchUserOverviewAssignedTaskRows(
+      snapshotId,
       {},
       { ...userSort.assigned, by: 'priority', dir: 'asc' },
       { page: 1, pageSize: 20 }
@@ -312,6 +332,7 @@ describe('taskThinRepository', () => {
     expect(assignedPriorityQuery.sql).toContain('ASC NULLS LAST');
 
     await taskThinRepository.fetchUserOverviewCompletedTaskRows(
+      snapshotId,
       {},
       { ...userSort.completed, by: 'withinDue', dir: 'desc' },
       { page: 1, pageSize: 20 }
@@ -323,6 +344,7 @@ describe('taskThinRepository', () => {
     expect(completedWithinDueQuery.sql).toContain('DESC NULLS LAST');
 
     await taskThinRepository.fetchOutstandingCriticalTaskRows(
+      snapshotId,
       {},
       { ...outstandingSort, by: 'priority', dir: 'desc' },
       { page: 1, pageSize: 20 }
@@ -336,8 +358,8 @@ describe('taskThinRepository', () => {
     (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([]);
     (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([]);
 
-    const assignedTotal = await taskThinRepository.fetchUserOverviewAssignedTaskCount({ user: ['user-1'] });
-    const completedTotal = await taskThinRepository.fetchUserOverviewCompletedTaskCount({
+    const assignedTotal = await taskThinRepository.fetchUserOverviewAssignedTaskCount(snapshotId, { user: ['user-1'] });
+    const completedTotal = await taskThinRepository.fetchUserOverviewCompletedTaskCount(snapshotId, {
       user: ['user-1'],
       completedFrom: new Date('2024-02-01'),
       completedTo: new Date('2024-02-28'),
@@ -364,7 +386,7 @@ describe('taskThinRepository', () => {
     const completedTo = new Date('2024-03-15');
     const filters = { completedFrom, completedTo, user: ['user-1'] };
 
-    await taskThinRepository.fetchUserOverviewCompletedByDateRows(filters);
+    await taskThinRepository.fetchUserOverviewCompletedByDateRows(snapshotId, filters);
     const completedByDateQuery = latestQuery();
     expect(completedByDateQuery.sql).toContain('completed_date IS NOT NULL');
     expect(completedByDateQuery.sql).toContain('SUM(tasks)::int AS tasks');
@@ -375,7 +397,7 @@ describe('taskThinRepository', () => {
     expect(completedByDateQuery.sql).toContain('assignee IN');
     expect(completedByDateQuery.values).toEqual(expect.arrayContaining([completedFrom, completedTo, 'user-1']));
 
-    await taskThinRepository.fetchUserOverviewCompletedByTaskNameRows(filters);
+    await taskThinRepository.fetchUserOverviewCompletedByTaskNameRows(snapshotId, filters);
     const completedByTaskNameQuery = latestQuery();
     expect(completedByTaskNameQuery.sql).toContain('completed_date IS NOT NULL');
     expect(completedByTaskNameQuery.sql).toContain('SUM(tasks)::int AS tasks');
@@ -389,33 +411,33 @@ describe('taskThinRepository', () => {
   test('builds open task, summary, wait-time and due-by-date queries', async () => {
     const filters = { region: ['North'], location: ['Leeds'] };
 
-    await taskThinRepository.fetchOpenTasksByNameRows(filters);
+    await taskThinRepository.fetchOpenTasksByNameRows(snapshotId, filters);
     const byNameQuery = latestQuery();
     expect(byNameQuery.sql).toContain("priority_bucket IN ('Urgent', 'High', 'Medium', 'Low')");
-    expect(byNameQuery.sql).toContain('FROM analytics.mv_open_tasks_by_name');
+    expect(byNameQuery.sql).toContain('FROM analytics.mv_open_tasks_by_name_snapshots');
     expect(byNameQuery.sql).toContain('GROUP BY task_name');
 
-    await taskThinRepository.fetchOpenTasksByRegionLocationRows(filters);
+    await taskThinRepository.fetchOpenTasksByRegionLocationRows(snapshotId, filters);
     const byRegionLocationQuery = latestQuery();
-    expect(byRegionLocationQuery.sql).toContain('FROM analytics.mv_open_tasks_by_region_location');
+    expect(byRegionLocationQuery.sql).toContain('FROM analytics.mv_open_tasks_by_region_location_snapshots');
     expect(byRegionLocationQuery.sql).toContain('GROUP BY region, location');
     expect(byRegionLocationQuery.sql).toContain('ORDER BY location ASC, region ASC');
 
-    await taskThinRepository.fetchOpenTasksSummaryRows(filters);
+    await taskThinRepository.fetchOpenTasksSummaryRows(snapshotId, filters);
     const summaryQuery = latestQuery();
     expect(summaryQuery.sql).toContain("SUM(CASE WHEN state = 'ASSIGNED' THEN task_count ELSE 0 END)::int AS assigned");
     expect(summaryQuery.sql).toContain(
       "SUM(CASE WHEN state = 'ASSIGNED' THEN 0 ELSE task_count END)::int AS unassigned"
     );
-    expect(summaryQuery.sql).toContain('FROM analytics.mv_open_tasks_summary');
+    expect(summaryQuery.sql).toContain('FROM analytics.mv_open_tasks_summary_snapshots');
 
-    await taskThinRepository.fetchWaitTimeByAssignedDateRows(filters);
+    await taskThinRepository.fetchWaitTimeByAssignedDateRows(snapshotId, filters);
     const waitTimeQuery = latestQuery();
     expect(waitTimeQuery.sql).toContain('WHEN SUM(assigned_task_count) = 0 THEN 0');
     expect(waitTimeQuery.sql).toContain('SUM(total_wait_time_days) / SUM(assigned_task_count)::numeric');
     expect(waitTimeQuery.sql).toContain('GROUP BY reference_date');
 
-    await taskThinRepository.fetchTasksDueByDateRows(filters);
+    await taskThinRepository.fetchTasksDueByDateRows(snapshotId, filters);
     const tasksDueQuery = latestQuery();
     expect(tasksDueQuery.sql).toContain("date_role = 'due'");
     expect(tasksDueQuery.sql).toContain("WHEN task_status = 'open' THEN task_count");
@@ -424,7 +446,9 @@ describe('taskThinRepository', () => {
   });
 
   test('buildUserOverviewWhere appends user filters to base clauses', () => {
-    const whereClause = __testing.buildUserOverviewWhere({ user: ['user-1'] }, [Prisma.sql`state = 'ASSIGNED'`]);
+    const whereClause = __testing.buildUserOverviewWhere(snapshotId, { user: ['user-1'] }, [
+      Prisma.sql`state = 'ASSIGNED'`,
+    ]);
 
     expect(whereClause.sql).toContain('WHERE');
     expect(whereClause.sql).toContain('AND');
@@ -437,12 +461,13 @@ describe('taskThinRepository', () => {
     (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ value: 'user-1' }, { value: 'user-2' }]);
 
     await taskThinRepository.fetchCompletedTaskAuditRows(
+      snapshotId,
       { completedFrom: new Date('2024-04-01'), completedTo: new Date('2024-04-30') },
       'CASE-100'
     );
     const auditQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
 
-    const assigneeIds = await taskThinRepository.fetchAssigneeIds();
+    const assigneeIds = await taskThinRepository.fetchAssigneeIds(snapshotId);
     const assigneeQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[1][0];
 
     expect(auditQuery.sql).toContain("termination_reason = 'completed'");
@@ -450,7 +475,7 @@ describe('taskThinRepository', () => {
     expect(auditQuery.sql).toContain('ORDER BY completed_date DESC NULLS LAST');
     expect(auditQuery.values).toContain('CASE-100');
     expect(assigneeQuery.sql).toContain('SELECT DISTINCT assignee AS value');
-    expect(assigneeQuery.sql).toContain('WHERE assignee IS NOT NULL');
+    expect(assigneeQuery.sql).toContain('assignee IS NOT NULL');
     expect(assigneeIds).toEqual(['user-1', 'user-2']);
   });
 });

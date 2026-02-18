@@ -17,6 +17,9 @@
     data-auto-submit="true"
   >
     {{ csrfProtection(csrfToken) }}
+    {% if snapshotToken %}
+      <input type="hidden" name="snapshotToken" value="{{ snapshotToken }}">
+    {% endif %}
     {% if filters.service %}
       {% for value in filters.service %}
         <input type="hidden" name="service" value="{{ value }}">

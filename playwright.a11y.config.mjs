@@ -33,6 +33,7 @@ const reporter = [
 
 const serverUrl = new URL(baseUrl);
 const serverPort = serverUrl.port || (serverUrl.protocol === 'https:' ? '443' : '80');
+const readinessUrl = new URL('/health', baseUrl).toString();
 
 export default defineConfig({
   ...CommonConfig.recommended,
@@ -48,8 +49,8 @@ export default defineConfig({
   },
   projects: [ProjectsConfig.chromium],
   webServer: {
-    command: `AUTH_ENABLED=false PORT=${serverPort} yarn start:dev`,
-    url: baseUrl,
+    command: `PORT=${serverPort} yarn a11y:webserver`,
+    url: readinessUrl,
     reuseExistingServer: true,
     timeout: 120000,
   },

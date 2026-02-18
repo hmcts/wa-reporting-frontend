@@ -6,6 +6,8 @@ jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('waitTimeByAssignedDateChartService', () => {
+  const snapshotId = 308;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -16,7 +18,7 @@ describe('waitTimeByAssignedDateChartService', () => {
       { date_key: '2024-03-02', avg_wait_time_days: null, assigned_task_count: null },
     ]);
 
-    const result = await waitTimeByAssignedDateChartService.fetchWaitTimeByAssignedDate({});
+    const result = await waitTimeByAssignedDateChartService.fetchWaitTimeByAssignedDate(snapshotId, {});
 
     expect(result).toEqual([
       { date: '2024-03-01', averageWaitDays: 2, assignedCount: 4, totalWaitDays: 8 },

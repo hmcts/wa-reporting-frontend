@@ -9,6 +9,8 @@ jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('completedRegionLocationTableService', () => {
+  const snapshotId = 404;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -47,7 +49,7 @@ describe('completedRegionLocationTableService', () => {
       },
     ]);
 
-    const result = await completedRegionLocationTableService.fetchCompletedByLocation({});
+    const result = await completedRegionLocationTableService.fetchCompletedByLocation(snapshotId, {});
 
     expect(result).toEqual([
       {
@@ -93,7 +95,7 @@ describe('completedRegionLocationTableService', () => {
       },
     ]);
 
-    const result = await completedRegionLocationTableService.fetchCompletedByRegion({});
+    const result = await completedRegionLocationTableService.fetchCompletedByRegion(snapshotId, {});
 
     expect(result).toEqual([
       {
@@ -133,8 +135,8 @@ describe('completedRegionLocationTableService', () => {
       },
     ]);
 
-    const locationResult = await completedRegionLocationTableService.fetchCompletedByLocation({});
-    const regionResult = await completedRegionLocationTableService.fetchCompletedByRegion({});
+    const locationResult = await completedRegionLocationTableService.fetchCompletedByLocation(snapshotId, {});
+    const regionResult = await completedRegionLocationTableService.fetchCompletedByRegion(snapshotId, {});
 
     expect(locationResult).toEqual([
       {

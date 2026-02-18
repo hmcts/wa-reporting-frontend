@@ -4,10 +4,11 @@ import { toNumber } from '../../shared/utils';
 
 class CompletedTimelineChartService {
   async fetchCompletedTimeline(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedPoint[]> {
-    const rows = await taskFactsRepository.fetchCompletedTimelineRows(filters, range);
+    const rows = await taskFactsRepository.fetchCompletedTimelineRows(snapshotId, filters, range);
 
     return rows.map(row => {
       const completed = toNumber(row.total);

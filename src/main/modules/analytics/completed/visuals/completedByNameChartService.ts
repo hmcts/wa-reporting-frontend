@@ -5,10 +5,11 @@ import { normaliseLabel, toNumber } from '../../shared/utils';
 
 class CompletedByNameChartService {
   async fetchCompletedByName(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedByName[]> {
-    const rows = await taskFactsRepository.fetchCompletedByNameRows(filters, range);
+    const rows = await taskFactsRepository.fetchCompletedByNameRows(snapshotId, filters, range);
 
     const mapped = rows.map(row => {
       const tasks = toNumber(row.total);

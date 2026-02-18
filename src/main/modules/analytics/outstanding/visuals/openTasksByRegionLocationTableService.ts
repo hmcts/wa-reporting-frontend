@@ -45,11 +45,14 @@ function buildRegionRows(locationRows: OutstandingByLocationRow[]): OutstandingB
 }
 
 class OpenTasksByRegionLocationTableService {
-  async fetchOpenTasksByRegionLocation(filters: AnalyticsFilters): Promise<{
+  async fetchOpenTasksByRegionLocation(
+    snapshotId: number,
+    filters: AnalyticsFilters
+  ): Promise<{
     locationRows: OutstandingByLocationRow[];
     regionRows: OutstandingByRegionRow[];
   }> {
-    const rows = await taskThinRepository.fetchOpenTasksByRegionLocationRows(filters);
+    const rows = await taskThinRepository.fetchOpenTasksByRegionLocationRows(snapshotId, filters);
     const locationRows = mapLocationRows(rows);
     const regionRows = buildRegionRows(locationRows);
     return { locationRows, regionRows };

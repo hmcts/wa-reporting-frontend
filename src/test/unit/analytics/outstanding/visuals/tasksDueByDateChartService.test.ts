@@ -6,6 +6,8 @@ jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('tasksDueByDateChartService', () => {
+  const snapshotId = 307;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -16,7 +18,7 @@ describe('tasksDueByDateChartService', () => {
       { date_key: '2024-02-02', open: undefined, completed: undefined },
     ]);
 
-    const result = await tasksDueByDateChartService.fetchTasksDueByDate({});
+    const result = await tasksDueByDateChartService.fetchTasksDueByDate(snapshotId, {});
 
     expect(result).toEqual([
       { date: '2024-02-01', open: 2, completed: 3, totalDue: 5 },

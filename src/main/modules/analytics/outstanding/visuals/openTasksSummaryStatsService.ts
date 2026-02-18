@@ -18,8 +18,8 @@ function finaliseSummary(summary: Summary): Summary {
 }
 
 class OpenTasksSummaryStatsService {
-  async fetchOpenTasksSummary(filters: AnalyticsFilters): Promise<Summary | null> {
-    const rows = await taskThinRepository.fetchOpenTasksSummaryRows(filters);
+  async fetchOpenTasksSummary(snapshotId: number, filters: AnalyticsFilters): Promise<Summary | null> {
+    const rows = await taskThinRepository.fetchOpenTasksSummaryRows(snapshotId, filters);
 
     if (rows.length === 0) {
       return null;

@@ -19,7 +19,10 @@ import { tasksDueByDateChartService } from '../../../../main/modules/analytics/o
 import { tasksDueByPriorityChartService } from '../../../../main/modules/analytics/outstanding/visuals/tasksDueByPriorityChartService';
 import { waitTimeByAssignedDateChartService } from '../../../../main/modules/analytics/outstanding/visuals/waitTimeByAssignedDateChartService';
 import { getDefaultOutstandingSort } from '../../../../main/modules/analytics/shared/outstandingSort';
-import { fetchFilterOptionsWithFallback } from '../../../../main/modules/analytics/shared/pageUtils';
+import {
+  fetchFilterOptionsWithFallback,
+  fetchPublishedSnapshotContext,
+} from '../../../../main/modules/analytics/shared/pageUtils';
 import { courtVenueService, regionService } from '../../../../main/modules/analytics/shared/services';
 
 jest.mock('../../../../main/modules/analytics/outstanding/service', () => ({
@@ -74,6 +77,7 @@ jest.mock('../../../../main/modules/analytics/outstanding/visuals/criticalTasksT
 
 jest.mock('../../../../main/modules/analytics/shared/pageUtils', () => ({
   fetchFilterOptionsWithFallback: jest.fn(),
+  fetchPublishedSnapshotContext: jest.fn(),
   settledArrayWithFallback: jest.requireActual('../../../../main/modules/analytics/shared/pageUtils')
     .settledArrayWithFallback,
   settledValueWithError: jest.requireActual('../../../../main/modules/analytics/shared/pageUtils')
@@ -88,6 +92,7 @@ jest.mock('../../../../main/modules/analytics/shared/services', () => ({
 }));
 
 describe('buildOutstandingPage', () => {
+  const snapshotId = 102;
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
   afterAll(() => {
@@ -96,6 +101,11 @@ describe('buildOutstandingPage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (fetchPublishedSnapshotContext as jest.Mock).mockResolvedValue({
+      snapshotId,
+      publishedAt: new Date('2026-02-17T10:15:00.000Z'),
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
+    });
   });
 
   test('builds the view model for full page load using deferred sections', async () => {
@@ -571,7 +581,8 @@ describe('buildOutstandingPage', () => {
     await buildOutstandingPage({}, getDefaultOutstandingSort(), 1, 'not-a-section');
 
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
-      'Failed to fetch outstanding filter options from database'
+      'Failed to fetch outstanding filter options from database',
+      snapshotId
     );
   });
 
@@ -647,6 +658,11 @@ describe('buildOutstandingPage', () => {
 describe('fetchOpenByNameResponse', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (fetchPublishedSnapshotContext as jest.Mock).mockResolvedValue({
+      snapshotId: 102,
+      publishedAt: new Date('2026-02-17T10:15:00.000Z'),
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
+    });
   });
 
   test('returns breakdown totals and chart config', async () => {
@@ -658,7 +674,7 @@ describe('fetchOpenByNameResponse', () => {
 
     const result = await fetchOpenByNameResponse({ service: ['Civil'] });
 
-    expect(openTasksByNameChartService.fetchOpenTasksByName).toHaveBeenCalledWith({ service: ['Civil'] });
+    expect(openTasksByNameChartService.fetchOpenTasksByName).toHaveBeenCalledWith(102, { service: ['Civil'] });
     expect(result).toEqual({
       breakdown: [{ name: 'Task A', urgent: 1, high: 0, medium: 0, low: 0 }],
       totals: { name: 'Total', urgent: 1, high: 0, medium: 0, low: 0 },

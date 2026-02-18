@@ -1,6 +1,7 @@
 import { emptyOverviewFilterOptions } from '../shared/filters';
 import {
   fetchFilterOptionsWithFallback,
+  fetchPublishedSnapshotContext,
   normaliseDateRange,
   settledArrayWithFallback,
   settledValueWithError,
@@ -70,8 +71,10 @@ export async function buildCompletedPage(
   filters: AnalyticsFilters,
   selectedMetric: CompletedMetric,
   caseId?: string,
-  ajaxSection?: string
+  ajaxSection?: string,
+  requestedSnapshotId?: number
 ): Promise<CompletedPageViewModel> {
+  const snapshotContext = await fetchPublishedSnapshotContext(requestedSnapshotId);
   const requestedSection = resolveCompletedSection(ajaxSection);
   const shouldFetchSummary = shouldFetchSection(requestedSection, 'completed-summary');
   const shouldFetchTimeline = shouldFetchSection(requestedSection, 'completed-timeline');
@@ -108,23 +111,36 @@ export async function buildCompletedPage(
     locationDescriptionsResult,
   ] = await Promise.allSettled([
     shouldFetchSummary
-      ? completedComplianceSummaryService.fetchCompletedSummary(filters, range)
+      ? completedComplianceSummaryService.fetchCompletedSummary(snapshotContext.snapshotId, filters, range)
       : Promise.resolve(null),
     shouldFetchSummary
-      ? completedComplianceSummaryService.fetchCompletedSummary(filters, { from: today, to: today })
+      ? completedComplianceSummaryService.fetchCompletedSummary(snapshotContext.snapshotId, filters, {
+          from: today,
+          to: today,
+        })
       : Promise.resolve(null),
-    shouldFetchTimeline ? completedTimelineChartService.fetchCompletedTimeline(filters, range) : Promise.resolve([]),
+    shouldFetchTimeline
+      ? completedTimelineChartService.fetchCompletedTimeline(snapshotContext.snapshotId, filters, range)
+      : Promise.resolve([]),
     shouldFetchProcessingHandling
-      ? completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime(filters, range)
+      ? completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime(
+          snapshotContext.snapshotId,
+          filters,
+          range
+        )
       : Promise.resolve([]),
-    shouldFetchCompletedByName ? completedByNameChartService.fetchCompletedByName(filters, range) : Promise.resolve([]),
+    shouldFetchCompletedByName
+      ? completedByNameChartService.fetchCompletedByName(snapshotContext.snapshotId, filters, range)
+      : Promise.resolve([]),
     shouldFetchRegionLocation
-      ? completedRegionLocationTableService.fetchCompletedByLocation(filters, range)
+      ? completedRegionLocationTableService.fetchCompletedByLocation(snapshotContext.snapshotId, filters, range)
       : Promise.resolve([]),
     shouldFetchRegionLocation
-      ? completedRegionLocationTableService.fetchCompletedByRegion(filters, range)
+      ? completedRegionLocationTableService.fetchCompletedByRegion(snapshotContext.snapshotId, filters, range)
       : Promise.resolve([]),
-    shouldFetchTaskAuditData ? taskThinRepository.fetchCompletedTaskAuditRows(filters, caseId!) : Promise.resolve([]),
+    shouldFetchTaskAuditData
+      ? taskThinRepository.fetchCompletedTaskAuditRows(snapshotContext.snapshotId, filters, caseId!)
+      : Promise.resolve([]),
     shouldFetchTaskAuditData ? caseWorkerProfileService.fetchCaseWorkerProfileNames() : Promise.resolve({}),
     shouldFetchRegionLocation ? regionService.fetchRegionDescriptions() : Promise.resolve({}),
     shouldFetchLocationDescriptions ? courtVenueService.fetchCourtVenueDescriptions() : Promise.resolve({}),
@@ -196,7 +212,10 @@ export async function buildCompletedPage(
   );
   const filterOptions = requestedSection
     ? emptyOverviewFilterOptions()
-    : await fetchFilterOptionsWithFallback('Failed to fetch completed filter options from database');
+    : await fetchFilterOptionsWithFallback(
+        'Failed to fetch completed filter options from database',
+        snapshotContext.snapshotId
+      );
   const allTasks: Task[] = [];
 
   const completed: CompletedResponse = {
@@ -209,6 +228,8 @@ export async function buildCompletedPage(
 
   return buildCompletedViewModel({
     filters,
+    snapshotId: snapshotContext.snapshotId,
+    snapshotToken: snapshotContext.snapshotToken,
     completed,
     allTasks,
     filterOptions,
@@ -219,5 +240,6 @@ export async function buildCompletedPage(
     taskAuditRows: taskAuditRows.map(row => mapTaskAuditRow(row, caseWorkerNames, locationDescriptions)),
     taskAuditCaseId: caseId ?? '',
     selectedMetric,
+    freshnessInsetText: snapshotContext.freshnessInsetText,
   });
 }

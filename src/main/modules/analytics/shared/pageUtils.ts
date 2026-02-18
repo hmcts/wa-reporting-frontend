@@ -1,11 +1,127 @@
+import config from 'config';
+import { createHmac, timingSafeEqual } from 'crypto';
+
 import { emptyOverviewFilterOptions } from './filters';
+import { buildFreshnessInsetText } from './formatting';
+import { snapshotStateRepository } from './repositories';
 import { type FilterOptions, filterService } from './services';
 import { logDbError, settledValue } from './utils';
 
-export async function fetchFilterOptionsWithFallback(errorMessage: string): Promise<FilterOptions> {
+const SNAPSHOT_TOKEN_SECRET_FALLBACK = 'snapshot-token-fallback-secret';
+const snapshotTokenSecret: string = config.has('secrets.wa.session-secret')
+  ? config.get('secrets.wa.session-secret')
+  : SNAPSHOT_TOKEN_SECRET_FALLBACK;
+
+export type PublishedSnapshotContext = {
+  snapshotId: number;
+  snapshotToken: string;
+  publishedAt: Date;
+  freshnessInsetText: string;
+};
+
+const UNPUBLISHED_SNAPSHOT_ID = 0;
+
+function signSnapshotId(snapshotId: number): string {
+  return createHmac('sha256', snapshotTokenSecret).update(String(snapshotId)).digest('base64url');
+}
+
+function isEqualSignature(actual: string, expected: string): boolean {
+  const actualBuffer = Buffer.from(actual, 'utf8');
+  const expectedBuffer = Buffer.from(expected, 'utf8');
+  if (actualBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+  return timingSafeEqual(actualBuffer, expectedBuffer);
+}
+
+export function createSnapshotToken(snapshotId: number): string {
+  return `${snapshotId}.${signSnapshotId(snapshotId)}`;
+}
+
+function toPublishedSnapshotContext(snapshot: { snapshotId: number; publishedAt: Date }): PublishedSnapshotContext {
+  return {
+    snapshotId: snapshot.snapshotId,
+    snapshotToken: createSnapshotToken(snapshot.snapshotId),
+    publishedAt: snapshot.publishedAt,
+    freshnessInsetText: buildFreshnessInsetText(snapshot.publishedAt),
+  };
+}
+
+function toUnpublishedSnapshotContext(): PublishedSnapshotContext {
+  return {
+    snapshotId: UNPUBLISHED_SNAPSHOT_ID,
+    snapshotToken: '',
+    publishedAt: new Date(0),
+    freshnessInsetText: '',
+  };
+}
+
+export async function fetchPublishedSnapshotContext(requestedSnapshotId?: number): Promise<PublishedSnapshotContext> {
+  if (requestedSnapshotId !== undefined) {
+    const requested = await snapshotStateRepository.fetchSnapshotById(requestedSnapshotId);
+    if (requested) {
+      return toPublishedSnapshotContext(requested);
+    }
+  }
+
+  const snapshot = await snapshotStateRepository.fetchPublishedSnapshot();
+  if (!snapshot) {
+    return toUnpublishedSnapshotContext();
+  }
+  return toPublishedSnapshotContext(snapshot);
+}
+
+function parseSnapshotIdInput(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    if (Number.isSafeInteger(value) && value > 0) {
+      return value;
+    }
+    return undefined;
+  }
+
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
+export function parseSnapshotTokenInput(value: unknown): number | undefined {
+  if (Array.isArray(value)) {
+    return parseSnapshotTokenInput(value[0]);
+  }
+
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const [snapshotIdPart, signature, ...rest] = value.trim().split('.');
+  if (!snapshotIdPart || !signature || rest.length > 0) {
+    return undefined;
+  }
+
+  const snapshotId = parseSnapshotIdInput(snapshotIdPart);
+  if (snapshotId === undefined) {
+    return undefined;
+  }
+
+  const expectedSignature = signSnapshotId(snapshotId);
+  if (!isEqualSignature(signature, expectedSignature)) {
+    return undefined;
+  }
+
+  return snapshotId;
+}
+
+export async function fetchFilterOptionsWithFallback(errorMessage: string, snapshotId: number): Promise<FilterOptions> {
   let filterOptions = emptyOverviewFilterOptions();
   try {
-    filterOptions = await filterService.fetchFilterOptions();
+    filterOptions = await filterService.fetchFilterOptions(snapshotId);
   } catch (error) {
     logDbError(errorMessage, error);
   }
