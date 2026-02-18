@@ -8,6 +8,9 @@
 <h2 class="govuk-heading-m govuk-!-margin-top-6">Created, completed and cancelled tasks by service</h2>
 <form method="post" class="govuk-!-margin-bottom-4" data-analytics-filters="true" data-ajax-section="overview-task-events">
   {{ csrfProtection(csrfToken) }}
+  {% if snapshotToken %}
+    <input type="hidden" name="snapshotToken" value="{{ snapshotToken }}">
+  {% endif %}
   {% if filters.service %}
     {% for value in filters.service %}
       <input type="hidden" name="service" value="{{ value }}">

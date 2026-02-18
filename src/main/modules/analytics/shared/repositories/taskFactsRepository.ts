@@ -22,9 +22,17 @@ import {
   TasksDuePriorityRow,
 } from './types';
 
+function snapshotCondition(snapshotId: number): Prisma.Sql {
+  return Prisma.sql`snapshot_id = ${snapshotId}`;
+}
+
 export class TaskFactsRepository {
-  async fetchServiceOverviewRows(filters: AnalyticsFilters): Promise<ServiceOverviewDbRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [Prisma.sql`date_role = 'due'`, Prisma.sql`task_status = 'open'`]);
+  async fetchServiceOverviewRows(snapshotId: number, filters: AnalyticsFilters): Promise<ServiceOverviewDbRow[]> {
+    const whereClause = buildAnalyticsWhere(filters, [
+      snapshotCondition(snapshotId),
+      Prisma.sql`date_role = 'due'`,
+      Prisma.sql`task_status = 'open'`,
+    ]);
     const priorityBucket = priorityBucketSql({
       priorityColumn: Prisma.raw('priority'),
       dateColumn: Prisma.raw('reference_date'),
@@ -43,7 +51,7 @@ export class TaskFactsRepository {
           assignment_state,
           task_count,
           ${priorityBucket} AS priority_bucket
-        FROM analytics.mv_task_daily_facts
+        FROM analytics.mv_task_daily_facts_snapshots
         ${whereClause}
       )
       SELECT
@@ -61,10 +69,12 @@ export class TaskFactsRepository {
   }
 
   async fetchTaskEventsByServiceRows(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range: { from: Date; to: Date }
   ): Promise<TaskEventsByServiceDbRow[]> {
     const whereClause = buildAnalyticsWhere(filters, [
+      snapshotCondition(snapshotId),
       Prisma.sql`reference_date >= ${range.from}`,
       Prisma.sql`reference_date <= ${range.to}`,
       Prisma.sql`date_role IN ('created', 'completed', 'cancelled')`,
@@ -76,59 +86,66 @@ export class TaskFactsRepository {
         SUM(CASE WHEN date_role = 'completed' THEN task_count ELSE 0 END)::int AS completed,
         SUM(CASE WHEN date_role = 'cancelled' THEN task_count ELSE 0 END)::int AS cancelled,
         SUM(CASE WHEN date_role = 'created' THEN task_count ELSE 0 END)::int AS created
-      FROM analytics.mv_task_daily_facts
+      FROM analytics.mv_task_daily_facts_snapshots
       ${whereClause}
       GROUP BY jurisdiction_label
       ORDER BY service ASC
     `);
   }
 
-  async fetchOverviewFilterOptionsRows(): Promise<OverviewFilterOptionsRows> {
+  async fetchOverviewFilterOptionsRows(snapshotId: number): Promise<OverviewFilterOptionsRows> {
     const [services, roleCategories, regions, locations, taskNames, workTypes, assignees] = await Promise.all([
       tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
         SELECT DISTINCT jurisdiction_label AS value
-        FROM analytics.mv_task_daily_facts
-        WHERE jurisdiction_label IS NOT NULL
+        FROM analytics.mv_task_daily_facts_snapshots
+        WHERE snapshot_id = ${snapshotId}
+          AND jurisdiction_label IS NOT NULL
         ORDER BY value
       `),
       tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
         SELECT DISTINCT role_category_label AS value
-        FROM analytics.mv_task_daily_facts
-        WHERE role_category_label IS NOT NULL
+        FROM analytics.mv_task_daily_facts_snapshots
+        WHERE snapshot_id = ${snapshotId}
+          AND role_category_label IS NOT NULL
         ORDER BY value
       `),
       tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
         SELECT DISTINCT region AS value
-        FROM analytics.mv_task_daily_facts
-        WHERE region IS NOT NULL
+        FROM analytics.mv_task_daily_facts_snapshots
+        WHERE snapshot_id = ${snapshotId}
+          AND region IS NOT NULL
         ORDER BY value
       `),
       tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
         SELECT DISTINCT location AS value
-        FROM analytics.mv_task_daily_facts
-        WHERE location IS NOT NULL
+        FROM analytics.mv_task_daily_facts_snapshots
+        WHERE snapshot_id = ${snapshotId}
+          AND location IS NOT NULL
         ORDER BY value
       `),
       tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
         SELECT DISTINCT task_name AS value
-        FROM analytics.mv_task_daily_facts
-        WHERE task_name IS NOT NULL
+        FROM analytics.mv_task_daily_facts_snapshots
+        WHERE snapshot_id = ${snapshotId}
+          AND task_name IS NOT NULL
         ORDER BY value
       `),
       tmPrisma.$queryRaw<FilterValueWithTextRow[]>(Prisma.sql`
         SELECT DISTINCT
           facts.work_type AS value,
           COALESCE(work_types.label, facts.work_type) AS text
-        FROM analytics.mv_task_daily_facts facts
+        FROM analytics.mv_task_daily_facts_snapshots facts
         LEFT JOIN cft_task_db.work_types work_types
           ON work_types.work_type_id = facts.work_type
-        WHERE facts.work_type IS NOT NULL
+        WHERE facts.snapshot_id = ${snapshotId}
+          AND facts.work_type IS NOT NULL
         ORDER BY text, value
       `),
       tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
         SELECT DISTINCT assignee AS value
-        FROM analytics.mv_reportable_task_thin
-        WHERE assignee IS NOT NULL
+        FROM analytics.mv_reportable_task_thin_snapshots
+        WHERE snapshot_id = ${snapshotId}
+          AND assignee IS NOT NULL
         ORDER BY value
       `),
     ]);
@@ -136,8 +153,9 @@ export class TaskFactsRepository {
     return { services, roleCategories, regions, locations, taskNames, workTypes, assignees };
   }
 
-  async fetchOpenTasksCreatedByAssignmentRows(filters: AnalyticsFilters): Promise<AssignmentRow[]> {
+  async fetchOpenTasksCreatedByAssignmentRows(snapshotId: number, filters: AnalyticsFilters): Promise<AssignmentRow[]> {
     const whereClause = buildAnalyticsWhere(filters, [
+      snapshotCondition(snapshotId),
       Prisma.sql`date_role = 'created'`,
       Prisma.sql`task_status = 'open'`,
     ]);
@@ -147,15 +165,19 @@ export class TaskFactsRepository {
         to_char(reference_date, 'YYYY-MM-DD') AS date_key,
         assignment_state,
         SUM(task_count)::int AS total
-      FROM analytics.mv_task_daily_facts
+      FROM analytics.mv_task_daily_facts_snapshots
       ${whereClause}
       GROUP BY reference_date, assignment_state
       ORDER BY reference_date
     `);
   }
 
-  async fetchTasksDuePriorityRows(filters: AnalyticsFilters): Promise<TasksDuePriorityRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [Prisma.sql`date_role = 'due'`, Prisma.sql`task_status = 'open'`]);
+  async fetchTasksDuePriorityRows(snapshotId: number, filters: AnalyticsFilters): Promise<TasksDuePriorityRow[]> {
+    const whereClause = buildAnalyticsWhere(filters, [
+      snapshotCondition(snapshotId),
+      Prisma.sql`date_role = 'due'`,
+      Prisma.sql`task_status = 'open'`,
+    ]);
     const priorityBucket = priorityBucketSql({
       priorityColumn: Prisma.raw('priority'),
       dateColumn: Prisma.raw('reference_date'),
@@ -173,7 +195,7 @@ export class TaskFactsRepository {
           reference_date,
           task_count,
           ${priorityBucket} AS bucket
-        FROM analytics.mv_task_daily_facts
+        FROM analytics.mv_task_daily_facts_snapshots
         ${whereClause}
       )
       SELECT
@@ -189,10 +211,15 @@ export class TaskFactsRepository {
   }
 
   async fetchCompletedSummaryRows(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedSummaryRow[]> {
-    const conditions: Prisma.Sql[] = [Prisma.sql`date_role = 'completed'`, Prisma.sql`task_status = 'completed'`];
+    const conditions: Prisma.Sql[] = [
+      snapshotCondition(snapshotId),
+      Prisma.sql`date_role = 'completed'`,
+      Prisma.sql`task_status = 'completed'`,
+    ];
     if (range?.from) {
       conditions.push(Prisma.sql`reference_date >= ${range.from}`);
     }
@@ -205,16 +232,21 @@ export class TaskFactsRepository {
       SELECT
         SUM(task_count)::int AS total,
         SUM(CASE WHEN sla_flag IS TRUE THEN task_count ELSE 0 END)::int AS within
-      FROM analytics.mv_task_daily_facts
+      FROM analytics.mv_task_daily_facts_snapshots
       ${whereClause}
     `);
   }
 
   async fetchCompletedTimelineRows(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedTimelineRow[]> {
-    const conditions: Prisma.Sql[] = [Prisma.sql`date_role = 'completed'`, Prisma.sql`task_status = 'completed'`];
+    const conditions: Prisma.Sql[] = [
+      snapshotCondition(snapshotId),
+      Prisma.sql`date_role = 'completed'`,
+      Prisma.sql`task_status = 'completed'`,
+    ];
     if (range?.from) {
       conditions.push(Prisma.sql`reference_date >= ${range.from}`);
     }
@@ -228,7 +260,7 @@ export class TaskFactsRepository {
         to_char(reference_date, 'YYYY-MM-DD') AS date_key,
         SUM(task_count)::int AS total,
         SUM(CASE WHEN sla_flag IS TRUE THEN task_count ELSE 0 END)::int AS within
-      FROM analytics.mv_task_daily_facts
+      FROM analytics.mv_task_daily_facts_snapshots
       ${whereClause}
       GROUP BY reference_date
       ORDER BY reference_date
@@ -236,10 +268,12 @@ export class TaskFactsRepository {
   }
 
   async fetchCompletedProcessingHandlingTimeRows(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedProcessingHandlingTimeRow[]> {
     const conditions: Prisma.Sql[] = [
+      snapshotCondition(snapshotId),
       Prisma.sql`termination_reason = 'completed'`,
       Prisma.sql`state IN ('COMPLETED', 'TERMINATED')`,
       Prisma.sql`completed_date IS NOT NULL`,
@@ -264,7 +298,7 @@ export class TaskFactsRepository {
         STDDEV_POP(processing_time_days) FILTER (WHERE processing_time_days IS NOT NULL)::double precision AS processing_stddev,
         SUM(processing_time_days) FILTER (WHERE processing_time_days IS NOT NULL)::double precision AS processing_sum,
         COUNT(processing_time_days)::int AS processing_count
-      FROM analytics.mv_reportable_task_thin
+      FROM analytics.mv_reportable_task_thin_snapshots
       ${whereClause}
       GROUP BY completed_date
       ORDER BY completed_date
@@ -272,10 +306,15 @@ export class TaskFactsRepository {
   }
 
   async fetchCompletedByNameRows(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedByNameRow[]> {
-    const conditions: Prisma.Sql[] = [Prisma.sql`date_role = 'completed'`, Prisma.sql`task_status = 'completed'`];
+    const conditions: Prisma.Sql[] = [
+      snapshotCondition(snapshotId),
+      Prisma.sql`date_role = 'completed'`,
+      Prisma.sql`task_status = 'completed'`,
+    ];
     if (range?.from) {
       conditions.push(Prisma.sql`reference_date >= ${range.from}`);
     }
@@ -289,7 +328,7 @@ export class TaskFactsRepository {
         task_name,
         SUM(task_count)::int AS total,
         SUM(CASE WHEN sla_flag IS TRUE THEN task_count ELSE 0 END)::int AS within
-      FROM analytics.mv_task_daily_facts
+      FROM analytics.mv_task_daily_facts_snapshots
       ${whereClause}
       GROUP BY task_name
       ORDER BY total DESC
@@ -297,10 +336,15 @@ export class TaskFactsRepository {
   }
 
   async fetchCompletedByLocationRows(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedByLocationRow[]> {
-    const conditions: Prisma.Sql[] = [Prisma.sql`date_role = 'completed'`, Prisma.sql`task_status = 'completed'`];
+    const conditions: Prisma.Sql[] = [
+      snapshotCondition(snapshotId),
+      Prisma.sql`date_role = 'completed'`,
+      Prisma.sql`task_status = 'completed'`,
+    ];
     if (range?.from) {
       conditions.push(Prisma.sql`reference_date >= ${range.from}`);
     }
@@ -319,7 +363,7 @@ export class TaskFactsRepository {
         SUM(handling_time_days_count)::int AS handling_time_days_count,
         SUM(processing_time_days_sum)::double precision AS processing_time_days_sum,
         SUM(processing_time_days_count)::int AS processing_time_days_count
-      FROM analytics.mv_task_daily_facts
+      FROM analytics.mv_task_daily_facts_snapshots
       ${whereClause}
       GROUP BY location, region
       ORDER BY location ASC, region ASC
@@ -327,10 +371,15 @@ export class TaskFactsRepository {
   }
 
   async fetchCompletedByRegionRows(
+    snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedByRegionRow[]> {
-    const conditions: Prisma.Sql[] = [Prisma.sql`date_role = 'completed'`, Prisma.sql`task_status = 'completed'`];
+    const conditions: Prisma.Sql[] = [
+      snapshotCondition(snapshotId),
+      Prisma.sql`date_role = 'completed'`,
+      Prisma.sql`task_status = 'completed'`,
+    ];
     if (range?.from) {
       conditions.push(Prisma.sql`reference_date >= ${range.from}`);
     }
@@ -348,7 +397,7 @@ export class TaskFactsRepository {
         SUM(handling_time_days_count)::int AS handling_time_days_count,
         SUM(processing_time_days_sum)::double precision AS processing_time_days_sum,
         SUM(processing_time_days_count)::int AS processing_time_days_count
-      FROM analytics.mv_task_daily_facts
+      FROM analytics.mv_task_daily_facts_snapshots
       ${whereClause}
       GROUP BY region
       ORDER BY region ASC

@@ -1,6 +1,7 @@
 import { Request, Response, Router } from 'express';
 
 import { BASE_FILTER_KEYS, applyFilterCookieFromConfig } from '../shared/filterCookies';
+import { parseSnapshotTokenInput } from '../shared/pageUtils';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../shared/partials';
 import { AnalyticsFilters } from '../shared/types';
 import { parseUserOverviewSort } from '../shared/userOverviewSort';
@@ -38,7 +39,11 @@ class UserOverviewController {
       const assignedPage = parseAssignedPage(source.assignedPage);
       const completedPage = parseCompletedPage(source.completedPage);
       const ajaxSection = typeof source.ajaxSection === 'string' ? source.ajaxSection : undefined;
-      const viewModel = await buildUserOverviewPage(filters, sort, assignedPage, completedPage, ajaxSection);
+      const requestedSnapshotId = parseSnapshotTokenInput(source.snapshotToken);
+      const viewModel =
+        requestedSnapshotId !== undefined
+          ? await buildUserOverviewPage(filters, sort, assignedPage, completedPage, ajaxSection, requestedSnapshotId)
+          : await buildUserOverviewPage(filters, sort, assignedPage, completedPage, ajaxSection);
       if (isAjaxRequest(req)) {
         const template = getAjaxPartialTemplate({
           source,

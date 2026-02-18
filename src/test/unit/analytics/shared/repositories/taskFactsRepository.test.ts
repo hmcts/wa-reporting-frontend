@@ -6,6 +6,8 @@ jest.mock('../../../../../main/modules/analytics/shared/data/prisma', () => ({
 }));
 
 describe('taskFactsRepository', () => {
+  const snapshotId = 501;
+
   const queryCall = (indexFromEnd = 0): { sql: string; values: unknown[] } => {
     const calls = (tmPrisma.$queryRaw as jest.Mock).mock.calls;
     return calls[calls.length - 1 - indexFromEnd][0];
@@ -19,28 +21,28 @@ describe('taskFactsRepository', () => {
   test('executes repository queries with date ranges', async () => {
     const range = { from: new Date('2024-01-01'), to: new Date('2024-01-31') };
 
-    await taskFactsRepository.fetchServiceOverviewRows({});
-    await taskFactsRepository.fetchTaskEventsByServiceRows({}, range);
-    await taskFactsRepository.fetchOverviewFilterOptionsRows();
-    await taskFactsRepository.fetchOpenTasksCreatedByAssignmentRows({});
-    await taskFactsRepository.fetchTasksDuePriorityRows({});
-    await taskFactsRepository.fetchCompletedSummaryRows({}, range);
-    await taskFactsRepository.fetchCompletedTimelineRows({}, range);
-    await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows({}, range);
-    await taskFactsRepository.fetchCompletedByNameRows({}, range);
-    await taskFactsRepository.fetchCompletedByLocationRows({}, range);
-    await taskFactsRepository.fetchCompletedByRegionRows({}, range);
+    await taskFactsRepository.fetchServiceOverviewRows(snapshotId, {});
+    await taskFactsRepository.fetchTaskEventsByServiceRows(snapshotId, {}, range);
+    await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId);
+    await taskFactsRepository.fetchOpenTasksCreatedByAssignmentRows(snapshotId, {});
+    await taskFactsRepository.fetchTasksDuePriorityRows(snapshotId, {});
+    await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, {}, range);
+    await taskFactsRepository.fetchCompletedTimelineRows(snapshotId, {}, range);
+    await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, range);
+    await taskFactsRepository.fetchCompletedByNameRows(snapshotId, {}, range);
+    await taskFactsRepository.fetchCompletedByLocationRows(snapshotId, {}, range);
+    await taskFactsRepository.fetchCompletedByRegionRows(snapshotId, {}, range);
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();
   });
 
   test('handles optional ranges when none are provided', async () => {
-    await taskFactsRepository.fetchCompletedSummaryRows({}, undefined);
-    await taskFactsRepository.fetchCompletedTimelineRows({}, undefined);
-    await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows({}, undefined);
-    await taskFactsRepository.fetchCompletedByNameRows({}, undefined);
-    await taskFactsRepository.fetchCompletedByLocationRows({}, undefined);
-    await taskFactsRepository.fetchCompletedByRegionRows({}, undefined);
+    await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, {}, undefined);
+    await taskFactsRepository.fetchCompletedTimelineRows(snapshotId, {}, undefined);
+    await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, undefined);
+    await taskFactsRepository.fetchCompletedByNameRows(snapshotId, {}, undefined);
+    await taskFactsRepository.fetchCompletedByLocationRows(snapshotId, {}, undefined);
+    await taskFactsRepository.fetchCompletedByRegionRows(snapshotId, {}, undefined);
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalledTimes(6);
   });
@@ -49,34 +51,35 @@ describe('taskFactsRepository', () => {
     const from = new Date('2024-01-01');
     const to = new Date('2024-01-31');
 
-    await taskFactsRepository.fetchTaskEventsByServiceRows({ service: ['A'] }, { from, to });
+    await taskFactsRepository.fetchTaskEventsByServiceRows(snapshotId, { service: ['A'] }, { from, to });
     const query = queryCall();
 
     expect(query.sql).toContain('reference_date >=');
     expect(query.sql).toContain('reference_date <=');
     expect(query.sql).toContain("date_role IN ('created', 'completed', 'cancelled')");
-    expect(query.values).toEqual(expect.arrayContaining([from, to]));
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, from, to]));
   });
 
   test('builds completed summary query for open-ended ranges', async () => {
     const from = new Date('2024-02-01');
     const to = new Date('2024-02-15');
 
-    await taskFactsRepository.fetchCompletedSummaryRows({}, { from });
+    await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
     expect(fromQuery.sql).toContain('reference_date >=');
     expect(fromQuery.sql).not.toContain('reference_date <=');
-    expect(fromQuery.values).toEqual(expect.arrayContaining([from]));
+    expect(fromQuery.values).toEqual(expect.arrayContaining([snapshotId, from]));
 
-    await taskFactsRepository.fetchCompletedSummaryRows({}, { to });
+    await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, {}, { to });
     const toQuery = queryCall();
     expect(toQuery.sql).toContain('reference_date <=');
     expect(toQuery.sql).not.toContain('reference_date >=');
-    expect(toQuery.values).toEqual(expect.arrayContaining([to]));
+    expect(toQuery.values).toEqual(expect.arrayContaining([snapshotId, to]));
   });
 
   test('fetchOverviewFilterOptionsRows executes all distinct filter lookups', async () => {
-    await taskFactsRepository.fetchOverviewFilterOptionsRows();
+    await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId);
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalledTimes(7);
     const sqlStatements = (tmPrisma.$queryRaw as jest.Mock).mock.calls.map(call => call[0].sql);
@@ -95,7 +98,7 @@ describe('taskFactsRepository', () => {
     const from = new Date('2024-03-01');
     const to = new Date('2024-03-10');
 
-    await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows({}, { from, to });
+    await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from, to });
     const query = queryCall();
 
     expect(query.sql).toContain("termination_reason = 'completed'");
@@ -107,7 +110,7 @@ describe('taskFactsRepository', () => {
   });
 
   test('applies due/open filters and priority bucket in due-priority query', async () => {
-    await taskFactsRepository.fetchTasksDuePriorityRows({ region: ['North'] });
+    await taskFactsRepository.fetchTasksDuePriorityRows(snapshotId, { region: ['North'] });
     const query = queryCall();
 
     expect(query.sql).toContain("date_role = 'due'");
@@ -117,7 +120,7 @@ describe('taskFactsRepository', () => {
   });
 
   test('builds service overview query using bucketed CTE and assignment totals', async () => {
-    await taskFactsRepository.fetchServiceOverviewRows({ service: ['Service A'], roleCategory: ['Ops'] });
+    await taskFactsRepository.fetchServiceOverviewRows(snapshotId, { service: ['Service A'], roleCategory: ['Ops'] });
     const query = queryCall();
 
     expect(query.sql).toContain('WITH bucketed AS');
@@ -133,7 +136,7 @@ describe('taskFactsRepository', () => {
   });
 
   test('builds created-by-assignment query with grouping by date and assignment state', async () => {
-    await taskFactsRepository.fetchOpenTasksCreatedByAssignmentRows({ region: ['North'] });
+    await taskFactsRepository.fetchOpenTasksCreatedByAssignmentRows(snapshotId, { region: ['North'] });
     const query = queryCall();
 
     expect(query.sql).toContain("date_role = 'created'");
@@ -148,7 +151,7 @@ describe('taskFactsRepository', () => {
     const from = new Date('2024-04-01');
     const to = new Date('2024-04-15');
 
-    await taskFactsRepository.fetchCompletedTimelineRows({}, { from });
+    await taskFactsRepository.fetchCompletedTimelineRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
     expect(fromQuery.sql).toContain('reference_date >=');
     expect(fromQuery.sql).not.toContain('reference_date <=');
@@ -156,7 +159,7 @@ describe('taskFactsRepository', () => {
     expect(fromQuery.sql).toContain('ORDER BY reference_date');
     expect(fromQuery.values).toEqual(expect.arrayContaining([from]));
 
-    await taskFactsRepository.fetchCompletedTimelineRows({}, { to });
+    await taskFactsRepository.fetchCompletedTimelineRows(snapshotId, {}, { to });
     const toQuery = queryCall();
     expect(toQuery.sql).toContain('reference_date <=');
     expect(toQuery.sql).not.toContain('reference_date >=');
@@ -167,7 +170,7 @@ describe('taskFactsRepository', () => {
     const from = new Date('2024-05-01');
     const to = new Date('2024-05-31');
 
-    await taskFactsRepository.fetchCompletedByNameRows({ service: ['Service A'] }, { from, to });
+    await taskFactsRepository.fetchCompletedByNameRows(snapshotId, { service: ['Service A'] }, { from, to });
     const byNameQuery = queryCall();
     expect(byNameQuery.sql).toContain('task_name');
     expect(byNameQuery.sql).toContain('SUM(task_count)::int AS total');
@@ -176,7 +179,7 @@ describe('taskFactsRepository', () => {
     expect(byNameQuery.sql).toContain('ORDER BY total DESC');
     expect(byNameQuery.values).toEqual(expect.arrayContaining([from, to]));
 
-    await taskFactsRepository.fetchCompletedByLocationRows({ region: ['North'] }, { from, to });
+    await taskFactsRepository.fetchCompletedByLocationRows(snapshotId, { region: ['North'] }, { from, to });
     const byLocationQuery = queryCall();
     expect(byLocationQuery.sql).toContain('location');
     expect(byLocationQuery.sql).toContain('region');
@@ -186,7 +189,7 @@ describe('taskFactsRepository', () => {
     expect(byLocationQuery.sql).toContain('ORDER BY location ASC, region ASC');
     expect(byLocationQuery.values).toEqual(expect.arrayContaining([from, to]));
 
-    await taskFactsRepository.fetchCompletedByRegionRows({ region: ['North'] }, { from, to });
+    await taskFactsRepository.fetchCompletedByRegionRows(snapshotId, { region: ['North'] }, { from, to });
     const byRegionQuery = queryCall();
     expect(byRegionQuery.sql).toContain('region');
     expect(byRegionQuery.sql).toContain('SUM(task_count)::int AS total');
@@ -200,7 +203,7 @@ describe('taskFactsRepository', () => {
     const from = new Date('2024-06-01');
     const to = new Date('2024-06-20');
 
-    await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows({}, { from });
+    await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
     expect(fromQuery.sql).toContain('AVG(handling_time_days)');
     expect(fromQuery.sql).toContain('STDDEV_POP(processing_time_days)');
@@ -209,7 +212,7 @@ describe('taskFactsRepository', () => {
     expect(fromQuery.sql).not.toContain('completed_date <=');
     expect(fromQuery.values).toEqual(expect.arrayContaining([from]));
 
-    await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows({}, { to });
+    await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { to });
     const toQuery = queryCall();
     expect(toQuery.sql).toContain('completed_date <=');
     expect(toQuery.sql).not.toContain('completed_date >=');

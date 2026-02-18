@@ -6,6 +6,8 @@ jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('serviceOverviewTableService', () => {
+  const snapshotId = 201;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -41,7 +43,7 @@ describe('serviceOverviewTableService', () => {
       },
     ]);
 
-    const result = await serviceOverviewTableService.fetchServiceOverview({});
+    const result = await serviceOverviewTableService.fetchServiceOverview(snapshotId, {});
 
     expect(result.serviceRows).toEqual([
       {

@@ -6,6 +6,8 @@ jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('completedProcessingHandlingTimeService', () => {
+  const snapshotId = 403;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -27,11 +29,13 @@ describe('completedProcessingHandlingTimeService', () => {
     ]);
 
     const result = await completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime(
+      snapshotId,
       {},
       { from: new Date('2024-02-01'), to: new Date('2024-02-10') }
     );
 
     expect(taskFactsRepository.fetchCompletedProcessingHandlingTimeRows).toHaveBeenCalledWith(
+      snapshotId,
       {},
       expect.objectContaining({ from: new Date('2024-02-01'), to: new Date('2024-02-10') })
     );

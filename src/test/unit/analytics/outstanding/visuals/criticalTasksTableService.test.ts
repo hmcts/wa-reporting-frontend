@@ -14,6 +14,8 @@ jest.mock('../../../../../main/modules/analytics/shared/services', () => ({
 }));
 
 describe('criticalTasksTableService', () => {
+  const snapshotId = 304;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -62,7 +64,13 @@ describe('criticalTasksTableService', () => {
       'user-1': 'Sam Taylor',
     });
 
-    const result = await criticalTasksTableService.fetchCriticalTasksPage({}, { by: 'dueDate', dir: 'asc' }, 1, 10);
+    const result = await criticalTasksTableService.fetchCriticalTasksPage(
+      snapshotId,
+      {},
+      { by: 'dueDate', dir: 'asc' },
+      1,
+      10
+    );
 
     expect(result).toEqual({
       rows: [
@@ -101,6 +109,7 @@ describe('criticalTasksTableService', () => {
       page: 1,
     });
     expect(taskThinRepository.fetchOutstandingCriticalTaskRows).toHaveBeenCalledWith(
+      snapshotId,
       {},
       { by: 'dueDate', dir: 'asc' },
       {
@@ -115,9 +124,15 @@ describe('criticalTasksTableService', () => {
     (taskThinRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([]);
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
 
-    const result = await criticalTasksTableService.fetchCriticalTasksPage({}, { by: 'dueDate', dir: 'asc' }, 999);
+    const result = await criticalTasksTableService.fetchCriticalTasksPage(
+      snapshotId,
+      {},
+      { by: 'dueDate', dir: 'asc' },
+      999
+    );
 
     expect(taskThinRepository.fetchOutstandingCriticalTaskRows).toHaveBeenCalledWith(
+      snapshotId,
       {},
       { by: 'dueDate', dir: 'asc' },
       {
@@ -132,7 +147,12 @@ describe('criticalTasksTableService', () => {
     (taskThinRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(0);
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
 
-    const result = await criticalTasksTableService.fetchCriticalTasksPage({}, { by: 'dueDate', dir: 'asc' }, 99);
+    const result = await criticalTasksTableService.fetchCriticalTasksPage(
+      snapshotId,
+      {},
+      { by: 'dueDate', dir: 'asc' },
+      99
+    );
 
     expect(taskThinRepository.fetchOutstandingCriticalTaskRows).not.toHaveBeenCalled();
     expect(result).toEqual({

@@ -34,6 +34,9 @@ export type TaskAuditEntry = {
 
 type CompletedViewModel = ReturnType<typeof buildFilterOptionsViewModel> & {
   filters: AnalyticsFilters;
+  snapshotId?: number;
+  snapshotToken?: string;
+  freshnessInsetText: string;
   completedFromValue: string;
   completedToValue: string;
   summary: CompletedResponse['summary'];
@@ -315,6 +318,9 @@ function buildCompletedRegionLocationTotals(
 
 export function buildCompletedViewModel(params: {
   filters: AnalyticsFilters;
+  snapshotId?: number;
+  snapshotToken?: string;
+  freshnessInsetText: string;
   completed: CompletedResponse;
   allTasks: Task[];
   filterOptions: FilterOptions;
@@ -328,6 +334,9 @@ export function buildCompletedViewModel(params: {
 }): CompletedViewModel {
   const {
     filters,
+    snapshotId,
+    snapshotToken,
+    freshnessInsetText,
     completed,
     allTasks,
     filterOptions,
@@ -357,6 +366,9 @@ export function buildCompletedViewModel(params: {
 
   return {
     filters,
+    snapshotId,
+    snapshotToken,
+    freshnessInsetText,
     ...filterViewModel,
     completedFromValue: formatDatePickerValue(filters.completedFrom),
     completedToValue: formatDatePickerValue(filters.completedTo),

@@ -1,4 +1,9 @@
-import { CacheKeys, getCache, setCache } from '../../../../../main/modules/analytics/shared/cache/cache';
+import {
+  CacheKeys,
+  buildSnapshotScopedCacheKey,
+  getCache,
+  setCache,
+} from '../../../../../main/modules/analytics/shared/cache/cache';
 import { taskFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
 import {
   caseWorkerProfileService,
@@ -9,6 +14,7 @@ import { filterService } from '../../../../../main/modules/analytics/shared/serv
 
 jest.mock('../../../../../main/modules/analytics/shared/cache/cache', () => ({
   CacheKeys: { filterOptions: 'filter-options' },
+  buildSnapshotScopedCacheKey: jest.fn((base: string, snapshotId: number) => `${base}:${snapshotId}`),
   getCache: jest.fn(),
   setCache: jest.fn(),
 }));
@@ -24,6 +30,8 @@ jest.mock('../../../../../main/modules/analytics/shared/services/index', () => (
 }));
 
 describe('filterService', () => {
+  const snapshotId = 42;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -39,9 +47,10 @@ describe('filterService', () => {
       users: [],
     });
 
-    const result = await filterService.fetchFilterOptions();
+    const result = await filterService.fetchFilterOptions(snapshotId);
 
     expect(result.services).toEqual(['cached']);
+    expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(CacheKeys.filterOptions, snapshotId);
     expect(taskFactsRepository.fetchOverviewFilterOptionsRows).not.toHaveBeenCalled();
   });
 
@@ -63,7 +72,7 @@ describe('filterService', () => {
       { case_worker_id: 'user-3', first_name: 'Alex', last_name: 'P', email_id: 'alex@example.com', region_id: 2 },
     ]);
 
-    const result = await filterService.fetchFilterOptions();
+    const result = await filterService.fetchFilterOptions(snapshotId);
 
     expect(result.services).toEqual(['Service A']);
     expect(result.roleCategories).toEqual(['Ops']);
@@ -84,6 +93,7 @@ describe('filterService', () => {
     expect(result.users[0]).toEqual({ value: '', text: 'All users' });
     expect(result.users[1].value).toBe('user-1');
     expect(result.users.find(option => option.value === 'user-2')).toBeUndefined();
-    expect(setCache).toHaveBeenCalledWith(CacheKeys.filterOptions, result);
+    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledWith(snapshotId);
+    expect(setCache).toHaveBeenCalledWith(`${CacheKeys.filterOptions}:${snapshotId}`, result);
   });
 });

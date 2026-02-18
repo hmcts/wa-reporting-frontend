@@ -1,8 +1,10 @@
 import {
   buildDateParts,
+  buildFreshnessInsetText,
   formatDatePickerValue,
   formatNumber,
   formatPercent,
+  formatUkDateTime,
 } from '../../../../main/modules/analytics/shared/formatting';
 
 describe('formatNumber', () => {
@@ -45,5 +47,23 @@ describe('formatDatePickerValue', () => {
 
   test('returns empty string when no date provided', () => {
     expect(formatDatePickerValue()).toBe('');
+  });
+});
+
+describe('formatUkDateTime', () => {
+  test('formats date/time in UK local time', () => {
+    expect(formatUkDateTime(new Date('2026-02-17T10:15:00Z'))).toBe('17 February 2026 at 10:15 GMT');
+  });
+});
+
+describe('buildFreshnessInsetText', () => {
+  test('builds freshness text from a published timestamp', () => {
+    expect(buildFreshnessInsetText(new Date('2026-02-17T10:15:00Z'))).toBe(
+      'Data last refreshed: 17 February 2026 at 10:15 GMT.'
+    );
+  });
+
+  test('returns fallback text when no timestamp is provided', () => {
+    expect(buildFreshnessInsetText()).toBe('Data freshness unavailable.');
   });
 });

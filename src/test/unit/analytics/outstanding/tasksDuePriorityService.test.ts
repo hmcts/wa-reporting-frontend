@@ -8,6 +8,8 @@ jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
 }));
 
 describe('fetchTasksDueByPriority', () => {
+  const snapshotId = 303;
+
   beforeEach(() => {
     (taskFactsRepository.fetchTasksDuePriorityRows as jest.Mock).mockReset();
   });
@@ -19,9 +21,9 @@ describe('fetchTasksDueByPriority', () => {
       { date_key: '2025-01-02', urgent: 3, high: 5, medium: 0, low: 0 },
     ]);
 
-    const result = await tasksDueByPriorityChartService.fetchTasksDueByPriority(filters);
+    const result = await tasksDueByPriorityChartService.fetchTasksDueByPriority(snapshotId, filters);
 
-    expect(taskFactsRepository.fetchTasksDuePriorityRows).toHaveBeenCalledWith(filters);
+    expect(taskFactsRepository.fetchTasksDuePriorityRows).toHaveBeenCalledWith(snapshotId, filters);
     expect(result).toEqual([
       { date: '2025-01-01', urgent: 0, high: 0, medium: 0, low: 2 },
       { date: '2025-01-02', urgent: 3, high: 5, medium: 0, low: 0 },
@@ -33,7 +35,7 @@ describe('fetchTasksDueByPriority', () => {
       { date_key: '2025-01-03', urgent: 0, high: 0, medium: 0, low: 0 },
     ]);
 
-    const result = await tasksDueByPriorityChartService.fetchTasksDueByPriority({});
+    const result = await tasksDueByPriorityChartService.fetchTasksDueByPriority(snapshotId, {});
 
     expect(result).toEqual([{ date: '2025-01-03', urgent: 0, high: 0, medium: 0, low: 0 }]);
   });
@@ -43,7 +45,7 @@ describe('fetchTasksDueByPriority', () => {
       { date_key: '2025-01-04', urgent: 0, high: null, medium: 0, low: 0 },
     ]);
 
-    const result = await tasksDueByPriorityChartService.fetchTasksDueByPriority({});
+    const result = await tasksDueByPriorityChartService.fetchTasksDueByPriority(snapshotId, {});
 
     expect(result).toEqual([{ date: '2025-01-04', urgent: 0, high: 0, medium: 0, low: 0 }]);
   });

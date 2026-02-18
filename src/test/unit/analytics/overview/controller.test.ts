@@ -3,6 +3,7 @@ import { Request, Response, Router } from 'express';
 import { overviewController } from '../../../../main/modules/analytics/overview/controller';
 import { buildOverviewPage } from '../../../../main/modules/analytics/overview/page';
 import { applyFilterCookieFromConfig } from '../../../../main/modules/analytics/shared/filterCookies';
+import { createSnapshotToken } from '../../../../main/modules/analytics/shared/pageUtils';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../../../../main/modules/analytics/shared/partials';
 
 jest.mock('../../../../main/modules/analytics/shared/filterCookies', () => ({
@@ -92,7 +93,7 @@ describe('overviewController', () => {
     const render = jest.fn();
     const req = {
       method: 'POST',
-      body: { service: 'Crime', ajaxSection: 'overview-task-events' },
+      body: { service: 'Crime', ajaxSection: 'overview-task-events', snapshotToken: createSnapshotToken(44) },
       get: jest.fn().mockReturnValue('fetch'),
     } as unknown as Request;
     const res = { render } as unknown as Response;
@@ -107,7 +108,7 @@ describe('overviewController', () => {
     const handler = (router.post as jest.Mock).mock.calls[0][1];
     await handler(req, res);
 
-    expect(buildOverviewPage).toHaveBeenCalledWith({ service: ['Crime'] }, 'overview-task-events');
+    expect(buildOverviewPage).toHaveBeenCalledWith({ service: ['Crime'] }, 'overview-task-events', 44);
     expect(getAjaxPartialTemplate).toHaveBeenCalled();
     expect(render).toHaveBeenCalledWith('analytics/overview/partials/task-events-table', { view: 'overview-ajax' });
   });

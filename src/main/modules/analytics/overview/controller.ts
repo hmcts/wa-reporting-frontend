@@ -1,6 +1,7 @@
 import { Request, Response, Router } from 'express';
 
 import { BASE_FILTER_KEYS, applyFilterCookieFromConfig } from '../shared/filterCookies';
+import { parseSnapshotTokenInput } from '../shared/pageUtils';
 import { getAjaxPartialTemplate, isAjaxRequest } from '../shared/partials';
 import { AnalyticsFilters } from '../shared/types';
 
@@ -23,7 +24,11 @@ class OverviewController {
         allowedKeys: this.allowedFilterKeys,
       });
       const ajaxSection = typeof source.ajaxSection === 'string' ? source.ajaxSection : undefined;
-      const viewModel = await buildOverviewPage(filters, ajaxSection);
+      const requestedSnapshotId = parseSnapshotTokenInput(source.snapshotToken);
+      const viewModel =
+        requestedSnapshotId !== undefined
+          ? await buildOverviewPage(filters, ajaxSection, requestedSnapshotId)
+          : await buildOverviewPage(filters, ajaxSection);
       if (isAjaxRequest(req)) {
         const template = getAjaxPartialTemplate({
           source,

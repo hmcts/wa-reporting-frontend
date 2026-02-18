@@ -82,6 +82,19 @@ function mockAnalyticsRepositories(): void {
     },
   }));
 
+  jest.doMock('../../main/modules/analytics/shared/repositories/snapshotStateRepository', () => ({
+    snapshotStateRepository: {
+      fetchPublishedSnapshot: jest.fn().mockResolvedValue({
+        snapshotId: 1,
+        publishedAt: new Date('2026-02-17T10:15:00.000Z'),
+      }),
+      fetchSnapshotById: jest.fn().mockResolvedValue({
+        snapshotId: 1,
+        publishedAt: new Date('2026-02-17T10:15:00.000Z'),
+      }),
+    },
+  }));
+
   jest.doMock('../../main/modules/analytics/shared/repositories/regionRepository', () => ({
     regionRepository: {
       getAll: jest.fn().mockResolvedValue([]),

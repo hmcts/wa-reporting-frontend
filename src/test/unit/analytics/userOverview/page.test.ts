@@ -1,5 +1,8 @@
 import { completedComplianceSummaryService } from '../../../../main/modules/analytics/completed/visuals/completedComplianceSummaryService';
-import { fetchFilterOptionsWithFallback } from '../../../../main/modules/analytics/shared/pageUtils';
+import {
+  fetchFilterOptionsWithFallback,
+  fetchPublishedSnapshotContext,
+} from '../../../../main/modules/analytics/shared/pageUtils';
 import { taskThinRepository } from '../../../../main/modules/analytics/shared/repositories';
 import { caseWorkerProfileService, courtVenueService } from '../../../../main/modules/analytics/shared/services';
 import { getDefaultUserOverviewSort } from '../../../../main/modules/analytics/shared/userOverviewSort';
@@ -17,6 +20,7 @@ jest.mock('../../../../main/modules/analytics/userOverview/viewModel', () => ({
 
 jest.mock('../../../../main/modules/analytics/shared/pageUtils', () => ({
   fetchFilterOptionsWithFallback: jest.fn(),
+  fetchPublishedSnapshotContext: jest.fn(),
   normaliseDateRange: jest.requireActual('../../../../main/modules/analytics/shared/pageUtils').normaliseDateRange,
   settledValueWithFallback: jest.requireActual('../../../../main/modules/analytics/shared/pageUtils')
     .settledValueWithFallback,
@@ -45,8 +49,15 @@ jest.mock('../../../../main/modules/analytics/completed/visuals/completedComplia
 }));
 
 describe('buildUserOverviewPage', () => {
+  const snapshotId = 104;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (fetchPublishedSnapshotContext as jest.Mock).mockResolvedValue({
+      snapshotId,
+      publishedAt: new Date('2026-02-17T10:15:00.000Z'),
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
+    });
     (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(0);
     (taskThinRepository.fetchUserOverviewCompletedTaskCount as jest.Mock).mockResolvedValue(0);
   });
@@ -109,11 +120,13 @@ describe('buildUserOverviewPage', () => {
     const viewModel = await buildUserOverviewPage({ user: ['user-1'] }, sort, 1, 1, 'user-overview-assigned');
 
     expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(
+      snapshotId,
       { user: ['user-1'] },
       sort.assigned,
       { page: 1, pageSize: 500 }
     );
     expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(
+      snapshotId,
       { user: ['user-1'] },
       sort.assigned,
       null
@@ -221,8 +234,8 @@ describe('buildUserOverviewPage', () => {
 
     await buildUserOverviewPage({}, sort, 1, 1, 'assigned');
 
-    expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).toHaveBeenCalledWith({});
-    expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith({}, sort.assigned, {
+    expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).toHaveBeenCalledWith(snapshotId, {});
+    expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(snapshotId, {}, sort.assigned, {
       page: 1,
       pageSize: 500,
     });
@@ -272,8 +285,8 @@ describe('buildUserOverviewPage', () => {
 
     await buildUserOverviewPage({}, sort, 1, 999, 'completed');
 
-    expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).toHaveBeenCalledWith({});
-    expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).toHaveBeenCalledWith({}, sort.completed, {
+    expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).toHaveBeenCalledWith(snapshotId, {});
+    expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).toHaveBeenCalledWith(snapshotId, {}, sort.completed, {
       page: 10,
       pageSize: 500,
     });
@@ -303,10 +316,16 @@ describe('buildUserOverviewPage', () => {
 
     await buildUserOverviewPage({}, sort, 999, 1, 'user-overview-assigned');
 
-    expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenNthCalledWith(1, {}, sort.assigned, {
-      page: 10,
-      pageSize: 500,
-    });
+    expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenNthCalledWith(
+      1,
+      snapshotId,
+      {},
+      sort.assigned,
+      {
+        page: 10,
+        pageSize: 500,
+      }
+    );
     expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
         assignedPage: 10,

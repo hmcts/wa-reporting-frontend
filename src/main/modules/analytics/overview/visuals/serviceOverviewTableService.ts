@@ -9,8 +9,8 @@ function withAssignedPct(row: ServiceOverviewRow): ServiceOverviewRow {
 }
 
 class ServiceOverviewTableService {
-  async fetchServiceOverview(filters: AnalyticsFilters): Promise<OverviewResponse> {
-    const rows = await taskFactsRepository.fetchServiceOverviewRows(filters);
+  async fetchServiceOverview(snapshotId: number, filters: AnalyticsFilters): Promise<OverviewResponse> {
+    const rows = await taskFactsRepository.fetchServiceOverviewRows(snapshotId, filters);
 
     const serviceRows = rows.map(row => {
       const mapped: ServiceOverviewRow = {

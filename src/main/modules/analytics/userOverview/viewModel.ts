@@ -20,6 +20,9 @@ import {
 
 type UserOverviewViewModel = FilterOptionsViewModel & {
   filters: AnalyticsFilters;
+  snapshotId?: number;
+  snapshotToken?: string;
+  freshnessInsetText: string;
   completedFromValue: string;
   completedToValue: string;
   userOptions: SelectOption[];
@@ -297,6 +300,9 @@ function buildCompletedByDateTotalsRow(rows: CompletedByDatePoint[]): TableRow {
 
 export function buildUserOverviewViewModel(params: {
   filters: AnalyticsFilters;
+  snapshotId?: number;
+  snapshotToken?: string;
+  freshnessInsetText: string;
   overview: UserOverviewMetrics;
   allTasks: Task[];
   assignedTasks: Task[];
@@ -318,6 +324,9 @@ export function buildUserOverviewViewModel(params: {
 }): UserOverviewViewModel {
   const {
     filters,
+    snapshotId,
+    snapshotToken,
+    freshnessInsetText,
     overview,
     allTasks,
     assignedTasks,
@@ -372,6 +381,9 @@ export function buildUserOverviewViewModel(params: {
 
   return {
     filters,
+    snapshotId,
+    snapshotToken,
+    freshnessInsetText,
     ...filterViewModel,
     completedFromValue: formatDatePickerValue(filters.completedFrom),
     completedToValue: formatDatePickerValue(filters.completedTo),

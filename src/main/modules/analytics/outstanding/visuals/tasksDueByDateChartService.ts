@@ -3,8 +3,8 @@ import { AnalyticsFilters, DueByDatePoint } from '../../shared/types';
 import { toNumber } from '../../shared/utils';
 
 class TasksDueByDateChartService {
-  async fetchTasksDueByDate(filters: AnalyticsFilters): Promise<DueByDatePoint[]> {
-    const rows = await taskThinRepository.fetchTasksDueByDateRows(filters);
+  async fetchTasksDueByDate(snapshotId: number, filters: AnalyticsFilters): Promise<DueByDatePoint[]> {
+    const rows = await taskThinRepository.fetchTasksDueByDateRows(snapshotId, filters);
 
     return rows.map(row => {
       const open = toNumber(row.open);

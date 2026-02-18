@@ -36,4 +36,10 @@ describe('analytics cache', () => {
     setCache('key', { value: 1 });
     expect(setMock).toHaveBeenCalledWith('key', { value: 1 });
   });
+
+  test('buildSnapshotScopedCacheKey appends snapshot id', () => {
+    const { buildSnapshotScopedCacheKey } = loadCacheModule();
+
+    expect(buildSnapshotScopedCacheKey('filter-options', 11)).toBe('filter-options:11');
+  });
 });

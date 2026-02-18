@@ -32,3 +32,23 @@ export function formatDatePickerValue(date?: Date): string {
   const year = String(date.getFullYear());
   return `${day}/${month}/${year}`;
 }
+
+export function formatUkDateTime(date: Date): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Europe/London',
+    timeZoneName: 'short',
+  }).format(date);
+}
+
+export function buildFreshnessInsetText(publishedAt?: Date): string {
+  if (!publishedAt) {
+    return 'Data freshness unavailable.';
+  }
+  return `Data last refreshed: ${formatUkDateTime(publishedAt)}.`;
+}

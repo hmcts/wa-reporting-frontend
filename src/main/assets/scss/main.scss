@@ -55,10 +55,16 @@
   margin-bottom: govuk-spacing(3);
 }
 
-.analytics-service-navigation__item--signout {
+.analytics-service-navigation__item--freshness {
   @media #{govuk-from-breakpoint(tablet)} {
     margin-left: auto;
   }
+}
+
+.analytics-service-navigation__freshness-text {
+  @include govuk-font(16);
+  color: govuk-colour('black', $variant: 'tint-25');
+  white-space: nowrap;
 }
 
 .analytics-multiselect {

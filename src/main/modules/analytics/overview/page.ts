@@ -1,6 +1,7 @@
 import { emptyOverviewFilterOptions } from '../shared/filters';
 import {
   fetchFilterOptionsWithFallback,
+  fetchPublishedSnapshotContext,
   resolveDateRangeWithDefaults,
   settledValueWithError,
 } from '../shared/pageUtils';
@@ -36,15 +37,17 @@ function shouldFetchSection(requested: OverviewAjaxSection | undefined, section:
 
 export async function buildOverviewPage(
   filters: AnalyticsFilters,
-  ajaxSection?: string
+  ajaxSection?: string,
+  requestedSnapshotId?: number
 ): Promise<OverviewPageViewModel> {
+  const snapshotContext = await fetchPublishedSnapshotContext(requestedSnapshotId);
   const requestedSection = resolveOverviewSection(ajaxSection);
   const shouldFetchOverview = shouldFetchSection(requestedSection, 'overview-service-performance');
   const shouldFetchTaskEvents = shouldFetchSection(requestedSection, 'overview-task-events');
   let overview = overviewService.buildOverview([]);
   if (shouldFetchOverview) {
     try {
-      const dbOverview = await serviceOverviewTableService.fetchServiceOverview(filters);
+      const dbOverview = await serviceOverviewTableService.fetchServiceOverview(snapshotContext.snapshotId, filters);
       if (dbOverview.serviceRows.length > 0) {
         overview = dbOverview;
       }
@@ -65,11 +68,14 @@ export async function buildOverviewPage(
   const allTasks: { service: string; roleCategory: string; region: string; location: string; taskName: string }[] = [];
   const [eventsResult, filtersResult] = await Promise.allSettled([
     shouldFetchTaskEvents
-      ? taskEventsByServiceChartService.fetchTaskEventsByService(filters, eventsRange)
+      ? taskEventsByServiceChartService.fetchTaskEventsByService(snapshotContext.snapshotId, filters, eventsRange)
       : Promise.resolve(null),
     requestedSection
       ? Promise.resolve(emptyOverviewFilterOptions())
-      : fetchFilterOptionsWithFallback('Failed to fetch overview filter options from database'),
+      : fetchFilterOptionsWithFallback(
+          'Failed to fetch overview filter options from database',
+          snapshotContext.snapshotId
+        ),
   ]);
 
   const eventsValue = settledValueWithError(eventsResult, 'Failed to fetch task events by service from database');
@@ -82,11 +88,14 @@ export async function buildOverviewPage(
 
   return buildOverviewViewModel({
     filters,
+    snapshotId: snapshotContext.snapshotId,
+    snapshotToken: snapshotContext.snapshotToken,
     overview,
     filterOptions,
     allTasks,
     taskEventsRows,
     taskEventsTotals,
     eventsRange,
+    freshnessInsetText: snapshotContext.freshnessInsetText,
   });
 }

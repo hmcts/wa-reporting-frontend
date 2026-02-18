@@ -14,13 +14,14 @@ type CriticalTasksPage = {
 
 class CriticalTasksTableService {
   async fetchCriticalTasksPage(
+    snapshotId: number,
     filters: AnalyticsFilters,
     sort: OutstandingSort['criticalTasks'],
     page: number,
     pageSize = CRITICAL_TASKS_PAGE_SIZE
   ): Promise<CriticalTasksPage> {
     const [totalResults, caseWorkerNames] = await Promise.all([
-      taskThinRepository.fetchOutstandingCriticalTaskCount(filters),
+      taskThinRepository.fetchOutstandingCriticalTaskCount(snapshotId, filters),
       caseWorkerProfileService.fetchCaseWorkerProfileNames(),
     ]);
     const totalPages = getCappedTotalPages(totalResults, pageSize);
@@ -28,7 +29,7 @@ class CriticalTasksTableService {
     if (totalResults === 0) {
       return { rows: [], totalResults, page: currentPage };
     }
-    const rows = await taskThinRepository.fetchOutstandingCriticalTaskRows(filters, sort, {
+    const rows = await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, filters, sort, {
       page: currentPage,
       pageSize,
     });

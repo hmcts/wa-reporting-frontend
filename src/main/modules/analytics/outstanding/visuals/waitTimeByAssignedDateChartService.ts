@@ -3,8 +3,8 @@ import { AnalyticsFilters, WaitTimePoint } from '../../shared/types';
 import { toNumber } from '../../shared/utils';
 
 class WaitTimeByAssignedDateChartService {
-  async fetchWaitTimeByAssignedDate(filters: AnalyticsFilters): Promise<WaitTimePoint[]> {
-    const rows = await taskThinRepository.fetchWaitTimeByAssignedDateRows(filters);
+  async fetchWaitTimeByAssignedDate(snapshotId: number, filters: AnalyticsFilters): Promise<WaitTimePoint[]> {
+    const rows = await taskThinRepository.fetchWaitTimeByAssignedDateRows(snapshotId, filters);
 
     return rows.map(row => {
       const assignedCount = toNumber(row.assigned_task_count);
