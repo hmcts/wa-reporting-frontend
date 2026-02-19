@@ -76,7 +76,9 @@ Required columns:
 - due_date
 - completed_date
 - handling_time_days
+- handling_time (interval)
 - processing_time_days
+- processing_time (interval)
 - is_within_sla (Yes/No/null)
 - state (ASSIGNED/COMPLETED/TERMINATED/etc)
 - termination_reason
@@ -137,7 +139,7 @@ Required columns:
 - reference_date
 - work_type
 - assigned_task_count
-- total_wait_time_days
+- total_wait_time (interval)
 
 ## Reference data (crd and lrd databases)
 

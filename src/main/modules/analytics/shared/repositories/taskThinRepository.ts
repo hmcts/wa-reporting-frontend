@@ -7,6 +7,7 @@ import { priorityBucketSql } from '../priority/priorityBucketSql';
 import { AnalyticsFilters } from '../types';
 import { AssignedSortBy, CompletedSortBy, SortDirection, SortState } from '../userOverviewSort';
 
+import { SECONDS_PER_DAY_SQL } from './constants';
 import { buildAnalyticsWhere } from './filters';
 import {
   CompletedTaskAuditRow,
@@ -114,7 +115,7 @@ function buildUserOverviewTaskQuery(
       to_char(first_assigned_date, 'YYYY-MM-DD') AS first_assigned_date,
       to_char(due_date, 'YYYY-MM-DD') AS due_date,
       to_char(completed_date, 'YYYY-MM-DD') AS completed_date,
-      handling_time_days,
+      (EXTRACT(EPOCH FROM handling_time) / ${SECONDS_PER_DAY_SQL})::double precision AS handling_time_days,
       is_within_sla,
       ${priorityBucket} AS priority,
       assignee,
@@ -176,7 +177,7 @@ function buildCompletedOrderBy(sort: SortState<CompletedSortBy>): Prisma.Sql {
       case 'completedDate':
         return Prisma.raw('completed_date');
       case 'handlingTimeDays':
-        return Prisma.sql`handling_time_days`;
+        return Prisma.sql`EXTRACT(EPOCH FROM handling_time) / ${SECONDS_PER_DAY_SQL}`;
       case 'withinDue':
         return WITHIN_DUE_SORT_SQL;
       case 'totalAssignments':
@@ -471,7 +472,7 @@ export class TaskThinRepository {
         to_char(reference_date, 'YYYY-MM-DD') AS date_key,
         CASE
           WHEN SUM(assigned_task_count) = 0 THEN 0
-          ELSE SUM(total_wait_time_days) / SUM(assigned_task_count)::numeric
+          ELSE (EXTRACT(EPOCH FROM SUM(total_wait_time)) / ${SECONDS_PER_DAY_SQL}) / SUM(assigned_task_count)::double precision
         END::double precision AS avg_wait_time_days,
         SUM(assigned_task_count)::int AS assigned_task_count
       FROM analytics.mv_open_tasks_wait_time_by_assigned_date_snapshots

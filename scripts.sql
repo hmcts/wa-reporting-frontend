@@ -92,8 +92,8 @@ SELECT
   COUNT(*)::int AS tasks,
   SUM(CASE WHEN is_within_sla = 'Yes' THEN 1 ELSE 0 END)::int AS within_due,
   SUM(CASE WHEN is_within_sla = 'No' THEN 1 ELSE 0 END)::int AS beyond_due,
-  SUM(handling_time_days)::numeric AS handling_time_sum,
-  COUNT(handling_time_days)::int AS handling_time_count,
+  SUM(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'))::numeric AS handling_time_sum,
+  COUNT(handling_time)::int AS handling_time_count,
   SUM(
     CASE
       WHEN due_date IS NOT NULL AND completed_date IS NOT NULL THEN completed_date::date - due_date::date
@@ -162,8 +162,8 @@ WITH base AS (
     created_date,
     due_date,
     completed_date,
-    handling_time_days,
-    processing_time_days
+    handling_time,
+    processing_time
   FROM analytics.mv_reportable_task_thin
 )
 
@@ -280,10 +280,10 @@ SELECT
     ELSE NULL
   END AS sla_flag,
 
-  SUM(handling_time_days)::numeric AS handling_time_days_sum,
-  COUNT(handling_time_days)::bigint AS handling_time_days_count,
-  SUM(processing_time_days)::numeric AS processing_time_days_sum,
-  COUNT(processing_time_days)::bigint AS processing_time_days_count,
+  SUM(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'))::numeric AS handling_time_days_sum,
+  COUNT(handling_time)::bigint AS handling_time_days_count,
+  SUM(EXTRACT(EPOCH FROM processing_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'))::numeric AS processing_time_days_sum,
+  COUNT(processing_time)::bigint AS processing_time_days_count,
 
   COUNT(*) AS task_count
 FROM base
@@ -539,10 +539,10 @@ SELECT
   task_name,
   work_type,
   first_assigned_date AS reference_date,
-  SUM(wait_time_days)::numeric AS total_wait_time_days,
+  SUM(wait_time) AS total_wait_time,
   COUNT(*)::bigint AS assigned_task_count
 FROM analytics.mv_reportable_task_thin
-WHERE wait_time_days IS NOT NULL
+WHERE wait_time IS NOT NULL
 GROUP BY
   jurisdiction_label,
   role_category_label,
@@ -581,7 +581,6 @@ CREATE INDEX ix_open_tasks_wait_time_reference_date
 
 -- Section 3: Hard reset snapshot artifacts so reruns always recreate cleanly.
 -- This intentionally removes previous snapshot metadata/data before rebuilding.
-DROP FUNCTION IF EXISTS analytics.run_snapshot_refresh_batch();
 DROP PROCEDURE IF EXISTS analytics.run_snapshot_refresh_batch();
 
 DROP TABLE IF EXISTS analytics.mv_open_tasks_wait_time_by_assigned_date_snapshots CASCADE;
@@ -1195,7 +1194,7 @@ BEGIN
       task_name,
       work_type,
       reference_date,
-      total_wait_time_days,
+      total_wait_time,
       assigned_task_count
     )
     SELECT
@@ -1207,7 +1206,7 @@ BEGIN
       snapshot.task_name,
       snapshot.work_type,
       snapshot.reference_date,
-      snapshot.total_wait_time_days,
+      snapshot.total_wait_time,
       snapshot.assigned_task_count
     FROM analytics.mv_open_tasks_wait_time_by_assigned_date snapshot;
   EXCEPTION

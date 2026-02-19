@@ -205,9 +205,11 @@ describe('taskFactsRepository', () => {
 
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
-    expect(fromQuery.sql).toContain('AVG(handling_time_days)');
-    expect(fromQuery.sql).toContain('STDDEV_POP(processing_time_days)');
-    expect(fromQuery.sql).toContain('COUNT(processing_time_days)::int AS processing_count');
+    expect(fromQuery.sql).toContain("AVG(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'))");
+    expect(fromQuery.sql).toContain(
+      "STDDEV_POP(EXTRACT(EPOCH FROM processing_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'))"
+    );
+    expect(fromQuery.sql).toContain('COUNT(processing_time)::int AS processing_count');
     expect(fromQuery.sql).toContain('completed_date >=');
     expect(fromQuery.sql).not.toContain('completed_date <=');
     expect(fromQuery.values).toEqual(expect.arrayContaining([from]));
