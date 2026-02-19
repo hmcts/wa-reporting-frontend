@@ -62,6 +62,7 @@ flowchart LR
   - Total assignments
   - Location
   - Status (termination process label)
+  - Outcome
 - Empty state:
   - If no case ID, prompt user to enter one.
   - If case ID provided but no results, show "No completed tasks match this case ID."

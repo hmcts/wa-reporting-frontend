@@ -177,6 +177,7 @@ export type CompletedTaskAuditRow = {
   number_of_reassignments: number | null;
   location: string | null;
   termination_process_label: string | null;
+  outcome: string | null;
 };
 
 export type CaseWorkerProfileRow = {

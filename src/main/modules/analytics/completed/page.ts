@@ -55,15 +55,16 @@ function mapTaskAuditRow(
   locationDescriptions: Record<string, string>
 ): TaskAuditEntry {
   const assigneeId = row.assignee ?? undefined;
-  const agentName = assigneeId ? (caseWorkerNames[assigneeId] ?? assigneeId) : '-';
+  const agentName = assigneeId ? (caseWorkerNames[assigneeId] ?? assigneeId) : null;
   return {
     caseId: row.case_id,
-    taskName: row.task_name ?? '-',
+    taskName: row.task_name,
     agentName,
-    completedDate: row.completed_date ?? '-',
+    completedDate: row.completed_date,
     totalAssignments: (row.number_of_reassignments ?? 0) + 1,
-    location: row.location ? lookup(row.location, locationDescriptions) : '-',
-    status: row.termination_process_label ?? '-',
+    location: row.location ? lookup(row.location, locationDescriptions) : null,
+    status: row.termination_process_label,
+    outcome: row.outcome,
   };
 }
 
