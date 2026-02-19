@@ -21,3 +21,15 @@ export function toPriorityKey(label: string): PriorityKey | undefined {
 export function displayPriorityLabel(key: PriorityKey): string {
   return priorityDisplayLabels[key];
 }
+
+function isPriorityKey(value: string): value is PriorityKey {
+  return value in priorityDisplayLabels;
+}
+
+export function toDisplayPriorityLabel(value: string): string {
+  const key = value.trim().toLowerCase();
+  if (!isPriorityKey(key)) {
+    return value;
+  }
+  return displayPriorityLabel(key);
+}

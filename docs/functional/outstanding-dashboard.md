@@ -66,6 +66,8 @@ flowchart TB
   - Due date
   - Priority
   - Agent name
+- Priority values are displayed as sentence case labels: `Urgent`, `High`, `Medium`, `Low`.
+- Priority sorting uses severity ranking (Urgent > High > Medium > Low), with first-click descending on the Priority header.
 - Sort order defaults to due date ascending.
 - Pagination page size: 50.
 

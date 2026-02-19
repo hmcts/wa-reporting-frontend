@@ -99,7 +99,7 @@ describe('analytics tables', () => {
     criticalMojTable.innerHTML = `
       <thead>
         <tr>
-          <th data-sort-key="task"><button type="button">Task</button></th>
+          <th data-sort-key="task" data-sort-default-dir="desc"><button type="button">Task</button></th>
         </tr>
       </thead>
       <tbody><tr><td>Item</td></tr></tbody>
@@ -145,6 +145,8 @@ describe('analytics tables', () => {
 
     expect(form.querySelector<HTMLInputElement>('input[name="completedSortBy"]')?.value).toBe('name');
     expect(form.querySelector<HTMLInputElement>('input[name="completedSortDir"]')?.value).toBe('asc');
+    expect(form.querySelector<HTMLInputElement>('input[name="criticalTasksSortBy"]')?.value).toBe('task');
+    expect(form.querySelector<HTMLInputElement>('input[name="criticalTasksSortDir"]')?.value).toBe('desc');
     expect(form.querySelector<HTMLInputElement>('input[name="criticalTasksPage"]')?.value).toBe('1');
     expect(form.querySelector<HTMLInputElement>('input[name="assignedPage"]')?.value).toBe('1');
   });

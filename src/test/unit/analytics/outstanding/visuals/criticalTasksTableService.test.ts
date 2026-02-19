@@ -81,7 +81,7 @@ describe('criticalTasksTableService', () => {
           taskName: 'Review',
           createdDate: '2024-01-01',
           dueDate: undefined,
-          priority: 'high',
+          priority: 'High',
           agentName: '',
         },
         {
@@ -91,7 +91,7 @@ describe('criticalTasksTableService', () => {
           taskName: 'Validate',
           createdDate: '2024-01-02',
           dueDate: undefined,
-          priority: 'high',
+          priority: 'High',
           agentName: 'Sam Taylor',
         },
         {
@@ -101,7 +101,7 @@ describe('criticalTasksTableService', () => {
           taskName: 'Check',
           createdDate: '2024-01-03',
           dueDate: undefined,
-          priority: 'high',
+          priority: 'High',
           agentName: 'user-2',
         },
       ],

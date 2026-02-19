@@ -1,5 +1,6 @@
 import {
   displayPriorityLabel,
+  toDisplayPriorityLabel,
   toPriorityKey,
 } from '../../../../../main/modules/analytics/shared/priority/priorityLabels';
 
@@ -20,5 +21,17 @@ describe('priorityLabels helpers', () => {
     expect(displayPriorityLabel('high')).toBe('High');
     expect(displayPriorityLabel('medium')).toBe('Medium');
     expect(displayPriorityLabel('low')).toBe('Low');
+  });
+
+  test('toDisplayPriorityLabel maps lowercase keys to sentence case labels', () => {
+    expect(toDisplayPriorityLabel('urgent')).toBe('Urgent');
+    expect(toDisplayPriorityLabel('high')).toBe('High');
+    expect(toDisplayPriorityLabel('medium')).toBe('Medium');
+    expect(toDisplayPriorityLabel('low')).toBe('Low');
+  });
+
+  test('toDisplayPriorityLabel falls back to the raw value for unknown labels', () => {
+    expect(toDisplayPriorityLabel('something-else')).toBe('something-else');
+    expect(toDisplayPriorityLabel('')).toBe('');
   });
 });
