@@ -92,6 +92,8 @@ sequenceDiagram
 - GOV.UK and MOJ frontends are imported and configured.
 - Page width is set to 1400px.
 - CSS variables define chart colors aligned with GOV.UK palette.
+- Shared chart colours are defined in `src/main/modules/analytics/shared/charts/colors.ts` using named colour keys (for example `purple`, `blueDark`, `blueLight`, `greyLight`, `blue`, `grey`, `green`).
+- Priority bucket charts explicitly map Urgent/High/Medium/Low to `purple`/`blueDark`/`blueLight`/`greyLight`; non-priority chart semantics reuse the same blue/grey/green palette family.
 - Custom styles for:
   - Analytics charts and small charts
   - Multi-select dropdown and search

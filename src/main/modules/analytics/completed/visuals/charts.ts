@@ -20,7 +20,7 @@ export function buildComplianceChart(
   return buildDonutChart({
     values: [summary.withinDueYes, summary.withinDueNo],
     labels: ['Within due date', 'Beyond due date'],
-    colors: [chartColors.green, chartColors.urgent],
+    colors: [chartColors.blue, chartColors.grey],
   });
 }
 
@@ -34,13 +34,13 @@ export function buildTimelineChart(timeline: CompletedPoint[]): string {
   return buildStackedBarWithLineTimeSeries(
     dates,
     [
-      { name: 'Within due', values: timeline.map(point => point.withinDue), color: chartColors.green },
-      { name: 'Beyond due', values: timeline.map(point => point.beyondDue), color: chartColors.urgent },
+      { name: 'Within due', values: timeline.map(point => point.withinDue), color: chartColors.blue },
+      { name: 'Beyond due', values: timeline.map(point => point.beyondDue), color: chartColors.grey },
     ],
     {
       name: 'Total - 7-day average',
       values: timelineRollingAverage,
-      color: chartColors.high,
+      color: chartColors.signalRed,
       mode: 'lines',
       width: 3,
     },
@@ -63,8 +63,8 @@ export function buildCompletedByNameChart(rows: CompletedByName[]): string {
   const config = buildStackedHorizontalBarChart({
     categories,
     series: [
-      { name: 'Within due date', values: sorted.map(row => row.withinDue), color: chartColors.green },
-      { name: 'Outside due date', values: sorted.map(row => row.beyondDue), color: chartColors.urgent },
+      { name: 'Within due date', values: sorted.map(row => row.withinDue), color: chartColors.blue },
+      { name: 'Outside due date', values: sorted.map(row => row.beyondDue), color: chartColors.grey },
     ],
     layoutOverrides: { legend: { orientation: 'h' } },
   });
@@ -79,7 +79,7 @@ export function buildHandlingChart(stats: HandlingTimeStats): string {
         x: ['Average'],
         y: [stats.averageDays],
         type: 'bar',
-        marker: { color: chartColors.high },
+        marker: { color: chartColors.blueDark },
         error_y: {
           type: 'data',
           symmetric: false,
@@ -109,9 +109,9 @@ export function buildProcessingHandlingTimeChart(
   return buildLineTimeSeries(
     dates,
     [
-      { name: 'Average (days)', values: averages, color: chartColors.high, width: 3 },
-      { name: 'Upper range (+1 std)', values: upper, color: chartColors.low, width: 2 },
-      { name: 'Lower range (-1 std)', values: lower, color: chartColors.notProvided, width: 2 },
+      { name: 'Average (days)', values: averages, color: chartColors.blueDark, width: 3 },
+      { name: 'Upper range (+1 std)', values: upper, color: chartColors.blue, width: 2 },
+      { name: 'Lower range (-1 std)', values: lower, color: chartColors.grey, width: 2 },
     ],
     {
       layoutOverrides: {

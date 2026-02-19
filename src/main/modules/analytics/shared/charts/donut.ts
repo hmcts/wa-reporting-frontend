@@ -27,6 +27,7 @@ export function buildDonutChart({
         values,
         labels,
         type: 'pie',
+        sort: false,
         hole,
         textposition,
         textinfo,
@@ -38,6 +39,7 @@ export function buildDonutChart({
       margin: { t: 0, b: 0, l: 0, r: 0 },
       height: 240,
       showlegend: true,
+      legend: { traceorder: 'normal' },
       ...layoutOverrides,
     },
   });

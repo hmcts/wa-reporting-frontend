@@ -18,10 +18,10 @@ export function buildOpenByNameChartConfig(openByName: PriorityBreakdown[]): Rec
   return buildStackedHorizontalBarChart({
     categories,
     series: [
-      { name: 'Urgent', values: sorted.map(row => row.urgent), color: chartColors.urgent },
-      { name: 'High', values: sorted.map(row => row.high), color: chartColors.high },
-      { name: 'Medium', values: sorted.map(row => row.medium), color: chartColors.medium },
-      { name: 'Low', values: sorted.map(row => row.low), color: chartColors.low },
+      { name: 'Urgent', values: sorted.map(row => row.urgent), color: chartColors.purple },
+      { name: 'High', values: sorted.map(row => row.high), color: chartColors.blueDark },
+      { name: 'Medium', values: sorted.map(row => row.medium), color: chartColors.blueLight },
+      { name: 'Low', values: sorted.map(row => row.low), color: chartColors.greyLight },
     ],
   });
 }
@@ -42,7 +42,7 @@ export function buildWaitTimeChart(waitTime: WaitTimePoint[]): string {
       {
         name: 'Average wait (days)',
         values: waitTime.map(point => point.averageWaitDays),
-        color: chartColors.high,
+        color: chartColors.blueDark,
         mode: 'lines+markers',
       },
     ],
@@ -55,8 +55,8 @@ export function buildTasksDueChart(dueByDate: DueByDatePoint[]): string {
   return buildStackedBarTimeSeries(
     dates,
     [
-      { name: 'Open', values: dueByDate.map(point => point.open), color: chartColors.low },
-      { name: 'Completed', values: dueByDate.map(point => point.completed), color: chartColors.notProvided },
+      { name: 'Open', values: dueByDate.map(point => point.open), color: chartColors.blue },
+      { name: 'Completed', values: dueByDate.map(point => point.completed), color: chartColors.grey },
     ],
     { legendOrientation: 'h' }
   );
@@ -67,10 +67,10 @@ export function buildTasksDuePriorityChart(priorityByDueDate: PrioritySeriesPoin
   return buildStackedBarTimeSeries(
     dates,
     [
-      { name: 'Urgent', values: priorityByDueDate.map(point => point.urgent), color: chartColors.urgent },
-      { name: 'High', values: priorityByDueDate.map(point => point.high), color: chartColors.high },
-      { name: 'Medium', values: priorityByDueDate.map(point => point.medium), color: chartColors.medium },
-      { name: 'Low', values: priorityByDueDate.map(point => point.low), color: chartColors.low },
+      { name: 'Urgent', values: priorityByDueDate.map(point => point.urgent), color: chartColors.purple },
+      { name: 'High', values: priorityByDueDate.map(point => point.high), color: chartColors.blueDark },
+      { name: 'Medium', values: priorityByDueDate.map(point => point.medium), color: chartColors.blueLight },
+      { name: 'Low', values: priorityByDueDate.map(point => point.low), color: chartColors.greyLight },
     ],
     { legendOrientation: 'h' }
   );
@@ -80,7 +80,7 @@ export function buildPriorityDonutChart(summary: PrioritySummary): string {
   return buildDonutChart({
     values: [summary.urgent, summary.high, summary.medium, summary.low],
     labels: ['Urgent', 'High', 'Medium', 'Low'],
-    colors: [chartColors.urgent, chartColors.high, chartColors.medium, chartColors.low],
+    colors: [chartColors.purple, chartColors.blueDark, chartColors.blueLight, chartColors.greyLight],
   });
 }
 
