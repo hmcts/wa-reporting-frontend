@@ -72,7 +72,8 @@ describe('buildCompletedViewModel', () => {
     });
 
     expect(viewModel.serviceOptions[0].text).toBe('All services');
-    expect(viewModel.timelineRows[0][0].text).toBe('2024-01-02');
+    expect(viewModel.timelineRows[0][0].text).toBe('2 Jan 2024');
+    expect(viewModel.timelineRows[0][0].attributes?.['data-sort-value']).toBe('2024-01-02');
     expect(viewModel.completedByNameRows[0][0].text).toBe('Review');
     expect(viewModel.completedByNameRows[0][1].attributes?.['data-sort-value']).toBe('2');
     expect(viewModel.completedByNameTotalsRow[0].attributes?.['data-total-row']).toBe('true');
@@ -373,7 +374,8 @@ describe('buildCompletedViewModel', () => {
           caseId: '123',
           taskName: 'Check',
           agentName: 'Agent One',
-          completedDate: '2024-01-01',
+          completedDate: '1 Jan 2024',
+          completedDateRaw: '2024-01-01',
           totalAssignments: 2,
           location: 'Leeds',
           status: 'COMPLETED',

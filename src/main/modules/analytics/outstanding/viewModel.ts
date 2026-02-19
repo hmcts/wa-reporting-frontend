@@ -1,5 +1,5 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
-import { formatNumber, formatPercent } from '../shared/formatting';
+import { formatAnalyticsDateDisplay, formatNumber, formatPercent } from '../shared/formatting';
 import { OutstandingSort } from '../shared/outstandingSort';
 import { FilterOptions } from '../shared/services';
 import {
@@ -30,7 +30,12 @@ type OpenByNameInitial = {
 type TableCell = { text: string; attributes?: Record<string, string> };
 type TableRow = TableCell[];
 type TableRows = TableRow[];
-type CriticalTaskView = CriticalTask;
+type CriticalTaskView = CriticalTask & {
+  createdDateIso: string;
+  createdDateDisplay: string;
+  dueDateIso?: string;
+  dueDateDisplay: string;
+};
 
 type OpenTasksTotals = { open: number; assigned: number; unassigned: number };
 type WaitTimeTotals = { assignedCount: number; weightedTotal: number; average: number };
@@ -48,6 +53,17 @@ function buildPercentCell(value: number, options: Intl.NumberFormatOptions = {})
 
 function buildTotalLabelCell(label: string): TableCell {
   return { text: label, attributes: { 'data-total-row': 'true' } };
+}
+
+function buildDateCell(value?: string | null): TableCell {
+  const dateIso = value ?? '';
+  return {
+    text: formatAnalyticsDateDisplay(value),
+    attributes: {
+      'data-sort-value': dateIso,
+      'data-export-value': dateIso || '-',
+    },
+  };
 }
 
 function buildTotalsRowWithLabelColumns(label: string, labelColumns: number, values: number[]): TableRow {
@@ -133,7 +149,7 @@ function calculateOpenTasksTotals(openByCreated: AssignmentSeriesPoint[]): OpenT
 
 function buildOpenTasksRows(openByCreated: AssignmentSeriesPoint[]): TableRows {
   return openByCreated.map(point => [
-    { text: point.date },
+    buildDateCell(point.date),
     buildNumericCell(point.open),
     buildNumericCell(point.assigned),
     buildPercentCell(point.assignedPct, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
@@ -164,7 +180,7 @@ function calculateWaitTimeTotals(waitTime: WaitTimePoint[]): WaitTimeTotals {
 
 function buildWaitTimeRows(waitTime: WaitTimePoint[]): TableRows {
   return waitTime.map(point => [
-    { text: point.date },
+    buildDateCell(point.date),
     buildNumericCell(point.assignedCount),
     buildNumericCell(point.averageWaitDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
   ]);
@@ -188,7 +204,7 @@ function calculateDueTotals(dueByDate: DueByDatePoint[]): DueTotals {
 
 function buildTasksDueRows(dueByDate: DueByDatePoint[]): TableRows {
   return dueByDate.map(point => [
-    { text: point.date },
+    buildDateCell(point.date),
     buildNumericCell(point.totalDue),
     buildNumericCell(point.open),
     buildNumericCell(point.completed),
@@ -215,7 +231,7 @@ function calculatePriorityTotals(priorityByDueDate: PrioritySeriesPoint[]): Prio
 
 function buildTasksDuePriorityRows(priorityByDueDate: PrioritySeriesPoint[]): TableRows {
   return priorityByDueDate.map(point => [
-    { text: point.date },
+    buildDateCell(point.date),
     buildNumericCell(point.urgent + point.high + point.medium + point.low),
     buildNumericCell(point.urgent),
     buildNumericCell(point.high),
@@ -243,6 +259,10 @@ function buildCriticalTasks(criticalTasks: CriticalTask[], locationLookup: Recor
   return criticalTasks.map(task => ({
     ...task,
     location: lookup(task.location, locationLookup),
+    createdDateIso: task.createdDate,
+    createdDateDisplay: formatAnalyticsDateDisplay(task.createdDate),
+    dueDateIso: task.dueDate,
+    dueDateDisplay: formatAnalyticsDateDisplay(task.dueDate),
   }));
 }
 

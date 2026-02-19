@@ -109,3 +109,4 @@ flowchart TB
 ## Notes
 - CSV export is available for each table section.
 - Filters are applied consistently across all sections.
+- Dates are displayed as `D Mon YYYY` in tables/charts, while date sorting and CSV export use ISO `YYYY-MM-DD` values.

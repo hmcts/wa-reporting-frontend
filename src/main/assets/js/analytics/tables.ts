@@ -10,7 +10,10 @@ export function tableToCsv(table: HTMLTableElement): string {
   const rows = Array.from(table.querySelectorAll('tr'));
   const csvLines = rows.map(row => {
     const cells = Array.from(row.querySelectorAll('th, td'));
-    const values = cells.map(cell => escapeCsvValue(cell.textContent?.trim() ?? ''));
+    const values = cells.map(cell => {
+      const exportValue = cell.getAttribute('data-export-value');
+      return escapeCsvValue(exportValue ?? cell.textContent?.trim() ?? '');
+    });
     return values.join(',');
   });
   return csvLines.join('\n');

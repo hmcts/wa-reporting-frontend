@@ -72,7 +72,7 @@
         { html: caseLink(row.caseId) },
         { text: row.taskName },
         { text: row.agentName },
-        { text: row.completedDate },
+        { text: row.completedDate, attributes: { 'data-export-value': row.completedDateRaw, 'data-sort-value': row.completedDateRaw } },
         { text: row.totalAssignments | formatNumber, attributes: { 'data-sort-value': row.totalAssignments } },
         { text: row.location },
         { text: row.status },

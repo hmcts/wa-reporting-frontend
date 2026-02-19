@@ -15,8 +15,8 @@
         { text: row.caseType },
         { text: row.location },
         { text: row.taskName },
-        { text: row.createdDate },
-        { text: row.dueDate or '-' },
+        { text: row.createdDateDisplay, attributes: { 'data-export-value': row.createdDateIso, 'data-sort-value': row.createdDateIso } },
+        { text: row.dueDateDisplay, attributes: { 'data-export-value': row.dueDateIso or '-', 'data-sort-value': row.dueDateIso or '' } },
         { text: row.priority },
         { text: row.agentName }
       ]]) %}

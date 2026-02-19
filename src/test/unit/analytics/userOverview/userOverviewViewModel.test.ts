@@ -124,7 +124,8 @@ describe('buildUserOverviewViewModel', () => {
     expect(viewModel.assignedRows[0].caseId).toBe('123');
     expect(viewModel.assignedRows[0].assigneeName).toBe('User One');
     expect(viewModel.completedSummaryRows[0].key.text).toBe('Completed');
-    expect(viewModel.completedByDateRows[0][0].text).toBe('2024-01-04');
+    expect(viewModel.completedByDateRows[0][0].text).toBe('4 Jan 2024');
+    expect(viewModel.completedByDateRows[0][0].attributes?.['data-sort-value']).toBe('2024-01-04');
     expect(viewModel.completedByDateRows[0][1].text).toBe('1');
     expect(viewModel.completedByDateRows[0][1].attributes?.['data-sort-value']).toBe('1');
     expect(viewModel.completedByDateRows[0][5].text).toBe('2.50');

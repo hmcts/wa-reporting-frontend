@@ -20,6 +20,12 @@ The Nunjucks environment adds:
 - Global: `manageCaseBaseUrl` (for case links)
 - Filters: `formatNumber`, `extractNumericColumns`, `decorateNumericRows`
 
+## Date display standard
+- Analytics UI dates are displayed as `D Mon YYYY` (for example, `3 Mar 2020`).
+- Source date values remain ISO `YYYY-MM-DD` for sorting and CSV export.
+- Client-side sortable date cells keep ISO values in `data-sort-value`.
+- CSV export prefers cell `data-export-value` so visible formatted dates can export as ISO.
+
 ## Key UI patterns
 - GOV.UK Design System components (header, service navigation, tabs, tables, summary list, buttons, inputs).
 - MOJ date picker for date inputs.
