@@ -86,5 +86,5 @@ flowchart TB
 - CSV export is available for all tables.
 - The user filter is optional; if not selected, results span all users.
 - Sorting state and pagination are preserved through hidden form inputs.
-- The priority donut uses the GOV.UK palette mapping Urgent `#54319f` (purple), High `#16548a` (dark blue), Medium `#8eb8dc` (light blue), and Low `#cecece` (light grey).
+- The priority donut uses the GOV.UK palette mapping Urgent `#98285d` (purple), High `#16548a` (dark blue), Medium `#8eb8dc` (light blue), and Low `#cecece` (light grey).
 - Dates are displayed as `D Mon YYYY` in the UI, while date sorting and CSV export continue to use ISO `YYYY-MM-DD` values.
