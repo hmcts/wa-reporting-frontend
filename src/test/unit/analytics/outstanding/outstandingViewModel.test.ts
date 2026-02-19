@@ -209,7 +209,7 @@ describe('buildOutstandingViewModel', () => {
     expect(viewModel.outstandingByRegionLocationRows[0][1].text).toBe('North East');
     expect(viewModel.outstandingByRegionLocationRows[1][1].text).toBe('South West');
     expect(viewModel.outstandingByRegionLocationRows[2][0].text).toBe('York');
-    expect(viewModel.criticalTasksPagination.pageSize).toBe(500);
+    expect(viewModel.criticalTasksPagination.pageSize).toBe(50);
   });
 
   test('formats percent cells via helper', () => {

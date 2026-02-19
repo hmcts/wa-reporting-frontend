@@ -65,7 +65,7 @@ flowchart TB
   - Priority
   - Agent name
 - Sort order defaults to due date ascending.
-- Pagination page size: 500.
+- Pagination page size: 50.
 
 ### 5) Tasks due
 - Title: "Tasks due".

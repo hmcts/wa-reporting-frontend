@@ -7,7 +7,7 @@ import {
 } from '../shared/pagination';
 import { AnalyticsFilters, CriticalTask } from '../shared/types';
 
-export const CRITICAL_TASKS_PAGE_SIZE = 500;
+export const CRITICAL_TASKS_PAGE_SIZE = 50;
 const OUTSTANDING_PATH = '/outstanding';
 
 type PaginateCriticalTasksParams = {

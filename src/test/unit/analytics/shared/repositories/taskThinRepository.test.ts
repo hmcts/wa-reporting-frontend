@@ -289,14 +289,14 @@ describe('taskThinRepository', () => {
   test('caps LIMIT/OFFSET values for oversized pagination requests', async () => {
     const sort = getDefaultOutstandingSort().criticalTasks;
 
-    await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 999, pageSize: 500 });
+    await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 999, pageSize: 50 });
     const firstQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
-    expect(firstQuery.values.slice(-2)).toEqual([500, 4500]);
+    expect(firstQuery.values.slice(-2)).toEqual([50, 450]);
 
     (tmPrisma.$queryRaw as jest.Mock).mockClear();
     await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 2, pageSize: 9000 });
     const secondQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
-    expect(secondQuery.values.slice(-2)).toEqual([5000, 0]);
+    expect(secondQuery.values.slice(-2)).toEqual([500, 0]);
   });
 
   test('normalises pagination with non-finite and negative page sizes', async () => {

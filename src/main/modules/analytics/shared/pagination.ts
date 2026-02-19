@@ -40,7 +40,7 @@ type PaginationHrefParams = {
   extraParams?: Record<string, string>;
 };
 
-export const MAX_PAGINATION_RESULTS = 5000;
+export const MAX_PAGINATION_RESULTS = 500;
 
 const DEFAULT_PAGE = 1;
 const MIN_PAGE_SIZE = 1;

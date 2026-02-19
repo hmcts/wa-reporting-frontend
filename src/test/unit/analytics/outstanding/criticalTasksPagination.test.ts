@@ -27,7 +27,7 @@ describe('criticalTasksPagination', () => {
   });
 
   test('paginateCriticalTasks builds pagination links for server-side data', () => {
-    const tasks = buildTasks(500);
+    const tasks = buildTasks(50);
     const { pagedTasks, pagination } = paginateCriticalTasks({
       tasks,
       totalResults: 1200,
@@ -38,12 +38,12 @@ describe('criticalTasksPagination', () => {
       basePath: '/outstanding',
     });
 
-    expect(pagedTasks).toHaveLength(500);
+    expect(pagedTasks).toHaveLength(50);
     expect(pagedTasks[0].caseId).toBe('CASE-1');
     expect(pagination.page).toBe(2);
-    expect(pagination.totalPages).toBe(3);
-    expect(pagination.startResult).toBe(501);
-    expect(pagination.endResult).toBe(1000);
+    expect(pagination.totalPages).toBe(10);
+    expect(pagination.startResult).toBe(51);
+    expect(pagination.endResult).toBe(100);
     expect(pagination.pagination.items[1].current).toBe(true);
     expect(pagination.pagination.previous?.href).toContain('criticalTasksPage=1');
     expect(pagination.pagination.next?.href).toContain('criticalTasksPage=3');

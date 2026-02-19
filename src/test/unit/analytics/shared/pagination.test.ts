@@ -187,7 +187,7 @@ describe('pagination helpers', () => {
     const pagination = buildPaginationMeta({
       totalResults: MAX_PAGINATION_RESULTS + 500,
       page: 10,
-      pageSize: 500,
+      pageSize: 50,
       buildHref: page => `/items?page=${page}`,
       landmarkLabel: 'Items pagination',
     });
@@ -197,9 +197,9 @@ describe('pagination helpers', () => {
   });
 
   test('getCappedTotalPages applies MAX_PAGINATION_RESULTS cap', () => {
-    expect(getCappedTotalPages(MAX_PAGINATION_RESULTS + 1500, 500)).toBe(10);
-    expect(getCappedTotalPages(1500, 500)).toBe(3);
-    expect(getCappedTotalPages(0, 500)).toBe(1);
+    expect(getCappedTotalPages(MAX_PAGINATION_RESULTS + 1500, 50)).toBe(10);
+    expect(getCappedTotalPages(150, 50)).toBe(3);
+    expect(getCappedTotalPages(0, 50)).toBe(1);
   });
 
   test('getCappedTotalResults returns zero for invalid totals', () => {
@@ -209,7 +209,7 @@ describe('pagination helpers', () => {
   });
 
   test('getMaxPaginationPage limits pages for a page size', () => {
-    expect(getMaxPaginationPage(500)).toBe(10);
+    expect(getMaxPaginationPage(50)).toBe(10);
     expect(getMaxPaginationPage(1)).toBe(MAX_PAGINATION_RESULTS);
     expect(getMaxPaginationPage(MAX_PAGINATION_RESULTS + 1)).toBe(1);
   });

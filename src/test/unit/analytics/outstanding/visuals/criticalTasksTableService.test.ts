@@ -119,7 +119,7 @@ describe('criticalTasksTableService', () => {
     );
   });
 
-  test('clamps oversized critical task page requests to the 5,000-result window', async () => {
+  test('clamps oversized critical task page requests to the 500-result window', async () => {
     (taskThinRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(15000);
     (taskThinRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([]);
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
@@ -137,7 +137,7 @@ describe('criticalTasksTableService', () => {
       { by: 'dueDate', dir: 'asc' },
       {
         page: 10,
-        pageSize: 500,
+        pageSize: 50,
       }
     );
     expect(result.page).toBe(10);
