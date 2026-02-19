@@ -43,6 +43,7 @@ flowchart TB
   - Assigned %
   - Unassigned tasks
   - Unassigned %
+- Default table sort is Created date ascending.
 
 ### 3) Wait time by assigned date
 - Title: "Wait time".
@@ -51,6 +52,7 @@ flowchart TB
   - Assigned date
   - Assigned count
   - Average wait (days)
+- Default table sort is Assigned date ascending.
 
 ### 4) Critical tasks
 - Title: "Critical tasks".
@@ -75,6 +77,7 @@ flowchart TB
   - Total due
   - Open
   - Completed
+- Default table sort is Due date ascending.
 
 ### 6) Open tasks priority
 - Title: "Open tasks priority".
@@ -86,6 +89,7 @@ flowchart TB
   - High
   - Medium
   - Low
+- Default table sort is Due date ascending.
 
 ### 7) Open tasks by name
 - Title: "Open tasks by name".
@@ -97,6 +101,7 @@ flowchart TB
   - Medium
   - Low
 - Uses an initial payload embedded in the page for fast load.
+- Default table sort is Urgent descending (with total tasks and then task name used as tie-breakers).
 
 ### 8) Tasks outstanding by region or location
 - Title: "Tasks outstanding by region or location".

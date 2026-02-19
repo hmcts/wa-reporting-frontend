@@ -81,6 +81,7 @@ flowchart TB
   - Tasks
   - Average handling time (days)
   - Average days beyond due date
+- Default table sort is Tasks descending.
 
 ## Notes
 - CSV export is available for all tables.
