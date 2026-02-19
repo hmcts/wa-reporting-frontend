@@ -75,7 +75,8 @@
         { text: row.completedDate },
         { text: row.totalAssignments | formatNumber, attributes: { 'data-sort-value': row.totalAssignments } },
         { text: row.location },
-        { text: row.status }
+        { text: row.status },
+        { text: row.outcome }
       ]]) %}
     {% endfor %}
     {% set taskAuditTableHtml %}
@@ -96,7 +97,8 @@
             { text: "Completed date", attributes: { 'aria-sort': 'none' } },
             { text: "Total assignments", format: "numeric", attributes: { 'aria-sort': 'none' } },
             { text: "Location", attributes: { 'aria-sort': 'none' } },
-            { text: "Status", attributes: { 'aria-sort': 'none' } }
+            { text: "Status", attributes: { 'aria-sort': 'none' } },
+            { text: "Outcome", attributes: { 'aria-sort': 'none' } }
           ],
           rows: taskAuditTableRows
         }) }}

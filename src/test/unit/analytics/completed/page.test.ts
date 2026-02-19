@@ -393,6 +393,7 @@ describe('buildCompletedPage', () => {
         number_of_reassignments: 2,
         location: 'Leeds',
         termination_process_label: null,
+        outcome: 'Completed',
       },
     ]);
     (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-audit' });
@@ -404,12 +405,13 @@ describe('buildCompletedPage', () => {
         taskAuditRows: [
           {
             caseId: 'CASE-123',
-            taskName: '-',
+            taskName: null,
             agentName: 'Agent One',
-            completedDate: '-',
+            completedDate: null,
             totalAssignments: 3,
             location: 'Leeds Crown Court',
-            status: '-',
+            status: null,
+            outcome: 'Completed',
           },
         ],
         taskAuditCaseId: 'CASE-123',
@@ -446,6 +448,7 @@ describe('buildCompletedPage', () => {
         number_of_reassignments: null,
         location: null,
         termination_process_label: null,
+        outcome: null,
       },
     ]);
     (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-empty-audit' });
@@ -456,9 +459,13 @@ describe('buildCompletedPage', () => {
       expect.objectContaining({
         taskAuditRows: [
           expect.objectContaining({
-            agentName: '-',
-            location: '-',
+            agentName: null,
+            location: null,
             totalAssignments: 1,
+            taskName: null,
+            completedDate: null,
+            status: null,
+            outcome: null,
           }),
         ],
       })

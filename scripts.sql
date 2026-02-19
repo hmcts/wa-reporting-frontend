@@ -16,6 +16,7 @@ SELECT
   state,
   termination_reason,
   termination_process_label,
+  outcome,
   work_type,
   is_within_sla,
   created_date,
@@ -578,13 +579,6 @@ CREATE INDEX ix_open_tasks_wait_time_reference_date
 -- 4) Keep retention bounded and schedule one 30-minute batch job.
 -- ============================================================================
 
--- Section 1: Prerequisite extension used for scheduling.
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-
--- Section 2: Remove existing batch scheduler so reruns do not duplicate jobs.
-SELECT cron.unschedule('analytics_mv_refresh_consistent_snapshot_batch')
-WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'analytics_mv_refresh_consistent_snapshot_batch');
-
 -- Section 3: Hard reset snapshot artifacts so reruns always recreate cleanly.
 -- This intentionally removes previous snapshot metadata/data before rebuilding.
 DROP FUNCTION IF EXISTS analytics.run_snapshot_refresh_batch();
@@ -994,6 +988,7 @@ BEGIN
       state,
       termination_reason,
       termination_process_label,
+      outcome,
       work_type,
       is_within_sla,
       created_date,
@@ -1024,6 +1019,7 @@ BEGIN
       thin.state,
       thin.termination_reason,
       thin.termination_process_label,
+      thin.outcome,
       thin.work_type,
       thin.is_within_sla,
       thin.created_date,
@@ -1289,9 +1285,52 @@ BEGIN
 END;
 $$;
 
--- Section 8: Register the single 30-minute batch schedule.
-SELECT cron.schedule(
-  'analytics_mv_refresh_consistent_snapshot_batch',
-  '*/30 * * * *',
-  $$CALL analytics.run_snapshot_refresh_batch()$$
-);
+-- Section 8: Best-effort pg_cron setup and scheduler registration.
+-- Keep cron operations at the end so snapshot artifacts always rebuild first.
+DO $$
+BEGIN
+  BEGIN
+    CREATE EXTENSION IF NOT EXISTS pg_cron;
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      RAISE WARNING 'Skipping pg_cron extension creation due to insufficient privileges.';
+    WHEN undefined_file THEN
+      RAISE WARNING 'Skipping pg_cron extension creation because pg_cron is not installed.';
+  END;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF to_regnamespace('cron') IS NULL THEN
+    RAISE WARNING 'cron schema unavailable; skipping cron.unschedule.';
+  ELSE
+    BEGIN
+      PERFORM cron.unschedule('analytics_mv_refresh_consistent_snapshot_batch')
+      WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'analytics_mv_refresh_consistent_snapshot_batch');
+    EXCEPTION
+      WHEN undefined_table OR undefined_function THEN
+        RAISE WARNING 'cron metadata unavailable; skipping cron.unschedule.';
+    END;
+  END IF;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF to_regnamespace('cron') IS NULL THEN
+    RAISE WARNING 'cron schema unavailable; skipping cron.schedule registration.';
+  ELSE
+    BEGIN
+      PERFORM cron.schedule(
+        'analytics_mv_refresh_consistent_snapshot_batch',
+        '*/30 * * * *',
+        $$CALL analytics.run_snapshot_refresh_batch()$$
+      );
+    EXCEPTION
+      WHEN undefined_table OR undefined_function THEN
+        RAISE WARNING 'cron schedule function unavailable; skipping cron.schedule registration.';
+    END;
+  END IF;
+END;
+$$;

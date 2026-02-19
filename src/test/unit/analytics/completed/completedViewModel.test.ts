@@ -377,6 +377,7 @@ describe('buildCompletedViewModel', () => {
           totalAssignments: 2,
           location: 'Leeds',
           status: 'COMPLETED',
+          outcome: 'Completed',
         },
       ],
       taskAuditCaseId: '123',
