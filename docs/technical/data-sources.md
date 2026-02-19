@@ -81,6 +81,7 @@ Required columns:
 - state (ASSIGNED/COMPLETED/TERMINATED/etc)
 - termination_reason
 - termination_process_label
+- outcome
 - major_priority (numeric)
 - assignee
 - number_of_reassignments

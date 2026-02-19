@@ -472,6 +472,7 @@ describe('taskThinRepository', () => {
 
     expect(auditQuery.sql).toContain("termination_reason = 'completed'");
     expect(auditQuery.sql).toContain("to_char(completed_date, 'YYYY-MM-DD') AS completed_date");
+    expect(auditQuery.sql).toContain('outcome');
     expect(auditQuery.sql).toContain('ORDER BY completed_date DESC NULLS LAST');
     expect(auditQuery.values).toContain('CASE-100');
     expect(assigneeQuery.sql).toContain('SELECT DISTINCT assignee AS value');

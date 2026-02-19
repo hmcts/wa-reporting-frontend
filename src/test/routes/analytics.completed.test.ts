@@ -25,6 +25,7 @@ describe('Analytics completed routes', () => {
       expect(response.text).toContain('Work type');
       expect(response.text).toContain('Processing and handling time');
       expect(response.text).toContain('data-module="moj-sortable-table"');
+      expect(response.text).toContain('Outcome');
     });
 
     test('should render the completed summary partial for ajax requests', async () => {

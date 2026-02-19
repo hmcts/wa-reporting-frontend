@@ -351,7 +351,8 @@ export class TaskThinRepository {
         to_char(completed_date, 'YYYY-MM-DD') AS completed_date,
         number_of_reassignments,
         location,
-        termination_process_label
+        termination_process_label,
+        outcome
       FROM analytics.mv_reportable_task_thin_snapshots
       ${whereClause}
       ORDER BY completed_date DESC NULLS LAST

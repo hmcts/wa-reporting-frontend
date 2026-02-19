@@ -24,12 +24,13 @@ import {
 
 export type TaskAuditEntry = {
   caseId: string;
-  taskName: string;
-  agentName: string;
-  completedDate: string;
+  taskName: string | null;
+  agentName: string | null;
+  completedDate: string | null;
   totalAssignments: number;
-  location: string;
-  status: string;
+  location: string | null;
+  status: string | null;
+  outcome: string | null;
 };
 
 type CompletedViewModel = ReturnType<typeof buildFilterOptionsViewModel> & {
