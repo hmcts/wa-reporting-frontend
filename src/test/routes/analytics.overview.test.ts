@@ -22,7 +22,11 @@ describe('Analytics overview route', () => {
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('Service performance overview');
-      expect(response.text).toContain('Work type');
+      const workTypeIndex = response.text.indexOf('Work type');
+      const taskNameIndex = response.text.indexOf('Task name');
+      expect(workTypeIndex).toBeGreaterThan(-1);
+      expect(taskNameIndex).toBeGreaterThan(-1);
+      expect(workTypeIndex).toBeLessThan(taskNameIndex);
       expect(response.text).toContain('data-module="moj-sortable-table"');
       expect(response.text).toContain('data-total-row="true"');
     });

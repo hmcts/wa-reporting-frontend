@@ -67,17 +67,6 @@
     </div>
     <div class="govuk-grid-column-one-third">
       {{ analyticsMultiSelect({
-        id: "taskName",
-        name: "taskName",
-        label: { text: "Task name", classes: "govuk-label--s" },
-        items: taskNameOptions | default([{ value: "", text: "All task names" }]),
-        values: filters.taskName | default([]),
-        allText: "All",
-        search: { enabled: true, label: "Filter task names", placeholder: "Type to filter task names" }
-      }) }}
-    </div>
-    <div class="govuk-grid-column-one-third">
-      {{ analyticsMultiSelect({
         id: "workType",
         name: "workType",
         label: { text: "Work type", classes: "govuk-label--s" },
@@ -85,6 +74,17 @@
         values: filters.workType | default([]),
         allText: "All",
         search: { enabled: true, label: "Filter work types", placeholder: "Type to filter work types" }
+      }) }}
+    </div>
+    <div class="govuk-grid-column-one-third">
+      {{ analyticsMultiSelect({
+        id: "taskName",
+        name: "taskName",
+        label: { text: "Task name", classes: "govuk-label--s" },
+        items: taskNameOptions | default([{ value: "", text: "All task names" }]),
+        values: filters.taskName | default([]),
+        allText: "All",
+        search: { enabled: true, label: "Filter task names", placeholder: "Type to filter task names" }
       }) }}
     </div>
   </div>
