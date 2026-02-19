@@ -87,3 +87,4 @@ flowchart LR
 ## Notes
 - All tables include CSV export.
 - Filters apply to all sections; the metric selector only changes the timing chart/table.
+- Dates are displayed as `D Mon YYYY` in the UI, while CSV export keeps ISO `YYYY-MM-DD` date values.

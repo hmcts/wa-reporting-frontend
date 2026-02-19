@@ -86,3 +86,4 @@ flowchart TB
 - CSV export is available for all tables.
 - The user filter is optional; if not selected, results span all users.
 - Sorting state and pagination are preserved through hidden form inputs.
+- Dates are displayed as `D Mon YYYY` in the UI, while date sorting and CSV export continue to use ISO `YYYY-MM-DD` values.

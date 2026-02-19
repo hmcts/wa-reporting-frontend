@@ -1,5 +1,5 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
-import { formatDatePickerValue, formatNumber, formatPercent } from '../shared/formatting';
+import { formatAnalyticsDateDisplay, formatDatePickerValue, formatNumber, formatPercent } from '../shared/formatting';
 import { PaginationMeta } from '../shared/pagination';
 import type { FilterOptions } from '../shared/services';
 import { AnalyticsFilters, Task, UserOverviewResponse } from '../shared/types';
@@ -82,9 +82,12 @@ function buildTotalLabelCell(label: string): TableRowCell {
 type UserOverviewAssignedRow = {
   caseId: string;
   createdDate: string;
+  createdDateRaw: string;
   taskName: string;
   assignedDate: string;
+  assignedDateRaw: string;
   dueDate: string;
+  dueDateRaw: string;
   priority: string;
   totalAssignments: string;
   assigneeName: string;
@@ -94,10 +97,14 @@ type UserOverviewAssignedRow = {
 type UserOverviewCompletedRow = {
   caseId: string;
   createdDate: string;
+  createdDateRaw: string;
   taskName: string;
   assignedDate: string;
+  assignedDateRaw: string;
   dueDate: string;
+  dueDateRaw: string;
   completedDate: string;
+  completedDateRaw: string;
   handlingTimeDays: string;
   withinDue: string;
   totalAssignments: string;
@@ -106,12 +113,18 @@ type UserOverviewCompletedRow = {
 };
 
 function mapAssignedRow(row: Task, locationDescriptions: Record<string, string>): UserOverviewAssignedRow {
+  const createdDateRaw = row.createdDate ?? '';
+  const assignedDateRaw = row.assignedDate ?? '';
+  const dueDateRaw = row.dueDate ?? '';
   return {
     caseId: row.caseId,
-    createdDate: row.createdDate,
+    createdDate: formatAnalyticsDateDisplay(createdDateRaw),
+    createdDateRaw: createdDateRaw || '-',
     taskName: row.taskName,
-    assignedDate: row.assignedDate ?? '-',
-    dueDate: row.dueDate ?? '-',
+    assignedDate: formatAnalyticsDateDisplay(assignedDateRaw),
+    assignedDateRaw: assignedDateRaw || '-',
+    dueDate: formatAnalyticsDateDisplay(dueDateRaw),
+    dueDateRaw: dueDateRaw || '-',
     priority: row.priority,
     totalAssignments: formatNumber(row.totalAssignments ?? 0),
     assigneeName: row.assigneeName ?? '',
@@ -120,13 +133,21 @@ function mapAssignedRow(row: Task, locationDescriptions: Record<string, string>)
 }
 
 function mapCompletedRow(row: Task, locationDescriptions: Record<string, string>): UserOverviewCompletedRow {
+  const createdDateRaw = row.createdDate ?? '';
+  const assignedDateRaw = row.assignedDate ?? '';
+  const dueDateRaw = row.dueDate ?? '';
+  const completedDateRaw = row.completedDate ?? '';
   return {
     caseId: row.caseId,
-    createdDate: row.createdDate,
+    createdDate: formatAnalyticsDateDisplay(createdDateRaw),
+    createdDateRaw: createdDateRaw || '-',
     taskName: row.taskName,
-    assignedDate: row.assignedDate ?? '-',
-    dueDate: row.dueDate ?? '-',
-    completedDate: row.completedDate ?? '-',
+    assignedDate: formatAnalyticsDateDisplay(assignedDateRaw),
+    assignedDateRaw: assignedDateRaw || '-',
+    dueDate: formatAnalyticsDateDisplay(dueDateRaw),
+    dueDateRaw: dueDateRaw || '-',
+    completedDate: formatAnalyticsDateDisplay(completedDateRaw),
+    completedDateRaw: completedDateRaw || '-',
     handlingTimeDays:
       row.handlingTimeDays !== undefined
         ? formatNumber(row.handlingTimeDays, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -262,7 +283,10 @@ function buildCompletedHead(context: SortHeadContext): TableHeadCell[] {
 
 function buildCompletedByDateRows(rows: CompletedByDatePoint[]): TableRow[] {
   return rows.map(row => [
-    { text: row.date },
+    {
+      text: formatAnalyticsDateDisplay(row.date),
+      attributes: { 'data-sort-value': row.date, 'data-export-value': row.date },
+    },
     buildNumericCell(row.tasks),
     buildNumericCell(row.withinDue),
     buildPercentCell(row.tasks === 0 ? 0 : (row.withinDue / row.tasks) * 100, {

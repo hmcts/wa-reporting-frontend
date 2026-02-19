@@ -44,7 +44,7 @@ describe('analytics tables', () => {
     head.innerHTML = '<tr><th>Name</th><th>Count</th></tr>';
     const body = document.createElement('tbody');
     body.innerHTML = `
-      <tr><td>Beta</td><td>2</td></tr>
+      <tr><td data-export-value="2024-01-02">2 Jan 2024</td><td>2</td></tr>
       <tr><td>Total</td><td>5</td></tr>
       <tr><td>Alpha</td><td>3</td></tr>
     `;
@@ -59,7 +59,7 @@ describe('analytics tables', () => {
     expect(URL.createObjectURL).toHaveBeenCalled();
 
     const csv = tableToCsv(table);
-    expect(csv.split('\n')[1]).toContain('Beta');
+    expect(csv.split('\n')[1]).toContain('2024-01-02');
 
     const orphanContainer = document.createElement('div');
     const orphanButton = document.createElement('button');

@@ -1,6 +1,7 @@
 import {
   buildDateParts,
   buildFreshnessInsetText,
+  formatAnalyticsDateDisplay,
   formatDatePickerValue,
   formatNumber,
   formatPercent,
@@ -47,6 +48,19 @@ describe('formatDatePickerValue', () => {
 
   test('returns empty string when no date provided', () => {
     expect(formatDatePickerValue()).toBe('');
+  });
+});
+
+describe('formatAnalyticsDateDisplay', () => {
+  test('formats ISO dates as D Mon YYYY', () => {
+    expect(formatAnalyticsDateDisplay('2024-01-05')).toBe('5 Jan 2024');
+  });
+
+  test('returns fallback for missing or invalid values', () => {
+    expect(formatAnalyticsDateDisplay()).toBe('-');
+    expect(formatAnalyticsDateDisplay('')).toBe('-');
+    expect(formatAnalyticsDateDisplay('not-a-date')).toBe('-');
+    expect(formatAnalyticsDateDisplay('2024-13-40')).toBe('-');
   });
 });
 

@@ -13,10 +13,10 @@
       {% for row in assignedRows %}
         {% set assignedTableRows = assignedTableRows.concat([[
           { html: caseLink(row.caseId) },
-          { text: row.createdDate },
+          { text: row.createdDate, attributes: { 'data-export-value': row.createdDateRaw, 'data-sort-value': row.createdDateRaw } },
           { text: row.taskName },
-          { text: row.assignedDate },
-          { text: row.dueDate },
+          { text: row.assignedDate, attributes: { 'data-export-value': row.assignedDateRaw, 'data-sort-value': row.assignedDateRaw } },
+          { text: row.dueDate, attributes: { 'data-export-value': row.dueDateRaw, 'data-sort-value': row.dueDateRaw } },
           { text: row.priority },
           { text: row.totalAssignments },
           { text: row.assigneeName },

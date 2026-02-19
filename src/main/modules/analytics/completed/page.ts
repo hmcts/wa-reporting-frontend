@@ -10,6 +10,7 @@ import {
 import { CompletedTaskAuditRow, taskThinRepository } from '../shared/repositories';
 import { caseWorkerProfileService, courtVenueService, regionService } from '../shared/services';
 import { AnalyticsFilters, CompletedMetric, CompletedResponse, Task } from '../shared/types';
+import { formatAnalyticsDateDisplay } from '../shared/formatting';
 import { lookup } from '../shared/utils';
 
 import { completedService } from './service';
@@ -60,7 +61,8 @@ function mapTaskAuditRow(
     caseId: row.case_id,
     taskName: row.task_name,
     agentName,
-    completedDate: row.completed_date,
+    completedDate: formatAnalyticsDateDisplay(row.completed_date),
+    completedDateRaw: row.completed_date ?? '-',
     totalAssignments: (row.number_of_reassignments ?? 0) + 1,
     location: row.location ? lookup(row.location, locationDescriptions) : null,
     status: row.termination_process_label,
