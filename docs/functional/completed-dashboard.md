@@ -82,7 +82,7 @@ flowchart LR
   - Processing time: days between creation and completion.
 - Selecting a metric triggers an auto-submit for this section only.
 - Displays:
-  - Overall average for the selected metric.
+  - Overall average for the selected metric (shown in the Chart tab).
   - Chart: average with upper/lower range (+/- 1 standard deviation) by completed date.
   - Table with the same data.
 
