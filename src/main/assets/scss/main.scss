@@ -1,17 +1,8 @@
 @use 'govuk-frontend/dist/govuk/index' as * with (
-  $govuk-page-width: 1400px
+  $govuk-page-width: 1600px
 );
 // Cannot use @use until moj-frontend releases version suitable for govuk-frontend v6
 @import '@ministryofjustice/frontend/moj/moj-frontend.min.css';
-
-:root {
-  /* GOV.UK palette alignment for Plotly series */
-  --analytics-priority-urgent: #d4351c;
-  --analytics-priority-high: #f47738;
-  --analytics-priority-medium: #ffdd00;
-  --analytics-priority-low: #1d70b8;
-  --analytics-priority-not-provided: #b1b4b6;
-}
 
 .moj-datepicker__dialog {
   z-index: 5;
@@ -175,6 +166,16 @@
 .analytics-table--compact {
   font-size: 14px;
   line-height: 1.4;
+}
+
+.analytics-table--wrap-critical-columns tbody .govuk-table__cell:nth-child(3),
+.analytics-table--wrap-critical-columns tbody .govuk-table__cell:nth-child(4),
+.analytics-table--wrap-assigned-columns tbody .govuk-table__cell:nth-child(3),
+.analytics-table--wrap-assigned-columns tbody .govuk-table__cell:nth-child(9) {
+  max-width: 28ch;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .analytics-table-total-row td,

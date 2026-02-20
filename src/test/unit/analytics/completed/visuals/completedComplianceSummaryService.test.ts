@@ -28,6 +28,7 @@ describe('completedComplianceSummaryService', () => {
     expect(taskFactsRepository.fetchCompletedSummaryRows).toHaveBeenCalledWith(
       snapshotId,
       { service: ['Civil'] },
+      undefined,
       undefined
     );
     expect(result).toEqual({ total: 10, within: 7 });
@@ -41,5 +42,23 @@ describe('completedComplianceSummaryService', () => {
     const result = await completedComplianceSummaryService.fetchCompletedSummary(snapshotId, {});
 
     expect(result).toEqual({ total: 0, within: 0 });
+  });
+
+  test('forwards query options when provided', async () => {
+    (taskFactsRepository.fetchCompletedSummaryRows as jest.Mock).mockResolvedValue([{ total: 3, within: 2 }]);
+
+    await completedComplianceSummaryService.fetchCompletedSummary(
+      snapshotId,
+      { roleCategory: ['Operations'] },
+      { from: new Date('2024-08-01'), to: new Date('2024-08-31') },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+
+    expect(taskFactsRepository.fetchCompletedSummaryRows).toHaveBeenCalledWith(
+      snapshotId,
+      { roleCategory: ['Operations'] },
+      { from: new Date('2024-08-01'), to: new Date('2024-08-31') },
+      { excludeRoleCategories: ['Judicial'] }
+    );
   });
 });

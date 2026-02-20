@@ -11,7 +11,10 @@ node_modules/
 .pnp.*
 src/main/views/govuk
 .yarn/
+.stryker-tmp/
+.stryker-tmp-*/
 catalog-info.yaml
 .codex/
 smoke-output/
 **/*.md
+powerbi-report/

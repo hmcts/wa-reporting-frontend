@@ -23,6 +23,7 @@ npm-debug.log.*
 .project
 .settings/
 .stryker-tmp/
+powerbi-report/
 dist/
 build/
 public/

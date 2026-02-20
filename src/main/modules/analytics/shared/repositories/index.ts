@@ -5,3 +5,4 @@ export * from './snapshotStateRepository';
 export * from './taskFactsRepository';
 export * from './taskThinRepository';
 export * from './types';
+export type { AnalyticsQueryOptions } from './filters';

@@ -27,6 +27,8 @@ describe('Analytics overview route', () => {
       expect(workTypeIndex).toBeGreaterThan(-1);
       expect(taskNameIndex).toBeGreaterThan(-1);
       expect(workTypeIndex).toBeLessThan(taskNameIndex);
+      expect(response.text).toContain('Created and completed tasks by service');
+      expect(response.text).not.toContain('>Cancelled<');
       expect(response.text).toContain('data-module="moj-sortable-table"');
       expect(response.text).toContain('data-total-row="true"');
     });

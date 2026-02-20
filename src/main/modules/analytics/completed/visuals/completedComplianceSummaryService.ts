@@ -1,6 +1,7 @@
 import { taskFactsRepository } from '../../shared/repositories';
 import { AnalyticsFilters } from '../../shared/types';
 import { toNumber } from '../../shared/utils';
+import type { AnalyticsQueryOptions } from '../../shared/repositories/filters';
 
 type CompletedSummary = {
   total: number;
@@ -11,9 +12,10 @@ class CompletedComplianceSummaryService {
   async fetchCompletedSummary(
     snapshotId: number,
     filters: AnalyticsFilters,
-    range?: { from?: Date; to?: Date }
+    range?: { from?: Date; to?: Date },
+    queryOptions?: AnalyticsQueryOptions
   ): Promise<CompletedSummary | null> {
-    const rows = await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, filters, range);
+    const rows = await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, filters, range, queryOptions);
     if (rows.length === 0) {
       return null;
     }

@@ -68,11 +68,11 @@ CREATE INDEX ix_thin_termination_reason
   ON analytics.mv_reportable_task_thin(termination_reason);
 
 CREATE INDEX ix_thin_completed_reason_state_date_desc
-  ON analytics.mv_reportable_task_thin(termination_reason, state, completed_date DESC);
+  ON analytics.mv_reportable_task_thin(LOWER(termination_reason), completed_date DESC);
 
 CREATE INDEX ix_thin_completed_assignee_date_desc
   ON analytics.mv_reportable_task_thin(assignee, completed_date DESC)
-  WHERE termination_reason = 'completed' AND state IN ('COMPLETED','TERMINATED') AND assignee IS NOT NULL;
+  WHERE LOWER(termination_reason) = 'completed' AND assignee IS NOT NULL;
 
 CREATE INDEX ix_thin_case_id
   ON analytics.mv_reportable_task_thin(case_id);
@@ -103,8 +103,7 @@ SELECT
   SUM(CASE WHEN due_date IS NOT NULL AND completed_date IS NOT NULL THEN 1 ELSE 0 END)::int AS days_beyond_count
 FROM analytics.mv_reportable_task_thin
 WHERE completed_date IS NOT NULL
-  AND termination_reason = 'completed'
-  AND state IN ('COMPLETED','TERMINATED')
+  AND LOWER(termination_reason) = 'completed'
 GROUP BY
   assignee,
   jurisdiction_label,
@@ -182,9 +181,7 @@ SELECT
   priority,
 
   CASE
-    WHEN termination_reason = 'completed'
-         AND state IN ('COMPLETED','TERMINATED')
-      THEN 'completed'
+    WHEN LOWER(termination_reason) = 'completed' THEN 'completed'
     WHEN state IN ('ASSIGNED','UNASSIGNED','PENDING AUTO ASSIGN','UNCONFIGURED')
       THEN 'open'
     ELSE 'other'
@@ -212,7 +209,7 @@ FROM base
 WHERE due_date IS NOT NULL
   AND (
     state IN ('ASSIGNED','UNASSIGNED','PENDING AUTO ASSIGN','UNCONFIGURED')
-    OR (termination_reason = 'completed' AND state IN ('COMPLETED','TERMINATED'))
+    OR LOWER(termination_reason) = 'completed'
   )
 GROUP BY
   1,2,3,4,5,6,7,8,9,10,11,12
@@ -288,8 +285,7 @@ SELECT
   COUNT(*) AS task_count
 FROM base
 WHERE completed_date IS NOT NULL
-  AND termination_reason = 'completed'
-  AND state IN ('COMPLETED','TERMINATED')
+  AND LOWER(termination_reason) = 'completed'
 GROUP BY
   1,2,3,4,5,6,7,8,9,10,11,12
 
@@ -729,11 +725,11 @@ CREATE INDEX IF NOT EXISTS ix_mv_reportable_task_thin_snapshots_state_created_de
   ON analytics.mv_reportable_task_thin_snapshots(snapshot_id, state, created_date DESC);
 
 CREATE INDEX IF NOT EXISTS ix_mv_reportable_task_thin_snapshots_completed_reason_state_date_desc
-  ON analytics.mv_reportable_task_thin_snapshots(snapshot_id, termination_reason, state, completed_date DESC);
+  ON analytics.mv_reportable_task_thin_snapshots(snapshot_id, LOWER(termination_reason), completed_date DESC);
 
 CREATE INDEX IF NOT EXISTS ix_mv_reportable_task_thin_snapshots_completed_assignee_date_desc
   ON analytics.mv_reportable_task_thin_snapshots(snapshot_id, assignee, completed_date DESC)
-  WHERE termination_reason = 'completed' AND state IN ('COMPLETED', 'TERMINATED') AND assignee IS NOT NULL;
+  WHERE LOWER(termination_reason) = 'completed' AND assignee IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS ix_mv_reportable_task_thin_snapshots_case_id
   ON analytics.mv_reportable_task_thin_snapshots(snapshot_id, case_id);

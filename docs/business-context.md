@@ -32,7 +32,7 @@ Out of scope:
 
 ## Key business metrics
 - Open tasks by service, assignment state, and priority.
-- Task events (created, completed, cancelled) by service.
+- Task events by service (created and completed shown in UI; cancelled retained in backend for future use).
 - Completion totals and compliance within due date.
 - Critical tasks ranked by due date and priority.
 - User-level assigned and completed workload.
@@ -43,4 +43,3 @@ Out of scope:
 - The application is read-only and should not mutate downstream data.
 - Users must be authenticated and authorized (RBAC) when auth is enabled.
 - The UI should follow GOV.UK Design System patterns for consistency and accessibility.
-

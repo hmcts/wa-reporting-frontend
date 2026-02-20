@@ -5,8 +5,18 @@ type RouteTestServer = {
   close: () => Promise<void>;
 };
 
+type RouteAnalyticsMocks = {
+  userOverviewAssignedTaskRows?: unknown[];
+  userOverviewCompletedTaskRows?: unknown[];
+  userOverviewAssignedTaskCount?: number;
+  userOverviewCompletedTaskCount?: number;
+  outstandingCriticalTaskRows?: unknown[];
+  outstandingCriticalTaskCount?: number;
+};
+
 type RouteTestConfig = {
   authEnabled?: boolean;
+  analyticsMocks?: RouteAnalyticsMocks;
 };
 
 function setRouteTestConfig({ authEnabled = false }: RouteTestConfig): void {
@@ -37,7 +47,14 @@ function mockOidcMiddleware(): void {
   });
 }
 
-function mockAnalyticsRepositories(): void {
+function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): void {
+  const userOverviewAssignedTaskRows = analyticsMocks.userOverviewAssignedTaskRows ?? [];
+  const userOverviewCompletedTaskRows = analyticsMocks.userOverviewCompletedTaskRows ?? [];
+  const userOverviewAssignedTaskCount = analyticsMocks.userOverviewAssignedTaskCount ?? 0;
+  const userOverviewCompletedTaskCount = analyticsMocks.userOverviewCompletedTaskCount ?? 0;
+  const outstandingCriticalTaskRows = analyticsMocks.outstandingCriticalTaskRows ?? [];
+  const outstandingCriticalTaskCount = analyticsMocks.outstandingCriticalTaskCount ?? 0;
+
   jest.doMock('../../main/modules/analytics/shared/repositories/taskFactsRepository', () => ({
     taskFactsRepository: {
       fetchServiceOverviewRows: jest.fn().mockResolvedValue([]),
@@ -64,15 +81,15 @@ function mockAnalyticsRepositories(): void {
 
   jest.doMock('../../main/modules/analytics/shared/repositories/taskThinRepository', () => ({
     taskThinRepository: {
-      fetchUserOverviewAssignedTaskRows: jest.fn().mockResolvedValue([]),
-      fetchUserOverviewCompletedTaskRows: jest.fn().mockResolvedValue([]),
-      fetchUserOverviewAssignedTaskCount: jest.fn().mockResolvedValue(0),
-      fetchUserOverviewCompletedTaskCount: jest.fn().mockResolvedValue(0),
+      fetchUserOverviewAssignedTaskRows: jest.fn().mockResolvedValue(userOverviewAssignedTaskRows),
+      fetchUserOverviewCompletedTaskRows: jest.fn().mockResolvedValue(userOverviewCompletedTaskRows),
+      fetchUserOverviewAssignedTaskCount: jest.fn().mockResolvedValue(userOverviewAssignedTaskCount),
+      fetchUserOverviewCompletedTaskCount: jest.fn().mockResolvedValue(userOverviewCompletedTaskCount),
       fetchUserOverviewCompletedByDateRows: jest.fn().mockResolvedValue([]),
       fetchUserOverviewCompletedByTaskNameRows: jest.fn().mockResolvedValue([]),
       fetchCompletedTaskAuditRows: jest.fn().mockResolvedValue([]),
-      fetchOutstandingCriticalTaskRows: jest.fn().mockResolvedValue([]),
-      fetchOutstandingCriticalTaskCount: jest.fn().mockResolvedValue(0),
+      fetchOutstandingCriticalTaskRows: jest.fn().mockResolvedValue(outstandingCriticalTaskRows),
+      fetchOutstandingCriticalTaskCount: jest.fn().mockResolvedValue(outstandingCriticalTaskCount),
       fetchOpenTasksByNameRows: jest.fn().mockResolvedValue([]),
       fetchOpenTasksByRegionLocationRows: jest.fn().mockResolvedValue([]),
       fetchOpenTasksSummaryRows: jest.fn().mockResolvedValue([]),
@@ -122,7 +139,7 @@ export async function buildRouteTestServer(config: RouteTestConfig = {}): Promis
 
   setRouteTestConfig(config);
   mockOidcMiddleware();
-  mockAnalyticsRepositories();
+  mockAnalyticsRepositories(config.analyticsMocks);
 
   let app!: { listen: (port: number, host: string) => Server };
   let bootstrapPromise: Promise<void> | undefined;

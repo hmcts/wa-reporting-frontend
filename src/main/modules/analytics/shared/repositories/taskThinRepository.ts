@@ -8,7 +8,7 @@ import { AnalyticsFilters } from '../types';
 import { AssignedSortBy, CompletedSortBy, SortDirection, SortState } from '../userOverviewSort';
 
 import { SECONDS_PER_DAY_SQL } from './constants';
-import { buildAnalyticsWhere } from './filters';
+import { AnalyticsQueryOptions, buildAnalyticsWhere } from './filters';
 import {
   CompletedTaskAuditRow,
   FilterValueRow,
@@ -64,10 +64,7 @@ function applyCompletedDateFilters(filters: AnalyticsFilters, conditions: Prisma
 }
 
 function buildCompletedTaskConditions(filters: AnalyticsFilters, caseId?: string): Prisma.Sql[] {
-  const conditions: Prisma.Sql[] = [
-    Prisma.sql`termination_reason = 'completed'`,
-    Prisma.sql`state IN ('COMPLETED', 'TERMINATED')`,
-  ];
+  const conditions: Prisma.Sql[] = [Prisma.sql`LOWER(termination_reason) = 'completed'`];
   applyCompletedDateFilters(filters, conditions);
   if (caseId) {
     conditions.push(Prisma.sql`case_id = ${caseId}`);
@@ -224,9 +221,10 @@ function buildCriticalTasksOrderBy(sort: SortState<CriticalTasksSortBy>): Prisma
 function buildUserOverviewWhere(
   snapshotId: number,
   filters: AnalyticsFilters,
-  baseConditions: Prisma.Sql[]
+  baseConditions: Prisma.Sql[],
+  queryOptions?: AnalyticsQueryOptions
 ): Prisma.Sql {
-  const whereClause = buildAnalyticsWhere(filters, [snapshotCondition(snapshotId), ...baseConditions]);
+  const whereClause = buildAnalyticsWhere(filters, [snapshotCondition(snapshotId), ...baseConditions], queryOptions);
   if (!filters.user || filters.user.length === 0) {
     return whereClause;
   }
@@ -242,9 +240,10 @@ export class TaskThinRepository {
     snapshotId: number,
     filters: AnalyticsFilters,
     sort: SortState<AssignedSortBy>,
-    pagination?: PaginationOptions | null
+    pagination?: PaginationOptions | null,
+    queryOptions?: AnalyticsQueryOptions
   ): Promise<UserOverviewTaskRow[]> {
-    const whereClause = buildUserOverviewWhere(snapshotId, filters, [Prisma.sql`state = 'ASSIGNED'`]);
+    const whereClause = buildUserOverviewWhere(snapshotId, filters, [Prisma.sql`state = 'ASSIGNED'`], queryOptions);
     const orderBy = buildAssignedOrderBy(sort);
 
     return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(buildUserOverviewTaskQuery(whereClause, orderBy, pagination));
@@ -254,17 +253,22 @@ export class TaskThinRepository {
     snapshotId: number,
     filters: AnalyticsFilters,
     sort: SortState<CompletedSortBy>,
-    pagination?: PaginationOptions | null
+    pagination?: PaginationOptions | null,
+    queryOptions?: AnalyticsQueryOptions
   ): Promise<UserOverviewTaskRow[]> {
     const conditions = buildCompletedTaskConditions(filters);
-    const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions);
+    const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions, queryOptions);
     const orderBy = buildCompletedOrderBy(sort);
 
     return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(buildUserOverviewTaskQuery(whereClause, orderBy, pagination));
   }
 
-  async fetchUserOverviewAssignedTaskCount(snapshotId: number, filters: AnalyticsFilters): Promise<number> {
-    const whereClause = buildUserOverviewWhere(snapshotId, filters, [Prisma.sql`state = 'ASSIGNED'`]);
+  async fetchUserOverviewAssignedTaskCount(
+    snapshotId: number,
+    filters: AnalyticsFilters,
+    queryOptions?: AnalyticsQueryOptions
+  ): Promise<number> {
+    const whereClause = buildUserOverviewWhere(snapshotId, filters, [Prisma.sql`state = 'ASSIGNED'`], queryOptions);
     const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS total
       FROM analytics.mv_reportable_task_thin_snapshots
@@ -273,9 +277,13 @@ export class TaskThinRepository {
     return rows[0]?.total ?? 0;
   }
 
-  async fetchUserOverviewCompletedTaskCount(snapshotId: number, filters: AnalyticsFilters): Promise<number> {
+  async fetchUserOverviewCompletedTaskCount(
+    snapshotId: number,
+    filters: AnalyticsFilters,
+    queryOptions?: AnalyticsQueryOptions
+  ): Promise<number> {
     const conditions = buildCompletedTaskConditions(filters);
-    const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions);
+    const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions, queryOptions);
     const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS total
       FROM analytics.mv_reportable_task_thin_snapshots
@@ -286,14 +294,15 @@ export class TaskThinRepository {
 
   async fetchUserOverviewCompletedByDateRows(
     snapshotId: number,
-    filters: AnalyticsFilters
+    filters: AnalyticsFilters,
+    queryOptions?: AnalyticsQueryOptions
   ): Promise<UserOverviewCompletedByDateRow[]> {
     const conditions: Prisma.Sql[] = [snapshotCondition(snapshotId), Prisma.sql`completed_date IS NOT NULL`];
     applyCompletedDateFilters(filters, conditions);
     if (filters.user && filters.user.length > 0) {
       conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
     }
-    const whereClause = buildAnalyticsWhere(filters, conditions);
+    const whereClause = buildAnalyticsWhere(filters, conditions, queryOptions);
 
     return tmPrisma.$queryRaw<UserOverviewCompletedByDateRow[]>(Prisma.sql`
       SELECT
@@ -312,14 +321,15 @@ export class TaskThinRepository {
 
   async fetchUserOverviewCompletedByTaskNameRows(
     snapshotId: number,
-    filters: AnalyticsFilters
+    filters: AnalyticsFilters,
+    queryOptions?: AnalyticsQueryOptions
   ): Promise<UserOverviewCompletedByTaskNameRow[]> {
     const conditions: Prisma.Sql[] = [snapshotCondition(snapshotId), Prisma.sql`completed_date IS NOT NULL`];
     applyCompletedDateFilters(filters, conditions);
     if (filters.user && filters.user.length > 0) {
       conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
     }
-    const whereClause = buildAnalyticsWhere(filters, conditions);
+    const whereClause = buildAnalyticsWhere(filters, conditions, queryOptions);
 
     return tmPrisma.$queryRaw<UserOverviewCompletedByTaskNameRow[]>(Prisma.sql`
       SELECT

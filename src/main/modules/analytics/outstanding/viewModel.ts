@@ -122,6 +122,7 @@ export type OutstandingViewModel = FilterOptionsViewModel & {
 function buildOpenByNameRows(breakdown: PriorityBreakdown[]): TableRows {
   return breakdown.map(row => [
     { text: row.name },
+    buildNumericCell(row.urgent + row.high + row.medium + row.low),
     buildNumericCell(row.urgent),
     buildNumericCell(row.high),
     buildNumericCell(row.medium),
@@ -132,6 +133,7 @@ function buildOpenByNameRows(breakdown: PriorityBreakdown[]): TableRows {
 function buildOpenByNameTotalsRow(totals: PriorityBreakdown): TableRow {
   return [
     buildTotalLabelCell(totals.name),
+    buildNumericCell(totals.urgent + totals.high + totals.medium + totals.low),
     buildNumericCell(totals.urgent),
     buildNumericCell(totals.high),
     buildNumericCell(totals.medium),

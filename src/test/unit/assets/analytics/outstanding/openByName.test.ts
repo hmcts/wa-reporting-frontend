@@ -1,4 +1,5 @@
 /* @jest-environment jsdom */
+
 import { initOpenByName, renderOpenByNameTable } from '../../../../../main/assets/js/analytics/outstanding/openByName';
 import { setupAnalyticsDom } from '../analyticsTestUtils';
 
@@ -36,6 +37,8 @@ describe('analytics open by name', () => {
 
     const rows = container.querySelectorAll('tbody tr');
     expect(rows).toHaveLength(2);
+    expect(rows[0].querySelectorAll('td')).toHaveLength(6);
+    expect(rows[0].querySelectorAll('td')[1]?.textContent).toBe('10');
     expect(
       container.querySelector('[data-open-by-name-error="true"]')?.classList.contains('govuk-visually-hidden')
     ).toBe(true);
@@ -61,6 +64,7 @@ describe('analytics open by name', () => {
     const emptyTableBody = document.createElement('tbody');
     renderOpenByNameTable(emptyTableBody, [], { name: 'Total', urgent: 0, high: 0, medium: 0, low: 0 });
     expect(emptyTableBody.textContent).toContain('No open tasks found.');
+    expect(emptyTableBody.querySelector('td')?.getAttribute('colspan')).toBe('6');
   });
 
   test('handles open-by-name guard clauses', async () => {

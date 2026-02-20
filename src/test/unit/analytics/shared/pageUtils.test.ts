@@ -43,7 +43,7 @@ describe('pageUtils', () => {
     const result = await fetchFilterOptionsWithFallback('Failed', 7);
 
     expect(result.services).toEqual(['A']);
-    expect(filterService.fetchFilterOptions).toHaveBeenCalledWith(7);
+    expect(filterService.fetchFilterOptions).toHaveBeenCalledWith(7, undefined);
     expect(logDbError).not.toHaveBeenCalled();
   });
 
@@ -62,6 +62,22 @@ describe('pageUtils', () => {
       users: [],
     });
     expect(logDbError).toHaveBeenCalledWith('Failed', expect.any(Error));
+  });
+
+  test('fetchFilterOptionsWithFallback passes query options through to filter service', async () => {
+    (filterService.fetchFilterOptions as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      users: [],
+    });
+
+    await fetchFilterOptionsWithFallback('Failed', 7, { excludeRoleCategories: ['Judicial'] });
+
+    expect(filterService.fetchFilterOptions).toHaveBeenCalledWith(7, { excludeRoleCategories: ['Judicial'] });
   });
 
   test('fetchPublishedSnapshotContext maps snapshot metadata and freshness text', async () => {

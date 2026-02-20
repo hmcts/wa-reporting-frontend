@@ -40,7 +40,7 @@ Behavior:
 
 Additional filters by dashboard:
 - Completed tasks and User overview include date range filters for completedFrom/completedTo.
-- Overview includes a date range for eventsFrom/eventsTo (applied to created/completed/cancelled events by service).
+- Overview includes a date range for eventsFrom/eventsTo (applied to created/completed task events by service; cancelled is retained in backend aggregation but hidden in the UI).
 
 ## Charts and tables
 - Most sections offer tabbed views: "Chart" and "Data table".

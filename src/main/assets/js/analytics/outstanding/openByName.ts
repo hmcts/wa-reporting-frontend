@@ -28,6 +28,10 @@ function createNumericCell(value: number, isTotal: boolean): HTMLTableCellElemen
   return cell;
 }
 
+function totalOpen(row: OpenByNameRow): number {
+  return row.urgent + row.high + row.medium + row.low;
+}
+
 export function renderOpenByNameTable(body: HTMLElement, rows: OpenByNameRow[], totals: OpenByNameRow): void {
   body.innerHTML = '';
   if (rows.length === 0) {
@@ -35,7 +39,7 @@ export function renderOpenByNameTable(body: HTMLElement, rows: OpenByNameRow[], 
     emptyRow.className = 'govuk-table__row';
     const cell = document.createElement('td');
     cell.className = 'govuk-table__cell';
-    cell.colSpan = 5;
+    cell.colSpan = 6;
     cell.textContent = 'No open tasks found.';
     emptyRow.appendChild(cell);
     body.appendChild(emptyRow);
@@ -57,6 +61,7 @@ export function renderOpenByNameTable(body: HTMLElement, rows: OpenByNameRow[], 
     nameCell.textContent = row.name;
     tr.appendChild(nameCell);
 
+    tr.appendChild(createNumericCell(totalOpen(row), isTotal));
     tr.appendChild(createNumericCell(row.urgent, isTotal));
     tr.appendChild(createNumericCell(row.high, isTotal));
     tr.appendChild(createNumericCell(row.medium, isTotal));
@@ -104,7 +109,7 @@ export async function initOpenByName(): Promise<void> {
   } catch (error) {
     chartNode.innerHTML = '<p class="govuk-body">Unable to load chart.</p>';
     tableBody.innerHTML =
-      '<tr class="govuk-table__row"><td colspan="5" class="govuk-table__cell">Unable to load open tasks.</td></tr>';
+      '<tr class="govuk-table__row"><td colspan="6" class="govuk-table__cell">Unable to load open tasks.</td></tr>';
     if (errorNode) {
       errorNode.classList.remove('govuk-visually-hidden');
     }

@@ -82,11 +82,12 @@ flowchart LR
   - Processing time: days between creation and completion.
 - Selecting a metric triggers an auto-submit for this section only.
 - Displays:
-  - Overall average for the selected metric.
+  - Overall average for the selected metric (shown in the Chart tab).
   - Chart: average with upper/lower range (+/- 1 standard deviation) by completed date.
   - Table with the same data.
 
 ## Notes
 - All tables include CSV export.
 - Filters apply to all sections; the metric selector only changes the timing chart/table.
+- Completed-task determination is based on case-insensitive `termination_reason = completed`; task `state` is not used to classify completion.
 - Dates are displayed as `D Mon YYYY` in the UI, while CSV export keeps ISO `YYYY-MM-DD` date values.

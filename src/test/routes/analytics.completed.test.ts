@@ -28,6 +28,9 @@ describe('Analytics completed routes', () => {
       expect(taskNameIndex).toBeGreaterThan(-1);
       expect(workTypeIndex).toBeLessThan(taskNameIndex);
       expect(response.text).toContain('Processing and handling time');
+      expect(response.text).toMatch(
+        /id="processingHandlingTimeChart"[\s\S]*Overall average of (handling|processing) time \(days\)[\s\S]*id="processingHandlingTimeTable"/
+      );
       expect(response.text).toContain('data-module="moj-sortable-table"');
       expect(response.text).toMatch(
         /data-export-filename="completed-by-name\.csv"[\s\S]*?<th[^>]*aria-sort="descending"[^>]*>\s*Tasks\s*<\/th>/
