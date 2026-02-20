@@ -28,6 +28,7 @@ describe('Analytics outstanding route', () => {
       expect(taskNameIndex).toBeGreaterThan(-1);
       expect(workTypeIndex).toBeLessThan(taskNameIndex);
       expect(response.text).toContain('data-module="moj-sortable-table"');
+      expect(response.text).toContain('analytics-table--wrap-critical-columns');
       expect(response.text).toMatch(
         /data-export-filename="outstanding-open-tasks\.csv"[\s\S]*?<th[^>]*aria-sort="ascending"[^>]*>\s*Created date\s*<\/th>/
       );

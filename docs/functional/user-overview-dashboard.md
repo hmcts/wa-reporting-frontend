@@ -31,6 +31,7 @@ Provide a user-centric view of assigned and completed tasks, including complianc
   - Priority breakdown (Urgent/High/Medium/Low)
 - Donut chart of priority distribution.
 - Pagination page size: 50.
+- Long `Task name` and `Location` values wrap across multiple lines in table body rows.
 
 ```mermaid
 flowchart TB

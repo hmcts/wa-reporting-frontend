@@ -70,6 +70,7 @@ flowchart TB
 - Priority sorting uses severity ranking (Urgent > High > Medium > Low), with first-click descending on the Priority header.
 - Sort order defaults to due date ascending.
 - Pagination page size: 50.
+- Long `Location` and `Task name` values wrap across multiple lines in table body rows.
 
 ### 5) Tasks due
 - Title: "Tasks due".

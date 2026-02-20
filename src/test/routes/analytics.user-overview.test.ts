@@ -28,6 +28,7 @@ describe('Analytics user overview route', () => {
       expect(taskNameIndex).toBeGreaterThan(-1);
       expect(workTypeIndex).toBeLessThan(taskNameIndex);
       expect(response.text).toContain('data-module="moj-sortable-table"');
+      expect(response.text).toContain('analytics-table--wrap-assigned-columns');
       expect(response.text).toMatch(
         /data-export-filename="user-overview-completed-by-task-name\.csv"[\s\S]*?<th[^>]*aria-sort="descending"[^>]*>\s*Tasks\s*<\/th>/
       );
