@@ -99,6 +99,7 @@ flowchart TB
 - Chart: stacked horizontal bar by task name (Urgent/High/Medium/Low).
 - Table columns:
   - Task name
+  - Total open
   - Urgent
   - High
   - Medium

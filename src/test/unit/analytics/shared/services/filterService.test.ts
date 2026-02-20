@@ -14,7 +14,9 @@ import { filterService } from '../../../../../main/modules/analytics/shared/serv
 
 jest.mock('../../../../../main/modules/analytics/shared/cache/cache', () => ({
   CacheKeys: { filterOptions: 'filter-options' },
-  buildSnapshotScopedCacheKey: jest.fn((base: string, snapshotId: number) => `${base}:${snapshotId}`),
+  buildSnapshotScopedCacheKey: jest.fn(
+    (base: string, snapshotId: number, scope = 'default') => `${base}:${snapshotId}:${scope}`
+  ),
   getCache: jest.fn(),
   setCache: jest.fn(),
 }));
@@ -50,7 +52,7 @@ describe('filterService', () => {
     const result = await filterService.fetchFilterOptions(snapshotId);
 
     expect(result.services).toEqual(['cached']);
-    expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(CacheKeys.filterOptions, snapshotId);
+    expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(CacheKeys.filterOptions, snapshotId, 'default');
     expect(taskFactsRepository.fetchOverviewFilterOptionsRows).not.toHaveBeenCalled();
   });
 
@@ -93,7 +95,36 @@ describe('filterService', () => {
     expect(result.users[0]).toEqual({ value: '', text: 'All users' });
     expect(result.users[1].value).toBe('user-1');
     expect(result.users.find(option => option.value === 'user-2')).toBeUndefined();
-    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledWith(snapshotId);
-    expect(setCache).toHaveBeenCalledWith(`${CacheKeys.filterOptions}:${snapshotId}`, result);
+    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledWith(snapshotId, undefined);
+    expect(setCache).toHaveBeenCalledWith(`${CacheKeys.filterOptions}:${snapshotId}:default`, result);
+  });
+
+  test('uses options-aware cache key signatures and passes query options to the repository', async () => {
+    (getCache as jest.Mock).mockReturnValue(undefined);
+    (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      assignees: [],
+    });
+    (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
+    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
+    (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([]);
+
+    await filterService.fetchFilterOptions(snapshotId, {
+      excludeRoleCategories: ['Judicial'],
+    });
+
+    expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(
+      CacheKeys.filterOptions,
+      snapshotId,
+      'excludeRoleCategories=JUDICIAL'
+    );
+    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledWith(snapshotId, {
+      excludeRoleCategories: ['Judicial'],
+    });
   });
 });

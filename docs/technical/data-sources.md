@@ -185,6 +185,7 @@ Work type display values:
 Date filters:
 - completedFrom/completedTo -> completed_date in mv_reportable_task_thin or reference_date in mv_task_daily_facts.
 - eventsFrom/eventsTo -> reference_date in mv_task_daily_facts for created/completed/cancelled events.
+- User Overview page applies an additional scoped exclusion: `UPPER(role_category_label) <> 'JUDICIAL'` (null-safe), and this scoped rule is not applied on `/`, `/outstanding`, or `/completed`.
 
 ## Derived concepts and calculations
 
@@ -200,6 +201,9 @@ Priority is calculated using `major_priority` or `priority` with a due-date-awar
 Within due date is computed as:
 - `is_within_sla == 'Yes'` if present
 - Otherwise, compare completed_date <= due_date
+
+### Completed-task determination
+Completed tasks are determined by case-insensitive `termination_reason = 'completed'` across thin/facts query paths. Completed-state values such as `COMPLETED` or `TERMINATED` are not required for completed classification.
 
 ## Caching
 NodeCache caches these datasets to reduce repeated lookups:

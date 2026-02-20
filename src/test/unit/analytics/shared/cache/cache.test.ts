@@ -37,9 +37,12 @@ describe('analytics cache', () => {
     expect(setMock).toHaveBeenCalledWith('key', { value: 1 });
   });
 
-  test('buildSnapshotScopedCacheKey appends snapshot id', () => {
+  test('buildSnapshotScopedCacheKey appends snapshot id and scope', () => {
     const { buildSnapshotScopedCacheKey } = loadCacheModule();
 
-    expect(buildSnapshotScopedCacheKey('filter-options', 11)).toBe('filter-options:11');
+    expect(buildSnapshotScopedCacheKey('filter-options', 11)).toBe('filter-options:11:default');
+    expect(buildSnapshotScopedCacheKey('filter-options', 11, 'excludeRoleCategories=JUDICIAL')).toBe(
+      'filter-options:11:excludeRoleCategories=JUDICIAL'
+    );
   });
 });

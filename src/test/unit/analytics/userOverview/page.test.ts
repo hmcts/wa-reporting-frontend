@@ -50,6 +50,7 @@ jest.mock('../../../../main/modules/analytics/completed/visuals/completedComplia
 
 describe('buildUserOverviewPage', () => {
   const snapshotId = 104;
+  const userOverviewQueryOptions = { excludeRoleCategories: ['Judicial'] };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -123,13 +124,15 @@ describe('buildUserOverviewPage', () => {
       snapshotId,
       { user: ['user-1'] },
       sort.assigned,
-      { page: 1, pageSize: 50 }
+      { page: 1, pageSize: 50 },
+      userOverviewQueryOptions
     );
     expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(
       snapshotId,
       { user: ['user-1'] },
       sort.assigned,
-      null
+      null,
+      userOverviewQueryOptions
     );
     expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewCompletedByDateRows).not.toHaveBeenCalled();
@@ -192,7 +195,11 @@ describe('buildUserOverviewPage', () => {
     expect(taskThinRepository.fetchUserOverviewCompletedByTaskNameRows).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
-    expect(fetchFilterOptionsWithFallback).toHaveBeenCalled();
+    expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
+      'Failed to fetch user overview filter options from database',
+      snapshotId,
+      userOverviewQueryOptions
+    );
     expect(viewModel).toEqual({ view: 'user-overview-full' });
   });
 
@@ -213,7 +220,11 @@ describe('buildUserOverviewPage', () => {
 
     expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
-    expect(fetchFilterOptionsWithFallback).toHaveBeenCalled();
+    expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
+      'Failed to fetch user overview filter options from database',
+      snapshotId,
+      userOverviewQueryOptions
+    );
     expect(viewModel).toEqual({ view: 'user-overview-unknown' });
   });
 
@@ -234,11 +245,21 @@ describe('buildUserOverviewPage', () => {
 
     await buildUserOverviewPage({}, sort, 1, 1, 'assigned');
 
-    expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).toHaveBeenCalledWith(snapshotId, {});
-    expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(snapshotId, {}, sort.assigned, {
-      page: 1,
-      pageSize: 50,
-    });
+    expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).toHaveBeenCalledWith(
+      snapshotId,
+      {},
+      userOverviewQueryOptions
+    );
+    expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(
+      snapshotId,
+      {},
+      sort.assigned,
+      {
+        page: 1,
+        pageSize: 50,
+      },
+      userOverviewQueryOptions
+    );
     expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).not.toHaveBeenCalled();
   });
 
@@ -285,11 +306,27 @@ describe('buildUserOverviewPage', () => {
 
     await buildUserOverviewPage({}, sort, 1, 999, 'completed');
 
-    expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).toHaveBeenCalledWith(snapshotId, {});
-    expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).toHaveBeenCalledWith(snapshotId, {}, sort.completed, {
-      page: 10,
-      pageSize: 50,
-    });
+    expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).toHaveBeenCalledWith(
+      snapshotId,
+      {},
+      userOverviewQueryOptions
+    );
+    expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).toHaveBeenCalledWith(
+      snapshotId,
+      {},
+      sort.completed,
+      {
+        page: 10,
+        pageSize: 50,
+      },
+      userOverviewQueryOptions
+    );
+    expect(completedComplianceSummaryService.fetchCompletedSummary).toHaveBeenCalledWith(
+      snapshotId,
+      {},
+      undefined,
+      userOverviewQueryOptions
+    );
     expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
         completedPage: 10,
@@ -324,7 +361,8 @@ describe('buildUserOverviewPage', () => {
       {
         page: 10,
         pageSize: 50,
-      }
+      },
+      userOverviewQueryOptions
     );
     expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({

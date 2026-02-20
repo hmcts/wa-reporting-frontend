@@ -22,7 +22,7 @@ Provide a user-centric view of assigned and completed tasks, including complianc
   - Task name
   - Assigned date
   - Due date
-  - Priority
+  - Priority (displayed as sentence case labels: `Urgent`, `High`, `Medium`, `Low`)
   - Total assignments
   - Assignee
   - Location
@@ -87,6 +87,7 @@ flowchart TB
 ## Notes
 - CSV export is available for all tables.
 - The user filter is optional; if not selected, results span all users.
+- User Overview excludes records where `role_category_label` is Judicial (case-insensitive), so Judicial role category data is not shown in tables, charts, summaries, or role-category filter options on this page.
 - Sorting state and pagination are preserved through hidden form inputs.
 - The priority donut uses the GOV.UK palette mapping Urgent `#98285d` (purple), High `#16548a` (dark blue), Medium `#8eb8dc` (light blue), and Low `#cecece` (light grey).
 - Dates are displayed as `D Mon YYYY` in the UI, while date sorting and CSV export continue to use ISO `YYYY-MM-DD` values.

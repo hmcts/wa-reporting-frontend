@@ -1,6 +1,7 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
 import { formatAnalyticsDateDisplay, formatDatePickerValue, formatNumber, formatPercent } from '../shared/formatting';
 import { PaginationMeta } from '../shared/pagination';
+import { toDisplayPriorityLabel } from '../shared/priority/priorityLabels';
 import type { FilterOptions } from '../shared/services';
 import { AnalyticsFilters, Task, UserOverviewResponse } from '../shared/types';
 import { UserOverviewSort } from '../shared/userOverviewSort';
@@ -125,7 +126,7 @@ function mapAssignedRow(row: Task, locationDescriptions: Record<string, string>)
     assignedDateRaw: assignedDateRaw || '-',
     dueDate: formatAnalyticsDateDisplay(dueDateRaw),
     dueDateRaw: dueDateRaw || '-',
-    priority: row.priority,
+    priority: toDisplayPriorityLabel(row.priority),
     totalAssignments: formatNumber(row.totalAssignments ?? 0),
     assigneeName: row.assigneeName ?? '',
     location: lookup(row.location, locationDescriptions),
@@ -175,6 +176,7 @@ function buildAssignedHead(context: SortHeadContext): TableHeadCell[] {
     }),
     buildSortHeadCell({
       label: 'Created date',
+      className: 'analytics-table__header-wrap-two-line',
       sortKey: 'createdDate',
       activeSort: current,
     }),
@@ -185,6 +187,7 @@ function buildAssignedHead(context: SortHeadContext): TableHeadCell[] {
     }),
     buildSortHeadCell({
       label: 'Assigned date',
+      className: 'analytics-table__header-wrap-two-line',
       sortKey: 'assignedDate',
       activeSort: current,
     }),
@@ -200,6 +203,7 @@ function buildAssignedHead(context: SortHeadContext): TableHeadCell[] {
     }),
     buildSortHeadCell({
       label: 'Total assignments',
+      className: 'analytics-table__header-wrap-two-line',
       sortKey: 'totalAssignments',
       format: 'numeric',
       activeSort: current,

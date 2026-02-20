@@ -58,8 +58,12 @@ describe('buildOutstandingViewModel', () => {
     expect(viewModel.openTasksTotalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.openTasksRows[0][1].attributes?.['data-sort-value']).toBe('2');
     expect(viewModel.openTasksRows[0][3].text).toBe('50.0%');
+    expect(viewModel.openByNameRows[0]).toHaveLength(6);
+    expect(viewModel.openByNameRows[0][1].text).toBe('1');
     expect(viewModel.openByNameTotalsRow[1].text).toBe('1');
+    expect(viewModel.openByNameTotalsRow[2].text).toBe('1');
     expect(viewModel.openByNameTotalsRow[0].attributes?.['data-total-row']).toBe('true');
+    expect(viewModel.openByNameTotalsRow).toHaveLength(6);
     expect(viewModel.waitTimeTotalsRow[2].text).toBe('2.0');
     expect(viewModel.waitTimeTotalsRow[2].attributes?.['data-sort-value']).toBe('2');
     expect(viewModel.charts.openTasks).toBe('open');
