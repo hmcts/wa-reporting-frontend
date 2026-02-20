@@ -843,9 +843,6 @@ describe('buildUserOverviewViewModel', () => {
       'assignee',
       'location',
     ]);
-    expect(viewModel.assignedHead[1].attributes?.class).toBe('analytics-table__header-wrap-two-line');
-    expect(viewModel.assignedHead[3].attributes?.class).toBe('analytics-table__header-wrap-two-line');
-    expect(viewModel.assignedHead[6].attributes?.class).toBe('analytics-table__header-wrap-two-line');
     expect(viewModel.completedHead.map(cell => cell.attributes?.['data-sort-key'])).toEqual([
       'caseId',
       'createdDate',

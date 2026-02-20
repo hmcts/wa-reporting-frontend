@@ -58,7 +58,6 @@ describe('Analytics user overview route', () => {
       expect(response.text).toContain('Total assignments');
       expect(response.text).toContain('High');
       expect(response.text).not.toMatch(/>\s*high\s*</);
-      expect(response.text).toContain('analytics-table__header-wrap-two-line');
       expect(response.text).toMatch(
         /data-export-filename="user-overview-completed-by-task-name\.csv"[\s\S]*?<th[^>]*aria-sort="descending"[^>]*>\s*Tasks\s*<\/th>/
       );

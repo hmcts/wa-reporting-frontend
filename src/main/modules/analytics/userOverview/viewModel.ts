@@ -176,7 +176,6 @@ function buildAssignedHead(context: SortHeadContext): TableHeadCell[] {
     }),
     buildSortHeadCell({
       label: 'Created date',
-      className: 'analytics-table__header-wrap-two-line',
       sortKey: 'createdDate',
       activeSort: current,
     }),
@@ -187,7 +186,6 @@ function buildAssignedHead(context: SortHeadContext): TableHeadCell[] {
     }),
     buildSortHeadCell({
       label: 'Assigned date',
-      className: 'analytics-table__header-wrap-two-line',
       sortKey: 'assignedDate',
       activeSort: current,
     }),
@@ -203,7 +201,6 @@ function buildAssignedHead(context: SortHeadContext): TableHeadCell[] {
     }),
     buildSortHeadCell({
       label: 'Total assignments',
-      className: 'analytics-table__header-wrap-two-line',
       sortKey: 'totalAssignments',
       format: 'numeric',
       activeSort: current,
