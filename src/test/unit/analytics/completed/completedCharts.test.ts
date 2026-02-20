@@ -12,7 +12,7 @@ describe('completedCharts', () => {
     const config = JSON.parse(buildComplianceChart({ withinDueYes: 2, withinDueNo: 1 }));
     expect(config.data[0].values).toEqual([2, 1]);
     expect(config.data[0].labels).toEqual(['Within due date', 'Beyond due date']);
-    expect(config.data[0].marker.colors).toEqual([chartColors.green, chartColors.urgent]);
+    expect(config.data[0].marker.colors).toEqual([chartColors.blue, chartColors.grey]);
     expect(config.data[0].type).toBe('pie');
   });
 
@@ -64,7 +64,7 @@ describe('completedCharts', () => {
     expect(config.data[0].x).toEqual(['Average']);
     expect(config.data[0].y).toEqual([2]);
     expect(config.data[0].type).toBe('bar');
-    expect(config.data[0].marker.color).toBe(chartColors.high);
+    expect(config.data[0].marker.color).toBe(chartColors.blueDark);
     expect(config.data[0].error_y.type).toBe('data');
     expect(config.data[0].error_y.symmetric).toBe(false);
     expect(config.data[0].error_y.array).toEqual([1]);
@@ -118,9 +118,9 @@ describe('completedCharts', () => {
 
     expect(config.data[0].y).toEqual([4, 1]);
     expect(config.data[1].y).toEqual([1, 1]);
-    expect(config.data[0].marker.color).toBe(chartColors.green);
-    expect(config.data[1].marker.color).toBe(chartColors.urgent);
-    expect(config.data[2].line.color).toBe(chartColors.high);
+    expect(config.data[0].marker.color).toBe(chartColors.blue);
+    expect(config.data[1].marker.color).toBe(chartColors.grey);
+    expect(config.data[2].line.color).toBe(chartColors.signalRed);
     expect(config.data[2].line.width).toBe(3);
   });
 

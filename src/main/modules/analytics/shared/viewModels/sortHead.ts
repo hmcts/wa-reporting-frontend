@@ -9,14 +9,18 @@ export function buildSortHeadCell(params: {
   label: string;
   sortKey: string;
   format?: string;
+  defaultDir?: 'asc' | 'desc';
   activeSort: { by: string; dir: 'asc' | 'desc' };
 }): TableHeadCell {
-  const { label, sortKey, format, activeSort } = params;
+  const { label, sortKey, format, defaultDir, activeSort } = params;
   const isActive = activeSort.by === sortKey;
   const attributes: Record<string, string> = {
     'data-sort-key': sortKey,
     'aria-sort': 'none',
   };
+  if (defaultDir) {
+    attributes['data-sort-default-dir'] = defaultDir;
+  }
   if (isActive) {
     attributes['data-sort-dir'] = activeSort.dir;
     attributes['aria-sort'] = activeSort.dir === 'asc' ? 'ascending' : 'descending';

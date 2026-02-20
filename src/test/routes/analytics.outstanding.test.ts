@@ -22,8 +22,27 @@ describe('Analytics outstanding route', () => {
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('Tasks outstanding');
-      expect(response.text).toContain('Work type');
+      const workTypeIndex = response.text.indexOf('Work type');
+      const taskNameIndex = response.text.indexOf('Task name');
+      expect(workTypeIndex).toBeGreaterThan(-1);
+      expect(taskNameIndex).toBeGreaterThan(-1);
+      expect(workTypeIndex).toBeLessThan(taskNameIndex);
       expect(response.text).toContain('data-module="moj-sortable-table"');
+      expect(response.text).toMatch(
+        /data-export-filename="outstanding-open-tasks\.csv"[\s\S]*?<th[^>]*aria-sort="ascending"[^>]*>\s*Created date\s*<\/th>/
+      );
+      expect(response.text).toMatch(
+        /data-export-filename="outstanding-wait-time\.csv"[\s\S]*?<th[^>]*aria-sort="ascending"[^>]*>\s*Assigned date\s*<\/th>/
+      );
+      expect(response.text).toMatch(
+        /data-export-filename="outstanding-tasks-due\.csv"[\s\S]*?<th[^>]*aria-sort="ascending"[^>]*>\s*Due date\s*<\/th>/
+      );
+      expect(response.text).toMatch(
+        /data-export-filename="outstanding-open-tasks-priority\.csv"[\s\S]*?<th[^>]*aria-sort="ascending"[^>]*>\s*Due date\s*<\/th>/
+      );
+      expect(response.text).toMatch(
+        /data-export-filename="outstanding-open-by-name\.csv"[\s\S]*?<th[^>]*aria-sort="descending"[^>]*>\s*Urgent\s*<\/th>/
+      );
       expect(response.text).toContain('resetFilters=1');
     }, 15000);
 

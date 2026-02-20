@@ -7,6 +7,7 @@ import {
   buildTasksDuePriorityChart,
   buildWaitTimeChart,
 } from '../../../../../main/modules/analytics/outstanding/visuals/charts';
+import { chartColors } from '../../../../../main/modules/analytics/shared/charts/colors';
 import { PriorityBreakdown } from '../../../../../main/modules/analytics/shared/types';
 
 describe('outstanding charts', () => {
@@ -17,9 +18,14 @@ describe('outstanding charts', () => {
       { name: 'Task C', urgent: 1, high: 0, medium: 0, low: 0 },
     ];
 
-    const config = buildOpenByNameChartConfig(breakdown) as { layout: { yaxis: { categoryarray: string[] } } };
+    const config = buildOpenByNameChartConfig(breakdown) as {
+      data: { name: string }[];
+      layout: { yaxis: { categoryarray: string[] }; legend: { traceorder: string } };
+    };
 
     expect(config.layout.yaxis.categoryarray).toEqual(['Task A', 'Task B', 'Task C']);
+    expect(config.data.map(series => series.name)).toEqual(['Urgent', 'High', 'Medium', 'Low']);
+    expect(config.layout.legend.traceorder).toBe('normal');
   });
 
   test('buildOpenTasksChart returns plotly config', () => {
@@ -58,18 +64,32 @@ describe('outstanding charts', () => {
   test('buildTasksDuePriorityChart returns plotly config', () => {
     const chart = buildTasksDuePriorityChart([{ date: '2024-01-01', urgent: 1, high: 2, medium: 0, low: 1 }]);
 
-    const parsed = JSON.parse(chart) as { data: { name: string; y: number[] }[] };
+    const parsed = JSON.parse(chart) as { data: { name: string; y: number[]; marker: { color: string } }[] };
 
     expect(parsed.data.map(series => series.name)).toEqual(['Urgent', 'High', 'Medium', 'Low']);
     expect(parsed.data[1].y).toEqual([2]);
+    expect(parsed.data.map(series => series.marker.color)).toEqual([
+      chartColors.purple,
+      chartColors.blueDark,
+      chartColors.blueLight,
+      chartColors.greyLight,
+    ]);
   });
 
   test('buildPriorityDonutChart builds chart slices', () => {
     const chart = buildPriorityDonutChart({ urgent: 1, high: 2, medium: 3, low: 4 });
-    const parsed = JSON.parse(chart) as { data: { values: number[]; labels: string[] }[] };
+    const parsed = JSON.parse(chart) as {
+      data: { values: number[]; labels: string[]; marker: { colors: string[] } }[];
+    };
 
     expect(parsed.data[0].labels).toEqual(['Urgent', 'High', 'Medium', 'Low']);
     expect(parsed.data[0].values).toEqual([1, 2, 3, 4]);
+    expect(parsed.data[0].marker.colors).toEqual([
+      chartColors.purple,
+      chartColors.blueDark,
+      chartColors.blueLight,
+      chartColors.greyLight,
+    ]);
   });
 
   test('buildAssignmentDonutChart builds assigned/unassigned chart', () => {

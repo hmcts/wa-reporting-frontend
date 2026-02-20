@@ -28,8 +28,8 @@ The shared filter block appears on all dashboard pages. It provides multi-select
 - Role category
 - Region
 - Location
-- Task name
 - Work type
+- Task name
 - User (only on User overview)
 
 Behavior:

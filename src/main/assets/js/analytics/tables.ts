@@ -85,7 +85,15 @@ export function initMojServerSorting(fetchSortedSection: FetchSortedSection): vo
         event.preventDefault();
         event.stopImmediatePropagation();
         const currentDir = heading.getAttribute('aria-sort');
-        const nextDir = currentDir === 'ascending' ? 'desc' : 'asc';
+        const defaultDir = heading.dataset.sortDefaultDir;
+        let nextDir: 'asc' | 'desc' = 'asc';
+        if (currentDir === 'ascending') {
+          nextDir = 'desc';
+        } else if (currentDir === 'descending') {
+          nextDir = 'asc';
+        } else if (defaultDir === 'desc') {
+          nextDir = 'desc';
+        }
         setHiddenInput(form, `${scope}SortBy`, sortKey);
         setHiddenInput(form, `${scope}SortDir`, nextDir);
         if (scope === 'criticalTasks') {

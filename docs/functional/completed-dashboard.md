@@ -7,7 +7,7 @@ Provide analytics on completed tasks, compliance with due dates, and timing metr
 - `/completed`
 
 ## Filters
-- Shared filters: service, role category, region, location, task name, work type.
+- Shared filters: service, role category, region, location, work type, task name.
 - Date range filters for completed tasks:
   - Completed from (`completedFrom`)
   - Completed to (`completedTo`)
@@ -50,6 +50,7 @@ flowchart LR
   - Within due date
   - %
   - Beyond due date
+- Default table sort is Tasks descending.
 
 ### 4) Task audit
 - Purpose: audit tasks by case ID.
@@ -63,6 +64,7 @@ flowchart LR
   - Location
   - Status (termination process label)
   - Outcome
+- Default table sort is Completed date descending.
 - Empty state:
   - If no case ID, prompt user to enter one.
   - If case ID provided but no results, show "No completed tasks match this case ID."

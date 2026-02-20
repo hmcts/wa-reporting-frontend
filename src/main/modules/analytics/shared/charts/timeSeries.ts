@@ -54,7 +54,7 @@ export function buildStackedBarTimeSeries(
     layout: {
       barmode: 'stack',
       margin: { t: 20 },
-      legend: { orientation: legendOrientation },
+      legend: { orientation: legendOrientation, traceorder: 'normal' },
       yaxis: { automargin: true, fixedrange: true, rangemode: 'tozero' },
       ...withDateXAxis(layoutOverrides),
     },
@@ -89,7 +89,7 @@ export function buildStackedBarWithLineTimeSeries(
     layout: {
       barmode: 'stack',
       margin: { t: 20 },
-      legend: { orientation: legendOrientation },
+      legend: { orientation: legendOrientation, traceorder: 'normal' },
       yaxis: { automargin: true, fixedrange: true, rangemode: 'tozero' },
       ...withDateXAxis(layoutOverrides),
     },

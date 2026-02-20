@@ -22,8 +22,15 @@ describe('Analytics user overview route', () => {
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('User overview');
-      expect(response.text).toContain('Work type');
+      const workTypeIndex = response.text.indexOf('Work type');
+      const taskNameIndex = response.text.indexOf('Task name');
+      expect(workTypeIndex).toBeGreaterThan(-1);
+      expect(taskNameIndex).toBeGreaterThan(-1);
+      expect(workTypeIndex).toBeLessThan(taskNameIndex);
       expect(response.text).toContain('data-module="moj-sortable-table"');
+      expect(response.text).toMatch(
+        /data-export-filename="user-overview-completed-by-task-name\.csv"[\s\S]*?<th[^>]*aria-sort="descending"[^>]*>\s*Tasks\s*<\/th>/
+      );
     });
 
     test('should render the assigned tasks partial for ajax requests', async () => {

@@ -27,6 +27,7 @@ describe('buildDonutChart', () => {
           values: [1, 2],
           labels: ['A', 'B'],
           type: 'pie',
+          sort: false,
           hole: 0.4,
           textposition: 'inside',
           textinfo: 'percent',
@@ -38,6 +39,7 @@ describe('buildDonutChart', () => {
         margin: { t: 0, b: 0, l: 0, r: 0 },
         height: 300,
         showlegend: true,
+        legend: { traceorder: 'normal' },
       },
     });
   });

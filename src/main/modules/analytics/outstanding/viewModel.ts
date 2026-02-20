@@ -275,7 +275,7 @@ function buildCriticalTasksHead(sort: OutstandingSort): TableHeadCell[] {
     buildSortHeadCell({ label: 'Task name', sortKey: 'taskName', activeSort: current }),
     buildSortHeadCell({ label: 'Created date', sortKey: 'createdDate', activeSort: current }),
     buildSortHeadCell({ label: 'Due date', sortKey: 'dueDate', activeSort: current }),
-    buildSortHeadCell({ label: 'Priority', sortKey: 'priority', activeSort: current }),
+    buildSortHeadCell({ label: 'Priority', sortKey: 'priority', defaultDir: 'desc', activeSort: current }),
     buildSortHeadCell({ label: 'Agent name', sortKey: 'agentName', activeSort: current }),
   ];
 }
