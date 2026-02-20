@@ -145,6 +145,7 @@ Required columns:
 
 ### CRD: vw_case_worker_profile
 Used to map assignee IDs to names.
+On `/outstanding` Critical tasks only, if an assignee ID is present and no CRD match is found, the UI displays `Judge` instead of the raw ID.
 
 Required columns:
 - case_worker_id

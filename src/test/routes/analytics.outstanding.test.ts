@@ -7,8 +7,26 @@ import { buildRouteTestServer, extractCsrfToken } from './routeTestUtils';
 let server: Server;
 let closeServer: () => Promise<void>;
 
+const unmappedCriticalTaskRow = {
+  case_id: 'C-456',
+  task_id: 'T-456',
+  task_name: 'Review evidence',
+  case_type_label: 'Benefit',
+  region: 'North',
+  location: 'Leeds',
+  created_date: '2024-01-10',
+  due_date: '2024-01-12',
+  priority: 'high',
+  assignee: 'unmapped-user-id',
+};
+
 beforeAll(async () => {
-  ({ server, close: closeServer } = await buildRouteTestServer());
+  ({ server, close: closeServer } = await buildRouteTestServer({
+    analyticsMocks: {
+      outstandingCriticalTaskRows: [unmappedCriticalTaskRow],
+      outstandingCriticalTaskCount: 1,
+    },
+  }));
 });
 
 afterAll(() => {
@@ -55,6 +73,20 @@ describe('Analytics outstanding route', () => {
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('Open tasks');
+      expect(response.text).not.toContain('Tasks outstanding');
+    }, 15000);
+
+    test('should render Judge when critical task assignee is not mapped in staff ref data', async () => {
+      const response = await request(server)
+        .get('/outstanding?ajaxSection=criticalTasks')
+        .set('X-Requested-With', 'fetch')
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('Critical tasks');
+      expect(response.text).toContain('C-456');
+      expect(response.text).toContain('Judge');
+      expect(response.text).not.toContain('unmapped-user-id');
       expect(response.text).not.toContain('Tasks outstanding');
     }, 15000);
 

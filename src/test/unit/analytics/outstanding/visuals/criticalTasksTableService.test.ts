@@ -102,7 +102,7 @@ describe('criticalTasksTableService', () => {
           createdDate: '2024-01-03',
           dueDate: undefined,
           priority: 'High',
-          agentName: 'user-2',
+          agentName: 'Judge',
         },
       ],
       totalResults: 3,
@@ -117,6 +117,37 @@ describe('criticalTasksTableService', () => {
         pageSize: 10,
       }
     );
+  });
+
+  test('uses Judge when mapped profile name is blank', async () => {
+    (taskThinRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(1);
+    (taskThinRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([
+      {
+        case_id: '126',
+        task_id: 't4',
+        task_name: 'Escalate',
+        case_type_label: 'Benefit',
+        region: 'North',
+        location: 'Leeds',
+        created_date: '2024-01-04',
+        due_date: null,
+        priority: 'urgent',
+        assignee: 'user-3',
+      },
+    ]);
+    (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({
+      'user-3': '   ',
+    });
+
+    const result = await criticalTasksTableService.fetchCriticalTasksPage(
+      snapshotId,
+      {},
+      { by: 'dueDate', dir: 'asc' },
+      1,
+      10
+    );
+
+    expect(result.rows[0]?.agentName).toBe('Judge');
   });
 
   test('clamps oversized critical task page requests to the 500-result window', async () => {

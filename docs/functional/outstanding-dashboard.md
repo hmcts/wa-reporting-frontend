@@ -67,6 +67,7 @@ flowchart TB
   - Priority
   - Agent name
 - Priority values are displayed as sentence case labels: `Urgent`, `High`, `Medium`, `Low`.
+- Agent name displays `Judge` when an assignee ID is present but has no matching Staff Ref Data profile.
 - Priority sorting uses severity ranking (Urgent > High > Medium > Low), with first-click descending on the Priority header.
 - Sort order defaults to due date ascending.
 - Pagination page size: 50.
