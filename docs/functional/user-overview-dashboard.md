@@ -7,7 +7,7 @@ Provide a user-centric view of assigned and completed tasks, including complianc
 - `/users`
 
 ## Filters
-- Shared filters: service, role category, region, location, task name, work type.
+- Shared filters: service, role category, region, location, work type, task name.
 - User filter (assignee).
 - Date range filters for completed tasks: completedFrom/completedTo.
 
@@ -30,7 +30,7 @@ Provide a user-centric view of assigned and completed tasks, including complianc
   - Total assigned
   - Priority breakdown (Urgent/High/Medium/Low)
 - Donut chart of priority distribution.
-- Pagination page size: 500.
+- Pagination page size: 50.
 
 ```mermaid
 flowchart TB
@@ -81,8 +81,11 @@ flowchart TB
   - Tasks
   - Average handling time (days)
   - Average days beyond due date
+- Default table sort is Tasks descending.
 
 ## Notes
 - CSV export is available for all tables.
 - The user filter is optional; if not selected, results span all users.
 - Sorting state and pagination are preserved through hidden form inputs.
+- The priority donut uses the GOV.UK palette mapping Urgent `#98285d` (purple), High `#16548a` (dark blue), Medium `#8eb8dc` (light blue), and Low `#cecece` (light grey).
+- Dates are displayed as `D Mon YYYY` in the UI, while date sorting and CSV export continue to use ISO `YYYY-MM-DD` values.

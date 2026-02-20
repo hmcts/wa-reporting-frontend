@@ -27,6 +27,7 @@ export function buildStackedHorizontalBarChart({
 }: StackedHorizontalBarParams): Record<string, unknown> {
   const yTickText = categories.map(name => truncateLabel(name));
   const yRange = categories.length === 0 ? undefined : [visibleCount - 0.5, -0.5];
+  const { legend: legendOverrides, ...restLayoutOverrides } = layoutOverrides;
 
   return {
     data: series.map(item => ({
@@ -42,6 +43,10 @@ export function buildStackedHorizontalBarChart({
     layout: {
       dragmode: 'pan',
       barmode: 'stack',
+      legend: {
+        traceorder: 'normal',
+        ...(typeof legendOverrides === 'object' && legendOverrides !== null ? legendOverrides : {}),
+      },
       margin: { t: 20, l: 260, r: 40, b: 40 },
       xaxis: { title: xTitle, fixedrange: true },
       yaxis: {
@@ -56,7 +61,7 @@ export function buildStackedHorizontalBarChart({
         fixedrange: false,
       },
       height,
-      ...layoutOverrides,
+      ...restLayoutOverrides,
     },
   };
 }

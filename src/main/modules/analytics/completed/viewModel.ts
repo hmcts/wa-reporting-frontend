@@ -1,5 +1,5 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
-import { formatDatePickerValue, formatNumber, formatPercent } from '../shared/formatting';
+import { formatAnalyticsDateDisplay, formatDatePickerValue, formatNumber, formatPercent } from '../shared/formatting';
 import { FilterOptions } from '../shared/services';
 import {
   AnalyticsFilters,
@@ -26,7 +26,8 @@ export type TaskAuditEntry = {
   caseId: string;
   taskName: string | null;
   agentName: string | null;
-  completedDate: string | null;
+  completedDate: string;
+  completedDateRaw: string;
   totalAssignments: number;
   location: string | null;
   status: string | null;
@@ -117,7 +118,10 @@ function buildProcessingHandlingRows(rows: CompletedProcessingHandlingPoint[], m
     const upperRange = average + stddev;
     const lowerRange = Math.max(0, average - stddev);
     return [
-      { text: row.date },
+      {
+        text: formatAnalyticsDateDisplay(row.date),
+        attributes: { 'data-sort-value': row.date, 'data-export-value': row.date },
+      },
       buildNumericCell(row.tasks),
       buildNumericCell(average, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       buildNumericCell(upperRange, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
@@ -208,7 +212,10 @@ function buildTimelineRows(timeline: CompletedResponse['timeline']): TableRow[] 
     7
   );
   return timeline.map((point, index) => [
-    { text: point.date },
+    {
+      text: formatAnalyticsDateDisplay(point.date),
+      attributes: { 'data-sort-value': point.date, 'data-export-value': point.date },
+    },
     buildNumericCell(point.completed),
     buildNumericCell(point.withinDue),
     buildPercentCell(point.completed === 0 ? 0 : (point.withinDue / point.completed) * 100, {

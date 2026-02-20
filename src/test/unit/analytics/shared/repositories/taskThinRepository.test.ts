@@ -156,7 +156,7 @@ describe('taskThinRepository', () => {
       assignedDate: 'first_assigned_date',
       dueDate: 'due_date',
       completedDate: 'completed_date',
-      handlingTimeDays: 'handling_time_days',
+      handlingTimeDays: "EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day')",
       withinDue: 'is_within_sla',
       totalAssignments: 'COALESCE(number_of_reassignments, 0) + 1',
       assignee: 'assignee',
@@ -289,14 +289,14 @@ describe('taskThinRepository', () => {
   test('caps LIMIT/OFFSET values for oversized pagination requests', async () => {
     const sort = getDefaultOutstandingSort().criticalTasks;
 
-    await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 999, pageSize: 500 });
+    await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 999, pageSize: 50 });
     const firstQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
-    expect(firstQuery.values.slice(-2)).toEqual([500, 4500]);
+    expect(firstQuery.values.slice(-2)).toEqual([50, 450]);
 
     (tmPrisma.$queryRaw as jest.Mock).mockClear();
     await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 2, pageSize: 9000 });
     const secondQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
-    expect(secondQuery.values.slice(-2)).toEqual([5000, 0]);
+    expect(secondQuery.values.slice(-2)).toEqual([500, 0]);
   });
 
   test('normalises pagination with non-finite and negative page sizes', async () => {
@@ -434,7 +434,10 @@ describe('taskThinRepository', () => {
     await taskThinRepository.fetchWaitTimeByAssignedDateRows(snapshotId, filters);
     const waitTimeQuery = latestQuery();
     expect(waitTimeQuery.sql).toContain('WHEN SUM(assigned_task_count) = 0 THEN 0');
-    expect(waitTimeQuery.sql).toContain('SUM(total_wait_time_days) / SUM(assigned_task_count)::numeric');
+    expect(waitTimeQuery.sql).toContain(
+      "EXTRACT(EPOCH FROM SUM(total_wait_time)) / EXTRACT(EPOCH FROM INTERVAL '1 day')"
+    );
+    expect(waitTimeQuery.sql).toContain('/ SUM(assigned_task_count)::double precision');
     expect(waitTimeQuery.sql).toContain('GROUP BY reference_date');
 
     await taskThinRepository.fetchTasksDueByDateRows(snapshotId, filters);

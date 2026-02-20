@@ -22,9 +22,19 @@ describe('Analytics completed routes', () => {
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('Completed tasks');
-      expect(response.text).toContain('Work type');
+      const workTypeIndex = response.text.indexOf('Work type');
+      const taskNameIndex = response.text.indexOf('Task name');
+      expect(workTypeIndex).toBeGreaterThan(-1);
+      expect(taskNameIndex).toBeGreaterThan(-1);
+      expect(workTypeIndex).toBeLessThan(taskNameIndex);
       expect(response.text).toContain('Processing and handling time');
       expect(response.text).toContain('data-module="moj-sortable-table"');
+      expect(response.text).toMatch(
+        /data-export-filename="completed-by-name\.csv"[\s\S]*?<th[^>]*aria-sort="descending"[^>]*>\s*Tasks\s*<\/th>/
+      );
+      expect(response.text).toMatch(
+        /data-export-filename="completed-task-audit\.csv"[\s\S]*?<th[^>]*aria-sort="descending"[^>]*>\s*Completed date\s*<\/th>/
+      );
       expect(response.text).toContain('Outcome');
     });
 

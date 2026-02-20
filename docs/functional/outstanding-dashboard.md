@@ -7,7 +7,7 @@ Provide detail on tasks that are open or otherwise not completed, including prio
 - `/outstanding`
 
 ## Filters
-- Shared filters: service, role category, region, location, task name, work type.
+- Shared filters: service, role category, region, location, work type, task name.
 - No date range filters on this page (other than due dates within the data itself).
 
 ## Sections and behaviors
@@ -43,6 +43,7 @@ flowchart TB
   - Assigned %
   - Unassigned tasks
   - Unassigned %
+- Default table sort is Created date ascending.
 
 ### 3) Wait time by assigned date
 - Title: "Wait time".
@@ -51,6 +52,7 @@ flowchart TB
   - Assigned date
   - Assigned count
   - Average wait (days)
+- Default table sort is Assigned date ascending.
 
 ### 4) Critical tasks
 - Title: "Critical tasks".
@@ -64,8 +66,10 @@ flowchart TB
   - Due date
   - Priority
   - Agent name
+- Priority values are displayed as sentence case labels: `Urgent`, `High`, `Medium`, `Low`.
+- Priority sorting uses severity ranking (Urgent > High > Medium > Low), with first-click descending on the Priority header.
 - Sort order defaults to due date ascending.
-- Pagination page size: 500.
+- Pagination page size: 50.
 
 ### 5) Tasks due
 - Title: "Tasks due".
@@ -75,6 +79,7 @@ flowchart TB
   - Total due
   - Open
   - Completed
+- Default table sort is Due date ascending.
 
 ### 6) Open tasks priority
 - Title: "Open tasks priority".
@@ -86,6 +91,7 @@ flowchart TB
   - High
   - Medium
   - Low
+- Default table sort is Due date ascending.
 
 ### 7) Open tasks by name
 - Title: "Open tasks by name".
@@ -97,6 +103,7 @@ flowchart TB
   - Medium
   - Low
 - Uses an initial payload embedded in the page for fast load.
+- Default table sort is Urgent descending (with total tasks and then task name used as tie-breakers).
 
 ### 8) Tasks outstanding by region or location
 - Title: "Tasks outstanding by region or location".
@@ -109,3 +116,5 @@ flowchart TB
 ## Notes
 - CSV export is available for each table section.
 - Filters are applied consistently across all sections.
+- Priority charts (open tasks priority donut, open tasks priority by due date, open tasks by name) use a GOV.UK palette mapping of Urgent `#98285d` (purple), High `#16548a` (dark blue), Medium `#8eb8dc` (light blue), and Low `#cecece` (light grey).
+- Dates are displayed as `D Mon YYYY` in tables/charts, while date sorting and CSV export use ISO `YYYY-MM-DD` values.

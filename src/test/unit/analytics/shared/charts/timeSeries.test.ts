@@ -14,6 +14,7 @@ describe('time series chart builders', () => {
 
     expect(parsed.data[0].type).toBe('bar');
     expect(parsed.layout.legend.orientation).toBe('v');
+    expect(parsed.layout.legend.traceorder).toBe('normal');
     expect(parsed.layout.yaxis.range).toEqual([0, 10]);
   });
 

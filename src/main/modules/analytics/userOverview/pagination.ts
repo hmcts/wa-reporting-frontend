@@ -7,7 +7,7 @@ import {
 import { AnalyticsFilters } from '../shared/types';
 import { UserOverviewSort } from '../shared/userOverviewSort';
 
-export const USER_OVERVIEW_PAGE_SIZE = 500;
+export const USER_OVERVIEW_PAGE_SIZE = 50;
 const USER_OVERVIEW_PATH = '/users';
 
 type PaginateUserOverviewParams<T> = {

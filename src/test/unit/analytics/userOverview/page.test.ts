@@ -123,7 +123,7 @@ describe('buildUserOverviewPage', () => {
       snapshotId,
       { user: ['user-1'] },
       sort.assigned,
-      { page: 1, pageSize: 500 }
+      { page: 1, pageSize: 50 }
     );
     expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(
       snapshotId,
@@ -237,7 +237,7 @@ describe('buildUserOverviewPage', () => {
     expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).toHaveBeenCalledWith(snapshotId, {});
     expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(snapshotId, {}, sort.assigned, {
       page: 1,
-      pageSize: 500,
+      pageSize: 50,
     });
     expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).not.toHaveBeenCalled();
   });
@@ -288,7 +288,7 @@ describe('buildUserOverviewPage', () => {
     expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).toHaveBeenCalledWith(snapshotId, {});
     expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).toHaveBeenCalledWith(snapshotId, {}, sort.completed, {
       page: 10,
-      pageSize: 500,
+      pageSize: 50,
     });
     expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -299,7 +299,7 @@ describe('buildUserOverviewPage', () => {
     );
   });
 
-  test('clamps oversized assigned page requests to the 5,000-result window', async () => {
+  test('clamps oversized assigned page requests to the 500-result window', async () => {
     const sort = getDefaultUserOverviewSort();
     (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(20000);
     (taskThinRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue([]);
@@ -323,7 +323,7 @@ describe('buildUserOverviewPage', () => {
       sort.assigned,
       {
         page: 10,
-        pageSize: 500,
+        pageSize: 50,
       }
     );
     expect(buildUserOverviewViewModel).toHaveBeenCalledWith(

@@ -5,6 +5,7 @@ import { priorityBucketSql } from '../priority/priorityBucketSql';
 import { priorityDisplayLabels } from '../priority/priorityLabels';
 import { AnalyticsFilters } from '../types';
 
+import { SECONDS_PER_DAY_SQL } from './constants';
 import { buildAnalyticsWhere } from './filters';
 import {
   AssignmentRow,
@@ -290,14 +291,14 @@ export class TaskFactsRepository {
       SELECT
         to_char(completed_date, 'YYYY-MM-DD') AS date_key,
         COUNT(*)::int AS task_count,
-        AVG(handling_time_days) FILTER (WHERE handling_time_days IS NOT NULL)::double precision AS handling_avg,
-        STDDEV_POP(handling_time_days) FILTER (WHERE handling_time_days IS NOT NULL)::double precision AS handling_stddev,
-        SUM(handling_time_days) FILTER (WHERE handling_time_days IS NOT NULL)::double precision AS handling_sum,
-        COUNT(handling_time_days)::int AS handling_count,
-        AVG(processing_time_days) FILTER (WHERE processing_time_days IS NOT NULL)::double precision AS processing_avg,
-        STDDEV_POP(processing_time_days) FILTER (WHERE processing_time_days IS NOT NULL)::double precision AS processing_stddev,
-        SUM(processing_time_days) FILTER (WHERE processing_time_days IS NOT NULL)::double precision AS processing_sum,
-        COUNT(processing_time_days)::int AS processing_count
+        AVG(EXTRACT(EPOCH FROM handling_time) / ${SECONDS_PER_DAY_SQL}) FILTER (WHERE handling_time IS NOT NULL)::double precision AS handling_avg,
+        STDDEV_POP(EXTRACT(EPOCH FROM handling_time) / ${SECONDS_PER_DAY_SQL}) FILTER (WHERE handling_time IS NOT NULL)::double precision AS handling_stddev,
+        SUM(EXTRACT(EPOCH FROM handling_time) / ${SECONDS_PER_DAY_SQL}) FILTER (WHERE handling_time IS NOT NULL)::double precision AS handling_sum,
+        COUNT(handling_time)::int AS handling_count,
+        AVG(EXTRACT(EPOCH FROM processing_time) / ${SECONDS_PER_DAY_SQL}) FILTER (WHERE processing_time IS NOT NULL)::double precision AS processing_avg,
+        STDDEV_POP(EXTRACT(EPOCH FROM processing_time) / ${SECONDS_PER_DAY_SQL}) FILTER (WHERE processing_time IS NOT NULL)::double precision AS processing_stddev,
+        SUM(EXTRACT(EPOCH FROM processing_time) / ${SECONDS_PER_DAY_SQL}) FILTER (WHERE processing_time IS NOT NULL)::double precision AS processing_sum,
+        COUNT(processing_time)::int AS processing_count
       FROM analytics.mv_reportable_task_thin_snapshots
       ${whereClause}
       GROUP BY completed_date

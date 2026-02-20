@@ -28,8 +28,8 @@ The shared filter block appears on all dashboard pages. It provides multi-select
 - Role category
 - Region
 - Location
-- Task name
 - Work type
+- Task name
 - User (only on User overview)
 
 Behavior:
@@ -55,7 +55,7 @@ CSV export:
 - Some tables support server-side sorting using column headers.
 - Critical tasks and User overview tables support pagination.
 - Sort and pagination state is stored in hidden inputs in the filter form and sent with each request.
-- Backend pagination is hard-capped to the first 5,000 matching rows. Page requests beyond this capped window are clamped to the last allowed page.
+- Backend pagination is hard-capped to the first 500 matching rows. Page requests beyond this capped window are clamped to the last allowed page.
 
 ## Partial refresh (AJAX sections)
 - Each dashboard is composed of sections that can refresh independently using AJAX.

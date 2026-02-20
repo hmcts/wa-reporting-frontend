@@ -46,6 +46,36 @@ export function formatUkDateTime(date: Date): string {
   }).format(date);
 }
 
+const analyticsDateFormatter = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+export function formatAnalyticsDateDisplay(value?: string | null, fallback = '-'): string {
+  if (!value) {
+    return fallback;
+  }
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return fallback;
+  }
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, monthIndex, day));
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== monthIndex ||
+    parsed.getUTCDate() !== day
+  ) {
+    return fallback;
+  }
+  return analyticsDateFormatter.format(parsed);
+}
+
 export function buildFreshnessInsetText(publishedAt?: Date): string {
   if (!publishedAt) {
     return 'Data freshness unavailable.';

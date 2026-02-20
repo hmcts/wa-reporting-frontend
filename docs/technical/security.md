@@ -54,6 +54,6 @@ Two session mechanisms are used:
 - The cookie is cleared on filter reset or when the filter payload exceeds size limits.
 
 ## Pagination query safeguards
-- Server-side pagination is capped to `MAX_PAGINATION_RESULTS` (5,000 rows) for paged analytics tables.
-- Requested page numbers are clamped to the last page inside that 5,000-row window before database queries run.
+- Server-side pagination is capped to `MAX_PAGINATION_RESULTS` (500 rows) for paged analytics tables.
+- Requested page numbers are clamped to the last page inside that 500-row window before database queries run.
 - SQL pagination clauses also enforce the same cap, which prevents authenticated users from forcing large `OFFSET` scans outside the supported window.

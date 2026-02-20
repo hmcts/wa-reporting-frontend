@@ -81,7 +81,7 @@ describe('criticalTasksTableService', () => {
           taskName: 'Review',
           createdDate: '2024-01-01',
           dueDate: undefined,
-          priority: 'high',
+          priority: 'High',
           agentName: '',
         },
         {
@@ -91,7 +91,7 @@ describe('criticalTasksTableService', () => {
           taskName: 'Validate',
           createdDate: '2024-01-02',
           dueDate: undefined,
-          priority: 'high',
+          priority: 'High',
           agentName: 'Sam Taylor',
         },
         {
@@ -101,7 +101,7 @@ describe('criticalTasksTableService', () => {
           taskName: 'Check',
           createdDate: '2024-01-03',
           dueDate: undefined,
-          priority: 'high',
+          priority: 'High',
           agentName: 'user-2',
         },
       ],
@@ -119,7 +119,7 @@ describe('criticalTasksTableService', () => {
     );
   });
 
-  test('clamps oversized critical task page requests to the 5,000-result window', async () => {
+  test('clamps oversized critical task page requests to the 500-result window', async () => {
     (taskThinRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(15000);
     (taskThinRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([]);
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
@@ -137,7 +137,7 @@ describe('criticalTasksTableService', () => {
       { by: 'dueDate', dir: 'asc' },
       {
         page: 10,
-        pageSize: 500,
+        pageSize: 50,
       }
     );
     expect(result.page).toBe(10);

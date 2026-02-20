@@ -20,6 +20,24 @@ type TimeSeriesLayoutOverrides = {
   legendOrientation?: 'h' | 'v';
 };
 
+const defaultDateXAxis = {
+  type: 'date',
+  tickformat: '%-d %b %Y',
+  hoverformat: '%-d %b %Y',
+  automargin: true,
+};
+
+function withDateXAxis(layoutOverrides: Record<string, unknown> = {}): Record<string, unknown> {
+  const { xaxis: xaxisOverrides, ...rest } = layoutOverrides;
+  return {
+    ...rest,
+    xaxis: {
+      ...defaultDateXAxis,
+      ...(typeof xaxisOverrides === 'object' && xaxisOverrides !== null ? xaxisOverrides : {}),
+    },
+  };
+}
+
 export function buildStackedBarTimeSeries(
   dates: string[],
   series: BarSeries[],
@@ -36,9 +54,9 @@ export function buildStackedBarTimeSeries(
     layout: {
       barmode: 'stack',
       margin: { t: 20 },
-      legend: { orientation: legendOrientation },
+      legend: { orientation: legendOrientation, traceorder: 'normal' },
       yaxis: { automargin: true, fixedrange: true, rangemode: 'tozero' },
-      ...layoutOverrides,
+      ...withDateXAxis(layoutOverrides),
     },
   });
 }
@@ -71,9 +89,9 @@ export function buildStackedBarWithLineTimeSeries(
     layout: {
       barmode: 'stack',
       margin: { t: 20 },
-      legend: { orientation: legendOrientation },
+      legend: { orientation: legendOrientation, traceorder: 'normal' },
       yaxis: { automargin: true, fixedrange: true, rangemode: 'tozero' },
-      ...layoutOverrides,
+      ...withDateXAxis(layoutOverrides),
     },
   });
 }
@@ -94,7 +112,7 @@ export function buildLineTimeSeries(
     })),
     layout: {
       margin: { t: 20 },
-      ...layoutOverrides,
+      ...withDateXAxis(layoutOverrides),
     },
   });
 }

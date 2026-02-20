@@ -8,7 +8,7 @@ export function buildUserPriorityChart(summary: UserOverviewResponse['prioritySu
   return buildDonutChart({
     values: [summary.urgent, summary.high, summary.medium, summary.low],
     labels: ['Urgent', 'High', 'Medium', 'Low'],
-    colors: [chartColors.urgent, chartColors.high, chartColors.medium, chartColors.low],
+    colors: [chartColors.purple, chartColors.blueDark, chartColors.blueLight, chartColors.greyLight],
   });
 }
 
@@ -17,15 +17,15 @@ export function buildUserCompletedByDateChart(points: CompletedByDatePoint[]): s
   return buildStackedBarWithLineTimeSeries(
     dates,
     [
-      { name: 'Within due date', values: points.map(point => point.withinDue), color: chartColors.green },
-      { name: 'Outside due date', values: points.map(point => point.beyondDue), color: chartColors.urgent },
+      { name: 'Within due date', values: points.map(point => point.withinDue), color: chartColors.blue },
+      { name: 'Outside due date', values: points.map(point => point.beyondDue), color: chartColors.grey },
     ],
     {
       name: 'Average handling time (days)',
       values: points.map(point =>
         point.handlingTimeCount === 0 ? 0 : point.handlingTimeSum / point.handlingTimeCount
       ),
-      color: chartColors.high,
+      color: chartColors.blueDark,
       mode: 'lines',
       width: 2,
       axis: 'y2',
@@ -52,6 +52,6 @@ export function buildUserCompletedComplianceChart(
   return buildDonutChart({
     values: [summary.withinDueYes, summary.withinDueNo],
     labels: ['Within due date', 'Beyond due date'],
-    colors: [chartColors.green, chartColors.urgent],
+    colors: [chartColors.blue, chartColors.grey],
   });
 }

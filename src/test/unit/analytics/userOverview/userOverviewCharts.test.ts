@@ -11,10 +11,10 @@ describe('userOverviewCharts', () => {
     expect(config.data[0].values).toEqual([1, 2, 3, 4]);
     expect(config.data[0].labels).toEqual(['Urgent', 'High', 'Medium', 'Low']);
     expect(config.data[0].marker.colors).toEqual([
-      chartColors.urgent,
-      chartColors.high,
-      chartColors.medium,
-      chartColors.low,
+      chartColors.purple,
+      chartColors.blueDark,
+      chartColors.blueLight,
+      chartColors.greyLight,
     ]);
     expect(config.data[0].type).toBe('pie');
   });
@@ -53,7 +53,7 @@ describe('userOverviewCharts', () => {
     const config = JSON.parse(buildUserCompletedComplianceChart({ withinDueYes: 3, withinDueNo: 1 }));
     expect(config.data[0].values).toEqual([3, 1]);
     expect(config.data[0].labels).toEqual(['Within due date', 'Beyond due date']);
-    expect(config.data[0].marker.colors).toEqual([chartColors.green, chartColors.urgent]);
+    expect(config.data[0].marker.colors).toEqual([chartColors.blue, chartColors.grey]);
   });
 
   test('buildUserCompletedByDateChart falls back to zero averages when count is zero', () => {
@@ -72,7 +72,7 @@ describe('userOverviewCharts', () => {
 
     expect(config.data[2].y).toEqual([0]);
     expect(config.data[2].line.width).toBe(2);
-    expect(config.data[2].line.color).toBe(chartColors.high);
+    expect(config.data[2].line.color).toBe(chartColors.blueDark);
     expect(config.layout.yaxis.rangemode).toBe('tozero');
     expect(config.layout.yaxis2.rangemode).toBe('tozero');
   });

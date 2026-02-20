@@ -66,6 +66,7 @@ describe('buildOutstandingViewModel', () => {
     expect(viewModel.outstandingByLocationRows[0][0].text).toBe('Leeds Crown Court');
     expect(viewModel.outstandingByRegionRows[0][0].text).toBe('North East');
     expect(viewModel.criticalTasksHead[0].attributes?.['data-sort-key']).toBe('caseId');
+    expect(viewModel.criticalTasksHead[6].attributes?.['data-sort-default-dir']).toBe('desc');
     expect(viewModel.criticalTasksPagination.page).toBe(1);
     expect(viewModel.criticalTasksPagination.totalResults).toBe(0);
     expect(viewModel.criticalTasksPagination.show).toBe(false);
@@ -209,7 +210,7 @@ describe('buildOutstandingViewModel', () => {
     expect(viewModel.outstandingByRegionLocationRows[0][1].text).toBe('North East');
     expect(viewModel.outstandingByRegionLocationRows[1][1].text).toBe('South West');
     expect(viewModel.outstandingByRegionLocationRows[2][0].text).toBe('York');
-    expect(viewModel.criticalTasksPagination.pageSize).toBe(500);
+    expect(viewModel.criticalTasksPagination.pageSize).toBe(50);
   });
 
   test('formats percent cells via helper', () => {

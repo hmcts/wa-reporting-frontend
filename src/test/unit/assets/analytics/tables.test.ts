@@ -44,7 +44,7 @@ describe('analytics tables', () => {
     head.innerHTML = '<tr><th>Name</th><th>Count</th></tr>';
     const body = document.createElement('tbody');
     body.innerHTML = `
-      <tr><td>Beta</td><td>2</td></tr>
+      <tr><td data-export-value="2024-01-02">2 Jan 2024</td><td>2</td></tr>
       <tr><td>Total</td><td>5</td></tr>
       <tr><td>Alpha</td><td>3</td></tr>
     `;
@@ -59,7 +59,7 @@ describe('analytics tables', () => {
     expect(URL.createObjectURL).toHaveBeenCalled();
 
     const csv = tableToCsv(table);
-    expect(csv.split('\n')[1]).toContain('Beta');
+    expect(csv.split('\n')[1]).toContain('2024-01-02');
 
     const orphanContainer = document.createElement('div');
     const orphanButton = document.createElement('button');
@@ -99,7 +99,7 @@ describe('analytics tables', () => {
     criticalMojTable.innerHTML = `
       <thead>
         <tr>
-          <th data-sort-key="task"><button type="button">Task</button></th>
+          <th data-sort-key="task" data-sort-default-dir="desc"><button type="button">Task</button></th>
         </tr>
       </thead>
       <tbody><tr><td>Item</td></tr></tbody>
@@ -145,6 +145,8 @@ describe('analytics tables', () => {
 
     expect(form.querySelector<HTMLInputElement>('input[name="completedSortBy"]')?.value).toBe('name');
     expect(form.querySelector<HTMLInputElement>('input[name="completedSortDir"]')?.value).toBe('asc');
+    expect(form.querySelector<HTMLInputElement>('input[name="criticalTasksSortBy"]')?.value).toBe('task');
+    expect(form.querySelector<HTMLInputElement>('input[name="criticalTasksSortDir"]')?.value).toBe('desc');
     expect(form.querySelector<HTMLInputElement>('input[name="criticalTasksPage"]')?.value).toBe('1');
     expect(form.querySelector<HTMLInputElement>('input[name="assignedPage"]')?.value).toBe('1');
   });

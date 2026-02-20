@@ -10,7 +10,10 @@ export function tableToCsv(table: HTMLTableElement): string {
   const rows = Array.from(table.querySelectorAll('tr'));
   const csvLines = rows.map(row => {
     const cells = Array.from(row.querySelectorAll('th, td'));
-    const values = cells.map(cell => escapeCsvValue(cell.textContent?.trim() ?? ''));
+    const values = cells.map(cell => {
+      const exportValue = cell.getAttribute('data-export-value');
+      return escapeCsvValue(exportValue ?? cell.textContent?.trim() ?? '');
+    });
     return values.join(',');
   });
   return csvLines.join('\n');
@@ -82,7 +85,15 @@ export function initMojServerSorting(fetchSortedSection: FetchSortedSection): vo
         event.preventDefault();
         event.stopImmediatePropagation();
         const currentDir = heading.getAttribute('aria-sort');
-        const nextDir = currentDir === 'ascending' ? 'desc' : 'asc';
+        const defaultDir = heading.dataset.sortDefaultDir;
+        let nextDir: 'asc' | 'desc' = 'asc';
+        if (currentDir === 'ascending') {
+          nextDir = 'desc';
+        } else if (currentDir === 'descending') {
+          nextDir = 'asc';
+        } else if (defaultDir === 'desc') {
+          nextDir = 'desc';
+        }
         setHiddenInput(form, `${scope}SortBy`, sortKey);
         setHiddenInput(form, `${scope}SortDir`, nextDir);
         if (scope === 'criticalTasks') {
