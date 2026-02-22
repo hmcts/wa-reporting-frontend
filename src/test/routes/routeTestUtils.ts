@@ -104,10 +104,12 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
       fetchPublishedSnapshot: jest.fn().mockResolvedValue({
         snapshotId: 1,
         publishedAt: new Date('2026-02-17T10:15:00.000Z'),
+        asOfDate: new Date('2026-02-17T00:00:00.000Z'),
       }),
       fetchSnapshotById: jest.fn().mockResolvedValue({
         snapshotId: 1,
         publishedAt: new Date('2026-02-17T10:15:00.000Z'),
+        asOfDate: new Date('2026-02-17T00:00:00.000Z'),
       }),
     },
   }));

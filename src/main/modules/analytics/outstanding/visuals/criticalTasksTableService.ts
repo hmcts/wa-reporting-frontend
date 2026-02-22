@@ -1,5 +1,6 @@
 import { OutstandingSort } from '../../shared/outstandingSort';
 import { getCappedTotalPages, normalisePage } from '../../shared/pagination';
+import { priorityLabelFromRank } from '../../shared/priority/priorityRankSql';
 import { taskThinRepository } from '../../shared/repositories';
 import { caseWorkerProfileService } from '../../shared/services';
 import { AnalyticsFilters, CriticalTask } from '../../shared/types';
@@ -56,7 +57,7 @@ class CriticalTasksTableService {
         taskName: normaliseLabel(row.task_name),
         createdDate: normaliseLabel(row.created_date),
         dueDate: row.due_date ?? undefined,
-        priority: row.priority,
+        priority: priorityLabelFromRank(row.priority_rank),
         agentName: resolveAgentName(row.assignee, caseWorkerNames),
       })),
       totalResults,

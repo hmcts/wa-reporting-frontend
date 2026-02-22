@@ -57,6 +57,7 @@ describe('buildUserOverviewPage', () => {
     (fetchPublishedSnapshotContext as jest.Mock).mockResolvedValue({
       snapshotId,
       publishedAt: new Date('2026-02-17T10:15:00.000Z'),
+      asOfDate: new Date('2026-02-17T00:00:00.000Z'),
       freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
     });
     (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(0);
@@ -80,7 +81,7 @@ describe('buildUserOverviewPage', () => {
         completed_date: null,
         handling_time_days: null,
         is_within_sla: null,
-        priority: 'Urgent',
+        priority_rank: 4,
         assignee: 'user-1',
         number_of_reassignments: 0,
       },
@@ -98,7 +99,7 @@ describe('buildUserOverviewPage', () => {
         completed_date: null,
         handling_time_days: null,
         is_within_sla: null,
-        priority: 'Low',
+        priority_rank: 1,
         assignee: 'user-2',
         number_of_reassignments: 0,
       },
@@ -282,7 +283,7 @@ describe('buildUserOverviewPage', () => {
         completed_date: '2024-01-04',
         handling_time_days: 2,
         is_within_sla: 'Yes',
-        priority: 'High',
+        priority_rank: 3,
         assignee: 'user-1',
         number_of_reassignments: 0,
       },
@@ -390,7 +391,7 @@ describe('buildUserOverviewPage', () => {
         completed_date: null,
         handling_time_days: null,
         is_within_sla: 'No',
-        priority: 'Medium',
+        priority_rank: 2,
         assignee: null,
         number_of_reassignments: null,
       },

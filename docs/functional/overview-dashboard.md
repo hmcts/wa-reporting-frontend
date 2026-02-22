@@ -38,6 +38,8 @@ Provide a high-level view of service performance, focusing on open and assigned 
   - Service
   - Created
   - Completed
+- `Created` counts task events where `created_date` exists within the selected event date range, regardless of current task state.
+- `Completed` counts task events classified as completed (case-insensitive `termination_reason = completed`) within the selected event date range.
 - Totals row included.
 - Cancelled events continue to be aggregated in backend data for future use but are not currently displayed.
 

@@ -17,6 +17,7 @@ export type PublishedSnapshotContext = {
   snapshotId: number;
   snapshotToken: string;
   publishedAt: Date;
+  asOfDate: Date;
   freshnessInsetText: string;
 };
 
@@ -39,11 +40,16 @@ export function createSnapshotToken(snapshotId: number): string {
   return `${snapshotId}.${signSnapshotId(snapshotId)}`;
 }
 
-function toPublishedSnapshotContext(snapshot: { snapshotId: number; publishedAt: Date }): PublishedSnapshotContext {
+function toPublishedSnapshotContext(snapshot: {
+  snapshotId: number;
+  publishedAt: Date;
+  asOfDate: Date;
+}): PublishedSnapshotContext {
   return {
     snapshotId: snapshot.snapshotId,
     snapshotToken: createSnapshotToken(snapshot.snapshotId),
     publishedAt: snapshot.publishedAt,
+    asOfDate: snapshot.asOfDate,
     freshnessInsetText: buildFreshnessInsetText(snapshot.publishedAt),
   };
 }
@@ -53,6 +59,7 @@ function toUnpublishedSnapshotContext(): PublishedSnapshotContext {
     snapshotId: UNPUBLISHED_SNAPSHOT_ID,
     snapshotToken: '',
     publishedAt: new Date(0),
+    asOfDate: new Date(0),
     freshnessInsetText: '',
   };
 }

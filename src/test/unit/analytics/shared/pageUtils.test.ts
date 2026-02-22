@@ -86,6 +86,7 @@ describe('pageUtils', () => {
     (snapshotStateRepository.fetchPublishedSnapshot as jest.Mock).mockResolvedValue({
       snapshotId: 11,
       publishedAt: new Date('2026-02-17T10:15:00Z'),
+      asOfDate: new Date('2026-02-17T00:00:00Z'),
     });
 
     const result = await fetchPublishedSnapshotContext();
@@ -93,6 +94,7 @@ describe('pageUtils', () => {
     expect(result.snapshotId).toBe(11);
     expect(result.snapshotToken).toBe(createSnapshotToken(11));
     expect(result.publishedAt).toEqual(new Date('2026-02-17T10:15:00Z'));
+    expect(result.asOfDate).toEqual(new Date('2026-02-17T00:00:00Z'));
     expect(result.freshnessInsetText).toContain('Data last refreshed:');
   });
 
@@ -105,6 +107,7 @@ describe('pageUtils', () => {
 
     expect(result.snapshotId).toBe(0);
     expect(result.snapshotToken).toBe('');
+    expect(result.asOfDate).toEqual(new Date(0));
     expect(result.freshnessInsetText).toBe('');
   });
 
@@ -113,6 +116,7 @@ describe('pageUtils', () => {
     (snapshotStateRepository.fetchSnapshotById as jest.Mock).mockResolvedValue({
       snapshotId: 15,
       publishedAt: new Date('2026-02-17T10:30:00Z'),
+      asOfDate: new Date('2026-02-17T00:00:00Z'),
     });
 
     const result = await fetchPublishedSnapshotContext(15);
@@ -121,6 +125,7 @@ describe('pageUtils', () => {
     expect(snapshotStateRepository.fetchPublishedSnapshot).not.toHaveBeenCalled();
     expect(result.snapshotId).toBe(15);
     expect(result.snapshotToken).toBe(createSnapshotToken(15));
+    expect(result.asOfDate).toEqual(new Date('2026-02-17T00:00:00Z'));
   });
 
   test('fetchPublishedSnapshotContext falls back to current published snapshot when requested id is unavailable', async () => {
@@ -129,6 +134,7 @@ describe('pageUtils', () => {
     (snapshotStateRepository.fetchPublishedSnapshot as jest.Mock).mockResolvedValue({
       snapshotId: 16,
       publishedAt: new Date('2026-02-17T10:45:00Z'),
+      asOfDate: new Date('2026-02-17T00:00:00Z'),
     });
 
     const result = await fetchPublishedSnapshotContext(999);
@@ -137,6 +143,7 @@ describe('pageUtils', () => {
     expect(snapshotStateRepository.fetchPublishedSnapshot).toHaveBeenCalled();
     expect(result.snapshotId).toBe(16);
     expect(result.snapshotToken).toBe(createSnapshotToken(16));
+    expect(result.asOfDate).toEqual(new Date('2026-02-17T00:00:00Z'));
   });
 
   test('parseSnapshotTokenInput parses valid signed tokens', () => {
