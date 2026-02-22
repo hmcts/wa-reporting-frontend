@@ -72,7 +72,7 @@ describe('userOverviewCharts', () => {
 
     expect(config.data[2].y).toEqual([0]);
     expect(config.data[2].line.width).toBe(2);
-    expect(config.data[2].line.color).toBe(chartColors.blueDark);
+    expect(config.data[2].line.color).toBe(chartColors.signalRed);
     expect(config.layout.yaxis.rangemode).toBe('tozero');
     expect(config.layout.yaxis2.rangemode).toBe('tozero');
   });

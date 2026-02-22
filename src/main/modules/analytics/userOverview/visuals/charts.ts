@@ -25,7 +25,7 @@ export function buildUserCompletedByDateChart(points: CompletedByDatePoint[]): s
       values: points.map(point =>
         point.handlingTimeCount === 0 ? 0 : point.handlingTimeSum / point.handlingTimeCount
       ),
-      color: chartColors.blueDark,
+      color: chartColors.signalRed,
       mode: 'lines',
       width: 2,
       axis: 'y2',

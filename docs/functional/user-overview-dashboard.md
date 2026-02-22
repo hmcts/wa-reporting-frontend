@@ -67,6 +67,7 @@ flowchart TB
 ### 3) Completed tasks by date
 - Title: "Completed tasks by date".
 - Chart: stacked bar (within vs beyond due date) with a line for average handling time (days).
+- Chart colours: within due date uses GOV.UK blue (`#1d70b8`), outside due date uses grey (`#b1b4b6`), and average handling time uses signal red (`#ca3535`).
 - Table columns:
   - Completed date
   - Tasks
