@@ -42,6 +42,7 @@ type WaitTimeTotals = { assignedCount: number; weightedTotal: number; average: n
 type DueTotals = { totalDue: number; open: number; completed: number };
 type PriorityTotals = { urgent: number; high: number; medium: number; low: number };
 type OutstandingTotals = { open: number; urgent: number; high: number; medium: number; low: number };
+const waitTimeDecimalOptions: Intl.NumberFormatOptions = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
 
 function buildNumericCell(value: number, options: Intl.NumberFormatOptions = {}): TableCell {
   return { text: formatNumber(value, options), attributes: { 'data-sort-value': String(value) } };
@@ -184,7 +185,7 @@ function buildWaitTimeRows(waitTime: WaitTimePoint[]): TableRows {
   return waitTime.map(point => [
     buildDateCell(point.date),
     buildNumericCell(point.assignedCount),
-    buildNumericCell(point.averageWaitDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    buildNumericCell(point.averageWaitDays, waitTimeDecimalOptions),
   ]);
 }
 
@@ -192,7 +193,7 @@ function buildWaitTimeTotalsRow(waitTimeTotals: WaitTimeTotals): TableRow {
   return [
     buildTotalLabelCell('Total'),
     buildNumericCell(waitTimeTotals.assignedCount),
-    buildNumericCell(waitTimeTotals.average, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    buildNumericCell(waitTimeTotals.average, waitTimeDecimalOptions),
   ];
 }
 

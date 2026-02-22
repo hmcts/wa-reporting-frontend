@@ -50,10 +50,12 @@ flowchart TB
 - Title: "Wait time".
 - Chart: line chart of average wait (days) by assigned date.
 - Chart axes: x-axis `Assigned date`; y-axis `Days`.
+- Population: currently assigned open tasks only (`state = ASSIGNED`).
 - Table columns:
   - Assigned date
   - Assigned count
   - Average wait (days)
+- Average wait values in the table are displayed to 2 decimal places.
 - Default table sort is Assigned date ascending.
 
 ### 4) Critical tasks

@@ -44,7 +44,7 @@ describe('buildOutstandingViewModel', () => {
         chart: {},
       },
       openByCreated: [{ date: '2024-01-01', open: 2, assigned: 1, unassigned: 1, assignedPct: 50, unassignedPct: 50 }],
-      waitTime: [{ date: '2024-01-01', averageWaitDays: 2, assignedCount: 1, totalWaitDays: 2 }],
+      waitTime: [{ date: '2024-01-01', averageWaitDays: 2.345, assignedCount: 1, totalWaitDays: 2.345 }],
       dueByDate: [{ date: '2024-01-01', totalDue: 3, open: 2, completed: 1 }],
       priorityByDueDate: [{ date: '2024-01-01', urgent: 1, high: 1, medium: 0, low: 0 }],
       criticalTasks: [],
@@ -64,8 +64,9 @@ describe('buildOutstandingViewModel', () => {
     expect(viewModel.openByNameTotalsRow[2].text).toBe('1');
     expect(viewModel.openByNameTotalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.openByNameTotalsRow).toHaveLength(6);
-    expect(viewModel.waitTimeTotalsRow[2].text).toBe('2.0');
-    expect(viewModel.waitTimeTotalsRow[2].attributes?.['data-sort-value']).toBe('2');
+    expect(viewModel.waitTimeRows[0][2].text).toBe('2.35');
+    expect(viewModel.waitTimeTotalsRow[2].text).toBe('2.35');
+    expect(viewModel.waitTimeTotalsRow[2].attributes?.['data-sort-value']).toBe('2.345');
     expect(viewModel.charts.openTasks).toBe('open');
     expect(viewModel.outstandingByLocationRows[0][0].text).toBe('Leeds Crown Court');
     expect(viewModel.outstandingByRegionRows[0][0].text).toBe('North East');

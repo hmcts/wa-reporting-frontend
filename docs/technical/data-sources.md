@@ -150,6 +150,9 @@ Required columns:
 - assigned_task_count
 - total_wait_time (interval)
 
+Materialization rule:
+- Rows are aggregated from `analytics.snapshot_task_rows` where `state = 'ASSIGNED'` and `wait_time IS NOT NULL`, grouped by slicer fields plus `first_assigned_date` (`reference_date`).
+
 ## Reference data (crd and lrd databases)
 
 ### CRD: vw_case_worker_profile

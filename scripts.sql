@@ -876,6 +876,7 @@ BEGIN
         COUNT(*)::bigint AS assigned_task_count
       FROM analytics.snapshot_task_rows
       WHERE valid_to_snapshot_id IS NULL
+        AND state = 'ASSIGNED'
         AND wait_time IS NOT NULL
       GROUP BY
         jurisdiction_label,
@@ -1738,6 +1739,7 @@ BEGIN
        AND current_rows.work_type IS NOT DISTINCT FROM keys.work_type
        AND current_rows.first_assigned_date IS NOT DISTINCT FROM keys.reference_date
       WHERE current_rows.valid_to_snapshot_id IS NULL
+        AND current_rows.state = 'ASSIGNED'
         AND current_rows.wait_time IS NOT NULL
       GROUP BY
         current_rows.jurisdiction_label,
