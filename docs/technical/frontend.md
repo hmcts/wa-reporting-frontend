@@ -57,6 +57,8 @@ Key behaviors:
 - Plotly charts are rendered from JSON configs in `data-chart-config` attributes.
 - Sections marked with `data-ajax-initial` are refreshed by an AJAX call after initial page load.
 - Filter forms with `data-ajax-section` can refresh a single page section without a full reload.
+- Shared dashboard filter submissions clear any active URL hash (`#...`) before full-page navigation to avoid anchor-based scroll jumps after reload.
+- "Reset filters" is submitted as form data (`resetFilters=1`) rather than a query-string navigation, so reset does not leave `resetFilters` in the URL.
 - Server-side sorting uses hidden inputs and submits a filtered form to fetch sorted data.
 - Pagination uses hidden inputs and submits filtered form to fetch the next page.
 - Multi-select filters support search, select all, and dynamic summary text.

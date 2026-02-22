@@ -62,7 +62,8 @@ describe('Analytics outstanding route', () => {
       expect(response.text).toMatch(
         /data-export-filename="outstanding-open-by-name\.csv"[\s\S]*?<th[^>]*aria-sort="descending"[^>]*>\s*Urgent\s*<\/th>/
       );
-      expect(response.text).toContain('resetFilters=1');
+      expect(response.text).toContain('name="resetFilters"');
+      expect(response.text).not.toContain('href="/outstanding?resetFilters=1"');
     }, 15000);
 
     test('should render the open tasks summary partial for ajax requests', async () => {

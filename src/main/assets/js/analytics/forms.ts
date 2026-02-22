@@ -28,6 +28,21 @@ export function restoreScrollPosition(): void {
   }
 }
 
+export function clearLocationHash(): void {
+  if (!window.location.hash) {
+    return;
+  }
+  if (typeof window.history.replaceState !== 'function') {
+    return;
+  }
+  try {
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to clear URL hash', error);
+  }
+}
+
 export function getAnalyticsFiltersForm(): HTMLFormElement | null {
   return document.querySelector<HTMLFormElement>('form[data-analytics-filters="true"]');
 }
@@ -92,6 +107,9 @@ export function initFilterPersistence(): void {
       return;
     }
     form.addEventListener('submit', () => {
+      if (!form.dataset.ajaxSection) {
+        clearLocationHash();
+      }
       normaliseMultiSelectSelections(form);
     });
     form.dataset.analyticsFiltersBound = 'true';
