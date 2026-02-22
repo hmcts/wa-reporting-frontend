@@ -140,10 +140,7 @@ export function buildStackedBarWithLineTimeSeries(
 export function buildLineTimeSeries(
   dates: string[],
   series: LineSeries[],
-  {
-    layoutOverrides = {},
-    axisTitles,
-  }: Pick<TimeSeriesLayoutOverrides, 'layoutOverrides' | 'axisTitles'> = {}
+  { layoutOverrides = {}, axisTitles }: Pick<TimeSeriesLayoutOverrides, 'layoutOverrides' | 'axisTitles'> = {}
 ): string {
   const { restLayout, xaxis, yaxis } = buildTimeSeriesAxes(layoutOverrides, axisTitles, {});
 
