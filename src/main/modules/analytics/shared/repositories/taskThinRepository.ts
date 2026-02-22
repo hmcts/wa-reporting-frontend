@@ -3,7 +3,6 @@ import { Prisma } from '@prisma/client';
 import { tmPrisma } from '../data/prisma';
 import { CriticalTasksSortBy } from '../outstandingSort';
 import { MAX_PAGINATION_RESULTS, getMaxPaginationPage, normalisePage } from '../pagination';
-import { priorityBucketSql } from '../priority/priorityBucketSql';
 import { AnalyticsFilters } from '../types';
 import { AssignedSortBy, CompletedSortBy, SortDirection, SortState } from '../userOverviewSort';
 
@@ -28,26 +27,11 @@ type PaginationOptions = {
   pageSize: number;
 };
 
-const PRIORITY_SORT_SQL = Prisma.sql`CASE
-  WHEN major_priority <= 2000 THEN 4
-  WHEN major_priority < 5000 THEN 3
-  WHEN major_priority = 5000 AND due_date < CURRENT_DATE THEN 3
-  WHEN major_priority = 5000 AND due_date = CURRENT_DATE THEN 2
-  ELSE 1
-END`;
-
-const WITHIN_DUE_SORT_SQL = Prisma.sql`CASE
-  WHEN is_within_sla = 'Yes' THEN 1
-  WHEN is_within_sla = 'No' THEN 2
-  ELSE 3
-END`;
+const PRIORITY_SORT_SQL = Prisma.sql`priority_sort_value`;
+const WITHIN_DUE_SORT_SQL = Prisma.sql`within_due_sort_value`;
 
 function buildPriorityBucket(): Prisma.Sql {
-  return priorityBucketSql({
-    priorityColumn: Prisma.raw('major_priority'),
-    dateColumn: Prisma.raw('due_date'),
-    labels: { urgent: 'urgent', high: 'high', medium: 'medium', low: 'low' },
-  });
+  return Prisma.sql`priority_bucket`;
 }
 
 function snapshotCondition(snapshotId: number): Prisma.Sql {
@@ -117,7 +101,7 @@ function buildUserOverviewTaskQuery(
       ${priorityBucket} AS priority,
       assignee,
       number_of_reassignments
-    FROM analytics.mv_reportable_task_thin_snapshots
+    FROM analytics.snapshot_task_rows
     ${whereClause}
     ORDER BY ${orderBy}
     ${limitClause}
@@ -271,7 +255,7 @@ export class TaskThinRepository {
     const whereClause = buildUserOverviewWhere(snapshotId, filters, [Prisma.sql`state = 'ASSIGNED'`], queryOptions);
     const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS total
-      FROM analytics.mv_reportable_task_thin_snapshots
+      FROM analytics.snapshot_task_rows
       ${whereClause}
     `);
     return rows[0]?.total ?? 0;
@@ -286,7 +270,7 @@ export class TaskThinRepository {
     const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions, queryOptions);
     const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS total
-      FROM analytics.mv_reportable_task_thin_snapshots
+      FROM analytics.snapshot_task_rows
       ${whereClause}
     `);
     return rows[0]?.total ?? 0;
@@ -312,7 +296,7 @@ export class TaskThinRepository {
         SUM(beyond_due)::int AS beyond_due,
         SUM(handling_time_sum)::numeric AS handling_time_sum,
         SUM(handling_time_count)::int AS handling_time_count
-      FROM analytics.mv_user_completed_facts_snapshots
+      FROM analytics.snapshot_user_completed_facts
       ${whereClause}
       GROUP BY completed_date
       ORDER BY completed_date
@@ -339,7 +323,7 @@ export class TaskThinRepository {
         SUM(handling_time_count)::int AS handling_time_count,
         SUM(days_beyond_sum)::numeric AS days_beyond_sum,
         SUM(days_beyond_count)::int AS days_beyond_count
-      FROM analytics.mv_user_completed_facts_snapshots
+      FROM analytics.snapshot_user_completed_facts
       ${whereClause}
       GROUP BY task_name
       ORDER BY tasks DESC NULLS LAST, task_name ASC
@@ -364,7 +348,7 @@ export class TaskThinRepository {
         location,
         termination_process_label,
         outcome
-      FROM analytics.mv_reportable_task_thin_snapshots
+      FROM analytics.snapshot_task_rows
       ${whereClause}
       ORDER BY completed_date DESC NULLS LAST
     `);
@@ -396,7 +380,7 @@ export class TaskThinRepository {
         to_char(due_date, 'YYYY-MM-DD') AS due_date,
         ${priorityBucket} AS priority,
         assignee
-      FROM analytics.mv_reportable_task_thin_snapshots
+      FROM analytics.snapshot_task_rows
       ${whereClause}
       ORDER BY ${orderBy}
       ${limitClause}
@@ -411,7 +395,7 @@ export class TaskThinRepository {
     ]);
     const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS total
-      FROM analytics.mv_reportable_task_thin_snapshots
+      FROM analytics.snapshot_task_rows
       ${whereClause}
     `);
     return rows[0]?.total ?? 0;
@@ -430,7 +414,7 @@ export class TaskThinRepository {
         SUM(CASE WHEN priority_bucket = 'High' THEN task_count ELSE 0 END)::int AS high,
         SUM(CASE WHEN priority_bucket = 'Medium' THEN task_count ELSE 0 END)::int AS medium,
         SUM(CASE WHEN priority_bucket = 'Low' THEN task_count ELSE 0 END)::int AS low
-      FROM analytics.mv_open_tasks_by_name_snapshots
+      FROM analytics.snapshot_open_task_facts
       ${whereClause}
       GROUP BY task_name
     `);
@@ -451,7 +435,7 @@ export class TaskThinRepository {
         SUM(CASE WHEN priority_bucket = 'High' THEN task_count ELSE 0 END)::int AS high,
         SUM(CASE WHEN priority_bucket = 'Medium' THEN task_count ELSE 0 END)::int AS medium,
         SUM(CASE WHEN priority_bucket = 'Low' THEN task_count ELSE 0 END)::int AS low
-      FROM analytics.mv_open_tasks_by_region_location_snapshots
+      FROM analytics.snapshot_open_task_facts
       ${whereClause}
       GROUP BY region, location
       ORDER BY location ASC, region ASC
@@ -469,7 +453,7 @@ export class TaskThinRepository {
         SUM(CASE WHEN priority_bucket = 'High' THEN task_count ELSE 0 END)::int AS high,
         SUM(CASE WHEN priority_bucket = 'Medium' THEN task_count ELSE 0 END)::int AS medium,
         SUM(CASE WHEN priority_bucket = 'Low' THEN task_count ELSE 0 END)::int AS low
-      FROM analytics.mv_open_tasks_summary_snapshots
+      FROM analytics.snapshot_open_task_facts
       ${whereClause}
     `);
   }
@@ -485,7 +469,7 @@ export class TaskThinRepository {
           ELSE (EXTRACT(EPOCH FROM SUM(total_wait_time)) / ${SECONDS_PER_DAY_SQL}) / SUM(assigned_task_count)::double precision
         END::double precision AS avg_wait_time_days,
         SUM(assigned_task_count)::int AS assigned_task_count
-      FROM analytics.mv_open_tasks_wait_time_by_assigned_date_snapshots
+      FROM analytics.snapshot_wait_time_by_assigned_date
       ${whereClause}
       GROUP BY reference_date
       ORDER BY reference_date
@@ -510,7 +494,7 @@ export class TaskThinRepository {
             ELSE 0
           END
         )::int AS completed
-      FROM analytics.mv_task_daily_facts_snapshots
+      FROM analytics.snapshot_task_daily_facts
       ${whereClause}
       GROUP BY reference_date
       ORDER BY reference_date
@@ -520,7 +504,7 @@ export class TaskThinRepository {
   async fetchAssigneeIds(snapshotId: number): Promise<string[]> {
     const rows = await tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
       SELECT DISTINCT assignee AS value
-      FROM analytics.mv_reportable_task_thin_snapshots
+      FROM analytics.snapshot_task_rows
       WHERE snapshot_id = ${snapshotId}
         AND assignee IS NOT NULL
       ORDER BY value

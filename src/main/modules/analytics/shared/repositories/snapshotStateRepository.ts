@@ -37,7 +37,7 @@ export class SnapshotStateRepository {
     try {
       const rows = await tmPrisma.$queryRaw<SnapshotStateRow[]>(Prisma.sql`
         SELECT published_snapshot_id, published_at
-        FROM analytics.mv_snapshot_state
+        FROM analytics.snapshot_state
         WHERE singleton_id = TRUE
         LIMIT 1
       `);
@@ -63,8 +63,8 @@ export class SnapshotStateRepository {
         SELECT
           batches.snapshot_id AS published_snapshot_id,
           COALESCE(state.published_at, batches.completed_at) AS published_at
-        FROM analytics.mv_snapshot_batches batches
-        LEFT JOIN analytics.mv_snapshot_state state
+        FROM analytics.snapshot_batches batches
+        LEFT JOIN analytics.snapshot_state state
           ON state.singleton_id = TRUE
          AND state.published_snapshot_id = batches.snapshot_id
         WHERE batches.snapshot_id = ${snapshotId}

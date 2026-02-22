@@ -116,7 +116,7 @@ describe('analytics controller utils', () => {
       taskId: 'task-1',
       service: 'Service',
       roleCategory: 'Role',
-      priority: 'medium',
+      priority: 'Medium',
       status: 'assigned',
       assigneeId: 'user-1',
       assigneeName: 'A',

@@ -1,4 +1,4 @@
-import { Task, UserOverviewResponse, UserTaskRow } from '../shared/types';
+import { Task, TaskPriority, UserOverviewResponse, UserTaskRow } from '../shared/types';
 import { formatDateKey, isWithinDue } from '../shared/utils';
 
 export interface UserOverviewMetrics extends UserOverviewResponse {
@@ -87,16 +87,16 @@ class UserOverviewService {
     const prioritySummary = assignedTasks.reduce(
       (acc, task) => {
         switch (task.priority) {
-          case 'urgent':
+          case TaskPriority.Urgent:
             acc.urgent += 1;
             break;
-          case 'high':
+          case TaskPriority.High:
             acc.high += 1;
             break;
-          case 'medium':
+          case TaskPriority.Medium:
             acc.medium += 1;
             break;
-          case 'low':
+          case TaskPriority.Low:
             acc.low += 1;
             break;
           default:

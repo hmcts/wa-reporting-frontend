@@ -8,6 +8,7 @@ import {
   PriorityBreakdown,
   PrioritySeriesPoint,
   Task,
+  TaskPriority,
   WaitTimePoint,
 } from '../shared/types';
 import { calculatePercent, formatDateKey, groupByDateKey } from '../shared/utils';
@@ -89,16 +90,16 @@ function tallyPrioritySeries(tasks: Task[]): PrioritySeriesPoint[] {
     date => ({ date, urgent: 0, high: 0, medium: 0, low: 0 }),
     (point, row) => {
       switch (row.task.priority) {
-        case 'urgent':
+        case TaskPriority.Urgent:
           point.urgent += 1;
           break;
-        case 'high':
+        case TaskPriority.High:
           point.high += 1;
           break;
-        case 'medium':
+        case TaskPriority.Medium:
           point.medium += 1;
           break;
-        case 'low':
+        case TaskPriority.Low:
           point.low += 1;
           break;
         default:
@@ -120,16 +121,16 @@ function tallyOpenByName(tasks: Task[]): PriorityBreakdown[] {
       low: 0,
     };
     switch (task.priority) {
-      case 'urgent':
+      case TaskPriority.Urgent:
         entry.urgent += 1;
         break;
-      case 'high':
+      case TaskPriority.High:
         entry.high += 1;
         break;
-      case 'medium':
+      case TaskPriority.Medium:
         entry.medium += 1;
         break;
-      case 'low':
+      case TaskPriority.Low:
         entry.low += 1;
         break;
       default:
@@ -158,16 +159,16 @@ function tallyOutstandingByLocation(tasks: Task[]): OutstandingByLocationRow[] {
     };
     entry.open += 1;
     switch (task.priority) {
-      case 'urgent':
+      case TaskPriority.Urgent:
         entry.urgent += 1;
         break;
-      case 'high':
+      case TaskPriority.High:
         entry.high += 1;
         break;
-      case 'medium':
+      case TaskPriority.Medium:
         entry.medium += 1;
         break;
-      case 'low':
+      case TaskPriority.Low:
         entry.low += 1;
         break;
       default:
@@ -208,7 +209,7 @@ function tallyOutstandingByRegion(rows: OutstandingByLocationRow[]): Outstanding
 }
 
 function buildCriticalTasks(tasks: Task[]): CriticalTask[] {
-  const urgent = tasks.filter(task => task.priority === 'urgent' || task.priority === 'high');
+  const urgent = tasks.filter(task => task.priority === TaskPriority.Urgent || task.priority === TaskPriority.High);
   return urgent
     .sort((a, b) => {
       const aDue = a.dueDate ?? '';
@@ -262,10 +263,10 @@ class OutstandingService {
       unassigned: unassignedCount,
       assignedPct: calculatePercent(assignedCount, outstanding.length),
       unassignedPct: calculatePercent(unassignedCount, outstanding.length),
-      urgent: outstanding.filter(task => task.priority === 'urgent').length,
-      high: outstanding.filter(task => task.priority === 'high').length,
-      medium: outstanding.filter(task => task.priority === 'medium').length,
-      low: outstanding.filter(task => task.priority === 'low').length,
+      urgent: outstanding.filter(task => task.priority === TaskPriority.Urgent).length,
+      high: outstanding.filter(task => task.priority === TaskPriority.High).length,
+      medium: outstanding.filter(task => task.priority === TaskPriority.Medium).length,
+      low: outstanding.filter(task => task.priority === TaskPriority.Low).length,
     };
 
     return {

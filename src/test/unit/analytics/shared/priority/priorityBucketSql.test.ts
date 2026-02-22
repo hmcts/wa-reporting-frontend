@@ -8,10 +8,10 @@ describe('priorityBucketSql', () => {
       priorityColumn: Prisma.raw('priority'),
       dateColumn: Prisma.raw('reference_date'),
       labels: {
-        urgent: 'Urgent',
-        high: 'High',
-        medium: 'Medium',
-        low: 'Low',
+        Urgent: 'Urgent',
+        High: 'High',
+        Medium: 'Medium',
+        Low: 'Low',
       },
     });
 

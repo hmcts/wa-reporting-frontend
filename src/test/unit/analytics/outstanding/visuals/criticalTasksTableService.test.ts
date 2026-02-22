@@ -32,7 +32,7 @@ describe('criticalTasksTableService', () => {
         location: 'Leeds',
         created_date: '2024-01-01',
         due_date: null,
-        priority: 'high',
+        priority: 'High',
         assignee: null,
       },
       {
@@ -44,7 +44,7 @@ describe('criticalTasksTableService', () => {
         location: 'Leeds',
         created_date: '2024-01-02',
         due_date: null,
-        priority: 'high',
+        priority: 'High',
         assignee: 'user-1',
       },
       {
@@ -56,7 +56,7 @@ describe('criticalTasksTableService', () => {
         location: 'Leeds',
         created_date: '2024-01-03',
         due_date: null,
-        priority: 'high',
+        priority: 'High',
         assignee: 'user-2',
       },
     ]);
@@ -131,7 +131,7 @@ describe('criticalTasksTableService', () => {
         location: 'Leeds',
         created_date: '2024-01-04',
         due_date: null,
-        priority: 'urgent',
+        priority: 'Urgent',
         assignee: 'user-3',
       },
     ]);

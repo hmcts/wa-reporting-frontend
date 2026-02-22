@@ -11,7 +11,7 @@ import { getCappedTotalPages, normalisePage } from '../shared/pagination';
 import type { AnalyticsQueryOptions } from '../shared/repositories';
 import { UserOverviewTaskRow, taskThinRepository } from '../shared/repositories';
 import { caseWorkerProfileService, courtVenueService } from '../shared/services';
-import { AnalyticsFilters, Task, TaskPriority, TaskStatus } from '../shared/types';
+import { AnalyticsFilters, Task, TaskStatus } from '../shared/types';
 import { UserOverviewSort } from '../shared/userOverviewSort';
 
 import { USER_OVERVIEW_PAGE_SIZE } from './pagination';
@@ -76,7 +76,7 @@ function mapUserOverviewRow(row: UserOverviewTaskRow, caseWorkerNames: Record<st
     region: row.region ?? '',
     location: row.location ?? '',
     taskName: row.task_name ?? '',
-    priority: row.priority as TaskPriority,
+    priority: row.priority,
     createdDate: row.created_date ?? '-',
     assignedDate: row.first_assigned_date ?? undefined,
     dueDate: row.due_date ?? undefined,

@@ -1,13 +1,13 @@
 import { chartColors } from '../../shared/charts/colors';
 import { buildDonutChart } from '../../shared/charts/donut';
 import { buildStackedBarWithLineTimeSeries } from '../../shared/charts/timeSeries';
-import { UserOverviewResponse } from '../../shared/types';
+import { TaskPriority, UserOverviewResponse } from '../../shared/types';
 import { CompletedByDatePoint } from '../service';
 
 export function buildUserPriorityChart(summary: UserOverviewResponse['prioritySummary']): string {
   return buildDonutChart({
     values: [summary.urgent, summary.high, summary.medium, summary.low],
-    labels: ['Urgent', 'High', 'Medium', 'Low'],
+    labels: [TaskPriority.Urgent, TaskPriority.High, TaskPriority.Medium, TaskPriority.Low],
     colors: [chartColors.purple, chartColors.blueDark, chartColors.blueLight, chartColors.greyLight],
   });
 }

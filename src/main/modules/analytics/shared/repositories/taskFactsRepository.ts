@@ -2,7 +2,6 @@ import { Prisma } from '@prisma/client';
 
 import { tmPrisma } from '../data/prisma';
 import { priorityBucketSql } from '../priority/priorityBucketSql';
-import { priorityDisplayLabels } from '../priority/priorityLabels';
 import { AnalyticsFilters } from '../types';
 
 import { SECONDS_PER_DAY_SQL } from './constants';
@@ -27,6 +26,21 @@ function snapshotCondition(snapshotId: number): Prisma.Sql {
   return Prisma.sql`snapshot_id = ${snapshotId}`;
 }
 
+type OverviewFilterOptionKind =
+  | 'service'
+  | 'roleCategory'
+  | 'region'
+  | 'location'
+  | 'taskName'
+  | 'workType'
+  | 'assignee';
+
+type OverviewFilterOptionRow = {
+  option_type: OverviewFilterOptionKind;
+  value: string;
+  text: string;
+};
+
 export class TaskFactsRepository {
   async fetchServiceOverviewRows(snapshotId: number, filters: AnalyticsFilters): Promise<ServiceOverviewDbRow[]> {
     const whereClause = buildAnalyticsWhere(filters, [
@@ -38,10 +52,10 @@ export class TaskFactsRepository {
       priorityColumn: Prisma.raw('priority'),
       dateColumn: Prisma.raw('reference_date'),
       labels: {
-        urgent: priorityDisplayLabels.urgent,
-        high: priorityDisplayLabels.high,
-        medium: priorityDisplayLabels.medium,
-        low: priorityDisplayLabels.low,
+        Urgent: 'Urgent',
+        High: 'High',
+        Medium: 'Medium',
+        Low: 'Low',
       },
     });
 
@@ -52,7 +66,7 @@ export class TaskFactsRepository {
           assignment_state,
           task_count,
           ${priorityBucket} AS priority_bucket
-        FROM analytics.mv_task_daily_facts_snapshots
+        FROM analytics.snapshot_task_daily_facts
         ${whereClause}
       )
       SELECT
@@ -87,7 +101,7 @@ export class TaskFactsRepository {
         SUM(CASE WHEN date_role = 'completed' THEN task_count ELSE 0 END)::int AS completed,
         SUM(CASE WHEN date_role = 'cancelled' THEN task_count ELSE 0 END)::int AS cancelled,
         SUM(CASE WHEN date_role = 'created' THEN task_count ELSE 0 END)::int AS created
-      FROM analytics.mv_task_daily_facts_snapshots
+      FROM analytics.snapshot_task_daily_facts
       ${whereClause}
       GROUP BY jurisdiction_label
       ORDER BY service ASC
@@ -98,103 +112,148 @@ export class TaskFactsRepository {
     snapshotId: number,
     queryOptions?: AnalyticsQueryOptions
   ): Promise<OverviewFilterOptionsRows> {
-    const [services, roleCategories, regions, locations, taskNames, workTypes, assignees] = await Promise.all([
-      (() => {
-        const whereClause = buildAnalyticsWhere(
-          {},
-          [snapshotCondition(snapshotId), Prisma.sql`jurisdiction_label IS NOT NULL`],
-          queryOptions
-        );
-        return tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
-          SELECT DISTINCT jurisdiction_label AS value
-          FROM analytics.mv_task_daily_facts_snapshots
-          ${whereClause}
-          ORDER BY value
-        `);
-      })(),
-      (() => {
-        const whereClause = buildAnalyticsWhere(
-          {},
-          [snapshotCondition(snapshotId), Prisma.sql`role_category_label IS NOT NULL`],
-          queryOptions
-        );
-        return tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
-          SELECT DISTINCT role_category_label AS value
-          FROM analytics.mv_task_daily_facts_snapshots
-          ${whereClause}
-          ORDER BY value
-        `);
-      })(),
-      (() => {
-        const whereClause = buildAnalyticsWhere(
-          {},
-          [snapshotCondition(snapshotId), Prisma.sql`region IS NOT NULL`],
-          queryOptions
-        );
-        return tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
-          SELECT DISTINCT region AS value
-          FROM analytics.mv_task_daily_facts_snapshots
-          ${whereClause}
-          ORDER BY value
-        `);
-      })(),
-      (() => {
-        const whereClause = buildAnalyticsWhere(
-          {},
-          [snapshotCondition(snapshotId), Prisma.sql`location IS NOT NULL`],
-          queryOptions
-        );
-        return tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
-          SELECT DISTINCT location AS value
-          FROM analytics.mv_task_daily_facts_snapshots
-          ${whereClause}
-          ORDER BY value
-        `);
-      })(),
-      (() => {
-        const whereClause = buildAnalyticsWhere(
-          {},
-          [snapshotCondition(snapshotId), Prisma.sql`task_name IS NOT NULL`],
-          queryOptions
-        );
-        return tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
-          SELECT DISTINCT task_name AS value
-          FROM analytics.mv_task_daily_facts_snapshots
-          ${whereClause}
-          ORDER BY value
-        `);
-      })(),
-      (() => {
-        const whereClause = buildAnalyticsWhere(
-          {},
-          [Prisma.sql`facts.snapshot_id = ${snapshotId}`, Prisma.sql`facts.work_type IS NOT NULL`],
-          queryOptions
-        );
-        return tmPrisma.$queryRaw<FilterValueWithTextRow[]>(Prisma.sql`
-          SELECT DISTINCT
-            facts.work_type AS value,
-            COALESCE(work_types.label, facts.work_type) AS text
-          FROM analytics.mv_task_daily_facts_snapshots facts
-          LEFT JOIN cft_task_db.work_types work_types
-            ON work_types.work_type_id = facts.work_type
-          ${whereClause}
-          ORDER BY text, value
-        `);
-      })(),
-      (() => {
-        const whereClause = buildAnalyticsWhere(
-          {},
-          [snapshotCondition(snapshotId), Prisma.sql`assignee IS NOT NULL`],
-          queryOptions
-        );
-        return tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
-          SELECT DISTINCT assignee AS value
-          FROM analytics.mv_reportable_task_thin_snapshots
-          ${whereClause}
-          ORDER BY value
-        `);
-      })(),
-    ]);
+    const serviceWhere = buildAnalyticsWhere(
+      {},
+      [snapshotCondition(snapshotId), Prisma.sql`jurisdiction_label IS NOT NULL`],
+      queryOptions
+    );
+    const roleCategoryWhere = buildAnalyticsWhere(
+      {},
+      [snapshotCondition(snapshotId), Prisma.sql`role_category_label IS NOT NULL`],
+      queryOptions
+    );
+    const regionWhere = buildAnalyticsWhere(
+      {},
+      [snapshotCondition(snapshotId), Prisma.sql`region IS NOT NULL`],
+      queryOptions
+    );
+    const locationWhere = buildAnalyticsWhere(
+      {},
+      [snapshotCondition(snapshotId), Prisma.sql`location IS NOT NULL`],
+      queryOptions
+    );
+    const taskNameWhere = buildAnalyticsWhere(
+      {},
+      [snapshotCondition(snapshotId), Prisma.sql`task_name IS NOT NULL`],
+      queryOptions
+    );
+    const workTypeWhere = buildAnalyticsWhere(
+      {},
+      [Prisma.sql`facts.snapshot_id = ${snapshotId}`, Prisma.sql`facts.work_type IS NOT NULL`],
+      queryOptions
+    );
+    const assigneeWhere = buildAnalyticsWhere(
+      {},
+      [snapshotCondition(snapshotId), Prisma.sql`assignee IS NOT NULL`],
+      queryOptions
+    );
+
+    const optionRows = await tmPrisma.$queryRaw<OverviewFilterOptionRow[]>(Prisma.sql`
+      WITH option_rows AS (
+        SELECT
+          'service'::text AS option_type,
+          jurisdiction_label AS value,
+          jurisdiction_label AS text
+        FROM analytics.snapshot_task_daily_facts
+        ${serviceWhere}
+
+        UNION
+
+        SELECT
+          'roleCategory'::text AS option_type,
+          role_category_label AS value,
+          role_category_label AS text
+        FROM analytics.snapshot_task_daily_facts
+        ${roleCategoryWhere}
+
+        UNION
+
+        SELECT
+          'region'::text AS option_type,
+          region AS value,
+          region AS text
+        FROM analytics.snapshot_task_daily_facts
+        ${regionWhere}
+
+        UNION
+
+        SELECT
+          'location'::text AS option_type,
+          location AS value,
+          location AS text
+        FROM analytics.snapshot_task_daily_facts
+        ${locationWhere}
+
+        UNION
+
+        SELECT
+          'taskName'::text AS option_type,
+          task_name AS value,
+          task_name AS text
+        FROM analytics.snapshot_task_daily_facts
+        ${taskNameWhere}
+
+        UNION
+
+        SELECT
+          'workType'::text AS option_type,
+          facts.work_type AS value,
+          COALESCE(work_types.label, facts.work_type) AS text
+        FROM analytics.snapshot_task_daily_facts facts
+        LEFT JOIN cft_task_db.work_types work_types
+          ON work_types.work_type_id = facts.work_type
+        ${workTypeWhere}
+
+        UNION
+
+        SELECT
+          'assignee'::text AS option_type,
+          assignee AS value,
+          assignee AS text
+        FROM analytics.snapshot_task_rows
+        ${assigneeWhere}
+      )
+      SELECT option_type, value, text
+      FROM option_rows
+      GROUP BY option_type, value, text
+      ORDER BY option_type ASC, text ASC, value ASC
+    `);
+
+    const services: FilterValueRow[] = [];
+    const roleCategories: FilterValueRow[] = [];
+    const regions: FilterValueRow[] = [];
+    const locations: FilterValueRow[] = [];
+    const taskNames: FilterValueRow[] = [];
+    const workTypes: FilterValueWithTextRow[] = [];
+    const assignees: FilterValueRow[] = [];
+
+    for (const row of optionRows) {
+      switch (row.option_type) {
+        case 'service':
+          services.push({ value: row.value });
+          break;
+        case 'roleCategory':
+          roleCategories.push({ value: row.value });
+          break;
+        case 'region':
+          regions.push({ value: row.value });
+          break;
+        case 'location':
+          locations.push({ value: row.value });
+          break;
+        case 'taskName':
+          taskNames.push({ value: row.value });
+          break;
+        case 'workType':
+          workTypes.push({ value: row.value, text: row.text });
+          break;
+        case 'assignee':
+          assignees.push({ value: row.value });
+          break;
+        default:
+          break;
+      }
+    }
 
     return { services, roleCategories, regions, locations, taskNames, workTypes, assignees };
   }
@@ -211,7 +270,7 @@ export class TaskFactsRepository {
         to_char(reference_date, 'YYYY-MM-DD') AS date_key,
         assignment_state,
         SUM(task_count)::int AS total
-      FROM analytics.mv_task_daily_facts_snapshots
+      FROM analytics.snapshot_task_daily_facts
       ${whereClause}
       GROUP BY reference_date, assignment_state
       ORDER BY reference_date
@@ -228,10 +287,10 @@ export class TaskFactsRepository {
       priorityColumn: Prisma.raw('priority'),
       dateColumn: Prisma.raw('reference_date'),
       labels: {
-        urgent: priorityDisplayLabels.urgent,
-        high: priorityDisplayLabels.high,
-        medium: priorityDisplayLabels.medium,
-        low: priorityDisplayLabels.low,
+        Urgent: 'Urgent',
+        High: 'High',
+        Medium: 'Medium',
+        Low: 'Low',
       },
     });
 
@@ -241,7 +300,7 @@ export class TaskFactsRepository {
           reference_date,
           task_count,
           ${priorityBucket} AS bucket
-        FROM analytics.mv_task_daily_facts_snapshots
+        FROM analytics.snapshot_task_daily_facts
         ${whereClause}
       )
       SELECT
@@ -279,7 +338,7 @@ export class TaskFactsRepository {
       SELECT
         SUM(task_count)::int AS total,
         SUM(CASE WHEN sla_flag IS TRUE THEN task_count ELSE 0 END)::int AS within
-      FROM analytics.mv_task_daily_facts_snapshots
+      FROM analytics.snapshot_task_daily_facts
       ${whereClause}
     `);
   }
@@ -307,7 +366,7 @@ export class TaskFactsRepository {
         to_char(reference_date, 'YYYY-MM-DD') AS date_key,
         SUM(task_count)::int AS total,
         SUM(CASE WHEN sla_flag IS TRUE THEN task_count ELSE 0 END)::int AS within
-      FROM analytics.mv_task_daily_facts_snapshots
+      FROM analytics.snapshot_task_daily_facts
       ${whereClause}
       GROUP BY reference_date
       ORDER BY reference_date
@@ -344,7 +403,7 @@ export class TaskFactsRepository {
         STDDEV_POP(EXTRACT(EPOCH FROM processing_time) / ${SECONDS_PER_DAY_SQL}) FILTER (WHERE processing_time IS NOT NULL)::double precision AS processing_stddev,
         SUM(EXTRACT(EPOCH FROM processing_time) / ${SECONDS_PER_DAY_SQL}) FILTER (WHERE processing_time IS NOT NULL)::double precision AS processing_sum,
         COUNT(processing_time)::int AS processing_count
-      FROM analytics.mv_reportable_task_thin_snapshots
+      FROM analytics.snapshot_task_rows
       ${whereClause}
       GROUP BY completed_date
       ORDER BY completed_date
@@ -374,7 +433,7 @@ export class TaskFactsRepository {
         task_name,
         SUM(task_count)::int AS total,
         SUM(CASE WHEN sla_flag IS TRUE THEN task_count ELSE 0 END)::int AS within
-      FROM analytics.mv_task_daily_facts_snapshots
+      FROM analytics.snapshot_task_daily_facts
       ${whereClause}
       GROUP BY task_name
       ORDER BY total DESC
@@ -409,7 +468,7 @@ export class TaskFactsRepository {
         SUM(handling_time_days_count)::int AS handling_time_days_count,
         SUM(processing_time_days_sum)::double precision AS processing_time_days_sum,
         SUM(processing_time_days_count)::int AS processing_time_days_count
-      FROM analytics.mv_task_daily_facts_snapshots
+      FROM analytics.snapshot_task_daily_facts
       ${whereClause}
       GROUP BY location, region
       ORDER BY location ASC, region ASC
@@ -443,7 +502,7 @@ export class TaskFactsRepository {
         SUM(handling_time_days_count)::int AS handling_time_days_count,
         SUM(processing_time_days_sum)::double precision AS processing_time_days_sum,
         SUM(processing_time_days_count)::int AS processing_time_days_count
-      FROM analytics.mv_task_daily_facts_snapshots
+      FROM analytics.snapshot_task_daily_facts
       ${whereClause}
       GROUP BY region
       ORDER BY region ASC

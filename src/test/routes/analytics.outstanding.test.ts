@@ -16,7 +16,7 @@ const unmappedCriticalTaskRow = {
   location: 'Leeds',
   created_date: '2024-01-10',
   due_date: '2024-01-12',
-  priority: 'high',
+  priority: 'High',
   assignee: 'unmapped-user-id',
 };
 

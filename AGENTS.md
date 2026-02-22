@@ -89,7 +89,8 @@ scripts/
 - For AJAX section refreshes (e.g., user overview sorting), follow the established pattern: add a `data-section` wrapper around the section partial, submit `ajaxSection` with `X-Requested-With: fetch`, render the specific partial in the controller when the header/section is present, and send URL-encoded form data (including `_csrf`) so `csurf` can validate it.
 - Add or update tests under `src/test/` following existing unit/functional/a11y/smoke patterns for the change. Branch and line coverage per file should be at least 95%.
 - For changes in mutation-sensitive analytics logic (for example `shared/` helpers, analytics aggregations, repository filter/query composition, and view-model calculations), run focused mutation testing during development using `yarn test:mutation --mutate <source-file>` and, when helpful, `--testFiles <matching-test-file>` to validate the changed unit tests kill mutants in that area.
-- Mandatory: the final step after any change is to run `yarn lint`, `yarn test:coverage`, `yarn test:routes` and `yarn build`; do not consider work complete unless all four pass and coverage for files modified as part of the task is above the mandated 95%.
+- Mandatory for non-documentation changes: the final step after any code/config/runtime SQL change is to run `yarn lint`, `yarn test:coverage`, `yarn test:routes` and `yarn build`; do not consider work complete unless all four pass and coverage for files modified as part of the task is above the mandated 95%.
+- Documentation-only exception: when all changed files are documentation files (for example `*.md` under repo root or `docs/`) and no executable code, configuration, SQL, assets, or tests are changed, the four mandatory verification commands are not required.
 - Any changes which impact these Development Guidelines should be accompanied with changes to the Development Guidelines.
 
 # ExecPlans

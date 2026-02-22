@@ -21,7 +21,7 @@ const assignedHighPriorityRow = {
   completed_date: null,
   handling_time_days: null,
   is_within_sla: null,
-  priority: 'high',
+  priority: 'High',
   assignee: 'user-1',
   number_of_reassignments: 0,
 };

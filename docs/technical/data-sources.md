@@ -29,14 +29,14 @@ flowchart TB
   TMRepo --> TM["TM analytics DB"]
   RefSvc --> CRD["CRD DB (caseworkers)"]
   RefSvc --> LRD["LRD DB (regions/locations)"]
-  TM --> Views["Analytics views (mv_*)"]
-  Views --> Dashboards["Dashboards"]
+  TM --> Snapshots["Analytics snapshot tables (snapshot_*)"]
+  Snapshots --> Dashboards["Dashboards"]
 ```
 
-## Core analytics views (tm database)
-The application relies on materialized or analytics views in the `analytics` schema. Minimum columns required are listed below (based on query usage).
+## Core analytics snapshot tables (tm database)
+The application relies on published snapshot tables in the `analytics` schema. Minimum columns required are listed below (based on query usage).
 
-### analytics.mv_task_daily_facts
+### analytics.snapshot_task_daily_facts
 Used for service overview, events, timelines, and completion summaries.
 
 Required columns:
@@ -58,7 +58,7 @@ Required columns:
 - processing_time_days_sum
 - processing_time_days_count
 
-### analytics.mv_reportable_task_thin
+### analytics.snapshot_task_rows
 Used for per-task lists (user overview, critical tasks, task audit) and processing/handling time.
 
 Required columns:
@@ -87,8 +87,11 @@ Required columns:
 - major_priority (numeric)
 - assignee
 - number_of_reassignments
+- priority_bucket (Urgent/High/Medium/Low; snapshot-derived)
+- priority_sort_value (indexed sort rank for priority ordering)
+- within_due_sort_value (indexed sort rank for within-due ordering)
 
-### analytics.mv_user_completed_facts
+### analytics.snapshot_user_completed_facts
 Used for user overview aggregated charts.
 
 Required columns:
@@ -104,35 +107,19 @@ Required columns:
 - days_beyond_count
 - assignee (for user filtering)
 
-### analytics.mv_open_tasks_by_name
-Used for open tasks by name and priority.
+### analytics.snapshot_open_task_facts
+Used for open tasks by name, by region/location, and summary counts.
 
 Required columns:
+- state (ASSIGNED / UNASSIGNED / PENDING AUTO ASSIGN / UNCONFIGURED)
 - task_name
-- work_type
-- priority_bucket (Urgent/High/Medium/Low)
-- task_count
-
-### analytics.mv_open_tasks_by_region_location
-Used for outstanding by region/location tables.
-
-Required columns:
 - region
 - location
 - work_type
-- priority_bucket (Urgent/High/Medium/Low)
+- priority_bucket (Urgent/High/Medium/Low; tasks with no due date are classified as Low)
 - task_count
 
-### analytics.mv_open_tasks_summary
-Used for open tasks summary counts.
-
-Required columns:
-- state (ASSIGNED or not)
-- work_type
-- priority_bucket
-- task_count
-
-### analytics.mv_open_tasks_wait_time_by_assigned_date
+### analytics.snapshot_wait_time_by_assigned_date
 Used for wait time by assigned date.
 
 Required columns:
@@ -184,19 +171,19 @@ Work type display values:
 - Dropdown labels are sourced from `cft_task_db.work_types.label` with fallback to the ID when no label is present.
 
 Date filters:
-- completedFrom/completedTo -> completed_date in mv_reportable_task_thin or reference_date in mv_task_daily_facts.
-- eventsFrom/eventsTo -> reference_date in mv_task_daily_facts for created/completed/cancelled events.
+- completedFrom/completedTo -> completed_date in snapshot_task_rows or reference_date in snapshot_task_daily_facts.
+- eventsFrom/eventsTo -> reference_date in snapshot_task_daily_facts for created/completed/cancelled events.
 - User Overview page applies an additional scoped exclusion: `UPPER(role_category_label) <> 'JUDICIAL'` (null-safe), and this scoped rule is not applied on `/`, `/outstanding`, or `/completed`.
 
 ## Derived concepts and calculations
 
 ### Priority bucket
 Priority is calculated using `major_priority` or `priority` with a due-date-aware rule:
-- <= 2000 => urgent
-- < 5000 => high
-- == 5000 and due_date < today => high
-- == 5000 and due_date == today => medium
-- else => low
+- <= 2000 => Urgent
+- < 5000 => High
+- == 5000 and due_date < today => High
+- == 5000 and due_date == today => Medium
+- else => Low
 
 ### Within due date
 Within due date is computed as:

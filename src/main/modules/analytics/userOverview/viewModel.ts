@@ -1,9 +1,8 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
 import { formatAnalyticsDateDisplay, formatDatePickerValue, formatNumber, formatPercent } from '../shared/formatting';
 import { PaginationMeta } from '../shared/pagination';
-import { toDisplayPriorityLabel } from '../shared/priority/priorityLabels';
 import type { FilterOptions } from '../shared/services';
-import { AnalyticsFilters, Task, UserOverviewResponse } from '../shared/types';
+import { AnalyticsFilters, Task, TaskPriorityValue, UserOverviewResponse } from '../shared/types';
 import { UserOverviewSort } from '../shared/userOverviewSort';
 import { lookup, normaliseLabel } from '../shared/utils';
 import type { FilterOptionsViewModel, SelectOption } from '../shared/viewModels/filterOptions';
@@ -89,7 +88,7 @@ type UserOverviewAssignedRow = {
   assignedDateRaw: string;
   dueDate: string;
   dueDateRaw: string;
-  priority: string;
+  priority: TaskPriorityValue;
   totalAssignments: string;
   assigneeName: string;
   location: string;
@@ -126,7 +125,7 @@ function mapAssignedRow(row: Task, locationDescriptions: Record<string, string>)
     assignedDateRaw: assignedDateRaw || '-',
     dueDate: formatAnalyticsDateDisplay(dueDateRaw),
     dueDateRaw: dueDateRaw || '-',
-    priority: toDisplayPriorityLabel(row.priority),
+    priority: row.priority,
     totalAssignments: formatNumber(row.totalAssignments ?? 0),
     assigneeName: row.assigneeName ?? '',
     location: lookup(row.location, locationDescriptions),

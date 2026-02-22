@@ -86,44 +86,27 @@ describe('taskFactsRepository', () => {
     expect(toQuery.values).toEqual(expect.arrayContaining([snapshotId, to]));
   });
 
-  test('fetchOverviewFilterOptionsRows executes all distinct filter lookups', async () => {
+  test('fetchOverviewFilterOptionsRows executes a single normalized filter-options query', async () => {
     await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId);
 
-    expect(tmPrisma.$queryRaw).toHaveBeenCalledTimes(7);
-    const queries = (tmPrisma.$queryRaw as jest.Mock).mock.calls.map(
-      call => call[0] as { sql: string; values: unknown[] }
-    );
-    const [serviceQuery, roleCategoryQuery, regionQuery, locationQuery, taskNameQuery, workTypeQuery, assigneeQuery] =
-      queries;
+    expect(tmPrisma.$queryRaw).toHaveBeenCalledTimes(1);
+    const query = queryCall();
 
-    expect(serviceQuery.sql).toContain('jurisdiction_label AS value');
-    expect(serviceQuery.sql).toContain('snapshot_id =');
-    expect(serviceQuery.sql).toContain('jurisdiction_label IS NOT NULL');
-
-    expect(roleCategoryQuery.sql).toContain('role_category_label AS value');
-    expect(roleCategoryQuery.sql).toContain('snapshot_id =');
-    expect(roleCategoryQuery.sql).toContain('role_category_label IS NOT NULL');
-
-    expect(regionQuery.sql).toContain('region AS value');
-    expect(regionQuery.sql).toContain('snapshot_id =');
-    expect(regionQuery.sql).toContain('region IS NOT NULL');
-
-    expect(locationQuery.sql).toContain('location AS value');
-    expect(locationQuery.sql).toContain('snapshot_id =');
-    expect(locationQuery.sql).toContain('location IS NOT NULL');
-
-    expect(taskNameQuery.sql).toContain('task_name AS value');
-    expect(taskNameQuery.sql).toContain('snapshot_id =');
-    expect(taskNameQuery.sql).toContain('task_name IS NOT NULL');
-
-    expect(workTypeQuery.sql).toContain('facts.work_type AS value');
-    expect(workTypeQuery.sql).toContain('LEFT JOIN cft_task_db.work_types');
-    expect(workTypeQuery.sql).toContain('facts.snapshot_id =');
-    expect(workTypeQuery.sql).toContain('facts.work_type IS NOT NULL');
-
-    expect(assigneeQuery.sql).toContain('assignee AS value');
-    expect(assigneeQuery.sql).toContain('snapshot_id =');
-    expect(assigneeQuery.sql).toContain('assignee IS NOT NULL');
+    expect(query.sql).toContain('WITH option_rows AS');
+    expect(query.sql).toContain("'service'::text AS option_type");
+    expect(query.sql).toContain("'roleCategory'::text AS option_type");
+    expect(query.sql).toContain("'region'::text AS option_type");
+    expect(query.sql).toContain("'location'::text AS option_type");
+    expect(query.sql).toContain("'taskName'::text AS option_type");
+    expect(query.sql).toContain("'workType'::text AS option_type");
+    expect(query.sql).toContain("'assignee'::text AS option_type");
+    expect(query.sql).toContain('FROM analytics.snapshot_task_daily_facts');
+    expect(query.sql).toContain('FROM analytics.snapshot_task_rows');
+    expect(query.sql).toContain('LEFT JOIN cft_task_db.work_types');
+    expect(query.sql).toContain('facts.snapshot_id =');
+    expect(query.sql).toContain('facts.work_type IS NOT NULL');
+    expect(query.sql).toContain('GROUP BY option_type, value, text');
+    expect(query.sql).toContain('ORDER BY option_type ASC, text ASC, value ASC');
   });
 
   test('applies role-category exclusion options to overview filter option queries', async () => {
@@ -131,12 +114,9 @@ describe('taskFactsRepository', () => {
       excludeRoleCategories: ['Judicial'],
     });
 
-    const calls = (tmPrisma.$queryRaw as jest.Mock).mock.calls;
-    expect(calls).toHaveLength(7);
-    for (const [query] of calls) {
-      expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
-      expect(query.values).toContain('JUDICIAL');
-    }
+    const query = queryCall();
+    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.values).toContain('JUDICIAL');
   });
 
   test('uses completed-date filtering for processing and handling time', async () => {
