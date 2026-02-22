@@ -37,6 +37,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function withNormalisedAxisTitle(axis: Record<string, unknown>): Record<string, unknown> {
+  const title = axis.title;
+  if (typeof title === 'string') {
+    return { ...axis, title: { text: title } };
+  }
+  return axis;
+}
+
 function buildTimeSeriesAxes(
   layoutOverrides: Record<string, unknown>,
   axisTitles: AxisTitles | undefined,
@@ -47,19 +55,19 @@ function buildTimeSeriesAxes(
   yaxis: Record<string, unknown>;
 } {
   const { xaxis: rawXaxisOverrides, yaxis: rawYaxisOverrides, ...restLayout } = layoutOverrides;
-  const xaxisOverrides = isRecord(rawXaxisOverrides) ? rawXaxisOverrides : {};
-  const yaxisOverrides = isRecord(rawYaxisOverrides) ? rawYaxisOverrides : {};
+  const xaxisOverrides = withNormalisedAxisTitle(isRecord(rawXaxisOverrides) ? rawXaxisOverrides : {});
+  const yaxisOverrides = withNormalisedAxisTitle(isRecord(rawYaxisOverrides) ? rawYaxisOverrides : {});
 
   return {
     restLayout,
     xaxis: {
       ...defaultDateXAxis,
-      ...(axisTitles?.x ? { title: axisTitles.x } : {}),
+      ...(axisTitles?.x ? { title: { text: axisTitles.x } } : {}),
       ...xaxisOverrides,
     },
     yaxis: {
       ...defaultYaxis,
-      ...(axisTitles?.y ? { title: axisTitles.y } : {}),
+      ...(axisTitles?.y ? { title: { text: axisTitles.y } } : {}),
       ...yaxisOverrides,
     },
   };

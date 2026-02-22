@@ -29,9 +29,9 @@ describe('completedCharts', () => {
     expect(config.data[2].name).toBe('Total - 7-day average');
     expect(config.data[2].mode).toBe('lines');
     expect(config.layout.dragmode).toBe('pan');
-    expect(config.layout.xaxis.title).toBe('Completed date');
+    expect(config.layout.xaxis.title.text).toBe('Completed date');
     expect(config.layout.xaxis.fixedrange).toBe(false);
-    expect(config.layout.yaxis.title).toBe('Tasks');
+    expect(config.layout.yaxis.title.text).toBe('Tasks');
   });
 
   test('buildCompletedByNameChart uses task counts', () => {
@@ -72,7 +72,7 @@ describe('completedCharts', () => {
     expect(config.data[0].error_y.array).toEqual([1]);
     expect(config.data[0].error_y.arrayminus).toEqual([1]);
     expect(config.layout.margin.t).toBe(20);
-    expect(config.layout.yaxis.title).toBe('Days');
+    expect(config.layout.yaxis.title.text).toBe('Days');
   });
 
   test('buildProcessingHandlingTimeChart uses processing metrics when selected', () => {
@@ -103,9 +103,9 @@ describe('completedCharts', () => {
     expect(config.data[1].name).toBe('Upper range (+1 std)');
     expect(config.data[2].name).toBe('Lower range (-1 std)');
     expect(config.data[0].mode).toBe('lines+markers');
-    expect(config.layout.xaxis.title).toBe('Completed date');
+    expect(config.layout.xaxis.title.text).toBe('Completed date');
     expect(config.layout.xaxis.automargin).toBe(true);
-    expect(config.layout.yaxis.title).toBe('Days');
+    expect(config.layout.yaxis.title.text).toBe('Days');
     expect(config.layout.yaxis.fixedrange).toBe(true);
     expect(config.layout.yaxis.rangemode).toBe('tozero');
   });

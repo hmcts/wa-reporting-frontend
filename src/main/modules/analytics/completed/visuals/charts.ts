@@ -89,7 +89,7 @@ export function buildHandlingChart(stats: HandlingTimeStats): string {
         },
       },
     ],
-    layout: { margin: { t: 20 }, yaxis: { title: 'Days' } },
+    layout: { margin: { t: 20 }, yaxis: { title: { text: 'Days' } } },
   });
 }
 

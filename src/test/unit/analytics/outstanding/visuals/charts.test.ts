@@ -35,14 +35,14 @@ describe('outstanding charts', () => {
 
     const parsed = JSON.parse(chart) as {
       data: { x: string[]; y: number[]; name: string }[];
-      layout: { xaxis: { title: string }; yaxis: { title: string } };
+      layout: { xaxis: { title: { text: string } }; yaxis: { title: { text: string } } };
     };
 
     expect(parsed.data[0].name).toBe('Assigned');
     expect(parsed.data[0].x).toEqual(['2024-01-01']);
     expect(parsed.data[0].y).toEqual([3]);
-    expect(parsed.layout.xaxis.title).toBe('Created date');
-    expect(parsed.layout.yaxis.title).toBe('Tasks');
+    expect(parsed.layout.xaxis.title.text).toBe('Created date');
+    expect(parsed.layout.yaxis.title.text).toBe('Tasks');
   });
 
   test('buildWaitTimeChart returns plotly config', () => {
@@ -52,14 +52,14 @@ describe('outstanding charts', () => {
 
     const parsed = JSON.parse(chart) as {
       data: { x: string[]; y: number[]; name: string }[];
-      layout: { xaxis: { title: string }; yaxis: { title: string } };
+      layout: { xaxis: { title: { text: string } }; yaxis: { title: { text: string } } };
     };
 
     expect(parsed.data[0].name).toBe('Average wait (days)');
     expect(parsed.data[0].x).toEqual(['2024-01-01']);
     expect(parsed.data[0].y).toEqual([2.5]);
-    expect(parsed.layout.xaxis.title).toBe('Assigned date');
-    expect(parsed.layout.yaxis.title).toBe('Days');
+    expect(parsed.layout.xaxis.title.text).toBe('Assigned date');
+    expect(parsed.layout.yaxis.title.text).toBe('Days');
   });
 
   test('buildTasksDueChart returns plotly config', () => {
@@ -67,13 +67,13 @@ describe('outstanding charts', () => {
 
     const parsed = JSON.parse(chart) as {
       data: { name: string; y: number[] }[];
-      layout: { xaxis: { title: string }; yaxis: { title: string } };
+      layout: { xaxis: { title: { text: string } }; yaxis: { title: { text: string } } };
     };
 
     expect(parsed.data.map(series => series.name)).toEqual(['Open', 'Completed']);
     expect(parsed.data[0].y).toEqual([2]);
-    expect(parsed.layout.xaxis.title).toBe('Due date');
-    expect(parsed.layout.yaxis.title).toBe('Tasks');
+    expect(parsed.layout.xaxis.title.text).toBe('Due date');
+    expect(parsed.layout.yaxis.title.text).toBe('Tasks');
   });
 
   test('buildTasksDuePriorityChart returns plotly config', () => {
@@ -81,7 +81,7 @@ describe('outstanding charts', () => {
 
     const parsed = JSON.parse(chart) as {
       data: { name: string; y: number[]; marker: { color: string } }[];
-      layout: { xaxis: { title: string }; yaxis: { title: string } };
+      layout: { xaxis: { title: { text: string } }; yaxis: { title: { text: string } } };
     };
 
     expect(parsed.data.map(series => series.name)).toEqual(['Urgent', 'High', 'Medium', 'Low']);
@@ -92,8 +92,8 @@ describe('outstanding charts', () => {
       chartColors.blueLight,
       chartColors.greyLight,
     ]);
-    expect(parsed.layout.xaxis.title).toBe('Due date');
-    expect(parsed.layout.yaxis.title).toBe('Tasks');
+    expect(parsed.layout.xaxis.title.text).toBe('Due date');
+    expect(parsed.layout.yaxis.title.text).toBe('Tasks');
   });
 
   test('buildPriorityDonutChart builds chart slices', () => {

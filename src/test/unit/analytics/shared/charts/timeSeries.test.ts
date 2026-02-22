@@ -24,8 +24,8 @@ describe('time series chart builders', () => {
     });
     const parsed = JSON.parse(chart);
 
-    expect(parsed.layout.xaxis.title).toBe('Due date');
-    expect(parsed.layout.yaxis.title).toBe('Tasks');
+    expect(parsed.layout.xaxis.title.text).toBe('Due date');
+    expect(parsed.layout.yaxis.title.text).toBe('Tasks');
   });
 
   test('builds stacked bar with line series', () => {
@@ -80,8 +80,17 @@ describe('time series chart builders', () => {
     });
     const parsed = JSON.parse(chart);
 
-    expect(parsed.layout.xaxis.title).toBe('Assigned date');
-    expect(parsed.layout.yaxis.title).toBe('Days');
+    expect(parsed.layout.xaxis.title.text).toBe('Assigned date');
+    expect(parsed.layout.yaxis.title.text).toBe('Days');
     expect(parsed.layout.yaxis.fixedrange).toBe(true);
+  });
+
+  test('normalises string axis title overrides into title objects', () => {
+    const chart = buildLineTimeSeries(['2024-01-01'], [{ name: 'Average', values: [2], color: '#1d70b8' }], {
+      layoutOverrides: { yaxis: { title: 'Days' } },
+    });
+    const parsed = JSON.parse(chart);
+
+    expect(parsed.layout.yaxis.title.text).toBe('Days');
   });
 });
