@@ -83,6 +83,7 @@ sequenceDiagram
   - Responsive layout
   - Modebar without lasso/select/auto-scale
   - Autosized axes with compact margins
+  - Shared time-series helpers (`src/main/modules/analytics/shared/charts/timeSeries.ts`) set date-axis formatting and support common axis-title configuration (`axisTitles`) so dashboards can keep chart labels aligned with table terminology.
 - Chart types:
   - Donut charts (priority and compliance)
   - Stacked bar time series

@@ -45,6 +45,7 @@ export function buildTimelineChart(timeline: CompletedPoint[]): string {
       width: 3,
     },
     {
+      axisTitles: { x: 'Completed date', y: 'Tasks' },
       layoutOverrides: {
         dragmode: 'pan',
         xaxis: { fixedrange: false },
@@ -114,10 +115,11 @@ export function buildProcessingHandlingTimeChart(
       { name: 'Lower range (-1 std)', values: lower, color: chartColors.grey, width: 2 },
     ],
     {
+      axisTitles: { x: 'Completed date', y: 'Days' },
       layoutOverrides: {
-        xaxis: { title: 'Completed date', automargin: true },
+        xaxis: { automargin: true },
         margin: { t: 20, b: 60 },
-        yaxis: { title: 'Days', automargin: true, fixedrange: true, rangemode: 'tozero' },
+        yaxis: { automargin: true, fixedrange: true, rangemode: 'tozero' },
       },
     }
   );

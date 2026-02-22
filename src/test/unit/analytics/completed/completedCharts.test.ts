@@ -29,7 +29,9 @@ describe('completedCharts', () => {
     expect(config.data[2].name).toBe('Total - 7-day average');
     expect(config.data[2].mode).toBe('lines');
     expect(config.layout.dragmode).toBe('pan');
+    expect(config.layout.xaxis.title).toBe('Completed date');
     expect(config.layout.xaxis.fixedrange).toBe(false);
+    expect(config.layout.yaxis.title).toBe('Tasks');
   });
 
   test('buildCompletedByNameChart uses task counts', () => {

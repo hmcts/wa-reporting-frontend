@@ -31,8 +31,9 @@ export function buildUserCompletedByDateChart(points: CompletedByDatePoint[]): s
       axis: 'y2',
     },
     {
+      axisTitles: { x: 'Completed date', y: 'Tasks' },
       layoutOverrides: {
-        yaxis: { title: 'Tasks', automargin: true, fixedrange: true, rangemode: 'tozero' },
+        yaxis: { automargin: true, fixedrange: true, rangemode: 'tozero' },
         yaxis2: {
           title: 'Average handling time (days)',
           automargin: true,

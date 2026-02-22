@@ -18,6 +18,16 @@ describe('time series chart builders', () => {
     expect(parsed.layout.yaxis.range).toEqual([0, 10]);
   });
 
+  test('applies shared axis titles to stacked bar charts', () => {
+    const chart = buildStackedBarTimeSeries(['2024-01-01'], [{ name: 'Open', values: [3], color: '#0b0c0c' }], {
+      axisTitles: { x: 'Due date', y: 'Tasks' },
+    });
+    const parsed = JSON.parse(chart);
+
+    expect(parsed.layout.xaxis.title).toBe('Due date');
+    expect(parsed.layout.yaxis.title).toBe('Tasks');
+  });
+
   test('builds stacked bar with line series', () => {
     const chart = buildStackedBarWithLineTimeSeries(
       ['2024-01-01', '2024-01-02'],
@@ -61,5 +71,17 @@ describe('time series chart builders', () => {
     const parsed = JSON.parse(chart);
 
     expect(parsed.data[0].mode).toBe('lines');
+  });
+
+  test('applies shared axis titles to line charts while preserving overrides', () => {
+    const chart = buildLineTimeSeries(['2024-01-01'], [{ name: 'Average', values: [2], color: '#1d70b8' }], {
+      axisTitles: { x: 'Assigned date', y: 'Days' },
+      layoutOverrides: { yaxis: { fixedrange: true } },
+    });
+    const parsed = JSON.parse(chart);
+
+    expect(parsed.layout.xaxis.title).toBe('Assigned date');
+    expect(parsed.layout.yaxis.title).toBe('Days');
+    expect(parsed.layout.yaxis.fixedrange).toBe(true);
   });
 });

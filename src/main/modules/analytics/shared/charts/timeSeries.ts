@@ -15,9 +15,15 @@ type LineSeries = {
   axis?: 'y' | 'y2';
 };
 
+type AxisTitles = {
+  x?: string;
+  y?: string;
+};
+
 type TimeSeriesLayoutOverrides = {
   layoutOverrides?: Record<string, unknown>;
   legendOrientation?: 'h' | 'v';
+  axisTitles?: AxisTitles;
 };
 
 const defaultDateXAxis = {
@@ -27,13 +33,34 @@ const defaultDateXAxis = {
   automargin: true,
 };
 
-function withDateXAxis(layoutOverrides: Record<string, unknown> = {}): Record<string, unknown> {
-  const { xaxis: xaxisOverrides, ...rest } = layoutOverrides;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function buildTimeSeriesAxes(
+  layoutOverrides: Record<string, unknown>,
+  axisTitles: AxisTitles | undefined,
+  defaultYaxis: Record<string, unknown>
+): {
+  restLayout: Record<string, unknown>;
+  xaxis: Record<string, unknown>;
+  yaxis: Record<string, unknown>;
+} {
+  const { xaxis: rawXaxisOverrides, yaxis: rawYaxisOverrides, ...restLayout } = layoutOverrides;
+  const xaxisOverrides = isRecord(rawXaxisOverrides) ? rawXaxisOverrides : {};
+  const yaxisOverrides = isRecord(rawYaxisOverrides) ? rawYaxisOverrides : {};
+
   return {
-    ...rest,
+    restLayout,
     xaxis: {
       ...defaultDateXAxis,
-      ...(typeof xaxisOverrides === 'object' && xaxisOverrides !== null ? xaxisOverrides : {}),
+      ...(axisTitles?.x ? { title: axisTitles.x } : {}),
+      ...xaxisOverrides,
+    },
+    yaxis: {
+      ...defaultYaxis,
+      ...(axisTitles?.y ? { title: axisTitles.y } : {}),
+      ...yaxisOverrides,
     },
   };
 }
@@ -41,8 +68,14 @@ function withDateXAxis(layoutOverrides: Record<string, unknown> = {}): Record<st
 export function buildStackedBarTimeSeries(
   dates: string[],
   series: BarSeries[],
-  { layoutOverrides = {}, legendOrientation = 'h' }: TimeSeriesLayoutOverrides = {}
+  { layoutOverrides = {}, legendOrientation = 'h', axisTitles }: TimeSeriesLayoutOverrides = {}
 ): string {
+  const { restLayout, xaxis, yaxis } = buildTimeSeriesAxes(layoutOverrides, axisTitles, {
+    automargin: true,
+    fixedrange: true,
+    rangemode: 'tozero',
+  });
+
   return buildChartConfig({
     data: series.map(item => ({
       x: dates,
@@ -55,8 +88,9 @@ export function buildStackedBarTimeSeries(
       barmode: 'stack',
       margin: { t: 20 },
       legend: { orientation: legendOrientation, traceorder: 'normal' },
-      yaxis: { automargin: true, fixedrange: true, rangemode: 'tozero' },
-      ...withDateXAxis(layoutOverrides),
+      ...restLayout,
+      xaxis,
+      yaxis,
     },
   });
 }
@@ -65,8 +99,14 @@ export function buildStackedBarWithLineTimeSeries(
   dates: string[],
   bars: BarSeries[],
   line: LineSeries,
-  { layoutOverrides = {}, legendOrientation = 'h' }: TimeSeriesLayoutOverrides = {}
+  { layoutOverrides = {}, legendOrientation = 'h', axisTitles }: TimeSeriesLayoutOverrides = {}
 ): string {
+  const { restLayout, xaxis, yaxis } = buildTimeSeriesAxes(layoutOverrides, axisTitles, {
+    automargin: true,
+    fixedrange: true,
+    rangemode: 'tozero',
+  });
+
   return buildChartConfig({
     data: [
       ...bars.map(item => ({
@@ -90,8 +130,9 @@ export function buildStackedBarWithLineTimeSeries(
       barmode: 'stack',
       margin: { t: 20 },
       legend: { orientation: legendOrientation, traceorder: 'normal' },
-      yaxis: { automargin: true, fixedrange: true, rangemode: 'tozero' },
-      ...withDateXAxis(layoutOverrides),
+      ...restLayout,
+      xaxis,
+      yaxis,
     },
   });
 }
@@ -99,8 +140,13 @@ export function buildStackedBarWithLineTimeSeries(
 export function buildLineTimeSeries(
   dates: string[],
   series: LineSeries[],
-  { layoutOverrides = {} }: Pick<TimeSeriesLayoutOverrides, 'layoutOverrides'> = {}
+  {
+    layoutOverrides = {},
+    axisTitles,
+  }: Pick<TimeSeriesLayoutOverrides, 'layoutOverrides' | 'axisTitles'> = {}
 ): string {
+  const { restLayout, xaxis, yaxis } = buildTimeSeriesAxes(layoutOverrides, axisTitles, {});
+
   return buildChartConfig({
     data: series.map(item => ({
       x: dates,
@@ -112,7 +158,9 @@ export function buildLineTimeSeries(
     })),
     layout: {
       margin: { t: 20 },
-      ...withDateXAxis(layoutOverrides),
+      ...restLayout,
+      xaxis,
+      ...(Object.keys(yaxis).length > 0 ? { yaxis } : {}),
     },
   });
 }

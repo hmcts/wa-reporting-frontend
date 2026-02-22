@@ -34,6 +34,7 @@ flowchart LR
 ### 2) Tasks completed timeline
 - Title: "Tasks completed".
 - Chart: stacked bar (within vs beyond due date) plus a 7-day rolling average line.
+- Chart axes: x-axis `Completed date`; y-axis `Tasks`.
 - Table columns:
   - Completed date
   - Tasks
@@ -60,6 +61,7 @@ flowchart LR
 - Displays:
   - Overall average for the selected metric (shown in the Chart tab).
   - Chart: average with upper/lower range (+/- 1 standard deviation) by completed date.
+  - Chart axes: x-axis `Completed date`; y-axis `Days`.
   - Table with the same data.
 
 ### 5) Task audit

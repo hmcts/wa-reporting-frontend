@@ -29,10 +29,14 @@ export function buildOpenByNameChartConfig(openByName: PriorityBreakdown[]): Rec
 
 export function buildOpenTasksChart(openByCreated: AssignmentSeriesPoint[]): string {
   const dates = openByCreated.map(point => point.date);
-  return buildStackedBarTimeSeries(dates, [
-    { name: 'Assigned', values: openByCreated.map(point => point.assigned), color: assignmentColors.assigned },
-    { name: 'Unassigned', values: openByCreated.map(point => point.unassigned), color: assignmentColors.unassigned },
-  ]);
+  return buildStackedBarTimeSeries(
+    dates,
+    [
+      { name: 'Assigned', values: openByCreated.map(point => point.assigned), color: assignmentColors.assigned },
+      { name: 'Unassigned', values: openByCreated.map(point => point.unassigned), color: assignmentColors.unassigned },
+    ],
+    { axisTitles: { x: 'Created date', y: 'Tasks' } }
+  );
 }
 
 export function buildWaitTimeChart(waitTime: WaitTimePoint[]): string {
@@ -47,7 +51,10 @@ export function buildWaitTimeChart(waitTime: WaitTimePoint[]): string {
         mode: 'lines+markers',
       },
     ],
-    { layoutOverrides: { yaxis: { automargin: true, fixedrange: true } } }
+    {
+      axisTitles: { x: 'Assigned date', y: 'Days' },
+      layoutOverrides: { yaxis: { automargin: true, fixedrange: true } },
+    }
   );
 }
 
@@ -59,7 +66,7 @@ export function buildTasksDueChart(dueByDate: DueByDatePoint[]): string {
       { name: 'Open', values: dueByDate.map(point => point.open), color: chartColors.blue },
       { name: 'Completed', values: dueByDate.map(point => point.completed), color: chartColors.grey },
     ],
-    { legendOrientation: 'h' }
+    { axisTitles: { x: 'Due date', y: 'Tasks' }, legendOrientation: 'h' }
   );
 }
 
@@ -73,7 +80,7 @@ export function buildTasksDuePriorityChart(priorityByDueDate: PrioritySeriesPoin
       { name: TaskPriority.Medium, values: priorityByDueDate.map(point => point.medium), color: chartColors.blueLight },
       { name: TaskPriority.Low, values: priorityByDueDate.map(point => point.low), color: chartColors.greyLight },
     ],
-    { legendOrientation: 'h' }
+    { axisTitles: { x: 'Due date', y: 'Tasks' }, legendOrientation: 'h' }
   );
 }
 

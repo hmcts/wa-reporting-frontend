@@ -36,6 +36,7 @@ flowchart TB
 ### 2) Open tasks by created date
 - Title: "Open tasks".
 - Chart: stacked bar time series by created date (Assigned vs Unassigned).
+- Chart axes: x-axis `Created date`; y-axis `Tasks`.
 - Table columns:
   - Created date
   - Open tasks
@@ -48,6 +49,7 @@ flowchart TB
 ### 3) Wait time by assigned date
 - Title: "Wait time".
 - Chart: line chart of average wait (days) by assigned date.
+- Chart axes: x-axis `Assigned date`; y-axis `Days`.
 - Table columns:
   - Assigned date
   - Assigned count
@@ -76,6 +78,7 @@ flowchart TB
 ### 5) Tasks due
 - Title: "Tasks due".
 - Chart: stacked bar time series (Open vs Completed by due date).
+- Chart axes: x-axis `Due date`; y-axis `Tasks`.
 - Table columns:
   - Due date
   - Total due
@@ -86,6 +89,7 @@ flowchart TB
 ### 6) Open tasks priority
 - Title: "Open tasks priority".
 - Chart: stacked bar time series of open tasks due by priority.
+- Chart axes: x-axis `Due date`; y-axis `Tasks`.
 - Table columns:
   - Due date
   - Total open

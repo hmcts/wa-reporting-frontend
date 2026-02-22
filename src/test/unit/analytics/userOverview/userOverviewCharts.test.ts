@@ -40,6 +40,7 @@ describe('userOverviewCharts', () => {
     expect(config.data[2].y).toEqual([3]);
     expect(config.data[2].name).toBe('Average handling time (days)');
     expect(config.data[2].yaxis).toBe('y2');
+    expect(config.layout.xaxis.title).toBe('Completed date');
     expect(config.layout.yaxis.title).toBe('Tasks');
     expect(config.layout.yaxis.fixedrange).toBe(true);
     expect(config.layout.yaxis2.title).toBe('Average handling time (days)');
