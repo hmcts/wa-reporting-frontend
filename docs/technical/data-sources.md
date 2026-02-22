@@ -53,6 +53,12 @@ Required columns:
 - window_start
 - window_end
 
+### Snapshot refresh procedure
+Snapshots are built/published by `analytics.run_snapshot_refresh_batch(p_clear_before_full_rebuild BOOLEAN DEFAULT FALSE)`.
+
+- Default mode (`FALSE`) keeps the hybrid strategy: bootstrap/large deltas run full rebuild, smaller deltas run incremental changed-key refresh.
+- Clear-first mode (`TRUE`) resets snapshot history/state first, then performs a full rebuild from source data in the same batch run.
+
 ### analytics.snapshot_task_daily_facts
 Used for service overview, events, timelines, and completion summaries.
 
