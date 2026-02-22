@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import {
   priorityLabelFromRank,
   priorityRankSql,
+  prioritySortValue,
 } from '../../../../../main/modules/analytics/shared/priority/priorityRankSql';
 
 describe('priorityRankSql', () => {
@@ -28,5 +29,13 @@ describe('priorityRankSql', () => {
     expect(priorityLabelFromRank(1)).toBe('Low');
     expect(priorityLabelFromRank(0)).toBe('Low');
     expect(priorityLabelFromRank(undefined)).toBe('Low');
+  });
+
+  test('maps task-priority labels to numeric sort values with low fallback', () => {
+    expect(prioritySortValue('Urgent')).toBe(4);
+    expect(prioritySortValue('High')).toBe(3);
+    expect(prioritySortValue('Medium')).toBe(2);
+    expect(prioritySortValue('Low')).toBe(1);
+    expect(prioritySortValue(undefined)).toBe(1);
   });
 });

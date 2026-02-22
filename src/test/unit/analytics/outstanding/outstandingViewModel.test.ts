@@ -144,6 +144,7 @@ describe('buildOutstandingViewModel', () => {
     expect(viewModel.outstandingByLocationRows[0][0].text).toBe('Leeds Crown Court');
     expect(viewModel.outstandingByRegionLocationRows[0][1].text).toBe('North East');
     expect(viewModel.criticalTasks[0].dueDate).toBeUndefined();
+    expect(viewModel.criticalTasks[0].prioritySortValue).toBe(4);
     expect(viewModel.criticalTasksPagination.totalResults).toBe(1);
     expect(viewModel.criticalTasksPagination.totalPages).toBe(1);
   });

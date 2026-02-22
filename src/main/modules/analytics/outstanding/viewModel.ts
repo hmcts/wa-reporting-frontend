@@ -1,6 +1,7 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
 import { formatAnalyticsDateDisplay, formatNumber, formatPercent } from '../shared/formatting';
 import { OutstandingSort } from '../shared/outstandingSort';
+import { prioritySortValue } from '../shared/priority/priorityRankSql';
 import { FilterOptions } from '../shared/services';
 import {
   AnalyticsFilters,
@@ -35,6 +36,7 @@ type CriticalTaskView = CriticalTask & {
   createdDateDisplay: string;
   dueDateIso?: string;
   dueDateDisplay: string;
+  prioritySortValue: number;
 };
 
 type OpenTasksTotals = { open: number; assigned: number; unassigned: number };
@@ -266,6 +268,7 @@ function buildCriticalTasks(criticalTasks: CriticalTask[], locationLookup: Recor
     createdDateDisplay: formatAnalyticsDateDisplay(task.createdDate),
     dueDateIso: task.dueDate,
     dueDateDisplay: formatAnalyticsDateDisplay(task.dueDate),
+    prioritySortValue: prioritySortValue(task.priority),
   }));
 }
 

@@ -27,7 +27,7 @@
       { text: row.taskName },
       { text: row.assignedDate, attributes: { 'data-export-value': row.assignedDateRaw, 'data-sort-value': row.assignedDateRaw } },
       { text: row.dueDate, attributes: { 'data-export-value': row.dueDateRaw, 'data-sort-value': row.dueDateRaw } },
-      { text: row.priority },
+      { text: row.priority, attributes: { 'data-sort-value': row.prioritySortValue } },
       { text: row.totalAssignments },
       { text: row.assigneeName },
       { text: row.location }

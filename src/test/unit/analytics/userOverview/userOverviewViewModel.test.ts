@@ -123,6 +123,7 @@ describe('buildUserOverviewViewModel', () => {
     expect(viewModel.assignedSummaryRows[1].key.text).toBe('Urgent');
     expect(viewModel.assignedRows[0].caseId).toBe('123');
     expect(viewModel.assignedRows[0].priority).toBe('Urgent');
+    expect(viewModel.assignedRows[0].prioritySortValue).toBe(4);
     expect(viewModel.assignedRows[0].assigneeName).toBe('User One');
     expect(viewModel.completedSummaryRows[0].key.text).toBe('Completed');
     expect(viewModel.completedByDateRows[0][0].text).toBe('4 Jan 2024');
@@ -757,6 +758,7 @@ describe('buildUserOverviewViewModel', () => {
     expect(mapAssignedRow(baseTask, locationDescriptions).totalAssignments).toBe('1');
     expect(mapAssignedRow(baseTask, locationDescriptions).location).toBe('Leeds Crown Court');
     expect(mapAssignedRow(baseTask, locationDescriptions).priority).toBe('Low');
+    expect(mapAssignedRow(baseTask, locationDescriptions).prioritySortValue).toBe(1);
 
     const missingCreatedDateTask = { ...baseTask, createdDate: undefined as unknown as string };
     expect(mapAssignedRow(missingCreatedDateTask, locationDescriptions).createdDateRaw).toBe('-');
@@ -770,6 +772,7 @@ describe('buildUserOverviewViewModel', () => {
       const { __testing: isolated } = require('../../../../main/modules/analytics/userOverview/viewModel');
       expect(isolated.mapAssignedRow(baseTask, locationDescriptions).totalAssignments).toBe('1');
       expect(isolated.mapAssignedRow(baseTask, locationDescriptions).priority).toBe('Low');
+      expect(isolated.mapAssignedRow(baseTask, locationDescriptions).prioritySortValue).toBe(1);
       expect(isolated.mapCompletedRow(baseTask, locationDescriptions).totalAssignments).toBe('1');
       const nullAssignments = { ...baseTask, totalAssignments: undefined };
       expect(isolated.mapAssignedRow(nullAssignments, locationDescriptions).totalAssignments).toBe('0');

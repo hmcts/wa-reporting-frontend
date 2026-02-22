@@ -26,6 +26,7 @@ Provide a user-centric view of assigned and completed tasks, including complianc
   - Total assignments
   - Assignee
   - Location
+- Priority sorting follows severity ranking (Urgent > High > Medium > Low) rather than alphabetical label order.
 - Summary panel:
   - Total assigned
   - Priority breakdown (Urgent/High/Medium/Low)

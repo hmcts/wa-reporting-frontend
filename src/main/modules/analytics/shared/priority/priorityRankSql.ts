@@ -30,3 +30,16 @@ export function priorityLabelFromRank(priorityRank: number | null | undefined): 
       return TaskPriority.Low;
   }
 }
+
+export function prioritySortValue(priority: TaskPriorityValue | null | undefined): number {
+  switch (priority) {
+    case TaskPriority.Urgent:
+      return 4;
+    case TaskPriority.High:
+      return 3;
+    case TaskPriority.Medium:
+      return 2;
+    default:
+      return 1;
+  }
+}
