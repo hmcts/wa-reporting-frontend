@@ -5,7 +5,7 @@ CREATE SCHEMA IF NOT EXISTS analytics;
 -- This script is intentionally rerunnable from scratch via explicit drops.
 -- ============================================================================
 
-DROP PROCEDURE IF EXISTS analytics.run_snapshot_refresh_batch();
+DROP PROCEDURE IF EXISTS analytics.run_snapshot_refresh_batch(BOOLEAN);
 
 -- Snapshot tables
 DROP TABLE IF EXISTS analytics.snapshot_wait_time_by_assigned_date CASCADE;
@@ -329,7 +329,7 @@ CREATE INDEX IF NOT EXISTS ix_reportable_task_report_refresh_time_task_id
   ON cft_task_db.reportable_task(report_refresh_time, task_id);
 
 -- Snapshot producer and publisher
-CREATE OR REPLACE PROCEDURE analytics.run_snapshot_refresh_batch()
+CREATE OR REPLACE PROCEDURE analytics.run_snapshot_refresh_batch(p_clear_before_full_rebuild BOOLEAN DEFAULT FALSE)
 LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -349,6 +349,7 @@ DECLARE
   v_use_full_rebuild BOOLEAN := FALSE;
   v_estimated_source_count BIGINT := 0;
   v_full_rebuild_ratio_threshold NUMERIC := 0.25;
+  v_clear_before_full_rebuild BOOLEAN := COALESCE(p_clear_before_full_rebuild, FALSE);
 BEGIN
   IF NOT pg_try_advisory_lock(v_lock_key) THEN
     RAISE NOTICE 'Analytics snapshot batch already running; skipping trigger.';
@@ -356,6 +357,25 @@ BEGIN
   END IF;
 
   BEGIN
+    IF v_clear_before_full_rebuild THEN
+      -- Optional maintenance mode: clear snapshot history/state before rebuilding from source.
+      UPDATE analytics.snapshot_state
+      SET published_snapshot_id = NULL,
+          published_at = NULL,
+          in_progress_snapshot_id = NULL,
+          last_source_report_refresh_time = NULL
+      WHERE singleton_id = TRUE;
+
+      TRUNCATE TABLE
+        analytics.snapshot_task_rows,
+        analytics.snapshot_user_completed_facts,
+        analytics.snapshot_task_daily_facts,
+        analytics.snapshot_wait_time_by_assigned_date;
+
+      DELETE FROM analytics.snapshot_batches;
+      ALTER SEQUENCE analytics.snapshot_id_seq RESTART WITH 1;
+    END IF;
+
     v_snapshot_id := nextval('analytics.snapshot_id_seq');
     v_window_end := clock_timestamp();
 
@@ -427,7 +447,9 @@ BEGIN
     -- 1) first-ever run -> full rebuild
     -- 2) large delta -> full rebuild
     -- 3) otherwise -> incremental changed-key refresh
-    IF v_last_source_report_refresh_time IS NULL THEN
+    IF v_clear_before_full_rebuild THEN
+      v_use_full_rebuild := TRUE;
+    ELSIF v_last_source_report_refresh_time IS NULL THEN
       v_use_full_rebuild := TRUE;
     ELSIF v_changed_count > 0 THEN
       SELECT COALESCE(reltuples, 0)::bigint
@@ -1847,5 +1869,5 @@ WHERE jobname = 'analytics_snapshot_refresh_batch';
 SELECT cron.schedule(
   'analytics_snapshot_refresh_batch',
   '*/30 * * * *',
-  $$CALL analytics.run_snapshot_refresh_batch()$$
+  $$CALL analytics.run_snapshot_refresh_batch(FALSE)$$
 );
