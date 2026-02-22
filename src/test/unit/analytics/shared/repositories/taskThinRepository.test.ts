@@ -502,12 +502,25 @@ describe('taskThinRepository', () => {
 
     await taskThinRepository.fetchUserOverviewCompletedByTaskNameRows(snapshotId, filters);
     const completedByTaskNameQuery = latestQuery();
-    expect(completedByTaskNameQuery.sql).toContain('completed_date IS NOT NULL');
-    expect(completedByTaskNameQuery.sql).toContain('SUM(tasks)::int AS tasks');
-    expect(completedByTaskNameQuery.sql).toContain('SUM(days_beyond_sum)::numeric AS days_beyond_sum');
-    expect(completedByTaskNameQuery.sql).toContain('GROUP BY task_name');
-    expect(completedByTaskNameQuery.sql).toContain('ORDER BY tasks DESC NULLS LAST, task_name ASC');
-    expect(completedByTaskNameQuery.sql).toContain('assignee IN');
+    const completedByTaskNameNormalised = normaliseSql(completedByTaskNameQuery.sql);
+    expect(completedByTaskNameNormalised).toContain('completed_date IS NOT NULL');
+    expect(completedByTaskNameNormalised).toContain("LOWER(termination_reason) = 'completed'");
+    expect(completedByTaskNameNormalised).toContain('COUNT(*)::int AS tasks');
+    expect(completedByTaskNameNormalised).toContain(
+      "SUM(COALESCE(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0))::double precision AS handling_time_sum"
+    );
+    expect(completedByTaskNameNormalised).toContain('COUNT(*)::int AS handling_time_count');
+    expect(completedByTaskNameNormalised).toContain('due_date_to_completed_diff_time');
+    expect(completedByTaskNameNormalised).toContain(
+      "EXTRACT(EPOCH FROM due_date_to_completed_diff_time) / EXTRACT(EPOCH FROM INTERVAL '1 day')"
+    );
+    expect(completedByTaskNameNormalised).toContain('* -1');
+    expect(completedByTaskNameNormalised).toContain('AS days_beyond_sum');
+    expect(completedByTaskNameNormalised).toContain('COUNT(*)::int AS days_beyond_count');
+    expect(completedByTaskNameNormalised).toContain('FROM analytics.snapshot_task_rows');
+    expect(completedByTaskNameNormalised).toContain('GROUP BY task_name');
+    expect(completedByTaskNameNormalised).toContain('ORDER BY tasks DESC NULLS LAST, task_name ASC');
+    expect(completedByTaskNameNormalised).toContain('assignee IN');
     expect(completedByTaskNameQuery.values).toEqual(expect.arrayContaining([completedFrom, completedTo, 'user-1']));
   });
 

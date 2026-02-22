@@ -318,7 +318,11 @@ export class TaskThinRepository {
     filters: AnalyticsFilters,
     queryOptions?: AnalyticsQueryOptions
   ): Promise<UserOverviewCompletedByTaskNameRow[]> {
-    const conditions: Prisma.Sql[] = [asOfSnapshotCondition(snapshotId), Prisma.sql`completed_date IS NOT NULL`];
+    const conditions: Prisma.Sql[] = [
+      asOfSnapshotCondition(snapshotId),
+      Prisma.sql`completed_date IS NOT NULL`,
+      Prisma.sql`LOWER(termination_reason) = 'completed'`,
+    ];
     applyCompletedDateFilters(filters, conditions);
     if (filters.user && filters.user.length > 0) {
       conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
@@ -328,12 +332,14 @@ export class TaskThinRepository {
     return tmPrisma.$queryRaw<UserOverviewCompletedByTaskNameRow[]>(Prisma.sql`
       SELECT
         task_name,
-        SUM(tasks)::int AS tasks,
-        SUM(handling_time_sum)::numeric AS handling_time_sum,
-        SUM(handling_time_count)::int AS handling_time_count,
-        SUM(days_beyond_sum)::numeric AS days_beyond_sum,
-        SUM(days_beyond_count)::int AS days_beyond_count
-      FROM analytics.snapshot_user_completed_facts
+        COUNT(*)::int AS tasks,
+        SUM(COALESCE(EXTRACT(EPOCH FROM handling_time) / ${SECONDS_PER_DAY_SQL}, 0))::double precision AS handling_time_sum,
+        COUNT(*)::int AS handling_time_count,
+        SUM(
+          COALESCE(EXTRACT(EPOCH FROM due_date_to_completed_diff_time) / ${SECONDS_PER_DAY_SQL}, 0) * -1
+        )::double precision AS days_beyond_sum,
+        COUNT(*)::int AS days_beyond_count
+      FROM analytics.snapshot_task_rows
       ${whereClause}
       GROUP BY task_name
       ORDER BY tasks DESC NULLS LAST, task_name ASC

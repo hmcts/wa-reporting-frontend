@@ -104,6 +104,7 @@ Required columns:
 - completed_date
 - handling_time_days
 - handling_time (interval)
+- due_date_to_completed_diff_time (interval)
 - processing_time_days
 - processing_time (interval)
 - is_within_sla (Yes/No/null)
@@ -121,7 +122,7 @@ Note:
 - Row-level repositories return numeric `priority_rank`; labels are mapped in TypeScript when building UI-facing models.
 
 ### analytics.snapshot_user_completed_facts
-Used for user overview aggregated charts.
+Used for user overview completed-by-date aggregated chart/table data.
 
 Required columns:
 - valid_from_snapshot_id
@@ -219,6 +220,16 @@ Within due date is computed as:
 
 ### Completed-task determination
 Completed tasks are determined by case-insensitive `termination_reason = 'completed'` across thin/facts query paths. Completed-state values such as `COMPLETED` or `TERMINATED` are not required for completed classification.
+
+### User Overview task-name average calculations
+For `/users` "Completed tasks by task name", averages are calculated from `analytics.snapshot_task_rows` interval columns (not from `snapshot_user_completed_facts` day-difference aggregates):
+
+- Average handling time (days):
+  - `SUM(COALESCE(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0)) / COUNT(*)`
+- Average days beyond due date:
+  - `SUM(COALESCE(EXTRACT(EPOCH FROM due_date_to_completed_diff_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0) * -1) / COUNT(*)`
+
+Both formulas include rows with null intervals in the denominator (`COUNT(*)`) while treating null interval values as zero in the summed numerator.
 
 ### Created-event determination
 Created events in task daily facts are determined by `created_date IS NOT NULL` (case state does not gate inclusion). For `date_role = 'created'`, `task_status` is derived as:

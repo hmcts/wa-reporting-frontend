@@ -256,6 +256,66 @@ describe('buildUserOverviewViewModel', () => {
     expect(viewModel.completedByDateTotalsRow[3].text).toBe('0%');
   });
 
+  test('normalises non-number aggregate values before building averages', () => {
+    const overview: UserOverviewMetrics = {
+      assigned: [],
+      completed: [],
+      prioritySummary: { urgent: 0, high: 0, medium: 0, low: 0 },
+      completedSummary: { total: 0, withinDueYes: 0, withinDueNo: 0 },
+      completedByDate: [],
+    };
+
+    const viewModel = buildUserOverviewViewModel({
+      filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
+      overview,
+      allTasks: [],
+      assignedTasks: buildTasks(overview.assigned, 'assigned'),
+      completedTasks: buildTasks(overview.completed, 'completed'),
+      assignedTotalResults: 0,
+      completedTotalResults: 0,
+      completedComplianceSummary: {
+        total: 0,
+        withinDueYes: 0,
+        withinDueNo: 0,
+      },
+      completedByDate: [],
+      completedByTaskName: [
+        {
+          taskName: 'Task D',
+          tasks: 2,
+          handlingTimeSum: '4.5',
+          handlingTimeCount: '2',
+          daysBeyondSum: '3',
+          daysBeyondCount: '2',
+        } as unknown as {
+          taskName: string;
+          tasks: number;
+          handlingTimeSum: number;
+          handlingTimeCount: number;
+          daysBeyondSum: number;
+          daysBeyondCount: number;
+        },
+      ],
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
+      locationDescriptions: {},
+      sort: getDefaultUserOverviewSort(),
+      assignedPage: 1,
+      completedPage: 1,
+    });
+
+    expect(viewModel.completedByTaskNameRows[0][2].text).toBe('2.25');
+    expect(viewModel.completedByTaskNameRows[0][3].text).toBe('1.50');
+  });
+
   test('uses provided user options and renders fallback dates', () => {
     const overview: UserOverviewMetrics = {
       assigned: [

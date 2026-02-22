@@ -83,6 +83,10 @@ flowchart TB
   - Tasks
   - Average handling time (days)
   - Average days beyond due date
+- Calculations:
+  - `Average handling time (days)` = `SUM(COALESCE(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0)) / COUNT(*)` for the filtered completed rows grouped by task name.
+  - `Average days beyond due date` = `SUM(COALESCE(EXTRACT(EPOCH FROM due_date_to_completed_diff_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0) * -1) / COUNT(*)` for the filtered completed rows grouped by task name.
+  - Rows with null interval values are still included in the denominator (`COUNT(*)`).
 - Default table sort is Tasks descending.
 
 ## Notes
