@@ -27,7 +27,7 @@ Two session mechanisms are used:
 
 2) OIDC session (express-openid-connect):
    - Cookie name: `session.cookie.name`
-   - Rolling sessions with 20-minute duration
+   - Rolling sessions with 60-minute duration
    - Store: Redis if configured, otherwise file store in `/tmp`.
 
 ## CSRF protection

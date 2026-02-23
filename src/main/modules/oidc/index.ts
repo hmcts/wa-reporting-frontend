@@ -39,7 +39,7 @@ export class OidcMiddleware {
         },
         session: {
           name: this.sessionCookieName,
-          rollingDuration: 20 * 60,
+          rollingDuration: 60 * 60,
           cookie: {
             httpOnly: true,
           },
