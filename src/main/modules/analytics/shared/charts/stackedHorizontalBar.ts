@@ -48,7 +48,7 @@ export function buildStackedHorizontalBarChart({
         ...(typeof legendOverrides === 'object' && legendOverrides !== null ? legendOverrides : {}),
       },
       margin: { t: 20, l: 260, r: 40, b: 40 },
-      xaxis: { title: xTitle, fixedrange: true },
+      xaxis: { title: { text: xTitle }, fixedrange: true },
       yaxis: {
         automargin: true,
         categoryorder: 'array',

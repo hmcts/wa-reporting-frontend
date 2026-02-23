@@ -1,6 +1,7 @@
 import { CacheKeys, buildSnapshotScopedCacheKey, getCache, setCache } from '../cache/cache';
 import { taskFactsRepository } from '../repositories';
 import type { CaseWorkerProfileRow } from '../repositories';
+import type { AnalyticsQueryOptions } from '../repositories/filters';
 import type { SelectOption } from '../viewModels/filterOptions';
 
 import { caseWorkerProfileService, courtVenueService, regionService } from './index';
@@ -65,16 +66,34 @@ function buildLocationOptions(
   return [{ value: '', text: 'All locations' }, ...options];
 }
 
+function buildQueryOptionsCacheSignature(queryOptions?: AnalyticsQueryOptions): string {
+  const excluded = queryOptions?.excludeRoleCategories;
+  if (!excluded || excluded.length === 0) {
+    return 'default';
+  }
+  const normalised = [...new Set(excluded.map(value => value.trim().toUpperCase()).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b)
+  );
+  if (normalised.length === 0) {
+    return 'default';
+  }
+  return `excludeRoleCategories=${normalised.join(',')}`;
+}
+
 class FilterService {
-  async fetchFilterOptions(snapshotId: number): Promise<FilterOptions> {
-    const cacheKey = buildSnapshotScopedCacheKey(CacheKeys.filterOptions, snapshotId);
+  async fetchFilterOptions(snapshotId: number, queryOptions?: AnalyticsQueryOptions): Promise<FilterOptions> {
+    const cacheKey = buildSnapshotScopedCacheKey(
+      CacheKeys.filterOptions,
+      snapshotId,
+      buildQueryOptionsCacheSignature(queryOptions)
+    );
     const cached = getCache<FilterOptions>(cacheKey);
     if (cached) {
       return cached;
     }
 
     const { services, roleCategories, regions, locations, taskNames, workTypes, assignees } =
-      await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId);
+      await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId, queryOptions);
     const regionRecords = await regionService.fetchRegions();
     const courtVenues = await courtVenueService.fetchCourtVenues();
     const profiles = await caseWorkerProfileService.fetchCaseWorkerProfiles();

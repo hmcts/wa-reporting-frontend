@@ -22,6 +22,6 @@ export function setCache<T>(key: string, value: T): void {
   cache.set(key, value);
 }
 
-export function buildSnapshotScopedCacheKey(baseKey: string, snapshotId: number): string {
-  return `${baseKey}:${snapshotId}`;
+export function buildSnapshotScopedCacheKey(baseKey: string, snapshotId: number, scope = 'default'): string {
+  return `${baseKey}:${snapshotId}:${scope}`;
 }

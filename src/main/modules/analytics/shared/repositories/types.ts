@@ -82,7 +82,7 @@ export type UserOverviewTaskRow = {
   completed_date: string | null;
   handling_time_days: number | null;
   is_within_sla: string | null;
-  priority: string;
+  priority_rank: number;
   assignee: string | null;
   number_of_reassignments: number | null;
 };
@@ -114,7 +114,7 @@ export type OutstandingCriticalTaskRow = {
   location: string | null;
   created_date: string | null;
   due_date: string | null;
-  priority: string;
+  priority_rank: number;
   assignee: string | null;
 };
 

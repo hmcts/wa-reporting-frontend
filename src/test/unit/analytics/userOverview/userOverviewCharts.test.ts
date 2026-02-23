@@ -40,9 +40,10 @@ describe('userOverviewCharts', () => {
     expect(config.data[2].y).toEqual([3]);
     expect(config.data[2].name).toBe('Average handling time (days)');
     expect(config.data[2].yaxis).toBe('y2');
-    expect(config.layout.yaxis.title).toBe('Tasks');
+    expect(config.layout.xaxis.title.text).toBe('Completed date');
+    expect(config.layout.yaxis.title.text).toBe('Tasks');
     expect(config.layout.yaxis.fixedrange).toBe(true);
-    expect(config.layout.yaxis2.title).toBe('Average handling time (days)');
+    expect(config.layout.yaxis2.title.text).toBe('Average handling time (days)');
     expect(config.layout.yaxis2.overlaying).toBe('y');
     expect(config.layout.yaxis2.side).toBe('right');
     expect(config.layout.yaxis2.fixedrange).toBe(true);
@@ -72,7 +73,7 @@ describe('userOverviewCharts', () => {
 
     expect(config.data[2].y).toEqual([0]);
     expect(config.data[2].line.width).toBe(2);
-    expect(config.data[2].line.color).toBe(chartColors.blueDark);
+    expect(config.data[2].line.color).toBe(chartColors.signalRed);
     expect(config.layout.yaxis.rangemode).toBe('tozero');
     expect(config.layout.yaxis2.rangemode).toBe('tozero');
   });

@@ -7,11 +7,13 @@ const { Logger } = require('../../../logging');
 type SnapshotStateRow = {
   published_snapshot_id: bigint | number | string | null;
   published_at: Date | string | null;
+  as_of_date: Date | string | null;
 };
 
 export type PublishedSnapshot = {
   snapshotId: number;
   publishedAt: Date;
+  asOfDate: Date;
 };
 
 const logger = Logger.getLogger('snapshot-state-repository');
@@ -32,24 +34,38 @@ function parsePublishedAt(value: Date | string): Date {
   return parsed;
 }
 
+function parseAsOfDate(value: Date | string): Date {
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Invalid as_of_date: ${value}`);
+  }
+  return parsed;
+}
+
 export class SnapshotStateRepository {
   async fetchPublishedSnapshot(): Promise<PublishedSnapshot | null> {
     try {
       const rows = await tmPrisma.$queryRaw<SnapshotStateRow[]>(Prisma.sql`
-        SELECT published_snapshot_id, published_at
-        FROM analytics.mv_snapshot_state
+        SELECT
+          state.published_snapshot_id,
+          state.published_at,
+          batches.as_of_date
+        FROM analytics.snapshot_state state
+        LEFT JOIN analytics.snapshot_batches batches
+          ON batches.snapshot_id = state.published_snapshot_id
         WHERE singleton_id = TRUE
         LIMIT 1
       `);
 
       const row = rows[0];
-      if (!row?.published_snapshot_id || !row.published_at) {
+      if (!row?.published_snapshot_id || !row.published_at || !row.as_of_date) {
         return null;
       }
 
       return {
         snapshotId: parseSnapshotId(row.published_snapshot_id),
         publishedAt: parsePublishedAt(row.published_at),
+        asOfDate: parseAsOfDate(row.as_of_date),
       };
     } catch (error) {
       logger.error('Failed to fetch published snapshot metadata', error);
@@ -62,9 +78,10 @@ export class SnapshotStateRepository {
       const rows = await tmPrisma.$queryRaw<SnapshotStateRow[]>(Prisma.sql`
         SELECT
           batches.snapshot_id AS published_snapshot_id,
-          COALESCE(state.published_at, batches.completed_at) AS published_at
-        FROM analytics.mv_snapshot_batches batches
-        LEFT JOIN analytics.mv_snapshot_state state
+          COALESCE(state.published_at, batches.completed_at) AS published_at,
+          batches.as_of_date
+        FROM analytics.snapshot_batches batches
+        LEFT JOIN analytics.snapshot_state state
           ON state.singleton_id = TRUE
          AND state.published_snapshot_id = batches.snapshot_id
         WHERE batches.snapshot_id = ${snapshotId}
@@ -73,13 +90,14 @@ export class SnapshotStateRepository {
       `);
 
       const row = rows[0];
-      if (!row?.published_snapshot_id || !row.published_at) {
+      if (!row?.published_snapshot_id || !row.published_at || !row.as_of_date) {
         return null;
       }
 
       return {
         snapshotId: parseSnapshotId(row.published_snapshot_id),
         publishedAt: parsePublishedAt(row.published_at),
+        asOfDate: parseAsOfDate(row.as_of_date),
       };
     } catch (error) {
       logger.error('Failed to fetch snapshot metadata by id', { snapshotId, error });

@@ -22,15 +22,17 @@ Provide a user-centric view of assigned and completed tasks, including complianc
   - Task name
   - Assigned date
   - Due date
-  - Priority
+  - Priority (displayed as sentence case labels: `Urgent`, `High`, `Medium`, `Low`)
   - Total assignments
   - Assignee
   - Location
+- Priority sorting follows severity ranking (Urgent > High > Medium > Low) rather than alphabetical label order.
 - Summary panel:
   - Total assigned
   - Priority breakdown (Urgent/High/Medium/Low)
 - Donut chart of priority distribution.
 - Pagination page size: 50.
+- Long `Task name` and `Location` values wrap across multiple lines in table body rows.
 
 ```mermaid
 flowchart TB
@@ -66,6 +68,8 @@ flowchart TB
 ### 3) Completed tasks by date
 - Title: "Completed tasks by date".
 - Chart: stacked bar (within vs beyond due date) with a line for average handling time (days).
+- Chart axes: x-axis `Completed date`; primary y-axis `Tasks`; secondary y-axis `Average handling time (days)`.
+- Chart colours: within due date uses GOV.UK blue (`#1d70b8`), outside due date uses grey (`#b1b4b6`), and average handling time uses signal red (`#ca3535`).
 - Table columns:
   - Completed date
   - Tasks
@@ -81,11 +85,16 @@ flowchart TB
   - Tasks
   - Average handling time (days)
   - Average days beyond due date
+- Calculations:
+  - `Average handling time (days)` = `SUM(COALESCE(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0)) / COUNT(*)` for the filtered completed rows grouped by task name.
+  - `Average days beyond due date` = `SUM(COALESCE(EXTRACT(EPOCH FROM due_date_to_completed_diff_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0) * -1) / COUNT(*)` for the filtered completed rows grouped by task name.
+  - Rows with null interval values are still included in the denominator (`COUNT(*)`).
 - Default table sort is Tasks descending.
 
 ## Notes
 - CSV export is available for all tables.
 - The user filter is optional; if not selected, results span all users.
+- User Overview excludes records where `role_category_label` is Judicial (case-insensitive), so Judicial role category data is not shown in tables, charts, summaries, or role-category filter options on this page.
 - Sorting state and pagination are preserved through hidden form inputs.
 - The priority donut uses the GOV.UK palette mapping Urgent `#98285d` (purple), High `#16548a` (dark blue), Medium `#8eb8dc` (light blue), and Low `#cecece` (light grey).
 - Dates are displayed as `D Mon YYYY` in the UI, while date sorting and CSV export continue to use ISO `YYYY-MM-DD` values.

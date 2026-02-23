@@ -29,25 +29,50 @@ flowchart TB
   TMRepo --> TM["TM analytics DB"]
   RefSvc --> CRD["CRD DB (caseworkers)"]
   RefSvc --> LRD["LRD DB (regions/locations)"]
-  TM --> Views["Analytics views (mv_*)"]
-  Views --> Dashboards["Dashboards"]
+  TM --> Snapshots["Analytics snapshot tables (snapshot_*)"]
+  Snapshots --> Dashboards["Dashboards"]
 ```
 
-## Core analytics views (tm database)
-The application relies on materialized or analytics views in the `analytics` schema. Minimum columns required are listed below (based on query usage).
+## Core analytics snapshot tables (tm database)
+The application relies on published snapshot tables in the `analytics` schema. Snapshot data tables are version-ranged and queried as-of a selected snapshot id:
 
-### analytics.mv_task_daily_facts
+- `valid_from_snapshot_id <= :snapshotId`
+- `valid_to_snapshot_id IS NULL OR valid_to_snapshot_id > :snapshotId`
+
+Minimum columns required are listed below (based on query usage).
+
+### analytics.snapshot_batches
+Snapshot metadata and immutable date context for query-time priority rank calculation.
+
+Required columns:
+- snapshot_id
+- as_of_date
+- status
+- started_at
+- completed_at
+- window_start
+- window_end
+
+### Snapshot refresh procedure
+Snapshots are built/published by `analytics.run_snapshot_refresh_batch(p_clear_before_full_rebuild BOOLEAN DEFAULT FALSE)`.
+
+- Default mode (`FALSE`) keeps the hybrid strategy: bootstrap/large deltas run full rebuild, smaller deltas run incremental changed-key refresh.
+- Clear-first mode (`TRUE`) resets snapshot history/state first, then performs a full rebuild from source data in the same batch run.
+
+### analytics.snapshot_task_daily_facts
 Used for service overview, events, timelines, and completion summaries.
 
 Required columns:
+- valid_from_snapshot_id
+- valid_to_snapshot_id
 - jurisdiction_label (service)
 - role_category_label
 - region
 - location
 - task_name
 - work_type
-- assignment_state (Assigned/Unassigned)
-- task_status (open/completed)
+- assignment_state (Assigned/Unassigned/null)
+- task_status (open/completed/cancelled/other)
 - date_role (created/completed/cancelled/due)
 - reference_date (date)
 - task_count (integer)
@@ -58,10 +83,12 @@ Required columns:
 - processing_time_days_sum
 - processing_time_days_count
 
-### analytics.mv_reportable_task_thin
+### analytics.snapshot_task_rows
 Used for per-task lists (user overview, critical tasks, task audit) and processing/handling time.
 
 Required columns:
+- valid_from_snapshot_id
+- valid_to_snapshot_id
 - case_id
 - task_id
 - task_name
@@ -77,6 +104,7 @@ Required columns:
 - completed_date
 - handling_time_days
 - handling_time (interval)
+- due_date_to_completed_diff_time (interval)
 - processing_time_days
 - processing_time (interval)
 - is_within_sla (Yes/No/null)
@@ -87,11 +115,18 @@ Required columns:
 - major_priority (numeric)
 - assignee
 - number_of_reassignments
+- within_due_sort_value (indexed sort rank for within-due ordering)
 
-### analytics.mv_user_completed_facts
-Used for user overview aggregated charts.
+Note:
+- Priority rank is calculated at query-time from `major_priority`, `due_date`, and the selected snapshot `as_of_date`.
+- Row-level repositories return numeric `priority_rank`; labels are mapped in TypeScript when building UI-facing models.
+
+### analytics.snapshot_user_completed_facts
+Used for user overview completed-by-date aggregated chart/table data.
 
 Required columns:
+- valid_from_snapshot_id
+- valid_to_snapshot_id
 - completed_date
 - task_name
 - work_type
@@ -104,47 +139,25 @@ Required columns:
 - days_beyond_count
 - assignee (for user filtering)
 
-### analytics.mv_open_tasks_by_name
-Used for open tasks by name and priority.
-
-Required columns:
-- task_name
-- work_type
-- priority_bucket (Urgent/High/Medium/Low)
-- task_count
-
-### analytics.mv_open_tasks_by_region_location
-Used for outstanding by region/location tables.
-
-Required columns:
-- region
-- location
-- work_type
-- priority_bucket (Urgent/High/Medium/Low)
-- task_count
-
-### analytics.mv_open_tasks_summary
-Used for open tasks summary counts.
-
-Required columns:
-- state (ASSIGNED or not)
-- work_type
-- priority_bucket
-- task_count
-
-### analytics.mv_open_tasks_wait_time_by_assigned_date
+### analytics.snapshot_wait_time_by_assigned_date
 Used for wait time by assigned date.
 
 Required columns:
+- valid_from_snapshot_id
+- valid_to_snapshot_id
 - reference_date
 - work_type
 - assigned_task_count
 - total_wait_time (interval)
 
+Materialization rule:
+- Rows are aggregated from `analytics.snapshot_task_rows` where `state = 'ASSIGNED'` and `wait_time IS NOT NULL`, grouped by slicer fields plus `first_assigned_date` (`reference_date`).
+
 ## Reference data (crd and lrd databases)
 
 ### CRD: vw_case_worker_profile
 Used to map assignee IDs to names.
+On `/outstanding` Critical tasks only, if an assignee ID is present and no CRD match is found, the UI displays `Judge` instead of the raw ID.
 
 Required columns:
 - case_worker_id
@@ -183,23 +196,54 @@ Work type display values:
 - Dropdown labels are sourced from `cft_task_db.work_types.label` with fallback to the ID when no label is present.
 
 Date filters:
-- completedFrom/completedTo -> completed_date in mv_reportable_task_thin or reference_date in mv_task_daily_facts.
-- eventsFrom/eventsTo -> reference_date in mv_task_daily_facts for created/completed/cancelled events.
+- completedFrom/completedTo -> completed_date in snapshot_task_rows or reference_date in snapshot_task_daily_facts.
+- eventsFrom/eventsTo -> reference_date in snapshot_task_daily_facts for created/completed/cancelled events.
+- User Overview page applies an additional scoped exclusion: `UPPER(role_category_label) <> 'JUDICIAL'` (null-safe), and this scoped rule is not applied on `/`, `/outstanding`, or `/completed`.
 
 ## Derived concepts and calculations
 
-### Priority bucket
-Priority is calculated using `major_priority` or `priority` with a due-date-aware rule:
-- <= 2000 => urgent
-- < 5000 => high
-- == 5000 and due_date < today => high
-- == 5000 and due_date == today => medium
-- else => low
+### Priority rank and label mapping
+Priority is calculated in SQL as a numeric rank using `major_priority` or `priority` with a due-date-aware rule against the selected snapshot `as_of_date`:
+- <= 2000 => 4
+- < 5000 => 3
+- == 5000 and due_date < as_of_date => 3
+- == 5000 and due_date == as_of_date => 2
+- else => 1
+
+SQL compares rank numbers only. UI-facing labels are mapped in TypeScript:
+- 4 => Urgent
+- 3 => High
+- 2 => Medium
+- 1 (and fallback) => Low
 
 ### Within due date
 Within due date is computed as:
 - `is_within_sla == 'Yes'` if present
 - Otherwise, compare completed_date <= due_date
+
+### Completed-task determination
+Completed tasks are determined by case-insensitive `termination_reason = 'completed'` across thin/facts query paths. Completed-state values such as `COMPLETED` or `TERMINATED` are not required for completed classification.
+
+### User Overview task-name average calculations
+For `/users` "Completed tasks by task name", averages are calculated from `analytics.snapshot_task_rows` interval columns (not from `snapshot_user_completed_facts` day-difference aggregates):
+
+- Average handling time (days):
+  - `SUM(COALESCE(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0)) / COUNT(*)`
+- Average days beyond due date:
+  - `SUM(COALESCE(EXTRACT(EPOCH FROM due_date_to_completed_diff_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0) * -1) / COUNT(*)`
+
+Both formulas include rows with null intervals in the denominator (`COUNT(*)`) while treating null interval values as zero in the summed numerator.
+
+### Created-event determination
+Created events in task daily facts are determined by `created_date IS NOT NULL` (case state does not gate inclusion). For `date_role = 'created'`, `task_status` is derived as:
+- `completed` when `LOWER(termination_reason) = 'completed'`
+- `open` when `state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`
+- `other` otherwise
+
+For `date_role = 'created'`, `assignment_state` is:
+- `Assigned` when `state = 'ASSIGNED'`
+- `Unassigned` when `state IN ('UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`
+- `NULL` otherwise
 
 ## Caching
 NodeCache caches these datasets to reduce repeated lookups:

@@ -30,23 +30,25 @@ Provide a high-level view of service performance, focusing on open and assigned 
 - Totals row pinned at the bottom when table is sorted.
 - Data is aggregated from task daily facts; filters apply.
 
-### 2) Created, completed and cancelled tasks by service
-- Title: "Created, completed and cancelled tasks by service".
+### 2) Created and completed tasks by service
+- Title: "Created and completed tasks by service".
 - Includes its own date range form (eventsFrom/eventsTo).
 - Uses AJAX to refresh only this section when date range changes.
 - Columns:
   - Service
   - Created
   - Completed
-  - Cancelled
+- `Created` counts task events where `created_date` exists within the selected event date range, regardless of current task state.
+- `Completed` counts task events classified as completed (case-insensitive `termination_reason = completed`) within the selected event date range.
 - Totals row included.
+- Cancelled events continue to be aggregated in backend data for future use but are not currently displayed.
 
 ```mermaid
 flowchart LR
   Filters["Shared filters + events range"] --> Events["Events by service query"]
   Filters --> Overview["Service overview query"]
   Overview --> OverviewTable["Open/assigned table"]
-  Events --> EventsTable["Created/completed/cancelled table"]
+  Events --> EventsTable["Created/completed table"]
 ```
 
 ## Notes

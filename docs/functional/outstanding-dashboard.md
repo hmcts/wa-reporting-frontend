@@ -36,6 +36,7 @@ flowchart TB
 ### 2) Open tasks by created date
 - Title: "Open tasks".
 - Chart: stacked bar time series by created date (Assigned vs Unassigned).
+- Chart axes: x-axis `Created date`; y-axis `Tasks`.
 - Table columns:
   - Created date
   - Open tasks
@@ -48,10 +49,13 @@ flowchart TB
 ### 3) Wait time by assigned date
 - Title: "Wait time".
 - Chart: line chart of average wait (days) by assigned date.
+- Chart axes: x-axis `Assigned date`; y-axis `Days`.
+- Population: currently assigned open tasks only (`state = ASSIGNED`).
 - Table columns:
   - Assigned date
   - Assigned count
   - Average wait (days)
+- Average wait values in the table are displayed to 2 decimal places.
 - Default table sort is Assigned date ascending.
 
 ### 4) Critical tasks
@@ -67,13 +71,17 @@ flowchart TB
   - Priority
   - Agent name
 - Priority values are displayed as sentence case labels: `Urgent`, `High`, `Medium`, `Low`.
+- Agent name displays `Judge` when an assignee ID is present but has no matching Staff Ref Data profile.
 - Priority sorting uses severity ranking (Urgent > High > Medium > Low), with first-click descending on the Priority header.
+- Priority cells carry numeric sort metadata so client-side enhancements keep the same severity ordering.
 - Sort order defaults to due date ascending.
 - Pagination page size: 50.
+- Long `Location` and `Task name` values wrap across multiple lines in table body rows.
 
 ### 5) Tasks due
 - Title: "Tasks due".
 - Chart: stacked bar time series (Open vs Completed by due date).
+- Chart axes: x-axis `Due date`; y-axis `Tasks`.
 - Table columns:
   - Due date
   - Total due
@@ -84,6 +92,7 @@ flowchart TB
 ### 6) Open tasks priority
 - Title: "Open tasks priority".
 - Chart: stacked bar time series of open tasks due by priority.
+- Chart axes: x-axis `Due date`; y-axis `Tasks`.
 - Table columns:
   - Due date
   - Total open
@@ -98,6 +107,7 @@ flowchart TB
 - Chart: stacked horizontal bar by task name (Urgent/High/Medium/Low).
 - Table columns:
   - Task name
+  - Total open
   - Urgent
   - High
   - Medium

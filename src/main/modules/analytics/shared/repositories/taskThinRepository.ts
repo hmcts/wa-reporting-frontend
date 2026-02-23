@@ -3,12 +3,13 @@ import { Prisma } from '@prisma/client';
 import { tmPrisma } from '../data/prisma';
 import { CriticalTasksSortBy } from '../outstandingSort';
 import { MAX_PAGINATION_RESULTS, getMaxPaginationPage, normalisePage } from '../pagination';
-import { priorityBucketSql } from '../priority/priorityBucketSql';
+import { priorityRankSql } from '../priority/priorityRankSql';
 import { AnalyticsFilters } from '../types';
 import { AssignedSortBy, CompletedSortBy, SortDirection, SortState } from '../userOverviewSort';
 
 import { SECONDS_PER_DAY_SQL } from './constants';
-import { buildAnalyticsWhere } from './filters';
+import { AnalyticsQueryOptions, buildAnalyticsWhere } from './filters';
+import { asOfSnapshotCondition, snapshotAsOfDateSql } from './snapshotSql';
 import {
   CompletedTaskAuditRow,
   FilterValueRow,
@@ -28,30 +29,14 @@ type PaginationOptions = {
   pageSize: number;
 };
 
-const PRIORITY_SORT_SQL = Prisma.sql`CASE
-  WHEN major_priority <= 2000 THEN 4
-  WHEN major_priority < 5000 THEN 3
-  WHEN major_priority = 5000 AND due_date < CURRENT_DATE THEN 3
-  WHEN major_priority = 5000 AND due_date = CURRENT_DATE THEN 2
-  ELSE 1
-END`;
+const WITHIN_DUE_SORT_SQL = Prisma.sql`within_due_sort_value`;
 
-const WITHIN_DUE_SORT_SQL = Prisma.sql`CASE
-  WHEN is_within_sla = 'Yes' THEN 1
-  WHEN is_within_sla = 'No' THEN 2
-  ELSE 3
-END`;
-
-function buildPriorityBucket(): Prisma.Sql {
-  return priorityBucketSql({
+function buildPriorityRank(snapshotId: number): Prisma.Sql {
+  return priorityRankSql({
     priorityColumn: Prisma.raw('major_priority'),
     dateColumn: Prisma.raw('due_date'),
-    labels: { urgent: 'urgent', high: 'high', medium: 'medium', low: 'low' },
+    asOfDateColumn: snapshotAsOfDateSql(snapshotId),
   });
-}
-
-function snapshotCondition(snapshotId: number): Prisma.Sql {
-  return Prisma.sql`snapshot_id = ${snapshotId}`;
 }
 
 function applyCompletedDateFilters(filters: AnalyticsFilters, conditions: Prisma.Sql[]): void {
@@ -64,10 +49,7 @@ function applyCompletedDateFilters(filters: AnalyticsFilters, conditions: Prisma
 }
 
 function buildCompletedTaskConditions(filters: AnalyticsFilters, caseId?: string): Prisma.Sql[] {
-  const conditions: Prisma.Sql[] = [
-    Prisma.sql`termination_reason = 'completed'`,
-    Prisma.sql`state IN ('COMPLETED', 'TERMINATED')`,
-  ];
+  const conditions: Prisma.Sql[] = [Prisma.sql`LOWER(termination_reason) = 'completed'`];
   applyCompletedDateFilters(filters, conditions);
   if (caseId) {
     conditions.push(Prisma.sql`case_id = ${caseId}`);
@@ -95,11 +77,12 @@ function buildPaginationClauses(pagination?: PaginationOptions | null): {
 }
 
 function buildUserOverviewTaskQuery(
+  snapshotId: number,
   whereClause: Prisma.Sql,
   orderBy: Prisma.Sql,
   pagination?: PaginationOptions | null
 ): Prisma.Sql {
-  const priorityBucket = buildPriorityBucket();
+  const priorityRank = buildPriorityRank(snapshotId);
   const { limitClause, offsetClause } = buildPaginationClauses(pagination);
 
   return Prisma.sql`
@@ -117,10 +100,10 @@ function buildUserOverviewTaskQuery(
       to_char(completed_date, 'YYYY-MM-DD') AS completed_date,
       (EXTRACT(EPOCH FROM handling_time) / ${SECONDS_PER_DAY_SQL})::double precision AS handling_time_days,
       is_within_sla,
-      ${priorityBucket} AS priority,
+      ${priorityRank} AS priority_rank,
       assignee,
       number_of_reassignments
-    FROM analytics.mv_reportable_task_thin_snapshots
+    FROM analytics.snapshot_task_rows
     ${whereClause}
     ORDER BY ${orderBy}
     ${limitClause}
@@ -132,7 +115,7 @@ function directionSql(direction: SortDirection): Prisma.Sql {
   return Prisma.raw(direction === 'asc' ? 'ASC' : 'DESC');
 }
 
-function buildAssignedOrderBy(sort: SortState<AssignedSortBy>): Prisma.Sql {
+function buildAssignedOrderBy(snapshotId: number, sort: SortState<AssignedSortBy>): Prisma.Sql {
   const column = (() => {
     switch (sort.by) {
       case 'caseId':
@@ -146,7 +129,7 @@ function buildAssignedOrderBy(sort: SortState<AssignedSortBy>): Prisma.Sql {
       case 'dueDate':
         return Prisma.raw('due_date');
       case 'priority':
-        return PRIORITY_SORT_SQL;
+        return buildPriorityRank(snapshotId);
       case 'totalAssignments':
         return Prisma.sql`COALESCE(number_of_reassignments, 0) + 1`;
       case 'assignee':
@@ -194,7 +177,7 @@ function buildCompletedOrderBy(sort: SortState<CompletedSortBy>): Prisma.Sql {
   return Prisma.sql`${column} ${directionSql(sort.dir)} NULLS LAST`;
 }
 
-function buildCriticalTasksOrderBy(sort: SortState<CriticalTasksSortBy>): Prisma.Sql {
+function buildCriticalTasksOrderBy(snapshotId: number, sort: SortState<CriticalTasksSortBy>): Prisma.Sql {
   const column = (() => {
     switch (sort.by) {
       case 'caseId':
@@ -210,7 +193,7 @@ function buildCriticalTasksOrderBy(sort: SortState<CriticalTasksSortBy>): Prisma
       case 'dueDate':
         return Prisma.raw('due_date');
       case 'priority':
-        return PRIORITY_SORT_SQL;
+        return buildPriorityRank(snapshotId);
       case 'agentName':
         return Prisma.sql`assignee`;
       default:
@@ -224,9 +207,14 @@ function buildCriticalTasksOrderBy(sort: SortState<CriticalTasksSortBy>): Prisma
 function buildUserOverviewWhere(
   snapshotId: number,
   filters: AnalyticsFilters,
-  baseConditions: Prisma.Sql[]
+  baseConditions: Prisma.Sql[],
+  queryOptions?: AnalyticsQueryOptions
 ): Prisma.Sql {
-  const whereClause = buildAnalyticsWhere(filters, [snapshotCondition(snapshotId), ...baseConditions]);
+  const whereClause = buildAnalyticsWhere(
+    filters,
+    [asOfSnapshotCondition(snapshotId), ...baseConditions],
+    queryOptions
+  );
   if (!filters.user || filters.user.length === 0) {
     return whereClause;
   }
@@ -242,43 +230,57 @@ export class TaskThinRepository {
     snapshotId: number,
     filters: AnalyticsFilters,
     sort: SortState<AssignedSortBy>,
-    pagination?: PaginationOptions | null
+    pagination?: PaginationOptions | null,
+    queryOptions?: AnalyticsQueryOptions
   ): Promise<UserOverviewTaskRow[]> {
-    const whereClause = buildUserOverviewWhere(snapshotId, filters, [Prisma.sql`state = 'ASSIGNED'`]);
-    const orderBy = buildAssignedOrderBy(sort);
+    const whereClause = buildUserOverviewWhere(snapshotId, filters, [Prisma.sql`state = 'ASSIGNED'`], queryOptions);
+    const orderBy = buildAssignedOrderBy(snapshotId, sort);
 
-    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(buildUserOverviewTaskQuery(whereClause, orderBy, pagination));
+    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(
+      buildUserOverviewTaskQuery(snapshotId, whereClause, orderBy, pagination)
+    );
   }
 
   async fetchUserOverviewCompletedTaskRows(
     snapshotId: number,
     filters: AnalyticsFilters,
     sort: SortState<CompletedSortBy>,
-    pagination?: PaginationOptions | null
+    pagination?: PaginationOptions | null,
+    queryOptions?: AnalyticsQueryOptions
   ): Promise<UserOverviewTaskRow[]> {
     const conditions = buildCompletedTaskConditions(filters);
-    const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions);
+    const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions, queryOptions);
     const orderBy = buildCompletedOrderBy(sort);
 
-    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(buildUserOverviewTaskQuery(whereClause, orderBy, pagination));
+    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(
+      buildUserOverviewTaskQuery(snapshotId, whereClause, orderBy, pagination)
+    );
   }
 
-  async fetchUserOverviewAssignedTaskCount(snapshotId: number, filters: AnalyticsFilters): Promise<number> {
-    const whereClause = buildUserOverviewWhere(snapshotId, filters, [Prisma.sql`state = 'ASSIGNED'`]);
+  async fetchUserOverviewAssignedTaskCount(
+    snapshotId: number,
+    filters: AnalyticsFilters,
+    queryOptions?: AnalyticsQueryOptions
+  ): Promise<number> {
+    const whereClause = buildUserOverviewWhere(snapshotId, filters, [Prisma.sql`state = 'ASSIGNED'`], queryOptions);
     const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS total
-      FROM analytics.mv_reportable_task_thin_snapshots
+      FROM analytics.snapshot_task_rows
       ${whereClause}
     `);
     return rows[0]?.total ?? 0;
   }
 
-  async fetchUserOverviewCompletedTaskCount(snapshotId: number, filters: AnalyticsFilters): Promise<number> {
+  async fetchUserOverviewCompletedTaskCount(
+    snapshotId: number,
+    filters: AnalyticsFilters,
+    queryOptions?: AnalyticsQueryOptions
+  ): Promise<number> {
     const conditions = buildCompletedTaskConditions(filters);
-    const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions);
+    const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions, queryOptions);
     const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS total
-      FROM analytics.mv_reportable_task_thin_snapshots
+      FROM analytics.snapshot_task_rows
       ${whereClause}
     `);
     return rows[0]?.total ?? 0;
@@ -286,14 +288,15 @@ export class TaskThinRepository {
 
   async fetchUserOverviewCompletedByDateRows(
     snapshotId: number,
-    filters: AnalyticsFilters
+    filters: AnalyticsFilters,
+    queryOptions?: AnalyticsQueryOptions
   ): Promise<UserOverviewCompletedByDateRow[]> {
-    const conditions: Prisma.Sql[] = [snapshotCondition(snapshotId), Prisma.sql`completed_date IS NOT NULL`];
+    const conditions: Prisma.Sql[] = [asOfSnapshotCondition(snapshotId), Prisma.sql`completed_date IS NOT NULL`];
     applyCompletedDateFilters(filters, conditions);
     if (filters.user && filters.user.length > 0) {
       conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
     }
-    const whereClause = buildAnalyticsWhere(filters, conditions);
+    const whereClause = buildAnalyticsWhere(filters, conditions, queryOptions);
 
     return tmPrisma.$queryRaw<UserOverviewCompletedByDateRow[]>(Prisma.sql`
       SELECT
@@ -303,7 +306,7 @@ export class TaskThinRepository {
         SUM(beyond_due)::int AS beyond_due,
         SUM(handling_time_sum)::numeric AS handling_time_sum,
         SUM(handling_time_count)::int AS handling_time_count
-      FROM analytics.mv_user_completed_facts_snapshots
+      FROM analytics.snapshot_user_completed_facts
       ${whereClause}
       GROUP BY completed_date
       ORDER BY completed_date
@@ -312,24 +315,31 @@ export class TaskThinRepository {
 
   async fetchUserOverviewCompletedByTaskNameRows(
     snapshotId: number,
-    filters: AnalyticsFilters
+    filters: AnalyticsFilters,
+    queryOptions?: AnalyticsQueryOptions
   ): Promise<UserOverviewCompletedByTaskNameRow[]> {
-    const conditions: Prisma.Sql[] = [snapshotCondition(snapshotId), Prisma.sql`completed_date IS NOT NULL`];
+    const conditions: Prisma.Sql[] = [
+      asOfSnapshotCondition(snapshotId),
+      Prisma.sql`completed_date IS NOT NULL`,
+      Prisma.sql`LOWER(termination_reason) = 'completed'`,
+    ];
     applyCompletedDateFilters(filters, conditions);
     if (filters.user && filters.user.length > 0) {
       conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
     }
-    const whereClause = buildAnalyticsWhere(filters, conditions);
+    const whereClause = buildAnalyticsWhere(filters, conditions, queryOptions);
 
     return tmPrisma.$queryRaw<UserOverviewCompletedByTaskNameRow[]>(Prisma.sql`
       SELECT
         task_name,
-        SUM(tasks)::int AS tasks,
-        SUM(handling_time_sum)::numeric AS handling_time_sum,
-        SUM(handling_time_count)::int AS handling_time_count,
-        SUM(days_beyond_sum)::numeric AS days_beyond_sum,
-        SUM(days_beyond_count)::int AS days_beyond_count
-      FROM analytics.mv_user_completed_facts_snapshots
+        COUNT(*)::int AS tasks,
+        SUM(COALESCE(EXTRACT(EPOCH FROM handling_time) / ${SECONDS_PER_DAY_SQL}, 0))::double precision AS handling_time_sum,
+        COUNT(*)::int AS handling_time_count,
+        SUM(
+          COALESCE(EXTRACT(EPOCH FROM due_date_to_completed_diff_time) / ${SECONDS_PER_DAY_SQL}, 0) * -1
+        )::double precision AS days_beyond_sum,
+        COUNT(*)::int AS days_beyond_count
+      FROM analytics.snapshot_task_rows
       ${whereClause}
       GROUP BY task_name
       ORDER BY tasks DESC NULLS LAST, task_name ASC
@@ -341,7 +351,7 @@ export class TaskThinRepository {
     filters: AnalyticsFilters,
     caseId?: string
   ): Promise<CompletedTaskAuditRow[]> {
-    const conditions = [snapshotCondition(snapshotId), ...buildCompletedTaskConditions(filters, caseId)];
+    const conditions = [asOfSnapshotCondition(snapshotId), ...buildCompletedTaskConditions(filters, caseId)];
     const whereClause = buildAnalyticsWhere(filters, conditions);
 
     return tmPrisma.$queryRaw<CompletedTaskAuditRow[]>(Prisma.sql`
@@ -354,7 +364,7 @@ export class TaskThinRepository {
         location,
         termination_process_label,
         outcome
-      FROM analytics.mv_reportable_task_thin_snapshots
+      FROM analytics.snapshot_task_rows
       ${whereClause}
       ORDER BY completed_date DESC NULLS LAST
     `);
@@ -366,12 +376,12 @@ export class TaskThinRepository {
     sort: SortState<CriticalTasksSortBy>,
     pagination: PaginationOptions
   ): Promise<OutstandingCriticalTaskRow[]> {
-    const priorityBucket = buildPriorityBucket();
+    const priorityRank = buildPriorityRank(snapshotId);
     const whereClause = buildAnalyticsWhere(filters, [
-      snapshotCondition(snapshotId),
+      asOfSnapshotCondition(snapshotId),
       Prisma.sql`state NOT IN ('COMPLETED', 'TERMINATED')`,
     ]);
-    const orderBy = buildCriticalTasksOrderBy(sort);
+    const orderBy = buildCriticalTasksOrderBy(snapshotId, sort);
     const { limitClause, offsetClause } = buildPaginationClauses(pagination);
 
     return tmPrisma.$queryRaw<OutstandingCriticalTaskRow[]>(Prisma.sql`
@@ -384,9 +394,9 @@ export class TaskThinRepository {
         location,
         to_char(created_date, 'YYYY-MM-DD') AS created_date,
         to_char(due_date, 'YYYY-MM-DD') AS due_date,
-        ${priorityBucket} AS priority,
+        ${priorityRank} AS priority_rank,
         assignee
-      FROM analytics.mv_reportable_task_thin_snapshots
+      FROM analytics.snapshot_task_rows
       ${whereClause}
       ORDER BY ${orderBy}
       ${limitClause}
@@ -396,32 +406,39 @@ export class TaskThinRepository {
 
   async fetchOutstandingCriticalTaskCount(snapshotId: number, filters: AnalyticsFilters): Promise<number> {
     const whereClause = buildAnalyticsWhere(filters, [
-      snapshotCondition(snapshotId),
+      asOfSnapshotCondition(snapshotId),
       Prisma.sql`state NOT IN ('COMPLETED', 'TERMINATED')`,
     ]);
     const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS total
-      FROM analytics.mv_reportable_task_thin_snapshots
+      FROM analytics.snapshot_task_rows
       ${whereClause}
     `);
     return rows[0]?.total ?? 0;
   }
 
   async fetchOpenTasksByNameRows(snapshotId: number, filters: AnalyticsFilters): Promise<OpenTasksByNameRow[]> {
+    const priorityRank = buildPriorityRank(snapshotId);
     const whereClause = buildAnalyticsWhere(filters, [
-      snapshotCondition(snapshotId),
-      Prisma.sql`priority_bucket IN ('Urgent', 'High', 'Medium', 'Low')`,
+      asOfSnapshotCondition(snapshotId),
+      Prisma.sql`state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`,
     ]);
 
     return tmPrisma.$queryRaw<OpenTasksByNameRow[]>(Prisma.sql`
+      WITH bucketed AS (
+        SELECT
+          task_name,
+          ${priorityRank} AS priority_rank
+        FROM analytics.snapshot_task_rows
+        ${whereClause}
+      )
       SELECT
         task_name,
-        SUM(CASE WHEN priority_bucket = 'Urgent' THEN task_count ELSE 0 END)::int AS urgent,
-        SUM(CASE WHEN priority_bucket = 'High' THEN task_count ELSE 0 END)::int AS high,
-        SUM(CASE WHEN priority_bucket = 'Medium' THEN task_count ELSE 0 END)::int AS medium,
-        SUM(CASE WHEN priority_bucket = 'Low' THEN task_count ELSE 0 END)::int AS low
-      FROM analytics.mv_open_tasks_by_name_snapshots
-      ${whereClause}
+        SUM(CASE WHEN priority_rank = 4 THEN 1 ELSE 0 END)::int AS urgent,
+        SUM(CASE WHEN priority_rank = 3 THEN 1 ELSE 0 END)::int AS high,
+        SUM(CASE WHEN priority_rank = 2 THEN 1 ELSE 0 END)::int AS medium,
+        SUM(CASE WHEN priority_rank = 1 THEN 1 ELSE 0 END)::int AS low
+      FROM bucketed
       GROUP BY task_name
     `);
   }
@@ -430,42 +447,63 @@ export class TaskThinRepository {
     snapshotId: number,
     filters: AnalyticsFilters
   ): Promise<OpenTasksByRegionLocationRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [snapshotCondition(snapshotId)]);
+    const priorityRank = buildPriorityRank(snapshotId);
+    const whereClause = buildAnalyticsWhere(filters, [
+      asOfSnapshotCondition(snapshotId),
+      Prisma.sql`state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`,
+    ]);
 
     return tmPrisma.$queryRaw<OpenTasksByRegionLocationRow[]>(Prisma.sql`
+      WITH bucketed AS (
+        SELECT
+          region,
+          location,
+          ${priorityRank} AS priority_rank
+        FROM analytics.snapshot_task_rows
+        ${whereClause}
+      )
       SELECT
         region,
         location,
-        SUM(task_count)::int AS open_tasks,
-        SUM(CASE WHEN priority_bucket = 'Urgent' THEN task_count ELSE 0 END)::int AS urgent,
-        SUM(CASE WHEN priority_bucket = 'High' THEN task_count ELSE 0 END)::int AS high,
-        SUM(CASE WHEN priority_bucket = 'Medium' THEN task_count ELSE 0 END)::int AS medium,
-        SUM(CASE WHEN priority_bucket = 'Low' THEN task_count ELSE 0 END)::int AS low
-      FROM analytics.mv_open_tasks_by_region_location_snapshots
-      ${whereClause}
+        COUNT(*)::int AS open_tasks,
+        SUM(CASE WHEN priority_rank = 4 THEN 1 ELSE 0 END)::int AS urgent,
+        SUM(CASE WHEN priority_rank = 3 THEN 1 ELSE 0 END)::int AS high,
+        SUM(CASE WHEN priority_rank = 2 THEN 1 ELSE 0 END)::int AS medium,
+        SUM(CASE WHEN priority_rank = 1 THEN 1 ELSE 0 END)::int AS low
+      FROM bucketed
       GROUP BY region, location
       ORDER BY location ASC, region ASC
     `);
   }
 
   async fetchOpenTasksSummaryRows(snapshotId: number, filters: AnalyticsFilters): Promise<SummaryTotalsRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [snapshotCondition(snapshotId)]);
+    const priorityRank = buildPriorityRank(snapshotId);
+    const whereClause = buildAnalyticsWhere(filters, [
+      asOfSnapshotCondition(snapshotId),
+      Prisma.sql`state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`,
+    ]);
 
     return tmPrisma.$queryRaw<SummaryTotalsRow[]>(Prisma.sql`
+      WITH bucketed AS (
+        SELECT
+          state,
+          ${priorityRank} AS priority_rank
+        FROM analytics.snapshot_task_rows
+        ${whereClause}
+      )
       SELECT
-        SUM(CASE WHEN state = 'ASSIGNED' THEN task_count ELSE 0 END)::int AS assigned,
-        SUM(CASE WHEN state = 'ASSIGNED' THEN 0 ELSE task_count END)::int AS unassigned,
-        SUM(CASE WHEN priority_bucket = 'Urgent' THEN task_count ELSE 0 END)::int AS urgent,
-        SUM(CASE WHEN priority_bucket = 'High' THEN task_count ELSE 0 END)::int AS high,
-        SUM(CASE WHEN priority_bucket = 'Medium' THEN task_count ELSE 0 END)::int AS medium,
-        SUM(CASE WHEN priority_bucket = 'Low' THEN task_count ELSE 0 END)::int AS low
-      FROM analytics.mv_open_tasks_summary_snapshots
-      ${whereClause}
+        SUM(CASE WHEN state = 'ASSIGNED' THEN 1 ELSE 0 END)::int AS assigned,
+        SUM(CASE WHEN state = 'ASSIGNED' THEN 0 ELSE 1 END)::int AS unassigned,
+        SUM(CASE WHEN priority_rank = 4 THEN 1 ELSE 0 END)::int AS urgent,
+        SUM(CASE WHEN priority_rank = 3 THEN 1 ELSE 0 END)::int AS high,
+        SUM(CASE WHEN priority_rank = 2 THEN 1 ELSE 0 END)::int AS medium,
+        SUM(CASE WHEN priority_rank = 1 THEN 1 ELSE 0 END)::int AS low
+      FROM bucketed
     `);
   }
 
   async fetchWaitTimeByAssignedDateRows(snapshotId: number, filters: AnalyticsFilters): Promise<WaitTimeRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [snapshotCondition(snapshotId)]);
+    const whereClause = buildAnalyticsWhere(filters, [asOfSnapshotCondition(snapshotId)]);
 
     return tmPrisma.$queryRaw<WaitTimeRow[]>(Prisma.sql`
       SELECT
@@ -475,7 +513,7 @@ export class TaskThinRepository {
           ELSE (EXTRACT(EPOCH FROM SUM(total_wait_time)) / ${SECONDS_PER_DAY_SQL}) / SUM(assigned_task_count)::double precision
         END::double precision AS avg_wait_time_days,
         SUM(assigned_task_count)::int AS assigned_task_count
-      FROM analytics.mv_open_tasks_wait_time_by_assigned_date_snapshots
+      FROM analytics.snapshot_wait_time_by_assigned_date
       ${whereClause}
       GROUP BY reference_date
       ORDER BY reference_date
@@ -483,7 +521,10 @@ export class TaskThinRepository {
   }
 
   async fetchTasksDueByDateRows(snapshotId: number, filters: AnalyticsFilters): Promise<TasksDueRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [snapshotCondition(snapshotId), Prisma.sql`date_role = 'due'`]);
+    const whereClause = buildAnalyticsWhere(filters, [
+      asOfSnapshotCondition(snapshotId),
+      Prisma.sql`date_role = 'due'`,
+    ]);
 
     return tmPrisma.$queryRaw<TasksDueRow[]>(Prisma.sql`
       SELECT
@@ -500,7 +541,7 @@ export class TaskThinRepository {
             ELSE 0
           END
         )::int AS completed
-      FROM analytics.mv_task_daily_facts_snapshots
+      FROM analytics.snapshot_task_daily_facts
       ${whereClause}
       GROUP BY reference_date
       ORDER BY reference_date
@@ -510,8 +551,8 @@ export class TaskThinRepository {
   async fetchAssigneeIds(snapshotId: number): Promise<string[]> {
     const rows = await tmPrisma.$queryRaw<FilterValueRow[]>(Prisma.sql`
       SELECT DISTINCT assignee AS value
-      FROM analytics.mv_reportable_task_thin_snapshots
-      WHERE snapshot_id = ${snapshotId}
+      FROM analytics.snapshot_task_rows
+      WHERE ${asOfSnapshotCondition(snapshotId)}
         AND assignee IS NOT NULL
       ORDER BY value
     `);

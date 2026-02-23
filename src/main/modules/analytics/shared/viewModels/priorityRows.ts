@@ -1,4 +1,5 @@
 import { formatNumber } from '../formatting';
+import { TaskPriority } from '../types';
 
 type PrioritySummary = {
   urgent: number;
@@ -11,9 +12,9 @@ export type PriorityRow = { label: string; value: string };
 
 export function buildPriorityRows(summary: PrioritySummary): PriorityRow[] {
   return [
-    { label: 'Urgent', value: formatNumber(summary.urgent) },
-    { label: 'High', value: formatNumber(summary.high) },
-    { label: 'Medium', value: formatNumber(summary.medium) },
-    { label: 'Low', value: formatNumber(summary.low) },
+    { label: TaskPriority.Urgent, value: formatNumber(summary.urgent) },
+    { label: TaskPriority.High, value: formatNumber(summary.high) },
+    { label: TaskPriority.Medium, value: formatNumber(summary.medium) },
+    { label: TaskPriority.Low, value: formatNumber(summary.low) },
   ];
 }

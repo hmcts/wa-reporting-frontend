@@ -17,7 +17,7 @@
         { text: row.taskName },
         { text: row.createdDateDisplay, attributes: { 'data-export-value': row.createdDateIso, 'data-sort-value': row.createdDateIso } },
         { text: row.dueDateDisplay, attributes: { 'data-export-value': row.dueDateIso or '-', 'data-sort-value': row.dueDateIso or '' } },
-        { text: row.priority },
+        { text: row.priority, attributes: { 'data-sort-value': row.prioritySortValue } },
         { text: row.agentName }
       ]]) %}
     {% endfor %}
@@ -33,7 +33,7 @@
             'data-sort-scope': 'criticalTasks',
             'data-sort-section': 'outstanding-critical-tasks'
           },
-          classes: "analytics-table--compact",
+          classes: "analytics-table--compact analytics-table--wrap-critical-columns",
           head: criticalTasksHead,
           boldLastRow: false,
           rows: criticalTasksTableRows

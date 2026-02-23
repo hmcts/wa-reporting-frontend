@@ -1,13 +1,13 @@
 import { chartColors } from '../../shared/charts/colors';
 import { buildDonutChart } from '../../shared/charts/donut';
 import { buildStackedBarWithLineTimeSeries } from '../../shared/charts/timeSeries';
-import { UserOverviewResponse } from '../../shared/types';
+import { TaskPriority, UserOverviewResponse } from '../../shared/types';
 import { CompletedByDatePoint } from '../service';
 
 export function buildUserPriorityChart(summary: UserOverviewResponse['prioritySummary']): string {
   return buildDonutChart({
     values: [summary.urgent, summary.high, summary.medium, summary.low],
-    labels: ['Urgent', 'High', 'Medium', 'Low'],
+    labels: [TaskPriority.Urgent, TaskPriority.High, TaskPriority.Medium, TaskPriority.Low],
     colors: [chartColors.purple, chartColors.blueDark, chartColors.blueLight, chartColors.greyLight],
   });
 }
@@ -25,16 +25,17 @@ export function buildUserCompletedByDateChart(points: CompletedByDatePoint[]): s
       values: points.map(point =>
         point.handlingTimeCount === 0 ? 0 : point.handlingTimeSum / point.handlingTimeCount
       ),
-      color: chartColors.blueDark,
+      color: chartColors.signalRed,
       mode: 'lines',
       width: 2,
       axis: 'y2',
     },
     {
+      axisTitles: { x: 'Completed date', y: 'Tasks' },
       layoutOverrides: {
-        yaxis: { title: 'Tasks', automargin: true, fixedrange: true, rangemode: 'tozero' },
+        yaxis: { automargin: true, fixedrange: true, rangemode: 'tozero' },
         yaxis2: {
-          title: 'Average handling time (days)',
+          title: { text: 'Average handling time (days)' },
           automargin: true,
           fixedrange: true,
           overlaying: 'y',

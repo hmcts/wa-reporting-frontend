@@ -1,6 +1,7 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
 import { formatAnalyticsDateDisplay, formatNumber, formatPercent } from '../shared/formatting';
 import { OutstandingSort } from '../shared/outstandingSort';
+import { prioritySortValue } from '../shared/priority/priorityRankSql';
 import { FilterOptions } from '../shared/services';
 import {
   AnalyticsFilters,
@@ -35,6 +36,7 @@ type CriticalTaskView = CriticalTask & {
   createdDateDisplay: string;
   dueDateIso?: string;
   dueDateDisplay: string;
+  prioritySortValue: number;
 };
 
 type OpenTasksTotals = { open: number; assigned: number; unassigned: number };
@@ -42,6 +44,7 @@ type WaitTimeTotals = { assignedCount: number; weightedTotal: number; average: n
 type DueTotals = { totalDue: number; open: number; completed: number };
 type PriorityTotals = { urgent: number; high: number; medium: number; low: number };
 type OutstandingTotals = { open: number; urgent: number; high: number; medium: number; low: number };
+const waitTimeDecimalOptions: Intl.NumberFormatOptions = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
 
 function buildNumericCell(value: number, options: Intl.NumberFormatOptions = {}): TableCell {
   return { text: formatNumber(value, options), attributes: { 'data-sort-value': String(value) } };
@@ -122,6 +125,7 @@ export type OutstandingViewModel = FilterOptionsViewModel & {
 function buildOpenByNameRows(breakdown: PriorityBreakdown[]): TableRows {
   return breakdown.map(row => [
     { text: row.name },
+    buildNumericCell(row.urgent + row.high + row.medium + row.low),
     buildNumericCell(row.urgent),
     buildNumericCell(row.high),
     buildNumericCell(row.medium),
@@ -132,6 +136,7 @@ function buildOpenByNameRows(breakdown: PriorityBreakdown[]): TableRows {
 function buildOpenByNameTotalsRow(totals: PriorityBreakdown): TableRow {
   return [
     buildTotalLabelCell(totals.name),
+    buildNumericCell(totals.urgent + totals.high + totals.medium + totals.low),
     buildNumericCell(totals.urgent),
     buildNumericCell(totals.high),
     buildNumericCell(totals.medium),
@@ -182,7 +187,7 @@ function buildWaitTimeRows(waitTime: WaitTimePoint[]): TableRows {
   return waitTime.map(point => [
     buildDateCell(point.date),
     buildNumericCell(point.assignedCount),
-    buildNumericCell(point.averageWaitDays, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    buildNumericCell(point.averageWaitDays, waitTimeDecimalOptions),
   ]);
 }
 
@@ -190,7 +195,7 @@ function buildWaitTimeTotalsRow(waitTimeTotals: WaitTimeTotals): TableRow {
   return [
     buildTotalLabelCell('Total'),
     buildNumericCell(waitTimeTotals.assignedCount),
-    buildNumericCell(waitTimeTotals.average, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    buildNumericCell(waitTimeTotals.average, waitTimeDecimalOptions),
   ];
 }
 
@@ -263,6 +268,7 @@ function buildCriticalTasks(criticalTasks: CriticalTask[], locationLookup: Recor
     createdDateDisplay: formatAnalyticsDateDisplay(task.createdDate),
     dueDateIso: task.dueDate,
     dueDateDisplay: formatAnalyticsDateDisplay(task.dueDate),
+    prioritySortValue: prioritySortValue(task.priority),
   }));
 }
 

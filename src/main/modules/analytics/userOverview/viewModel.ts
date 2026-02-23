@@ -1,10 +1,11 @@
 import { buildFilterOptionsViewModel } from '../shared/filters';
 import { formatAnalyticsDateDisplay, formatDatePickerValue, formatNumber, formatPercent } from '../shared/formatting';
 import { PaginationMeta } from '../shared/pagination';
+import { prioritySortValue } from '../shared/priority/priorityRankSql';
 import type { FilterOptions } from '../shared/services';
-import { AnalyticsFilters, Task, UserOverviewResponse } from '../shared/types';
+import { AnalyticsFilters, Task, TaskPriorityValue, UserOverviewResponse } from '../shared/types';
 import { UserOverviewSort } from '../shared/userOverviewSort';
-import { lookup, normaliseLabel } from '../shared/utils';
+import { lookup, normaliseLabel, toNumber } from '../shared/utils';
 import type { FilterOptionsViewModel, SelectOption } from '../shared/viewModels/filterOptions';
 import { buildPriorityRows } from '../shared/viewModels/priorityRows';
 import { TableHeadCell, buildSortHeadCell } from '../shared/viewModels/sortHead';
@@ -59,16 +60,13 @@ function buildPercentCell(value: number, options: Intl.NumberFormatOptions = {})
   return { text: formatPercent(value, options), attributes: { 'data-sort-value': String(value) } };
 }
 
-function buildAverageCell(valueSum: number, valueCount: number): TableRowCell {
-  const sum = Number.isFinite(valueSum) ? valueSum : 0;
-  const count = Number.isFinite(valueCount) ? valueCount : 0;
+function buildAverageCell(valueSum: unknown, valueCount: unknown): TableRowCell {
+  const sum = toNumber(valueSum, 0);
+  const count = toNumber(valueCount, 0);
   if (count <= 0) {
     return { text: '-' };
   }
   const average = sum / count;
-  if (!Number.isFinite(average)) {
-    return { text: '-' };
-  }
   return {
     text: formatNumber(average, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     attributes: { 'data-sort-value': String(average) },
@@ -88,7 +86,8 @@ type UserOverviewAssignedRow = {
   assignedDateRaw: string;
   dueDate: string;
   dueDateRaw: string;
-  priority: string;
+  priority: TaskPriorityValue;
+  prioritySortValue: number;
   totalAssignments: string;
   assigneeName: string;
   location: string;
@@ -126,6 +125,7 @@ function mapAssignedRow(row: Task, locationDescriptions: Record<string, string>)
     dueDate: formatAnalyticsDateDisplay(dueDateRaw),
     dueDateRaw: dueDateRaw || '-',
     priority: row.priority,
+    prioritySortValue: prioritySortValue(row.priority),
     totalAssignments: formatNumber(row.totalAssignments ?? 0),
     assigneeName: row.assigneeName ?? '',
     location: lookup(row.location, locationDescriptions),
