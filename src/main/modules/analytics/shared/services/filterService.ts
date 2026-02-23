@@ -71,7 +71,9 @@ function buildQueryOptionsCacheSignature(queryOptions?: AnalyticsQueryOptions): 
   if (!excluded || excluded.length === 0) {
     return 'default';
   }
-  const normalised = [...new Set(excluded.map(value => value.trim().toUpperCase()).filter(Boolean))].sort();
+  const normalised = [...new Set(excluded.map(value => value.trim().toUpperCase()).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b)
+  );
   if (normalised.length === 0) {
     return 'default';
   }

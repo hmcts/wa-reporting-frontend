@@ -15,7 +15,9 @@ function normaliseExcludedRoleCategories(queryOptions?: AnalyticsQueryOptions): 
   if (!excluded || excluded.length === 0) {
     return [];
   }
-  return [...new Set(excluded.map(value => value.trim().toUpperCase()).filter(value => value.length > 0))].sort();
+  return [...new Set(excluded.map(value => value.trim().toUpperCase()).filter(value => value.length > 0))].sort(
+    (a, b) => a.localeCompare(b)
+  );
 }
 
 function excludedRoleCategoriesCondition(values: string[]): Prisma.Sql | null {
