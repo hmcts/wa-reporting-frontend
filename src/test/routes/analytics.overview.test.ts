@@ -113,3 +113,30 @@ describe('Analytics overview route with authentication enabled', () => {
     expect(response.text).toContain('Sorry, access to this resource is forbidden');
   });
 });
+
+describe('Analytics overview route compression toggle', () => {
+  let compressedServer: Server;
+  let closeCompressedServer: () => Promise<void>;
+
+  beforeAll(async () => {
+    ({ server: compressedServer, close: closeCompressedServer } = await buildRouteTestServer({
+      compressionEnabled: true,
+    }));
+  });
+
+  afterAll(() => {
+    return closeCompressedServer();
+  });
+
+  test('should not apply compression by default', async () => {
+    const response = await request(server).get('/').set('Accept-Encoding', 'gzip').expect(200);
+
+    expect(response.headers['content-encoding']).toBeUndefined();
+  });
+
+  test('should apply gzip compression when enabled', async () => {
+    const response = await request(compressedServer).get('/').set('Accept-Encoding', 'gzip').expect(200);
+
+    expect(response.headers['content-encoding']).toBe('gzip');
+  });
+});

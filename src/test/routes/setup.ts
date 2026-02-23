@@ -9,6 +9,7 @@ const globalState = globalThis as unknown as RouteTestGlobals;
 
 const defaultValues: RouteTestConfigValues = {
   'auth.enabled': false,
+  'compression.enabled': false,
   useCSRFProtection: true,
   'secrets.wa.csrf-cookie-secret': 'csrf-cookie-secret',
   'secrets.wa.session-secret': 'session-secret',
@@ -42,5 +43,6 @@ jest.mock('config', () => ({ get, has }));
 process.env.AUTH_ENABLED = 'false';
 process.env.NODE_CONFIG = JSON.stringify({
   auth: { enabled: false },
+  compression: { enabled: false },
   useCSRFProtection: true,
 });

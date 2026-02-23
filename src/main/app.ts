@@ -9,6 +9,7 @@ import { HTTPError } from './HttpError';
 const env = process.env.NODE_ENV || 'development';
 const developmentMode = env === 'development';
 const authEnabled: boolean = config.get('auth.enabled') ?? true;
+const compressionEnabled: boolean = config.get('compression.enabled') ?? false;
 
 const bodyParser = require('body-parser');
 const compression = require('compression');
@@ -55,7 +56,9 @@ export const bootstrap = async (): Promise<void> => {
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(cookieParser(config.get('secrets.wa.session-secret')));
-  app.use(compression());
+  if (compressionEnabled) {
+    app.use(compression());
+  }
   app.use(express.static(path.join(__dirname, 'public')));
   app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate, no-store');

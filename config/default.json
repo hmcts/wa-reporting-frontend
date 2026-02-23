@@ -20,6 +20,9 @@
   "auth": {
     "enabled": true
   },
+  "compression": {
+    "enabled": false
+  },
   "services": {
     "idam": {
       "clientID": "wa_reporting_frontend",

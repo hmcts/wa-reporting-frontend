@@ -16,13 +16,16 @@ type RouteAnalyticsMocks = {
 
 type RouteTestConfig = {
   authEnabled?: boolean;
+  compressionEnabled?: boolean;
   analyticsMocks?: RouteAnalyticsMocks;
 };
 
-function setRouteTestConfig({ authEnabled = false }: RouteTestConfig): void {
+function setRouteTestConfig({ authEnabled = false, compressionEnabled = false }: RouteTestConfig): void {
   process.env.AUTH_ENABLED = authEnabled ? 'true' : 'false';
+  process.env.COMPRESSION_ENABLED = compressionEnabled ? 'true' : 'false';
   process.env.NODE_CONFIG = JSON.stringify({
     auth: { enabled: authEnabled },
+    compression: { enabled: compressionEnabled },
     useCSRFProtection: true,
   });
 
@@ -31,6 +34,7 @@ function setRouteTestConfig({ authEnabled = false }: RouteTestConfig): void {
   };
   globalState.__setRouteTestConfigValues?.({
     'auth.enabled': authEnabled,
+    'compression.enabled': compressionEnabled,
   });
 }
 
