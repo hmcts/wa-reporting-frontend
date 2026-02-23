@@ -13,20 +13,16 @@ const cssWebPackPlugin = new HtmlWebpackPlugin({
 const jsWebPackPlugin = new HtmlWebpackPlugin({
   template: jsPath,
   publicPath: '/',
-  filename: 'js.njk',
-  templateParameters: {
-    chunkPrefix: 'main',
-  },
+  filename: jsPath.replace('-template', ''),
+  chunkPrefix: 'main',
   inject: false,
 });
 
 const analyticsJsWebPackPlugin = new HtmlWebpackPlugin({
   template: jsPath,
   publicPath: '/',
-  filename: 'analytics-js.njk',
-  templateParameters: {
-    chunkPrefix: 'analytics',
-  },
+  filename: path.resolve(__dirname, '../src/main/views/webpack/analytics-js.njk'),
+  chunkPrefix: 'analytics',
   inject: false,
 });
 
