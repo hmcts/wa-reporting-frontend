@@ -4,10 +4,11 @@ import type { Express, Request, Response } from 'express';
 const buildAppModule = async (options: {
   env?: string;
   authEnabled?: boolean;
+  compressionEnabled?: boolean;
   routePaths?: string[];
   routeMocks?: Record<string, jest.Mock>;
 }) => {
-  const { env, authEnabled = true, routePaths = [], routeMocks = {} } = options;
+  const { env, authEnabled, compressionEnabled, routePaths = [], routeMocks = {} } = options;
 
   if (env === undefined) {
     delete process.env.NODE_ENV;
@@ -21,10 +22,15 @@ const buildAppModule = async (options: {
   const oidcEnableFor = jest.fn();
   const healthRoute = jest.fn();
   const infoRoute = jest.fn();
+  const compressionMiddleware = jest.fn((_req: unknown, _res: unknown, next: () => void) => next());
+  const compressionFactory = jest.fn(() => compressionMiddleware);
 
   const configGet = jest.fn((key: string) => {
     if (key === 'auth.enabled') {
       return authEnabled;
+    }
+    if (key === 'compression.enabled') {
+      return compressionEnabled;
     }
     if (key === 'security') {
       return { enabled: true };
@@ -39,6 +45,8 @@ const buildAppModule = async (options: {
   jest.doMock('glob', () => ({
     glob: jest.fn().mockResolvedValue(routePaths),
   }));
+
+  jest.doMock('compression', () => compressionFactory);
 
   routePaths.forEach(routePath => {
     const routeDefault = routeMocks[routePath] ?? jest.fn();
@@ -112,6 +120,7 @@ const buildAppModule = async (options: {
     healthRoute,
     infoRoute,
     configGet,
+    compressionFactory,
   };
 };
 
@@ -208,6 +217,24 @@ describe('app bootstrap', () => {
     });
 
     expect(oidcEnableFor).not.toHaveBeenCalled();
+  });
+
+  it('registers compression middleware when compression is enabled', async () => {
+    const { compressionFactory } = await buildAppModule({
+      env: 'development',
+      compressionEnabled: true,
+    });
+
+    expect(compressionFactory).toHaveBeenCalled();
+  });
+
+  it('skips compression middleware when compression is disabled', async () => {
+    const { compressionFactory } = await buildAppModule({
+      env: 'development',
+      compressionEnabled: false,
+    });
+
+    expect(compressionFactory).not.toHaveBeenCalled();
   });
 
   it('serves the default favicon', async () => {

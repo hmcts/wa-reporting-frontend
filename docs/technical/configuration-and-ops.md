@@ -58,12 +58,14 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 
 ### Security and logging
 - `useCSRFProtection` and `secrets.wa.csrf-cookie-secret`.
+- `compression.enabled`: enables/disables HTTP compression middleware (default `false`).
 - `security.referrerPolicy` and HSTS settings.
 - `logging.prismaQueryTimings`: enable query timing logs.
 - `secrets.wa.app-insights-connection-string` for Azure Application Insights.
 
 ## Environment variables (selected)
 - `AUTH_ENABLED`
+- `COMPRESSION_ENABLED`
 - `APPLICATIONINSIGHTS_CONNECTION_STRING`
 - `IDAM_CLIENT_ID`, `WA_REPORTING_FRONTEND_CLIENT_SECRET`, `IDAM_CLIENT_SCOPE`
 - `IDAM_PUBLIC_URL`, `WA_BASE_URL`
