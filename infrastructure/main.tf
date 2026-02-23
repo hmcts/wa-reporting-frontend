@@ -100,3 +100,13 @@ resource "azurerm_key_vault_secret" "rd_location_ref_api_postgres_pass" {
   value        = data.azurerm_key_vault_secret.source_location_ref_api_postgres_pass.value
   key_vault_id = data.azurerm_key_vault.wa_key_vault.id
 }
+
+resource "random_string" "wa-reporting-frontend-session-secret" {
+  length = 16
+}
+
+resource "azurerm_key_vault_secret" "session_secret" {
+  name         = "opal-frontend-session-secret"
+  value        = random_string.wa-reporting-frontend-session-secret.result
+  key_vault_id = data.azurerm_key_vault.opal_key_vault.id
+}

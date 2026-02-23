@@ -55,7 +55,7 @@ export const bootstrap = async (): Promise<void> => {
 
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: false }));
-  app.use(cookieParser(config.get('secrets.wa.session-secret')));
+  app.use(cookieParser(config.get('secrets.wa.wa-reporting-frontend-session-secret')));
   if (compressionEnabled) {
     app.use(compression());
   }
