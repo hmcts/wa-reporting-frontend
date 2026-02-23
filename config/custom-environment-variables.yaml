@@ -7,6 +7,10 @@ auth:
   enabled:
     __name: AUTH_ENABLED
     __format: boolean
+compression:
+  enabled:
+    __name: COMPRESSION_ENABLED
+    __format: boolean
 services:
   idam:
     clientID: IDAM_CLIENT_ID

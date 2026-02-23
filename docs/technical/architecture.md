@@ -28,7 +28,7 @@ flowchart TB
 ```
 
 ## Request lifecycle
-1. Express initializes middleware: body parsing, cookies, compression, static assets, caching headers.
+1. Express initializes middleware: body parsing, cookies, optional compression (`compression.enabled`), static assets, caching headers.
 2. Health (`/health`) and info (`/info`) endpoints are registered.
 3. Session middleware is initialized (AppSession).
 4. Optional OIDC middleware enforces authentication and RBAC access role.

@@ -3,7 +3,11 @@ import type { Application, Request, Response } from 'express';
 type AuthOptions = {
   baseURL: string;
   clientID: string;
-  session: { store: unknown };
+  session: {
+    store: unknown;
+    rollingDuration: number;
+    rolling: boolean;
+  };
   afterCallback: (req: Request, res: Response, session: { id_token?: string }) => unknown;
 };
 
@@ -107,6 +111,8 @@ describe('OidcMiddleware', () => {
     expect(options.baseURL).toBe('http://wa');
     expect(options.clientID).toBe('client-id');
     expect(options.session.store).toEqual({ store: 'redis' });
+    expect(options.session.rollingDuration).toBe(60 * 60);
+    expect(options.session.rolling).toBe(true);
     expect(useMock).toHaveBeenCalledTimes(2);
     expect(useMock).toHaveBeenNthCalledWith(1, 'auth-middleware');
     expect(typeof useMock.mock.calls[1][0]).toBe('function');
