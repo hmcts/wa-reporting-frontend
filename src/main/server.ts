@@ -1,8 +1,8 @@
 import { initializeOpenTelemetry } from './modules/opentelemetry';
 
-const telemetry = initializeOpenTelemetry();
 const { Logger } = require('./modules/logging');
 const { app } = require('./app');
+const telemetry = initializeOpenTelemetry();
 
 const logger = Logger.getLogger('server');
 logger.info(`OpenTelemetry ${telemetry.enabled ? 'enabled' : 'disabled'}`);
