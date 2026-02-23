@@ -55,6 +55,11 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `secrets.wa.tm-db-user`/`secrets.wa.tm-db-password`: TM database credentials.
 - `secrets.wa.crd-db-user`/`secrets.wa.crd-db-password`: CRD database credentials.
 - `secrets.wa.lrd-db-user`/`secrets.wa.lrd-db-password`: LRD database credentials.
+- Terraform reads the source credentials from Key Vault `rd-<env>` and writes them into WA Key Vault under the repo key names:
+  - `caseworker-ref-api-POSTGRES-USER` -> `rd-caseworker-ref-api-POSTGRES-USER`
+  - `caseworker-ref-api-POSTGRES-PASS` -> `rd-caseworker-ref-api-POSTGRES-PASS`
+  - `location-ref-api-POSTGRES-USER` -> `rd-location-ref-api-POSTGRES-USER`
+  - `location-ref-api-POSTGRES-PASS` -> `rd-location-ref-api-POSTGRES-PASS`
 
 ### Security and logging
 - `useCSRFProtection` and `secrets.wa.csrf-cookie-secret`.
