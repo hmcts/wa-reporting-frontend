@@ -14,7 +14,7 @@ jest.mock('plotly.js-basic-dist-min', () => ({
   __esModule: true,
   default: {
     newPlot: jest.fn(() => Promise.resolve()),
-    relayout: jest.fn(),
+    relayout: jest.fn(() => Promise.resolve()),
   },
 }));
 
@@ -97,6 +97,37 @@ describe('analytics charts', () => {
 
     expect(Plotly.relayout).toHaveBeenCalled();
     expect(node.dataset.scrollPanBound).toBe('true');
+  });
+
+  test('rebinds relayout listener across repeated chart renders', () => {
+    const node = document.createElement('div');
+    const plotlyNode = node as unknown as {
+      _fullLayout?: { yaxis?: { range?: [number, number] } };
+      on?: (event: string, handler: () => void) => void;
+      removeAllListeners?: (event: string) => void;
+    };
+    plotlyNode._fullLayout = { yaxis: { range: [4, 0] } };
+
+    let relayoutHandler: (() => void) | undefined;
+    const onSpy = jest.fn((_event: string, handler: () => void) => {
+      relayoutHandler = handler;
+    });
+    const removeAllListenersSpy = jest.fn();
+    plotlyNode.on = onSpy;
+    plotlyNode.removeAllListeners = removeAllListenersSpy;
+
+    bindScrollPan(node, { data: [{ y: ['A', 'B', 'C', 'D', 'E'] }] });
+    const handle = node.querySelector<HTMLElement>('.analytics-chart-scroll-handle');
+    const firstTop = handle?.style.top;
+
+    bindScrollPan(node, { data: [{ y: ['A', 'B', 'C', 'D', 'E'] }] });
+    plotlyNode._fullLayout = { yaxis: { range: [3, -1] } };
+    relayoutHandler?.();
+
+    expect(node.querySelectorAll('.analytics-chart-scroll-track')).toHaveLength(1);
+    expect(onSpy).toHaveBeenCalledTimes(2);
+    expect(removeAllListenersSpy).toHaveBeenCalledWith('plotly_relayout');
+    expect(handle?.style.top).not.toBe(firstTop);
   });
 
   test('covers bindScrollPan guard paths', () => {
