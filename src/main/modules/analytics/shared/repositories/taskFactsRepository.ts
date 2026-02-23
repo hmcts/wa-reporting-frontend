@@ -6,7 +6,7 @@ import { AnalyticsFilters } from '../types';
 
 import { SECONDS_PER_DAY_SQL } from './constants';
 import { AnalyticsQueryOptions, buildAnalyticsWhere } from './filters';
-import { asOfSnapshotCondition, snapshotAsOfDateSql } from './snapshotSql';
+import { asOfSnapshotCondition } from './snapshotSql';
 import {
   AssignmentRow,
   CompletedByLocationRow,
@@ -40,7 +40,6 @@ type OverviewFilterOptionRow = {
 
 export class TaskFactsRepository {
   async fetchServiceOverviewRows(snapshotId: number, filters: AnalyticsFilters): Promise<ServiceOverviewDbRow[]> {
-    const asOfDate = snapshotAsOfDateSql(snapshotId);
     const whereClause = buildAnalyticsWhere(filters, [
       asOfSnapshotCondition(snapshotId),
       Prisma.sql`date_role = 'due'`,
@@ -49,7 +48,6 @@ export class TaskFactsRepository {
     const priorityRank = priorityRankSql({
       priorityColumn: Prisma.raw('priority'),
       dateColumn: Prisma.raw('reference_date'),
-      asOfDateColumn: asOfDate,
     });
 
     return tmPrisma.$queryRaw<ServiceOverviewDbRow[]>(Prisma.sql`
@@ -271,7 +269,6 @@ export class TaskFactsRepository {
   }
 
   async fetchTasksDuePriorityRows(snapshotId: number, filters: AnalyticsFilters): Promise<TasksDuePriorityRow[]> {
-    const asOfDate = snapshotAsOfDateSql(snapshotId);
     const whereClause = buildAnalyticsWhere(filters, [
       asOfSnapshotCondition(snapshotId),
       Prisma.sql`date_role = 'due'`,
@@ -280,7 +277,6 @@ export class TaskFactsRepository {
     const priorityRank = priorityRankSql({
       priorityColumn: Prisma.raw('priority'),
       dateColumn: Prisma.raw('reference_date'),
-      asOfDateColumn: asOfDate,
     });
 
     return tmPrisma.$queryRaw<TasksDuePriorityRow[]>(Prisma.sql`

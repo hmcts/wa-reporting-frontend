@@ -16,8 +16,7 @@ const snapshotTokenSecret: string = config.has('secrets.wa.session-secret')
 export type PublishedSnapshotContext = {
   snapshotId: number;
   snapshotToken: string;
-  publishedAt: Date;
-  asOfDate: Date;
+  publishedAt?: Date;
   freshnessInsetText: string;
 };
 
@@ -40,16 +39,11 @@ export function createSnapshotToken(snapshotId: number): string {
   return `${snapshotId}.${signSnapshotId(snapshotId)}`;
 }
 
-function toPublishedSnapshotContext(snapshot: {
-  snapshotId: number;
-  publishedAt: Date;
-  asOfDate: Date;
-}): PublishedSnapshotContext {
+function toPublishedSnapshotContext(snapshot: { snapshotId: number; publishedAt?: Date }): PublishedSnapshotContext {
   return {
     snapshotId: snapshot.snapshotId,
     snapshotToken: createSnapshotToken(snapshot.snapshotId),
     publishedAt: snapshot.publishedAt,
-    asOfDate: snapshot.asOfDate,
     freshnessInsetText: buildFreshnessInsetText(snapshot.publishedAt),
   };
 }
@@ -58,8 +52,6 @@ function toUnpublishedSnapshotContext(): PublishedSnapshotContext {
   return {
     snapshotId: UNPUBLISHED_SNAPSHOT_ID,
     snapshotToken: '',
-    publishedAt: new Date(0),
-    asOfDate: new Date(0),
     freshnessInsetText: '',
   };
 }

@@ -84,7 +84,6 @@ describe('buildCompletedPage', () => {
     (fetchPublishedSnapshotContext as jest.Mock).mockResolvedValue({
       snapshotId,
       publishedAt: new Date('2026-02-17T10:15:00.000Z'),
-      asOfDate: new Date('2026-02-17T00:00:00.000Z'),
       freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
     });
   });
