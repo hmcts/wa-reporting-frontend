@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Yarn Dependency Upgrades'
+  short_description: 'Upgrade dependencies with Yarn 4 workflows'
+  default_prompt: 'Upgrade dependencies in this repo using Yarn 4, including CVE remediation from yarn-audit-known-issues following precedence rules.'

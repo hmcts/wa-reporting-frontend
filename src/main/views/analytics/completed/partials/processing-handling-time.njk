@@ -89,15 +89,16 @@
     }) }}
   </form>
 
-  {{ govukSummaryList({
-    classes: "govuk-summary-list--no-border",
-    rows: [
-      { key: { text: processingHandlingOverallLabel }, value: { text: processingHandlingOverallAverage } }
-    ]
-  }) }}
-
   {% set processingHandlingChartHtml %}
-    <div class="analytics-chart" data-chart-config='{{ charts.processingHandlingTime | safe }}'></div>
+    <div class="analytics-tab-panel">
+      {{ govukSummaryList({
+        classes: "govuk-summary-list--no-border",
+        rows: [
+          { key: { text: processingHandlingOverallLabel }, value: { text: processingHandlingOverallAverage } }
+        ]
+      }) }}
+      <div class="analytics-chart" data-chart-config='{{ charts.processingHandlingTime | safe }}'></div>
+    </div>
   {% endset %}
   {% set processingHandlingTableHtml %}
     <div class="analytics-tab-panel">

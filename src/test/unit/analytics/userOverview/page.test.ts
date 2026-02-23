@@ -50,12 +50,14 @@ jest.mock('../../../../main/modules/analytics/completed/visuals/completedComplia
 
 describe('buildUserOverviewPage', () => {
   const snapshotId = 104;
+  const userOverviewQueryOptions = { excludeRoleCategories: ['Judicial'] };
 
   beforeEach(() => {
     jest.clearAllMocks();
     (fetchPublishedSnapshotContext as jest.Mock).mockResolvedValue({
       snapshotId,
       publishedAt: new Date('2026-02-17T10:15:00.000Z'),
+      asOfDate: new Date('2026-02-17T00:00:00.000Z'),
       freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
     });
     (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(0);
@@ -79,7 +81,7 @@ describe('buildUserOverviewPage', () => {
         completed_date: null,
         handling_time_days: null,
         is_within_sla: null,
-        priority: 'urgent',
+        priority_rank: 4,
         assignee: 'user-1',
         number_of_reassignments: 0,
       },
@@ -97,7 +99,7 @@ describe('buildUserOverviewPage', () => {
         completed_date: null,
         handling_time_days: null,
         is_within_sla: null,
-        priority: 'low',
+        priority_rank: 1,
         assignee: 'user-2',
         number_of_reassignments: 0,
       },
@@ -123,13 +125,15 @@ describe('buildUserOverviewPage', () => {
       snapshotId,
       { user: ['user-1'] },
       sort.assigned,
-      { page: 1, pageSize: 50 }
+      { page: 1, pageSize: 50 },
+      userOverviewQueryOptions
     );
     expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(
       snapshotId,
       { user: ['user-1'] },
       sort.assigned,
-      null
+      null,
+      userOverviewQueryOptions
     );
     expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewCompletedByDateRows).not.toHaveBeenCalled();
@@ -140,6 +144,7 @@ describe('buildUserOverviewPage', () => {
         expect.objectContaining({
           caseId: 'CASE-1',
           assignedDate: '2024-01-02',
+          priority: 'Urgent',
           status: 'assigned',
           totalAssignments: 1,
           assigneeName: 'Sam Taylor',
@@ -192,7 +197,11 @@ describe('buildUserOverviewPage', () => {
     expect(taskThinRepository.fetchUserOverviewCompletedByTaskNameRows).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
-    expect(fetchFilterOptionsWithFallback).toHaveBeenCalled();
+    expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
+      'Failed to fetch user overview filter options from database',
+      snapshotId,
+      userOverviewQueryOptions
+    );
     expect(viewModel).toEqual({ view: 'user-overview-full' });
   });
 
@@ -213,7 +222,11 @@ describe('buildUserOverviewPage', () => {
 
     expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
-    expect(fetchFilterOptionsWithFallback).toHaveBeenCalled();
+    expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
+      'Failed to fetch user overview filter options from database',
+      snapshotId,
+      userOverviewQueryOptions
+    );
     expect(viewModel).toEqual({ view: 'user-overview-unknown' });
   });
 
@@ -234,11 +247,21 @@ describe('buildUserOverviewPage', () => {
 
     await buildUserOverviewPage({}, sort, 1, 1, 'assigned');
 
-    expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).toHaveBeenCalledWith(snapshotId, {});
-    expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(snapshotId, {}, sort.assigned, {
-      page: 1,
-      pageSize: 50,
-    });
+    expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).toHaveBeenCalledWith(
+      snapshotId,
+      {},
+      userOverviewQueryOptions
+    );
+    expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(
+      snapshotId,
+      {},
+      sort.assigned,
+      {
+        page: 1,
+        pageSize: 50,
+      },
+      userOverviewQueryOptions
+    );
     expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).not.toHaveBeenCalled();
   });
 
@@ -260,7 +283,7 @@ describe('buildUserOverviewPage', () => {
         completed_date: '2024-01-04',
         handling_time_days: 2,
         is_within_sla: 'Yes',
-        priority: 'high',
+        priority_rank: 3,
         assignee: 'user-1',
         number_of_reassignments: 0,
       },
@@ -285,11 +308,27 @@ describe('buildUserOverviewPage', () => {
 
     await buildUserOverviewPage({}, sort, 1, 999, 'completed');
 
-    expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).toHaveBeenCalledWith(snapshotId, {});
-    expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).toHaveBeenCalledWith(snapshotId, {}, sort.completed, {
-      page: 10,
-      pageSize: 50,
-    });
+    expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).toHaveBeenCalledWith(
+      snapshotId,
+      {},
+      userOverviewQueryOptions
+    );
+    expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).toHaveBeenCalledWith(
+      snapshotId,
+      {},
+      sort.completed,
+      {
+        page: 10,
+        pageSize: 50,
+      },
+      userOverviewQueryOptions
+    );
+    expect(completedComplianceSummaryService.fetchCompletedSummary).toHaveBeenCalledWith(
+      snapshotId,
+      {},
+      undefined,
+      userOverviewQueryOptions
+    );
     expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
         completedPage: 10,
@@ -324,7 +363,8 @@ describe('buildUserOverviewPage', () => {
       {
         page: 10,
         pageSize: 50,
-      }
+      },
+      userOverviewQueryOptions
     );
     expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -351,7 +391,7 @@ describe('buildUserOverviewPage', () => {
         completed_date: null,
         handling_time_days: null,
         is_within_sla: 'No',
-        priority: 'medium',
+        priority_rank: 2,
         assignee: null,
         number_of_reassignments: null,
       },

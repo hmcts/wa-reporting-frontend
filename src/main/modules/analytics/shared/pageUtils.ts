@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 
 import { emptyOverviewFilterOptions } from './filters';
 import { buildFreshnessInsetText } from './formatting';
+import type { AnalyticsQueryOptions } from './repositories/filters';
 import { snapshotStateRepository } from './repositories';
 import { type FilterOptions, filterService } from './services';
 import { logDbError, settledValue } from './utils';
@@ -16,6 +17,7 @@ export type PublishedSnapshotContext = {
   snapshotId: number;
   snapshotToken: string;
   publishedAt: Date;
+  asOfDate: Date;
   freshnessInsetText: string;
 };
 
@@ -38,11 +40,16 @@ export function createSnapshotToken(snapshotId: number): string {
   return `${snapshotId}.${signSnapshotId(snapshotId)}`;
 }
 
-function toPublishedSnapshotContext(snapshot: { snapshotId: number; publishedAt: Date }): PublishedSnapshotContext {
+function toPublishedSnapshotContext(snapshot: {
+  snapshotId: number;
+  publishedAt: Date;
+  asOfDate: Date;
+}): PublishedSnapshotContext {
   return {
     snapshotId: snapshot.snapshotId,
     snapshotToken: createSnapshotToken(snapshot.snapshotId),
     publishedAt: snapshot.publishedAt,
+    asOfDate: snapshot.asOfDate,
     freshnessInsetText: buildFreshnessInsetText(snapshot.publishedAt),
   };
 }
@@ -52,6 +59,7 @@ function toUnpublishedSnapshotContext(): PublishedSnapshotContext {
     snapshotId: UNPUBLISHED_SNAPSHOT_ID,
     snapshotToken: '',
     publishedAt: new Date(0),
+    asOfDate: new Date(0),
     freshnessInsetText: '',
   };
 }
@@ -118,10 +126,14 @@ export function parseSnapshotTokenInput(value: unknown): number | undefined {
   return snapshotId;
 }
 
-export async function fetchFilterOptionsWithFallback(errorMessage: string, snapshotId: number): Promise<FilterOptions> {
+export async function fetchFilterOptionsWithFallback(
+  errorMessage: string,
+  snapshotId: number,
+  queryOptions?: AnalyticsQueryOptions
+): Promise<FilterOptions> {
   let filterOptions = emptyOverviewFilterOptions();
   try {
-    filterOptions = await filterService.fetchFilterOptions(snapshotId);
+    filterOptions = await filterService.fetchFilterOptions(snapshotId, queryOptions);
   } catch (error) {
     logDbError(errorMessage, error);
   }

@@ -1,6 +1,6 @@
 import { OutstandingSort } from '../../shared/outstandingSort';
 import { getCappedTotalPages, normalisePage } from '../../shared/pagination';
-import { toDisplayPriorityLabel } from '../../shared/priority/priorityLabels';
+import { priorityLabelFromRank } from '../../shared/priority/priorityRankSql';
 import { taskThinRepository } from '../../shared/repositories';
 import { caseWorkerProfileService } from '../../shared/services';
 import { AnalyticsFilters, CriticalTask } from '../../shared/types';
@@ -12,6 +12,21 @@ type CriticalTasksPage = {
   totalResults: number;
   page: number;
 };
+
+const UNMAPPED_ASSIGNEE_LABEL = 'Judge';
+
+function resolveAgentName(assignee: string | null, caseWorkerNames: Record<string, string>): string {
+  if (!assignee) {
+    return '';
+  }
+
+  const mappedName = caseWorkerNames[assignee];
+  if (!mappedName || mappedName.trim().length === 0) {
+    return UNMAPPED_ASSIGNEE_LABEL;
+  }
+
+  return mappedName;
+}
 
 class CriticalTasksTableService {
   async fetchCriticalTasksPage(
@@ -42,8 +57,8 @@ class CriticalTasksTableService {
         taskName: normaliseLabel(row.task_name),
         createdDate: normaliseLabel(row.created_date),
         dueDate: row.due_date ?? undefined,
-        priority: toDisplayPriorityLabel(row.priority),
-        agentName: row.assignee ? (caseWorkerNames[row.assignee] ?? row.assignee) : '',
+        priority: priorityLabelFromRank(row.priority_rank),
+        agentName: resolveAgentName(row.assignee, caseWorkerNames),
       })),
       totalResults,
       page: currentPage,

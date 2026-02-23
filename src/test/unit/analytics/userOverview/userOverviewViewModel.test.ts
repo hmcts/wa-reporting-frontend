@@ -1,4 +1,4 @@
-import { Task, TaskPriority, TaskStatus, UserTaskRow } from '../../../../main/modules/analytics/shared/types';
+import { Task, TaskStatus, UserTaskRow } from '../../../../main/modules/analytics/shared/types';
 import { getDefaultUserOverviewSort } from '../../../../main/modules/analytics/shared/userOverviewSort';
 import { UserOverviewMetrics } from '../../../../main/modules/analytics/userOverview/service';
 import { __testing, buildUserOverviewViewModel } from '../../../../main/modules/analytics/userOverview/viewModel';
@@ -12,7 +12,7 @@ const buildTasks = (rows: UserTaskRow[], status: TaskStatus): Task[] =>
     region: 'Region',
     location: row.location,
     taskName: row.taskName,
-    priority: row.priority as TaskPriority,
+    priority: row.priority,
     status,
     createdDate: row.createdDate,
     assignedDate: row.assignedDate,
@@ -35,7 +35,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: '2024-01-02',
           dueDate: '2024-01-03',
           completedDate: undefined,
-          priority: 'urgent',
+          priority: 'Urgent',
           totalAssignments: 1,
           assigneeName: 'User One',
           location: 'Leeds',
@@ -51,7 +51,7 @@ describe('buildUserOverviewViewModel', () => {
           dueDate: '2024-01-03',
           completedDate: '2024-01-04',
           handlingTimeDays: 2.5,
-          priority: 'high',
+          priority: 'High',
           totalAssignments: 2,
           assigneeName: 'User Two',
           location: 'London',
@@ -122,6 +122,8 @@ describe('buildUserOverviewViewModel', () => {
     expect(viewModel.assignedSummaryRows[0].key.text).toBe('Total assigned');
     expect(viewModel.assignedSummaryRows[1].key.text).toBe('Urgent');
     expect(viewModel.assignedRows[0].caseId).toBe('123');
+    expect(viewModel.assignedRows[0].priority).toBe('Urgent');
+    expect(viewModel.assignedRows[0].prioritySortValue).toBe(4);
     expect(viewModel.assignedRows[0].assigneeName).toBe('User One');
     expect(viewModel.completedSummaryRows[0].key.text).toBe('Completed');
     expect(viewModel.completedByDateRows[0][0].text).toBe('4 Jan 2024');
@@ -214,14 +216,23 @@ describe('buildUserOverviewViewModel', () => {
         withinDueYes: overview.completedSummary.withinDueYes,
         withinDueNo: overview.completedSummary.withinDueNo,
       },
-      completedByDate: [],
+      completedByDate: [
+        {
+          date: '2024-01-05',
+          tasks: 0,
+          withinDue: 0,
+          beyondDue: 0,
+          handlingTimeSum: 0,
+          handlingTimeCount: 0,
+        },
+      ],
       completedByTaskName: [
         {
           taskName: 'Task C',
           tasks: 1,
-          handlingTimeSum: 3,
+          handlingTimeSum: Number.NaN,
           handlingTimeCount: Number.NaN,
-          daysBeyondSum: 2,
+          daysBeyondSum: Number.NaN,
           daysBeyondCount: Number.NaN,
         },
       ],
@@ -242,6 +253,68 @@ describe('buildUserOverviewViewModel', () => {
 
     expect(viewModel.completedByTaskNameTotalsRow[2].text).toBe('-');
     expect(viewModel.completedByTaskNameTotalsRow[3].text).toBe('-');
+    expect(viewModel.completedByDateRows[0][3].text).toBe('0%');
+    expect(viewModel.completedByDateTotalsRow[3].text).toBe('0%');
+  });
+
+  test('normalises non-number aggregate values before building averages', () => {
+    const overview: UserOverviewMetrics = {
+      assigned: [],
+      completed: [],
+      prioritySummary: { urgent: 0, high: 0, medium: 0, low: 0 },
+      completedSummary: { total: 0, withinDueYes: 0, withinDueNo: 0 },
+      completedByDate: [],
+    };
+
+    const viewModel = buildUserOverviewViewModel({
+      filters: {},
+      freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
+      overview,
+      allTasks: [],
+      assignedTasks: buildTasks(overview.assigned, 'assigned'),
+      completedTasks: buildTasks(overview.completed, 'completed'),
+      assignedTotalResults: 0,
+      completedTotalResults: 0,
+      completedComplianceSummary: {
+        total: 0,
+        withinDueYes: 0,
+        withinDueNo: 0,
+      },
+      completedByDate: [],
+      completedByTaskName: [
+        {
+          taskName: 'Task D',
+          tasks: 2,
+          handlingTimeSum: '4.5',
+          handlingTimeCount: '2',
+          daysBeyondSum: '3',
+          daysBeyondCount: '2',
+        } as unknown as {
+          taskName: string;
+          tasks: number;
+          handlingTimeSum: number;
+          handlingTimeCount: number;
+          daysBeyondSum: number;
+          daysBeyondCount: number;
+        },
+      ],
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
+      locationDescriptions: {},
+      sort: getDefaultUserOverviewSort(),
+      assignedPage: 1,
+      completedPage: 1,
+    });
+
+    expect(viewModel.completedByTaskNameRows[0][2].text).toBe('2.25');
+    expect(viewModel.completedByTaskNameRows[0][3].text).toBe('1.50');
   });
 
   test('uses provided user options and renders fallback dates', () => {
@@ -254,7 +327,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: '2024-01-02',
           dueDate: undefined,
           completedDate: undefined,
-          priority: 'urgent',
+          priority: 'Urgent',
           totalAssignments: 1,
           assigneeName: undefined,
           location: 'Leeds',
@@ -269,7 +342,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: '2024-01-02',
           dueDate: '2024-01-03',
           completedDate: undefined,
-          priority: 'high',
+          priority: 'High',
           totalAssignments: 2,
           location: 'London',
           status: 'completed',
@@ -330,7 +403,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: '2024-01-02',
           dueDate: 'invalid-date',
           completedDate: 'invalid-date',
-          priority: 'low',
+          priority: 'Low',
           totalAssignments: 1,
           assigneeName: 'User Three',
           location: 'Leeds',
@@ -396,7 +469,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: undefined,
           dueDate: undefined,
           completedDate: undefined,
-          priority: 'low',
+          priority: 'Low',
           totalAssignments: 1,
           assigneeName: undefined,
           location: 'Leeds',
@@ -411,7 +484,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: undefined,
           dueDate: undefined,
           completedDate: '2024-01-03',
-          priority: 'high',
+          priority: 'High',
           totalAssignments: 1,
           assigneeName: 'User',
           location: 'Leeds',
@@ -425,7 +498,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: undefined,
           dueDate: undefined,
           completedDate: '2024-01-03',
-          priority: 'high',
+          priority: 'High',
           totalAssignments: 1,
           assigneeName: 'User',
           location: 'Leeds',
@@ -509,7 +582,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: undefined,
           dueDate: undefined,
           completedDate: undefined,
-          priority: 'low',
+          priority: 'Low',
           totalAssignments: 0,
           assigneeName: undefined,
           location: 'Leeds',
@@ -524,7 +597,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: undefined,
           dueDate: undefined,
           completedDate: undefined,
-          priority: 'high',
+          priority: 'High',
           totalAssignments: 0,
           assigneeName: undefined,
           location: 'Leeds',
@@ -596,7 +669,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: '2024-01-02',
           dueDate: '2024-01-03',
           completedDate: undefined,
-          priority: 'urgent',
+          priority: 'Urgent',
           totalAssignments: 3,
           assigneeName: 'User A',
           location: 'Leeds',
@@ -611,7 +684,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: '2024-01-02',
           dueDate: '2024-01-03',
           completedDate: '2024-01-04',
-          priority: 'high',
+          priority: 'High',
           totalAssignments: 2,
           assigneeName: 'User B',
           location: 'Leeds',
@@ -670,7 +743,7 @@ describe('buildUserOverviewViewModel', () => {
       region: 'Region',
       location: 'Leeds',
       taskName: 'Task Z',
-      priority: 'low' as TaskPriority,
+      priority: 'Low',
       status: 'assigned' as TaskStatus,
       createdDate: '2024-01-01',
       assignedDate: '2024-01-02',
@@ -684,6 +757,12 @@ describe('buildUserOverviewViewModel', () => {
 
     expect(mapAssignedRow(baseTask, locationDescriptions).totalAssignments).toBe('1');
     expect(mapAssignedRow(baseTask, locationDescriptions).location).toBe('Leeds Crown Court');
+    expect(mapAssignedRow(baseTask, locationDescriptions).priority).toBe('Low');
+    expect(mapAssignedRow(baseTask, locationDescriptions).prioritySortValue).toBe(1);
+
+    const missingCreatedDateTask = { ...baseTask, createdDate: undefined as unknown as string };
+    expect(mapAssignedRow(missingCreatedDateTask, locationDescriptions).createdDateRaw).toBe('-');
+    expect(mapCompletedRow(missingCreatedDateTask, locationDescriptions).createdDateRaw).toBe('-');
 
     const completedRow = mapCompletedRow(baseTask, locationDescriptions);
     expect(completedRow.handlingTimeDays).toBe('1.50');
@@ -692,6 +771,8 @@ describe('buildUserOverviewViewModel', () => {
     jest.isolateModules(() => {
       const { __testing: isolated } = require('../../../../main/modules/analytics/userOverview/viewModel');
       expect(isolated.mapAssignedRow(baseTask, locationDescriptions).totalAssignments).toBe('1');
+      expect(isolated.mapAssignedRow(baseTask, locationDescriptions).priority).toBe('Low');
+      expect(isolated.mapAssignedRow(baseTask, locationDescriptions).prioritySortValue).toBe(1);
       expect(isolated.mapCompletedRow(baseTask, locationDescriptions).totalAssignments).toBe('1');
       const nullAssignments = { ...baseTask, totalAssignments: undefined };
       expect(isolated.mapAssignedRow(nullAssignments, locationDescriptions).totalAssignments).toBe('0');
@@ -709,7 +790,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: '2024-01-02',
           dueDate: '2024-01-03',
           completedDate: undefined,
-          priority: 'urgent',
+          priority: 'Urgent',
           totalAssignments: 2,
           assigneeName: 'User A',
           location: 'Leeds',
@@ -724,7 +805,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: '2024-01-02',
           dueDate: '2024-01-03',
           completedDate: '2024-01-04',
-          priority: 'high',
+          priority: 'High',
           totalAssignments: 1,
           assigneeName: 'User B',
           location: 'London',
@@ -869,7 +950,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: undefined,
           dueDate: undefined,
           completedDate: undefined,
-          priority: 'low',
+          priority: 'Low',
           totalAssignments: 0,
           assigneeName: undefined,
           location: 'Leeds',
@@ -884,7 +965,7 @@ describe('buildUserOverviewViewModel', () => {
           assignedDate: undefined,
           dueDate: undefined,
           completedDate: undefined,
-          priority: 'medium',
+          priority: 'Medium',
           totalAssignments: 0,
           assigneeName: undefined,
           location: 'Leeds',

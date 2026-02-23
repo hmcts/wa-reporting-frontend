@@ -36,11 +36,13 @@ Behavior:
 - Filters are multi-select dropdowns with search and "select all".
 - Selecting all items is normalized to "All" to avoid storing large filter values.
 - Filters can be reset via a "Reset filters" button which clears persisted filter cookies.
+- Reset uses a form submit flag (`resetFilters=1`) and does not persist a `resetFilters` query parameter in the browser URL.
 - Filters are persisted in a signed cookie and re-applied on subsequent visits.
+- Submitting shared filters clears any active tab hash fragment from the URL before navigation so the page does not jump to a previous anchor position after reload.
 
 Additional filters by dashboard:
 - Completed tasks and User overview include date range filters for completedFrom/completedTo.
-- Overview includes a date range for eventsFrom/eventsTo (applied to created/completed/cancelled events by service).
+- Overview includes a date range for eventsFrom/eventsTo (applied to created/completed task events by service; cancelled is retained in backend aggregation but hidden in the UI).
 
 ## Charts and tables
 - Most sections offer tabbed views: "Chart" and "Data table".

@@ -141,7 +141,9 @@
     {{ govukButton({
       text: "Reset filters",
       classes: "govuk-button--secondary",
-      href: resetHref,
+      type: "submit",
+      name: "resetFilters",
+      value: "1",
       attributes: {
         "data-analytics-filters-reset": "true"
       }

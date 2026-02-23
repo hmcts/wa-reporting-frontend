@@ -1,4 +1,4 @@
-import { OverviewResponse, ServiceOverviewRow, Task } from '../shared/types';
+import { OverviewResponse, ServiceOverviewRow, Task, TaskPriority } from '../shared/types';
 
 function emptyRow(service: string): ServiceOverviewRow {
   return {
@@ -22,16 +22,16 @@ function addTaskToRow(row: ServiceOverviewRow, task: Task): void {
   }
 
   switch (task.priority) {
-    case 'urgent':
+    case TaskPriority.Urgent:
       row.urgent += 1;
       break;
-    case 'high':
+    case TaskPriority.High:
       row.high += 1;
       break;
-    case 'medium':
+    case TaskPriority.Medium:
       row.medium += 1;
       break;
-    case 'low':
+    case TaskPriority.Low:
       row.low += 1;
       break;
     default:

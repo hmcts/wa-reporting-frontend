@@ -1,4 +1,18 @@
-export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low';
+export enum TaskPriority {
+  Urgent = 'Urgent',
+  High = 'High',
+  Medium = 'Medium',
+  Low = 'Low',
+}
+
+export type TaskPriorityValue = `${TaskPriority}`;
+
+export const TASK_PRIORITY_ORDER: readonly TaskPriority[] = [
+  TaskPriority.Urgent,
+  TaskPriority.High,
+  TaskPriority.Medium,
+  TaskPriority.Low,
+] as const;
 export type TaskStatus = 'open' | 'assigned' | 'completed';
 export type PrioritySummary = {
   urgent: number;
@@ -41,7 +55,7 @@ export interface Task {
   region: string;
   location: string;
   taskName: string;
-  priority: TaskPriority;
+  priority: TaskPriorityValue;
   status?: TaskStatus;
   createdDate: string;
   assignedDate?: string;
@@ -99,7 +113,7 @@ export interface CriticalTask {
   taskName: string;
   createdDate: string;
   dueDate?: string;
-  priority: string;
+  priority: TaskPriorityValue;
   agentName: string;
 }
 
@@ -262,7 +276,7 @@ export interface UserTaskRow {
   completedDate?: string;
   handlingTimeDays?: number;
   withinDue?: boolean | null;
-  priority: string;
+  priority: TaskPriorityValue;
   totalAssignments: number;
   assigneeName?: string;
   location: string;

@@ -12,7 +12,7 @@ const buildTasks = (count: number) =>
     taskName: 'Review',
     createdDate: '2024-01-01',
     dueDate: '2024-01-02',
-    priority: 'urgent' as const,
+    priority: 'Urgent' as const,
     agentName: 'Sam',
   }));
 

@@ -24,6 +24,7 @@ The Nunjucks environment adds:
 - Analytics UI dates are displayed as `D Mon YYYY` (for example, `3 Mar 2020`).
 - Source date values remain ISO `YYYY-MM-DD` for sorting and CSV export.
 - Client-side sortable date cells keep ISO values in `data-sort-value`.
+- Server-sorted priority columns include numeric `data-sort-value` metadata (`Urgent=4`, `High=3`, `Medium=2`, `Low=1`) so client-side table enhancement preserves severity ordering.
 - CSV export prefers cell `data-export-value` so visible formatted dates can export as ISO.
 
 ## Key UI patterns
@@ -57,6 +58,8 @@ Key behaviors:
 - Plotly charts are rendered from JSON configs in `data-chart-config` attributes.
 - Sections marked with `data-ajax-initial` are refreshed by an AJAX call after initial page load.
 - Filter forms with `data-ajax-section` can refresh a single page section without a full reload.
+- Shared dashboard filter submissions clear any active URL hash (`#...`) before full-page navigation to avoid anchor-based scroll jumps after reload.
+- "Reset filters" is submitted as form data (`resetFilters=1`) rather than a query-string navigation, so reset does not leave `resetFilters` in the URL.
 - Server-side sorting uses hidden inputs and submits a filtered form to fetch sorted data.
 - Pagination uses hidden inputs and submits filtered form to fetch the next page.
 - Multi-select filters support search, select all, and dynamic summary text.
@@ -81,6 +84,7 @@ sequenceDiagram
   - Responsive layout
   - Modebar without lasso/select/auto-scale
   - Autosized axes with compact margins
+  - Shared time-series helpers (`src/main/modules/analytics/shared/charts/timeSeries.ts`) set date-axis formatting and support common axis-title configuration (`axisTitles`) so dashboards can keep chart labels aligned with table terminology.
 - Chart types:
   - Donut charts (priority and compliance)
   - Stacked bar time series

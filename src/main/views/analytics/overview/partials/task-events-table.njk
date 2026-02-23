@@ -5,7 +5,7 @@
 {% from "govuk/components/tabs/macro.njk" import govukTabs %}
 {% from "macros/csv-download.njk" import csvDownloadButton %}
 
-<h2 class="govuk-heading-m govuk-!-margin-top-6">Created, completed and cancelled tasks by service</h2>
+<h2 class="govuk-heading-m govuk-!-margin-top-6">Created and completed tasks by service</h2>
 <form method="post" class="govuk-!-margin-bottom-4" data-analytics-filters="true" data-ajax-section="overview-task-events">
   {{ csrfProtection(csrfToken) }}
   {% if snapshotToken %}
@@ -84,8 +84,7 @@
           head: [
             { text: "Service", attributes: { 'aria-sort': 'ascending' } },
             { text: "Created", format: "numeric", attributes: { 'aria-sort': 'none' } },
-            { text: "Completed", format: "numeric", attributes: { 'aria-sort': 'none' } },
-            { text: "Cancelled", format: "numeric", attributes: { 'aria-sort': 'none' } }
+            { text: "Completed", format: "numeric", attributes: { 'aria-sort': 'none' } }
           ],
           rows: taskEventsRows.concat([taskEventsTotalsRow])
         }) }}

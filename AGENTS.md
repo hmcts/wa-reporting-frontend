@@ -86,12 +86,26 @@ scripts/
 - Shared analytics helpers belong in `src/main/modules/analytics/shared/` (filters, services, viewModels, charts, cache, repositories); reuse before adding new helpers.
 - Before researching or planning a change, review the relevant `docs/` specifications and use them as the starting point for understanding current behavior, data flows, and constraints.
 - When changing code or behavior, update the corresponding `docs/` files to keep the specifications in sync with the implementation.
+- Documentation updates for implementation changes must keep `docs/` as the latest specification of the application. Carry forward only durable, important context needed for future work (for example final behavior, rules/constraints, dependencies, and operational considerations such as migrations/backfills/rollback).
+- Do not consider implementation work complete until this documentation handoff is committed in `docs/` (or, if no existing page fits, in a new linked document under `docs/` and indexed from `docs/README.md`). Do not require changelog-style detail such as exhaustive file-change listings.
 - For AJAX section refreshes (e.g., user overview sorting), follow the established pattern: add a `data-section` wrapper around the section partial, submit `ajaxSection` with `X-Requested-With: fetch`, render the specific partial in the controller when the header/section is present, and send URL-encoded form data (including `_csrf`) so `csurf` can validate it.
 - Add or update tests under `src/test/` following existing unit/functional/a11y/smoke patterns for the change. Branch and line coverage per file should be at least 95%.
 - For changes in mutation-sensitive analytics logic (for example `shared/` helpers, analytics aggregations, repository filter/query composition, and view-model calculations), run focused mutation testing during development using `yarn test:mutation --mutate <source-file>` and, when helpful, `--testFiles <matching-test-file>` to validate the changed unit tests kill mutants in that area.
-- Mandatory: the final step after any change is to run `yarn lint`, `yarn test:coverage`, `yarn test:routes` and `yarn build`; do not consider work complete unless all four pass and coverage for files modified as part of the task is above the mandated 95%.
+- Mandatory for non-documentation changes: the final step after any code/config/runtime SQL change is to run `yarn lint`, `yarn test:coverage`, `yarn test:routes` and `yarn build`; do not consider work complete unless all four pass and coverage for files modified as part of the task is above the mandated 95%.
+- Documentation-only exception: when all changed files are documentation files (for example `*.md` under repo root or `docs/`) and no executable code, configuration, SQL, assets, or tests are changed, the four mandatory verification commands are not required.
 - Any changes which impact these Development Guidelines should be accompanied with changes to the Development Guidelines.
 
 # ExecPlans
 
 When writing complex features or significant refactors, use an ExecPlan (as described in PLANS.md) from design to implementation.
+
+- ExecPlans may be treated as working artifacts and can remain uncommitted, but important, durable outcomes must be transferred into committed `docs/` before the related code change is considered complete.
+- Transfer only what helps future contributors understand and evolve the current system state (for example behavior, constraints, dependencies, and operations guidance). Omit transient planning artifacts such as task breakdowns, discarded options, or per-file edit logs unless they are operationally relevant.
+
+## Repo Skills
+
+This repository includes reusable Codex skills under `skills/`.
+
+### Available skills
+
+- `yarn-dependency-upgrades`: Upgrade dependencies with Yarn 4 for single, multiple, all-package, and CVE-driven flows. Includes precedence-based remediation for `yarn-audit-known-issues` findings and resolution fallback guidance. (file: `skills/yarn-dependency-upgrades/SKILL.md`)

@@ -44,7 +44,7 @@ describe('buildOutstandingViewModel', () => {
         chart: {},
       },
       openByCreated: [{ date: '2024-01-01', open: 2, assigned: 1, unassigned: 1, assignedPct: 50, unassignedPct: 50 }],
-      waitTime: [{ date: '2024-01-01', averageWaitDays: 2, assignedCount: 1, totalWaitDays: 2 }],
+      waitTime: [{ date: '2024-01-01', averageWaitDays: 2.345, assignedCount: 1, totalWaitDays: 2.345 }],
       dueByDate: [{ date: '2024-01-01', totalDue: 3, open: 2, completed: 1 }],
       priorityByDueDate: [{ date: '2024-01-01', urgent: 1, high: 1, medium: 0, low: 0 }],
       criticalTasks: [],
@@ -58,10 +58,15 @@ describe('buildOutstandingViewModel', () => {
     expect(viewModel.openTasksTotalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.openTasksRows[0][1].attributes?.['data-sort-value']).toBe('2');
     expect(viewModel.openTasksRows[0][3].text).toBe('50.0%');
+    expect(viewModel.openByNameRows[0]).toHaveLength(6);
+    expect(viewModel.openByNameRows[0][1].text).toBe('1');
     expect(viewModel.openByNameTotalsRow[1].text).toBe('1');
+    expect(viewModel.openByNameTotalsRow[2].text).toBe('1');
     expect(viewModel.openByNameTotalsRow[0].attributes?.['data-total-row']).toBe('true');
-    expect(viewModel.waitTimeTotalsRow[2].text).toBe('2.0');
-    expect(viewModel.waitTimeTotalsRow[2].attributes?.['data-sort-value']).toBe('2');
+    expect(viewModel.openByNameTotalsRow).toHaveLength(6);
+    expect(viewModel.waitTimeRows[0][2].text).toBe('2.35');
+    expect(viewModel.waitTimeTotalsRow[2].text).toBe('2.35');
+    expect(viewModel.waitTimeTotalsRow[2].attributes?.['data-sort-value']).toBe('2.345');
     expect(viewModel.charts.openTasks).toBe('open');
     expect(viewModel.outstandingByLocationRows[0][0].text).toBe('Leeds Crown Court');
     expect(viewModel.outstandingByRegionRows[0][0].text).toBe('North East');
@@ -125,7 +130,7 @@ describe('buildOutstandingViewModel', () => {
           taskName: 'Review',
           createdDate: '2024-01-01',
           dueDate: undefined,
-          priority: 'urgent',
+          priority: 'Urgent',
           agentName: 'Sam',
         },
       ],
@@ -139,6 +144,7 @@ describe('buildOutstandingViewModel', () => {
     expect(viewModel.outstandingByLocationRows[0][0].text).toBe('Leeds Crown Court');
     expect(viewModel.outstandingByRegionLocationRows[0][1].text).toBe('North East');
     expect(viewModel.criticalTasks[0].dueDate).toBeUndefined();
+    expect(viewModel.criticalTasks[0].prioritySortValue).toBe(4);
     expect(viewModel.criticalTasksPagination.totalResults).toBe(1);
     expect(viewModel.criticalTasksPagination.totalPages).toBe(1);
   });
@@ -376,7 +382,7 @@ describe('buildOutstandingViewModel', () => {
           taskName: 'Review',
           createdDate: '2024-01-01',
           dueDate: '2024-01-10',
-          priority: 'urgent',
+          priority: 'Urgent',
           agentName: 'Pat',
         },
       ],

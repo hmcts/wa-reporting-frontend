@@ -9,6 +9,7 @@ import {
   PriorityBreakdown,
   PrioritySeriesPoint,
   PrioritySummary,
+  TaskPriority,
   WaitTimePoint,
 } from '../../shared/types';
 
@@ -18,20 +19,24 @@ export function buildOpenByNameChartConfig(openByName: PriorityBreakdown[]): Rec
   return buildStackedHorizontalBarChart({
     categories,
     series: [
-      { name: 'Urgent', values: sorted.map(row => row.urgent), color: chartColors.purple },
-      { name: 'High', values: sorted.map(row => row.high), color: chartColors.blueDark },
-      { name: 'Medium', values: sorted.map(row => row.medium), color: chartColors.blueLight },
-      { name: 'Low', values: sorted.map(row => row.low), color: chartColors.greyLight },
+      { name: TaskPriority.Urgent, values: sorted.map(row => row.urgent), color: chartColors.purple },
+      { name: TaskPriority.High, values: sorted.map(row => row.high), color: chartColors.blueDark },
+      { name: TaskPriority.Medium, values: sorted.map(row => row.medium), color: chartColors.blueLight },
+      { name: TaskPriority.Low, values: sorted.map(row => row.low), color: chartColors.greyLight },
     ],
   });
 }
 
 export function buildOpenTasksChart(openByCreated: AssignmentSeriesPoint[]): string {
   const dates = openByCreated.map(point => point.date);
-  return buildStackedBarTimeSeries(dates, [
-    { name: 'Assigned', values: openByCreated.map(point => point.assigned), color: assignmentColors.assigned },
-    { name: 'Unassigned', values: openByCreated.map(point => point.unassigned), color: assignmentColors.unassigned },
-  ]);
+  return buildStackedBarTimeSeries(
+    dates,
+    [
+      { name: 'Assigned', values: openByCreated.map(point => point.assigned), color: assignmentColors.assigned },
+      { name: 'Unassigned', values: openByCreated.map(point => point.unassigned), color: assignmentColors.unassigned },
+    ],
+    { axisTitles: { x: 'Created date', y: 'Tasks' } }
+  );
 }
 
 export function buildWaitTimeChart(waitTime: WaitTimePoint[]): string {
@@ -46,7 +51,10 @@ export function buildWaitTimeChart(waitTime: WaitTimePoint[]): string {
         mode: 'lines+markers',
       },
     ],
-    { layoutOverrides: { yaxis: { automargin: true, fixedrange: true } } }
+    {
+      axisTitles: { x: 'Assigned date', y: 'Days' },
+      layoutOverrides: { yaxis: { automargin: true, fixedrange: true } },
+    }
   );
 }
 
@@ -58,7 +66,7 @@ export function buildTasksDueChart(dueByDate: DueByDatePoint[]): string {
       { name: 'Open', values: dueByDate.map(point => point.open), color: chartColors.blue },
       { name: 'Completed', values: dueByDate.map(point => point.completed), color: chartColors.grey },
     ],
-    { legendOrientation: 'h' }
+    { axisTitles: { x: 'Due date', y: 'Tasks' }, legendOrientation: 'h' }
   );
 }
 
@@ -67,19 +75,19 @@ export function buildTasksDuePriorityChart(priorityByDueDate: PrioritySeriesPoin
   return buildStackedBarTimeSeries(
     dates,
     [
-      { name: 'Urgent', values: priorityByDueDate.map(point => point.urgent), color: chartColors.purple },
-      { name: 'High', values: priorityByDueDate.map(point => point.high), color: chartColors.blueDark },
-      { name: 'Medium', values: priorityByDueDate.map(point => point.medium), color: chartColors.blueLight },
-      { name: 'Low', values: priorityByDueDate.map(point => point.low), color: chartColors.greyLight },
+      { name: TaskPriority.Urgent, values: priorityByDueDate.map(point => point.urgent), color: chartColors.purple },
+      { name: TaskPriority.High, values: priorityByDueDate.map(point => point.high), color: chartColors.blueDark },
+      { name: TaskPriority.Medium, values: priorityByDueDate.map(point => point.medium), color: chartColors.blueLight },
+      { name: TaskPriority.Low, values: priorityByDueDate.map(point => point.low), color: chartColors.greyLight },
     ],
-    { legendOrientation: 'h' }
+    { axisTitles: { x: 'Due date', y: 'Tasks' }, legendOrientation: 'h' }
   );
 }
 
 export function buildPriorityDonutChart(summary: PrioritySummary): string {
   return buildDonutChart({
     values: [summary.urgent, summary.high, summary.medium, summary.low],
-    labels: ['Urgent', 'High', 'Medium', 'Low'],
+    labels: [TaskPriority.Urgent, TaskPriority.High, TaskPriority.Medium, TaskPriority.Low],
     colors: [chartColors.purple, chartColors.blueDark, chartColors.blueLight, chartColors.greyLight],
   });
 }

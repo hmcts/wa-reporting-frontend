@@ -1,5 +1,6 @@
 /* @jest-environment jsdom */
 import {
+  clearLocationHash,
   getAnalyticsFiltersForm,
   getScrollStorageKey,
   initAutoSubmitForms,
@@ -95,6 +96,45 @@ describe('analytics forms', () => {
     expect(items[1].checked).toBe(false);
     const selectAll = details.querySelector<HTMLInputElement>('[data-select-all]');
     expect(selectAll?.checked).toBe(false);
+  });
+
+  test('clears URL hash on non-ajax filter submit', () => {
+    window.history.replaceState({}, '', '/outstanding?service=Crime#openTasksTable');
+
+    const form = document.createElement('form');
+    form.dataset.analyticsFilters = 'true';
+    document.body.appendChild(form);
+
+    initFilterPersistence();
+    form.dispatchEvent(new Event('submit', { bubbles: true }));
+
+    expect(window.location.pathname).toBe('/outstanding');
+    expect(window.location.search).toBe('?service=Crime');
+    expect(window.location.hash).toBe('');
+  });
+
+  test('does not clear URL hash on ajax section filter submit', () => {
+    window.history.replaceState({}, '', '/outstanding?service=Crime#openTasksTable');
+
+    const form = document.createElement('form');
+    form.dataset.analyticsFilters = 'true';
+    form.dataset.ajaxSection = 'open-tasks-summary';
+    document.body.appendChild(form);
+
+    initFilterPersistence();
+    form.dispatchEvent(new Event('submit', { bubbles: true }));
+
+    expect(window.location.hash).toBe('#openTasksTable');
+  });
+
+  test('clearLocationHash is a no-op when hash is absent', () => {
+    window.history.replaceState({}, '', '/outstanding?service=Crime');
+    const replaceStateSpy = jest.spyOn(window.history, 'replaceState');
+
+    clearLocationHash();
+
+    expect(replaceStateSpy).not.toHaveBeenCalled();
+    replaceStateSpy.mockRestore();
   });
 
   test('normaliseMultiSelectSelections leaves partial selections unchanged', () => {
