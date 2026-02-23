@@ -34,37 +34,31 @@ flowchart TB
 ```
 
 ## Core analytics snapshot tables (tm database)
-The application relies on published snapshot tables in the `analytics` schema. Snapshot data tables are version-ranged and queried as-of a selected snapshot id:
+The application relies on published snapshot tables in the `analytics` schema. Snapshot data tables are immutable and keyed by `snapshot_id`; repository queries read one selected snapshot with:
 
-- `valid_from_snapshot_id <= :snapshotId`
-- `valid_to_snapshot_id IS NULL OR valid_to_snapshot_id > :snapshotId`
+- `snapshot_id = :snapshotId`
 
 Minimum columns required are listed below (based on query usage).
 
 ### analytics.snapshot_batches
-Snapshot metadata and immutable date context for query-time priority rank calculation.
+Snapshot metadata for refresh lifecycle and publish history.
 
 Required columns:
 - snapshot_id
-- as_of_date
 - status
 - started_at
 - completed_at
-- window_start
-- window_end
 
 ### Snapshot refresh procedure
-Snapshots are built/published by `analytics.run_snapshot_refresh_batch(p_clear_before_full_rebuild BOOLEAN DEFAULT FALSE)`.
+Snapshots are built/published by `analytics.run_snapshot_refresh_batch()`.
 
-- Default mode (`FALSE`) keeps the hybrid strategy: bootstrap/large deltas run full rebuild, smaller deltas run incremental changed-key refresh.
-- Clear-first mode (`TRUE`) resets snapshot history/state first, then performs a full rebuild from source data in the same batch run.
+- Each run performs a full rebuild from source data before publishing the new snapshot.
 
 ### analytics.snapshot_task_daily_facts
 Used for service overview, events, timelines, and completion summaries.
 
 Required columns:
-- valid_from_snapshot_id
-- valid_to_snapshot_id
+- snapshot_id
 - jurisdiction_label (service)
 - role_category_label
 - region
@@ -87,8 +81,7 @@ Required columns:
 Used for per-task lists (user overview, critical tasks, task audit) and processing/handling time.
 
 Required columns:
-- valid_from_snapshot_id
-- valid_to_snapshot_id
+- snapshot_id
 - case_id
 - task_id
 - task_name
@@ -118,15 +111,14 @@ Required columns:
 - within_due_sort_value (indexed sort rank for within-due ordering)
 
 Note:
-- Priority rank is calculated at query-time from `major_priority`, `due_date`, and the selected snapshot `as_of_date`.
+- Priority rank is calculated at query-time from `major_priority`, `due_date`, and `CURRENT_DATE`.
 - Row-level repositories return numeric `priority_rank`; labels are mapped in TypeScript when building UI-facing models.
 
 ### analytics.snapshot_user_completed_facts
 Used for user overview completed-by-date aggregated chart/table data.
 
 Required columns:
-- valid_from_snapshot_id
-- valid_to_snapshot_id
+- snapshot_id
 - completed_date
 - task_name
 - work_type
@@ -143,8 +135,7 @@ Required columns:
 Used for wait time by assigned date.
 
 Required columns:
-- valid_from_snapshot_id
-- valid_to_snapshot_id
+- snapshot_id
 - reference_date
 - work_type
 - assigned_task_count
@@ -203,11 +194,11 @@ Date filters:
 ## Derived concepts and calculations
 
 ### Priority rank and label mapping
-Priority is calculated in SQL as a numeric rank using `major_priority` or `priority` with a due-date-aware rule against the selected snapshot `as_of_date`:
+Priority is calculated in SQL as a numeric rank using `major_priority` or `priority` with a due-date-aware rule against `CURRENT_DATE`:
 - <= 2000 => 4
 - < 5000 => 3
-- == 5000 and due_date < as_of_date => 3
-- == 5000 and due_date == as_of_date => 2
+- == 5000 and due_date < CURRENT_DATE => 3
+- == 5000 and due_date == CURRENT_DATE => 2
 - else => 1
 
 SQL compares rank numbers only. UI-facing labels are mapped in TypeScript:

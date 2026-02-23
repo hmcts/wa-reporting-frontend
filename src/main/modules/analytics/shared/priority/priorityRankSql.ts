@@ -5,15 +5,14 @@ import { TaskPriority, TaskPriorityValue } from '../types';
 type PriorityRankOptions = {
   priorityColumn: Prisma.Sql;
   dateColumn: Prisma.Sql;
-  asOfDateColumn: Prisma.Sql;
 };
 
-export function priorityRankSql({ priorityColumn, dateColumn, asOfDateColumn }: PriorityRankOptions): Prisma.Sql {
+export function priorityRankSql({ priorityColumn, dateColumn }: PriorityRankOptions): Prisma.Sql {
   return Prisma.sql`CASE
     WHEN ${priorityColumn} <= 2000 THEN 4
     WHEN ${priorityColumn} < 5000 THEN 3
-    WHEN ${priorityColumn} = 5000 AND ${dateColumn} < ${asOfDateColumn} THEN 3
-    WHEN ${priorityColumn} = 5000 AND ${dateColumn} = ${asOfDateColumn} THEN 2
+    WHEN ${priorityColumn} = 5000 AND ${dateColumn} < CURRENT_DATE THEN 3
+    WHEN ${priorityColumn} = 5000 AND ${dateColumn} = CURRENT_DATE THEN 2
     ELSE 1
   END`;
 }

@@ -11,11 +11,10 @@ describe('priorityRankSql', () => {
     const sql = priorityRankSql({
       priorityColumn: Prisma.raw('priority'),
       dateColumn: Prisma.raw('reference_date'),
-      asOfDateColumn: Prisma.raw('as_of_date'),
     });
 
     expect(sql.sql).toContain('reference_date');
-    expect(sql.sql).toContain('as_of_date');
+    expect(sql.sql).toContain('CURRENT_DATE');
     expect(sql.sql).toContain('THEN 4');
     expect(sql.sql).toContain('THEN 3');
     expect(sql.sql).toContain('THEN 2');
