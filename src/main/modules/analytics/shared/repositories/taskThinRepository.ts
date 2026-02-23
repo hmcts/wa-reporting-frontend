@@ -9,7 +9,7 @@ import { AssignedSortBy, CompletedSortBy, SortDirection, SortState } from '../us
 
 import { SECONDS_PER_DAY_SQL } from './constants';
 import { AnalyticsQueryOptions, buildAnalyticsWhere } from './filters';
-import { asOfSnapshotCondition, snapshotAsOfDateSql } from './snapshotSql';
+import { asOfSnapshotCondition } from './snapshotSql';
 import {
   CompletedTaskAuditRow,
   FilterValueRow,
@@ -31,11 +31,10 @@ type PaginationOptions = {
 
 const WITHIN_DUE_SORT_SQL = Prisma.sql`within_due_sort_value`;
 
-function buildPriorityRank(snapshotId: number): Prisma.Sql {
+function buildPriorityRank(): Prisma.Sql {
   return priorityRankSql({
     priorityColumn: Prisma.raw('major_priority'),
     dateColumn: Prisma.raw('due_date'),
-    asOfDateColumn: snapshotAsOfDateSql(snapshotId),
   });
 }
 
@@ -77,12 +76,11 @@ function buildPaginationClauses(pagination?: PaginationOptions | null): {
 }
 
 function buildUserOverviewTaskQuery(
-  snapshotId: number,
   whereClause: Prisma.Sql,
   orderBy: Prisma.Sql,
   pagination?: PaginationOptions | null
 ): Prisma.Sql {
-  const priorityRank = buildPriorityRank(snapshotId);
+  const priorityRank = buildPriorityRank();
   const { limitClause, offsetClause } = buildPaginationClauses(pagination);
 
   return Prisma.sql`
@@ -115,7 +113,7 @@ function directionSql(direction: SortDirection): Prisma.Sql {
   return Prisma.raw(direction === 'asc' ? 'ASC' : 'DESC');
 }
 
-function buildAssignedOrderBy(snapshotId: number, sort: SortState<AssignedSortBy>): Prisma.Sql {
+function buildAssignedOrderBy(sort: SortState<AssignedSortBy>): Prisma.Sql {
   const column = (() => {
     switch (sort.by) {
       case 'caseId':
@@ -129,7 +127,7 @@ function buildAssignedOrderBy(snapshotId: number, sort: SortState<AssignedSortBy
       case 'dueDate':
         return Prisma.raw('due_date');
       case 'priority':
-        return buildPriorityRank(snapshotId);
+        return buildPriorityRank();
       case 'totalAssignments':
         return Prisma.sql`COALESCE(number_of_reassignments, 0) + 1`;
       case 'assignee':
@@ -177,7 +175,7 @@ function buildCompletedOrderBy(sort: SortState<CompletedSortBy>): Prisma.Sql {
   return Prisma.sql`${column} ${directionSql(sort.dir)} NULLS LAST`;
 }
 
-function buildCriticalTasksOrderBy(snapshotId: number, sort: SortState<CriticalTasksSortBy>): Prisma.Sql {
+function buildCriticalTasksOrderBy(sort: SortState<CriticalTasksSortBy>): Prisma.Sql {
   const column = (() => {
     switch (sort.by) {
       case 'caseId':
@@ -193,7 +191,7 @@ function buildCriticalTasksOrderBy(snapshotId: number, sort: SortState<CriticalT
       case 'dueDate':
         return Prisma.raw('due_date');
       case 'priority':
-        return buildPriorityRank(snapshotId);
+        return buildPriorityRank();
       case 'agentName':
         return Prisma.sql`assignee`;
       default:
@@ -234,11 +232,9 @@ export class TaskThinRepository {
     queryOptions?: AnalyticsQueryOptions
   ): Promise<UserOverviewTaskRow[]> {
     const whereClause = buildUserOverviewWhere(snapshotId, filters, [Prisma.sql`state = 'ASSIGNED'`], queryOptions);
-    const orderBy = buildAssignedOrderBy(snapshotId, sort);
+    const orderBy = buildAssignedOrderBy(sort);
 
-    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(
-      buildUserOverviewTaskQuery(snapshotId, whereClause, orderBy, pagination)
-    );
+    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(buildUserOverviewTaskQuery(whereClause, orderBy, pagination));
   }
 
   async fetchUserOverviewCompletedTaskRows(
@@ -252,9 +248,7 @@ export class TaskThinRepository {
     const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions, queryOptions);
     const orderBy = buildCompletedOrderBy(sort);
 
-    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(
-      buildUserOverviewTaskQuery(snapshotId, whereClause, orderBy, pagination)
-    );
+    return tmPrisma.$queryRaw<UserOverviewTaskRow[]>(buildUserOverviewTaskQuery(whereClause, orderBy, pagination));
   }
 
   async fetchUserOverviewAssignedTaskCount(
@@ -376,12 +370,12 @@ export class TaskThinRepository {
     sort: SortState<CriticalTasksSortBy>,
     pagination: PaginationOptions
   ): Promise<OutstandingCriticalTaskRow[]> {
-    const priorityRank = buildPriorityRank(snapshotId);
+    const priorityRank = buildPriorityRank();
     const whereClause = buildAnalyticsWhere(filters, [
       asOfSnapshotCondition(snapshotId),
       Prisma.sql`state NOT IN ('COMPLETED', 'TERMINATED')`,
     ]);
-    const orderBy = buildCriticalTasksOrderBy(snapshotId, sort);
+    const orderBy = buildCriticalTasksOrderBy(sort);
     const { limitClause, offsetClause } = buildPaginationClauses(pagination);
 
     return tmPrisma.$queryRaw<OutstandingCriticalTaskRow[]>(Prisma.sql`
@@ -418,7 +412,7 @@ export class TaskThinRepository {
   }
 
   async fetchOpenTasksByNameRows(snapshotId: number, filters: AnalyticsFilters): Promise<OpenTasksByNameRow[]> {
-    const priorityRank = buildPriorityRank(snapshotId);
+    const priorityRank = buildPriorityRank();
     const whereClause = buildAnalyticsWhere(filters, [
       asOfSnapshotCondition(snapshotId),
       Prisma.sql`state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`,
@@ -447,7 +441,7 @@ export class TaskThinRepository {
     snapshotId: number,
     filters: AnalyticsFilters
   ): Promise<OpenTasksByRegionLocationRow[]> {
-    const priorityRank = buildPriorityRank(snapshotId);
+    const priorityRank = buildPriorityRank();
     const whereClause = buildAnalyticsWhere(filters, [
       asOfSnapshotCondition(snapshotId),
       Prisma.sql`state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`,
@@ -477,7 +471,7 @@ export class TaskThinRepository {
   }
 
   async fetchOpenTasksSummaryRows(snapshotId: number, filters: AnalyticsFilters): Promise<SummaryTotalsRow[]> {
-    const priorityRank = buildPriorityRank(snapshotId);
+    const priorityRank = buildPriorityRank();
     const whereClause = buildAnalyticsWhere(filters, [
       asOfSnapshotCondition(snapshotId),
       Prisma.sql`state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`,
