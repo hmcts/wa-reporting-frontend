@@ -8,7 +8,7 @@ const buildAppModule = async (options: {
   routePaths?: string[];
   routeMocks?: Record<string, jest.Mock>;
 }) => {
-  const { env, authEnabled = true, compressionEnabled = false, routePaths = [], routeMocks = {} } = options;
+  const { env, authEnabled, compressionEnabled, routePaths = [], routeMocks = {} } = options;
 
   if (env === undefined) {
     delete process.env.NODE_ENV;
