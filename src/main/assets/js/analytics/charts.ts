@@ -18,6 +18,49 @@ const baseChartConfig: Partial<Config> = {
   modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'],
 };
 
+type PlotlyGraphNode = HTMLElement & {
+  _fullLayout?: { yaxis?: { range?: [number, number] } };
+  on?: (event: string, handler: () => void) => void;
+  removeListener?: (event: string, handler: () => void) => void;
+  removeAllListeners?: (event: string) => void;
+};
+
+type ScrollPanState = {
+  track: HTMLDivElement;
+  handle: HTMLDivElement;
+  categoryCount: number;
+  relayoutHandler: (() => void) | null;
+};
+
+const scrollPanStateByNode = new WeakMap<HTMLElement, ScrollPanState>();
+
+function updateScrollHandle(node: HTMLElement, state: ScrollPanState): void {
+  const graph = node as PlotlyGraphNode;
+  const range = graph._fullLayout?.yaxis?.range;
+  if (!range || state.categoryCount <= 0) {
+    state.track.style.display = 'none';
+    return;
+  }
+
+  const windowSize = range[0] - range[1];
+  const min = -0.5;
+  const max = state.categoryCount - 0.5;
+  const totalSpan = max - min;
+  const availableSpan = totalSpan - windowSize;
+  if (availableSpan <= 0) {
+    state.track.style.display = 'none';
+    return;
+  }
+
+  state.track.style.display = '';
+  const trackHeight = state.track.getBoundingClientRect().height;
+  const handleHeight = Math.max(24, (windowSize / totalSpan) * trackHeight);
+  const position = (range[0] - (min + windowSize)) / availableSpan;
+  const top = Math.min(trackHeight - handleHeight, Math.max(0, position * (trackHeight - handleHeight)));
+  state.handle.style.height = `${handleHeight}px`;
+  state.handle.style.top = `${top}px`;
+}
+
 export function labelModebarButtons(container: HTMLElement): void {
   const buttons = container.querySelectorAll<HTMLAnchorElement>('.modebar-btn');
   buttons.forEach(button => {
@@ -73,146 +116,143 @@ export function renderOpenByNameChart(node: HTMLElement, config: PlotlyConfig): 
 }
 
 export function bindScrollPan(node: HTMLElement, config: PlotlyConfig): void {
-  if (node.dataset.scrollPanBound === 'true') {
-    return;
-  }
   const categories = (config.data?.[0] as { y?: unknown })?.y;
   const categoryCount = Array.isArray(categories) ? categories.length : 0;
-  if (categoryCount <= 0) {
+
+  let state = scrollPanStateByNode.get(node);
+  if (!state && categoryCount <= 0) {
     return;
   }
 
-  const track = document.createElement('div');
-  track.className = 'analytics-chart-scroll-track';
-  const handle = document.createElement('div');
-  handle.className = 'analytics-chart-scroll-handle';
-  track.appendChild(handle);
-  node.appendChild(track);
+  if (!state) {
+    const track = document.createElement('div');
+    track.className = 'analytics-chart-scroll-track';
+    const handle = document.createElement('div');
+    handle.className = 'analytics-chart-scroll-handle';
+    track.appendChild(handle);
+    node.appendChild(track);
 
-  const updateScrollHandle = () => {
-    const graph = node as unknown as {
-      _fullLayout?: { yaxis?: { range?: [number, number] } };
+    const newState: ScrollPanState = {
+      track,
+      handle,
+      categoryCount,
+      relayoutHandler: null,
     };
-    const range = graph._fullLayout?.yaxis?.range;
-    if (!range) {
-      return;
-    }
-    const windowSize = range[0] - range[1];
-    const min = -0.5;
-    const max = categoryCount - 0.5;
-    const totalSpan = max - min;
-    const availableSpan = totalSpan - windowSize;
-    if (availableSpan <= 0) {
-      track.style.display = 'none';
-      return;
-    }
-    track.style.display = '';
-    const trackHeight = track.getBoundingClientRect().height;
-    const handleHeight = Math.max(24, (windowSize / totalSpan) * trackHeight);
-    const position = (range[0] - (min + windowSize)) / availableSpan;
-    const top = Math.min(trackHeight - handleHeight, Math.max(0, position * (trackHeight - handleHeight)));
-    handle.style.height = `${handleHeight}px`;
-    handle.style.top = `${top}px`;
-  };
+    scrollPanStateByNode.set(node, newState);
+    state = newState;
 
-  let dragOffset = 0;
-  let pendingDragTop: number | null = null;
-  let dragRafId: number | null = null;
-  const applyDragMove = () => {
-    dragRafId = null;
-    const graph = node as unknown as {
-      _fullLayout?: { yaxis?: { range?: [number, number] } };
-    };
-    const range = graph._fullLayout?.yaxis?.range;
-    if (!range || pendingDragTop === null) {
-      pendingDragTop = null;
-      return;
-    }
-    const rect = track.getBoundingClientRect();
-    const windowSize = range[0] - range[1];
-    const min = -0.5;
-    const max = categoryCount - 0.5;
-    const totalSpan = max - min;
-    const availableSpan = totalSpan - windowSize;
-    if (availableSpan <= 0) {
-      pendingDragTop = null;
-      return;
-    }
-    const trackHeight = rect.height;
-    const handleHeight = Math.max(24, (windowSize / totalSpan) * trackHeight);
-    const clampedTop = Math.min(trackHeight - handleHeight, Math.max(0, pendingDragTop));
-    pendingDragTop = null;
-    const position = clampedTop / (trackHeight - handleHeight);
-    const nextLower = min + availableSpan * position;
-    const nextUpper = nextLower + windowSize;
-    void Plotly.relayout(node, { 'yaxis.range': [nextUpper, nextLower] });
-  };
-
-  const onDragMove = (event: MouseEvent) => {
-    const rect = track.getBoundingClientRect();
-    pendingDragTop = event.clientY - rect.top - dragOffset;
-    if (dragRafId === null) {
-      dragRafId = window.requestAnimationFrame(applyDragMove);
-    }
-  };
-
-  const onDragEnd = () => {
-    window.removeEventListener('mousemove', onDragMove);
-    window.removeEventListener('mouseup', onDragEnd);
-    pendingDragTop = null;
-    if (dragRafId !== null) {
-      window.cancelAnimationFrame(dragRafId);
+    let dragOffset = 0;
+    let pendingDragTop: number | null = null;
+    let dragRafId: number | null = null;
+    const applyDragMove = () => {
       dragRafId = null;
-    }
-  };
-
-  handle.addEventListener('mousedown', event => {
-    event.preventDefault();
-    const rect = handle.getBoundingClientRect();
-    dragOffset = event.clientY - rect.top;
-    window.addEventListener('mousemove', onDragMove);
-    window.addEventListener('mouseup', onDragEnd);
-  });
-
-  const plotlyNode = node as unknown as { on?: (event: string, handler: () => void) => void };
-  plotlyNode.on?.('plotly_relayout', updateScrollHandle);
-
-  let pendingStep = 0;
-  let rafId: number | null = null;
-  const applyWheelStep = () => {
-    rafId = null;
-    const graph = node as unknown as {
-      _fullLayout?: { yaxis?: { range?: [number, number] } };
-    };
-    const range = graph._fullLayout?.yaxis?.range;
-    if (!range || pendingStep === 0) {
-      pendingStep = 0;
-      return;
-    }
-    const step = pendingStep;
-    pendingStep = 0;
-    const windowSize = range[0] - range[1];
-    const min = -0.5;
-    const max = categoryCount - 0.5;
-    const nextUpper = Math.min(max, Math.max(min + windowSize, range[0] + step));
-    const nextLower = nextUpper - windowSize;
-    void Plotly.relayout(node, { 'yaxis.range': [nextUpper, nextLower] });
-  };
-
-  node.addEventListener(
-    'wheel',
-    event => {
-      if (event.deltaY === 0) {
+      const graph = node as PlotlyGraphNode;
+      const range = graph._fullLayout?.yaxis?.range;
+      if (!range || pendingDragTop === null) {
+        pendingDragTop = null;
         return;
       }
-      event.preventDefault();
-      pendingStep += Math.sign(event.deltaY) * 3;
-      if (rafId === null) {
-        rafId = window.requestAnimationFrame(applyWheelStep);
+      const rect = newState.track.getBoundingClientRect();
+      const windowSize = range[0] - range[1];
+      const min = -0.5;
+      const max = newState.categoryCount - 0.5;
+      const totalSpan = max - min;
+      const availableSpan = totalSpan - windowSize;
+      if (availableSpan <= 0) {
+        pendingDragTop = null;
+        return;
       }
-    },
-    { passive: false }
-  );
-  updateScrollHandle();
-  node.dataset.scrollPanBound = 'true';
+      const trackHeight = rect.height;
+      const handleHeight = Math.max(24, (windowSize / totalSpan) * trackHeight);
+      const clampedTop = Math.min(trackHeight - handleHeight, Math.max(0, pendingDragTop));
+      pendingDragTop = null;
+      const position = clampedTop / (trackHeight - handleHeight);
+      const nextLower = min + availableSpan * position;
+      const nextUpper = nextLower + windowSize;
+      void Plotly.relayout(node, { 'yaxis.range': [nextUpper, nextLower] }).then(() =>
+        updateScrollHandle(node, newState)
+      );
+    };
+
+    const onDragMove = (event: MouseEvent) => {
+      const rect = newState.track.getBoundingClientRect();
+      pendingDragTop = event.clientY - rect.top - dragOffset;
+      if (dragRafId === null) {
+        dragRafId = window.requestAnimationFrame(applyDragMove);
+      }
+    };
+
+    const onDragEnd = () => {
+      window.removeEventListener('mousemove', onDragMove);
+      window.removeEventListener('mouseup', onDragEnd);
+      pendingDragTop = null;
+      if (dragRafId !== null) {
+        window.cancelAnimationFrame(dragRafId);
+        dragRafId = null;
+      }
+    };
+
+    newState.handle.addEventListener('mousedown', event => {
+      event.preventDefault();
+      const rect = newState.handle.getBoundingClientRect();
+      dragOffset = event.clientY - rect.top;
+      window.addEventListener('mousemove', onDragMove);
+      window.addEventListener('mouseup', onDragEnd);
+    });
+
+    let pendingStep = 0;
+    let rafId: number | null = null;
+    const applyWheelStep = () => {
+      rafId = null;
+      const graph = node as PlotlyGraphNode;
+      const range = graph._fullLayout?.yaxis?.range;
+      if (!range || pendingStep === 0) {
+        pendingStep = 0;
+        return;
+      }
+      const step = pendingStep;
+      pendingStep = 0;
+      const windowSize = range[0] - range[1];
+      const min = -0.5;
+      const max = newState.categoryCount - 0.5;
+      const nextUpper = Math.min(max, Math.max(min + windowSize, range[0] + step));
+      const nextLower = nextUpper - windowSize;
+      void Plotly.relayout(node, { 'yaxis.range': [nextUpper, nextLower] }).then(() =>
+        updateScrollHandle(node, newState)
+      );
+    };
+
+    node.addEventListener(
+      'wheel',
+      event => {
+        if (event.deltaY === 0) {
+          return;
+        }
+        event.preventDefault();
+        pendingStep += Math.sign(event.deltaY) * 3;
+        if (rafId === null) {
+          rafId = window.requestAnimationFrame(applyWheelStep);
+        }
+      },
+      { passive: false }
+    );
+
+    node.dataset.scrollPanBound = 'true';
+  }
+
+  state.categoryCount = categoryCount;
+
+  const plotlyNode = node as PlotlyGraphNode;
+  if (state.relayoutHandler) {
+    if (plotlyNode.removeAllListeners) {
+      plotlyNode.removeAllListeners('plotly_relayout');
+    } else if (plotlyNode.removeListener) {
+      plotlyNode.removeListener('plotly_relayout', state.relayoutHandler);
+    }
+  }
+
+  state.relayoutHandler = () => updateScrollHandle(node, state);
+  plotlyNode.on?.('plotly_relayout', state.relayoutHandler);
+
+  updateScrollHandle(node, state);
 }

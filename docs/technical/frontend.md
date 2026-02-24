@@ -90,7 +90,7 @@ sequenceDiagram
   - Stacked bar time series
   - Stacked horizontal bar charts
   - Line charts with optional standard deviation bands
-- A custom scroll/pan UI is used for large category lists (open tasks by name).
+- A custom scroll/pan UI is used for large category lists (open tasks by name and completed tasks by name).
 
 ## Styling (SCSS)
 - GOV.UK and MOJ frontends are imported and configured.
