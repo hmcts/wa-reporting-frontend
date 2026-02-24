@@ -18,23 +18,38 @@ type PrismaQueryTimingConfig = {
   queryPreviewMaxLength: number;
 };
 
+type DatabaseUrlOverrides = {
+  database?: string;
+  schema?: string | null;
+};
+
 function getConfigValue<T>(path: string): T | undefined {
   return config.has(path) ? config.get<T>(path) : undefined;
 }
 
-function buildDatabaseUrlFromConfig(key: string): string | undefined {
+function overrideDatabaseNameInUrl(connectionString: string, databaseName: string): string {
+  try {
+    const parsedUrl = new URL(connectionString);
+    parsedUrl.pathname = `/${databaseName}`;
+    return parsedUrl.toString();
+  } catch {
+    return connectionString;
+  }
+}
+
+export function buildDatabaseUrlFromConfig(key: string, overrides: DatabaseUrlOverrides = {}): string | undefined {
   const prefix = `database.${key}`;
   const directUrl = getConfigValue<string>(`${prefix}.url`);
   if (directUrl) {
-    return directUrl;
+    return overrides.database ? overrideDatabaseNameInUrl(directUrl, overrides.database) : directUrl;
   }
 
   const host = getConfigValue<string>(`${prefix}.host`);
   const port = getConfigValue<number | string>(`${prefix}.port`) ?? '5432';
   const user = getConfigValue<string>(`secrets.wa.${key}-db-user`);
   const password = getConfigValue<string>(`secrets.wa.${key}-db-password`);
-  const database = getConfigValue<string>(`${prefix}.db_name`);
-  const schema = getConfigValue<string>(`${prefix}.schema`);
+  const database = overrides.database ?? getConfigValue<string>(`${prefix}.db_name`);
+  const schema = overrides.schema === undefined ? getConfigValue<string>(`${prefix}.schema`) : overrides.schema;
   const options = getConfigValue<string>(`${prefix}.options`);
 
   if (!host || !user || !database) {

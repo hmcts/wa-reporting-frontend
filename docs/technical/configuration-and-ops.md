@@ -34,6 +34,11 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `analytics.manageCaseBaseUrl`: base URL used for case links.
 - `analytics.filtersCookieName`: name for filter persistence cookie.
 - `analytics.filtersCookieMaxAgeDays`: cookie lifetime in days.
+- `analytics.snapshotRefreshCronBootstrap.enabled`: enables/disables startup registration of snapshot refresh pg_cron jobs.
+- `analytics.snapshotRefreshCronBootstrap.jobName`: pg_cron job name used for idempotent replace behavior.
+- `analytics.snapshotRefreshCronBootstrap.schedule`: cron expression used for snapshot refresh execution.
+- `analytics.snapshotRefreshCronBootstrap.targetDatabase`: database where `analytics.run_snapshot_refresh_batch()` executes.
+- `analytics.snapshotRefreshCronBootstrap.cronDatabase`: database where pg_cron metadata/functions are available (default `postgres`).
 
 ### Authentication
 - `auth.enabled`: enables/disables OIDC and RBAC.
@@ -74,6 +79,11 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `ANALYTICS_CACHE_TTL_SECONDS`
 - `ANALYTICS_CACHE_WARMUP_ENABLED`
 - `ANALYTICS_CACHE_WARMUP_CRON_EXPRESSION`
+- `SNAPSHOT_REFRESH_CRON_BOOTSTRAP_ENABLED`
+- `SNAPSHOT_REFRESH_CRON_JOB_NAME`
+- `SNAPSHOT_REFRESH_CRON_SCHEDULE`
+- `SNAPSHOT_REFRESH_CRON_TARGET_DATABASE`
+- `SNAPSHOT_REFRESH_CRON_DATABASE`
 - `LOGGING_PRISMA_QUERY_TIMINGS_ENABLED`
 - `LOGGING_PRISMA_QUERY_TIMINGS_MIN_DURATION_MS`
 - `LOGGING_PRISMA_QUERY_TIMINGS_SLOW_QUERY_THRESHOLD_MS`
@@ -124,3 +134,12 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 - OpenTelemetry (Azure Monitor) exports traces and logs to Application Insights when a connection string is available from `APPLICATIONINSIGHTS_CONNECTION_STRING` or `secrets.wa.app-insights-connection-string`.
 - In non-development environments, startup loads Properties Volume secrets into `config` before OpenTelemetry initialisation, so mounted Key Vault values are available during telemetry setup.
 - The service name is configured in code as `wa-reporting-frontend`.
+
+### Snapshot refresh cron bootstrap
+- When `analytics.snapshotRefreshCronBootstrap.enabled=true`, app startup attempts to register the snapshot refresh schedule via `cron.schedule_in_database(...)`.
+- Registration uses TM connection credentials and host settings, with the database name overridden to `analytics.snapshotRefreshCronBootstrap.cronDatabase` (default `postgres`).
+- Registration is non-fatal: startup logs failures and continues serving requests.
+- Startup registration is idempotent: existing jobs matching `jobName` and `targetDatabase` are unscheduled before registering the configured definition.
+- Prerequisites:
+  - `pg_cron` extension and `cron` schema/functions are available in `cronDatabase`.
+  - The application DB role has permissions to read from `cron.job` and execute `cron.unschedule(...)` / `cron.schedule_in_database(...)`.

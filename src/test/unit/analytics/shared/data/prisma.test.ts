@@ -131,6 +131,32 @@ describe('analytics prisma configuration', () => {
     });
   });
 
+  test('overrides direct URL database name when requested', () => {
+    const { buildDatabaseUrlFromConfig } = loadModule({
+      'database.tm.url': 'postgresql://readonly@db.host:5432/tasks?sslmode=require',
+    });
+
+    expect(buildDatabaseUrlFromConfig('tm', { database: 'postgres' })).toBe(
+      'postgresql://readonly@db.host:5432/postgres?sslmode=require'
+    );
+  });
+
+  test('supports overriding database name and disabling schema in config-built URLs', () => {
+    const { buildDatabaseUrlFromConfig } = loadModule({
+      'database.tm.host': 'db.host',
+      'database.tm.port': 5432,
+      'secrets.wa.tm-db-user': 'readonly',
+      'secrets.wa.tm-db-password': 'secret',
+      'database.tm.db_name': 'tasks',
+      'database.tm.schema': 'analytics',
+      'database.tm.options': 'sslmode=require',
+    });
+
+    expect(buildDatabaseUrlFromConfig('tm', { database: 'postgres', schema: null })).toBe(
+      'postgresql://readonly:secret@db.host:5432/postgres?sslmode=require'
+    );
+  });
+
   test('creates prisma clients with and without urls', () => {
     const { createPrismaClient } = loadModule({});
 

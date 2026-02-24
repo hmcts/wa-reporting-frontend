@@ -914,16 +914,7 @@ BEGIN
 END;
 $$;
 
--- pg_cron setup and scheduler registration.
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-
--- Idempotent job replace: remove existing named job then re-register.
-SELECT cron.unschedule(jobname)
-FROM cron.job
-WHERE jobname = 'analytics_snapshot_refresh_batch';
-
-SELECT cron.schedule(
-  'analytics_snapshot_refresh_batch',
-  '*/30 * * * *',
-  $$CALL analytics.run_snapshot_refresh_batch()$$
-);
+-- Snapshot refresh scheduling is registered by application startup when
+-- analytics.snapshotRefreshCronBootstrap.enabled=true. Startup registration
+-- uses cron.schedule_in_database(...) from the configured cron metadata
+-- database (default postgres) targeting this analytics database.

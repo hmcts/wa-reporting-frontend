@@ -54,6 +54,8 @@ Snapshots are built/published by `analytics.run_snapshot_refresh_batch()`.
 
 - Each run performs a full rebuild from source data before publishing the new snapshot.
 - Each run also precomputes snapshot-scoped filter option values in `analytics.snapshot_filter_option_values`.
+- Scheduling is registered by application startup when `analytics.snapshotRefreshCronBootstrap.enabled=true`.
+- Startup registration executes in the configured cron metadata database (default `postgres`) and calls `cron.schedule_in_database(...)` so procedure execution runs in `cft_task_db`.
 
 ### analytics.snapshot_task_daily_facts
 Used for service overview, events, timelines, completion summaries, and outstanding open-task aggregates (by name, by region/location, and summary totals).

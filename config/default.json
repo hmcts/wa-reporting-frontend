@@ -12,7 +12,14 @@
     "cacheTtlSeconds": 900,
     "manageCaseBaseUrl": "https://manage-case.aat.platform.hmcts.net",
     "filtersCookieName": "wa-reporting-analytics-filters",
-    "filtersCookieMaxAgeDays": 365
+    "filtersCookieMaxAgeDays": 365,
+    "snapshotRefreshCronBootstrap": {
+      "enabled": false,
+      "jobName": "analytics_snapshot_refresh_batch",
+      "schedule": "*/30 * * * *",
+      "targetDatabase": "cft_task_db",
+      "cronDatabase": "postgres"
+    }
   },
   "logging": {
     "prismaQueryTimings": {
