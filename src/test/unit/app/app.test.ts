@@ -24,8 +24,6 @@ const buildAppModule = async (options: {
   const infoRoute = jest.fn();
   const compressionMiddleware = jest.fn((_req: unknown, _res: unknown, next: () => void) => next());
   const compressionFactory = jest.fn(() => compressionMiddleware);
-  const startAnalyticsCacheWarmup = jest.fn();
-  const stopAnalyticsCacheWarmup = jest.fn();
 
   const configGet = jest.fn((key: string) => {
     if (key === 'auth.enabled') {
@@ -97,11 +95,6 @@ const buildAppModule = async (options: {
     setupDev,
   }));
 
-  jest.doMock('../../../main/modules/analytics/shared/cache/cacheWarmup', () => ({
-    startAnalyticsCacheWarmup,
-    stopAnalyticsCacheWarmup,
-  }));
-
   let app: Express | undefined;
   let bootstrap: (() => Promise<void>) | undefined;
 
@@ -128,8 +121,6 @@ const buildAppModule = async (options: {
     infoRoute,
     configGet,
     compressionFactory,
-    startAnalyticsCacheWarmup,
-    stopAnalyticsCacheWarmup,
   };
 };
 
@@ -266,18 +257,6 @@ describe('app bootstrap', () => {
 
     expect(app.locals.ENV).toBe('development');
     expect(setupDev).toHaveBeenCalledWith(app, true);
-  });
-
-  it('starts analytics cache warm-up once and stops it on shutdown', async () => {
-    const { app, startAnalyticsCacheWarmup, stopAnalyticsCacheWarmup } = await buildAppModule({
-      env: 'development',
-    });
-
-    expect(startAnalyticsCacheWarmup).toHaveBeenCalledTimes(1);
-
-    app.emit('shutdown');
-
-    expect(stopAnalyticsCacheWarmup).toHaveBeenCalledTimes(1);
   });
 
   it('registers routes from glob and enables cache-control headers', async () => {

@@ -244,11 +244,3 @@ NodeCache caches these datasets to reduce repeated lookups:
 - Court venues and location descriptions
 
 Cache TTL is configurable via `analytics.cacheTtlSeconds`.
-
-Cache warm-up behavior:
-- A backend warm-up scheduler can proactively load reference and filter caches before users request a page.
-- Warm-up fetches reference datasets first, then filter options for:
-  - default dashboard filter scope
-  - User Overview scope (`excludeRoleCategories = ['Judicial']`)
-- Warm-up cadence is configured with `analytics.cacheWarmupSchedule` and can be turned on/off via `analytics.cacheWarmupEnabled`.
-- Caches are in-process (`NodeCache`) so each running application instance (pod) warms its own cache independently.
