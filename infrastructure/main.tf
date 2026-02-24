@@ -108,5 +108,5 @@ resource "random_string" "wa_reporting_frontend_session_secret" {
 resource "azurerm_key_vault_secret" "session_secret" {
   name         = "wa-reporting-frontend-session-secret"
   value        = random_string.wa_reporting_frontend_session_secret.result
-  key_vault_id = data.azurerm_key_vault.opal_key_vault.id
+  key_vault_id = data.azurerm_key_vault.wa_key_vault.id
 }
