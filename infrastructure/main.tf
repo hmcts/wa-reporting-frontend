@@ -101,7 +101,7 @@ resource "azurerm_key_vault_secret" "rd_location_ref_api_postgres_pass" {
   key_vault_id = data.azurerm_key_vault.wa_key_vault.id
 }
 
-resource "random_password" "wa_reporting_frontend_session_secret" {
+resource "random_string" "wa_reporting_frontend_session_secret" {
   length = 16
 }
 
