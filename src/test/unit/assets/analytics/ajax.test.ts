@@ -273,7 +273,7 @@ describe('analytics ajax', () => {
 
     let inFlight = 0;
     let maxInFlight = 0;
-    const resolvers: Array<() => void> = [];
+    const resolvers: (() => void)[] = [];
     const fetchSectionUpdateSpy = jest.fn((_form: HTMLFormElement, _sectionId: string) => {
       inFlight += 1;
       maxInFlight = Math.max(maxInFlight, inFlight);
