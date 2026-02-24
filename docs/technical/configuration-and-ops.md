@@ -107,4 +107,6 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 
 ### Logging and monitoring
 - Uses a local Winston 3 logger wrapper for server logs. `LOG_LEVEL` controls verbosity (default `info`), and `JSON_PRINT=true` enables JSON output.
-- OpenTelemetry (Azure Monitor) exports traces and logs to Application Insights when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set. The service name is configured in code as `wa-reporting-frontend`.
+- OpenTelemetry (Azure Monitor) exports traces and logs to Application Insights when a connection string is available from `APPLICATIONINSIGHTS_CONNECTION_STRING` or `secrets.wa.app-insights-connection-string`.
+- In non-development environments, startup loads Properties Volume secrets into `config` before OpenTelemetry initialisation, so mounted Key Vault values are available during telemetry setup.
+- The service name is configured in code as `wa-reporting-frontend`.
