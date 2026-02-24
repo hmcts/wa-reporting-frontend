@@ -90,33 +90,25 @@ describe('taskFactsRepository', () => {
     expect(toQuery.values).toEqual(expect.arrayContaining([snapshotId, to]));
   });
 
-  test('fetchOverviewFilterOptionsRows executes a single normalized filter-options query', async () => {
+  test('fetchOverviewFilterOptionsRows executes a precomputed filter-options query', async () => {
     await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId);
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalledTimes(1);
     const query = queryCall();
+    const normalised = normaliseSql(query.sql);
 
-    expect(query.sql).toContain('WITH option_rows AS');
-    expect(query.sql).toContain("'service'::text AS option_type");
-    expect(query.sql).toContain("'roleCategory'::text AS option_type");
-    expect(query.sql).toContain("'region'::text AS option_type");
-    expect(query.sql).toContain("'location'::text AS option_type");
-    expect(query.sql).toContain("'taskName'::text AS option_type");
-    expect(query.sql).toContain("'workType'::text AS option_type");
-    expect(query.sql).toContain("'assignee'::text AS option_type");
-    expect(query.sql).toContain('FROM analytics.snapshot_task_daily_facts');
-    expect(query.sql).toContain('FROM analytics.snapshot_task_rows');
-    expect(query.sql).toContain('jurisdiction_label IS NOT NULL');
-    expect(query.sql).toContain('role_category_label IS NOT NULL');
-    expect(query.sql).toContain('region IS NOT NULL');
-    expect(query.sql).toContain('location IS NOT NULL');
-    expect(query.sql).toContain('task_name IS NOT NULL');
-    expect(query.sql).toContain('assignee IS NOT NULL');
-    expect(query.sql).toContain('LEFT JOIN cft_task_db.work_types');
-    expect(query.sql).toContain('facts.snapshot_id =');
-    expect(query.sql).toContain('facts.work_type IS NOT NULL');
-    expect(query.sql).toContain('GROUP BY option_type, value, text');
-    expect(query.sql).toContain('ORDER BY option_type ASC, text ASC, value ASC');
+    expect(normalised).toContain('WITH deduped_options AS');
+    expect(normalised).toContain('SELECT DISTINCT');
+    expect(normalised).toContain('FROM analytics.snapshot_filter_option_values options');
+    expect(normalised).toContain('options.snapshot_id =');
+    expect(normalised).toContain('LEFT JOIN cft_task_db.work_types');
+    expect(normalised).toContain("deduped_options.option_type = 'workType'");
+    expect(normalised).toContain(
+      "CASE WHEN deduped_options.option_type = 'workType' THEN COALESCE(work_types.label, deduped_options.value)"
+    );
+    expect(normalised).toContain('ORDER BY deduped_options.option_type ASC, text ASC, deduped_options.value ASC');
+    expect(normalised).not.toContain('FROM analytics.snapshot_task_daily_facts');
+    expect(normalised).not.toContain('FROM analytics.snapshot_task_rows');
   });
 
   test('maps filter option rows into typed option arrays', async () => {
@@ -222,6 +214,21 @@ describe('taskFactsRepository', () => {
     expect(query.sql).toContain('SELECT COALESCE(SUM(tasks), 0)::int AS total');
     expect(query.sql).toContain('FROM analytics.snapshot_user_completed_facts');
     expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).not.toContain('completed_date >=');
+    expect(query.sql).not.toContain('completed_date <=');
+    expect(query.sql).not.toContain('assignee IN');
+  });
+
+  test('omits optional completed-count predicates when filters are empty or users list is empty', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 3 }]);
+
+    const total = await taskFactsRepository.fetchUserOverviewCompletedTaskCount(snapshotId, { user: [] });
+    const query = queryCall();
+
+    expect(total).toBe(3);
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).not.toContain('completed_date >=');
+    expect(query.sql).not.toContain('completed_date <=');
     expect(query.sql).not.toContain('assignee IN');
   });
 

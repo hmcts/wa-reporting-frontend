@@ -106,111 +106,29 @@ export class TaskFactsRepository {
     snapshotId: number,
     queryOptions?: AnalyticsQueryOptions
   ): Promise<OverviewFilterOptionsRows> {
-    const serviceWhere = buildAnalyticsWhere(
-      {},
-      [asOfSnapshotCondition(snapshotId), Prisma.sql`jurisdiction_label IS NOT NULL`],
-      queryOptions
-    );
-    const roleCategoryWhere = buildAnalyticsWhere(
-      {},
-      [asOfSnapshotCondition(snapshotId), Prisma.sql`role_category_label IS NOT NULL`],
-      queryOptions
-    );
-    const regionWhere = buildAnalyticsWhere(
-      {},
-      [asOfSnapshotCondition(snapshotId), Prisma.sql`region IS NOT NULL`],
-      queryOptions
-    );
-    const locationWhere = buildAnalyticsWhere(
-      {},
-      [asOfSnapshotCondition(snapshotId), Prisma.sql`location IS NOT NULL`],
-      queryOptions
-    );
-    const taskNameWhere = buildAnalyticsWhere(
-      {},
-      [asOfSnapshotCondition(snapshotId), Prisma.sql`task_name IS NOT NULL`],
-      queryOptions
-    );
-    const workTypeWhere = buildAnalyticsWhere(
-      {},
-      [asOfSnapshotCondition(snapshotId, 'facts'), Prisma.sql`facts.work_type IS NOT NULL`],
-      queryOptions
-    );
-    const assigneeWhere = buildAnalyticsWhere(
-      {},
-      [asOfSnapshotCondition(snapshotId), Prisma.sql`assignee IS NOT NULL`],
-      queryOptions
-    );
+    const whereClause = buildAnalyticsWhere({}, [asOfSnapshotCondition(snapshotId, 'options')], queryOptions);
 
     const optionRows = await tmPrisma.$queryRaw<OverviewFilterOptionRow[]>(Prisma.sql`
-      WITH option_rows AS (
-        SELECT
-          'service'::text AS option_type,
-          jurisdiction_label AS value,
-          jurisdiction_label AS text
-        FROM analytics.snapshot_task_daily_facts
-        ${serviceWhere}
-
-        UNION
-
-        SELECT
-          'roleCategory'::text AS option_type,
-          role_category_label AS value,
-          role_category_label AS text
-        FROM analytics.snapshot_task_daily_facts
-        ${roleCategoryWhere}
-
-        UNION
-
-        SELECT
-          'region'::text AS option_type,
-          region AS value,
-          region AS text
-        FROM analytics.snapshot_task_daily_facts
-        ${regionWhere}
-
-        UNION
-
-        SELECT
-          'location'::text AS option_type,
-          location AS value,
-          location AS text
-        FROM analytics.snapshot_task_daily_facts
-        ${locationWhere}
-
-        UNION
-
-        SELECT
-          'taskName'::text AS option_type,
-          task_name AS value,
-          task_name AS text
-        FROM analytics.snapshot_task_daily_facts
-        ${taskNameWhere}
-
-        UNION
-
-        SELECT
-          'workType'::text AS option_type,
-          facts.work_type AS value,
-          COALESCE(work_types.label, facts.work_type) AS text
-        FROM analytics.snapshot_task_daily_facts facts
-        LEFT JOIN cft_task_db.work_types work_types
-          ON work_types.work_type_id = facts.work_type
-        ${workTypeWhere}
-
-        UNION
-
-        SELECT
-          'assignee'::text AS option_type,
-          assignee AS value,
-          assignee AS text
-        FROM analytics.snapshot_task_rows
-        ${assigneeWhere}
+      WITH deduped_options AS (
+        SELECT DISTINCT
+          options.option_type,
+          options.value
+        FROM analytics.snapshot_filter_option_values options
+        ${whereClause}
       )
-      SELECT option_type, value, text
-      FROM option_rows
-      GROUP BY option_type, value, text
-      ORDER BY option_type ASC, text ASC, value ASC
+      SELECT
+        deduped_options.option_type,
+        deduped_options.value,
+        CASE
+          WHEN deduped_options.option_type = 'workType'
+            THEN COALESCE(work_types.label, deduped_options.value)
+          ELSE deduped_options.value
+        END AS text
+      FROM deduped_options
+      LEFT JOIN cft_task_db.work_types work_types
+        ON deduped_options.option_type = 'workType'
+       AND work_types.work_type_id = deduped_options.value
+      ORDER BY deduped_options.option_type ASC, text ASC, deduped_options.value ASC
     `);
 
     const services: FilterValueRow[] = [];
