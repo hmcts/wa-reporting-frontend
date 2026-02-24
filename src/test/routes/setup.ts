@@ -21,7 +21,9 @@ const defaultValues: RouteTestConfigValues = {
   'analytics.filtersCookieName': 'wa-reporting-analytics-filters',
   'analytics.filtersCookieMaxAgeDays': 365,
   'analytics.manageCaseBaseUrl': 'https://manage-case.aat.platform.hmcts.net',
-  'analytics.cacheTtlSeconds': 900,
+  'analytics.cacheTtlSeconds': 1200,
+  'analytics.cacheWarmupEnabled': false,
+  'analytics.cacheWarmupSchedule': '*/15 * * * *',
   security: {
     referrerPolicy: 'same-origin',
     hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },

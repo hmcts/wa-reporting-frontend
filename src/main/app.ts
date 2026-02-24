@@ -23,6 +23,7 @@ const { Nunjucks } = require('./modules/nunjucks');
 const { OidcMiddleware } = require('./modules/oidc');
 const { PropertiesVolume } = require('./modules/properties-volume');
 const { AppSession } = require('./modules/session');
+const { startAnalyticsCacheWarmup, stopAnalyticsCacheWarmup } = require('./modules/analytics/shared/cache/cacheWarmup');
 const healthRoutes = require('./routes/health').default;
 const infoRoutes = require('./routes/info').default;
 const { setupDev } = require('./development');
@@ -37,8 +38,22 @@ app.locals.ENV = env;
 app.set('trust proxy', 1);
 
 const logger = Logger.getLogger('app');
+let cacheWarmupLifecycleEnabled = false;
 
 type RouteModule = { default?: (app: Express) => void };
+
+function enableCacheWarmupLifecycle(): void {
+  if (cacheWarmupLifecycleEnabled) {
+    return;
+  }
+
+  startAnalyticsCacheWarmup();
+  (app as unknown as { on: (event: string, listener: () => void) => void }).on('shutdown', () => {
+    stopAnalyticsCacheWarmup();
+    cacheWarmupLifecycleEnabled = false;
+  });
+  cacheWarmupLifecycleEnabled = true;
+}
 
 export const bootstrap = async (): Promise<void> => {
   new PropertiesVolume().enableFor(app);
@@ -79,6 +94,7 @@ export const bootstrap = async (): Promise<void> => {
     .map((filename: string) => require(filename) as RouteModule)
     .forEach((route: RouteModule) => route.default?.(app));
 
+  enableCacheWarmupLifecycle();
   setupDev(app, developmentMode);
   // returning "not found" page for requests with paths not resolved by the router
   app.use((req, res) => {
