@@ -53,9 +53,6 @@ describe('taskThinRepository', () => {
       pageSize: 20,
     });
     await taskThinRepository.fetchOutstandingCriticalTaskCount(snapshotId, {});
-    await taskThinRepository.fetchOpenTasksByNameRows(snapshotId, {});
-    await taskThinRepository.fetchOpenTasksByRegionLocationRows(snapshotId, {});
-    await taskThinRepository.fetchOpenTasksSummaryRows(snapshotId, {});
     await taskThinRepository.fetchWaitTimeByAssignedDateRows(snapshotId, {});
     await taskThinRepository.fetchTasksDueByDateRows(snapshotId, {});
 
@@ -321,9 +318,9 @@ describe('taskThinRepository', () => {
       caseType: 'ORDER BY case_type_label ASC NULLS LAST',
       location: 'ORDER BY location ASC NULLS LAST',
       taskName: 'ORDER BY task_name ASC NULLS LAST',
-      createdDate: 'ORDER BY created_date ASC NULLS LAST',
-      dueDate: 'ORDER BY due_date ASC NULLS LAST',
-      priority: 'ORDER BY CASE WHEN major_priority <= 2000 THEN 4',
+      createdDate: 'ORDER BY analytics.snapshot_task_rows.created_date ASC NULLS LAST',
+      dueDate: 'ORDER BY analytics.snapshot_task_rows.due_date ASC NULLS LAST',
+      priority: 'ORDER BY CASE WHEN analytics.snapshot_task_rows.major_priority <= 2000 THEN 4',
       agentName: 'ORDER BY assignee ASC NULLS LAST',
     };
 
@@ -350,7 +347,7 @@ describe('taskThinRepository', () => {
       { page: 1, pageSize: 20 }
     );
     const fallbackSort = latestQuery();
-    expect(normaliseSql(fallbackSort.sql)).toContain('ORDER BY due_date DESC NULLS LAST');
+    expect(normaliseSql(fallbackSort.sql)).toContain('ORDER BY analytics.snapshot_task_rows.due_date DESC NULLS LAST');
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();
   });
@@ -421,7 +418,7 @@ describe('taskThinRepository', () => {
     const criticalPriorityQuery = latestQuery();
     const criticalPriorityNormalised = normaliseSql(criticalPriorityQuery.sql);
     expect(criticalPriorityNormalised).toContain('ORDER BY CASE');
-    expect(criticalPriorityNormalised).toContain('major_priority <= 2000');
+    expect(criticalPriorityNormalised).toContain('analytics.snapshot_task_rows.major_priority <= 2000');
     expect(criticalPriorityNormalised).toContain('DESC NULLS LAST');
     expect(criticalPriorityQuery.sql).toContain('CASE');
     expect(criticalPriorityQuery.sql).toContain('AS priority_rank');
@@ -524,30 +521,8 @@ describe('taskThinRepository', () => {
     expect(completedByTaskNameQuery.values).toEqual(expect.arrayContaining([completedFrom, completedTo, 'user-1']));
   });
 
-  test('builds open task, summary, wait-time and due-by-date queries', async () => {
+  test('builds wait-time and due-by-date queries', async () => {
     const filters = { region: ['North'], location: ['Leeds'] };
-
-    await taskThinRepository.fetchOpenTasksByNameRows(snapshotId, filters);
-    const byNameQuery = latestQuery();
-    expect(byNameQuery.sql).toContain('snapshot_id =');
-    expect(byNameQuery.sql).toContain("state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')");
-    expect(byNameQuery.sql).toContain('FROM analytics.snapshot_task_rows');
-    expect(byNameQuery.sql).toContain('WITH bucketed AS');
-    expect(byNameQuery.sql).toContain('GROUP BY task_name');
-
-    await taskThinRepository.fetchOpenTasksByRegionLocationRows(snapshotId, filters);
-    const byRegionLocationQuery = latestQuery();
-    expect(byRegionLocationQuery.sql).toContain('snapshot_id =');
-    expect(byRegionLocationQuery.sql).toContain('FROM analytics.snapshot_task_rows');
-    expect(byRegionLocationQuery.sql).toContain('GROUP BY region, location');
-    expect(byRegionLocationQuery.sql).toContain('ORDER BY location ASC, region ASC');
-
-    await taskThinRepository.fetchOpenTasksSummaryRows(snapshotId, filters);
-    const summaryQuery = latestQuery();
-    expect(summaryQuery.sql).toContain('snapshot_id =');
-    expect(summaryQuery.sql).toContain("SUM(CASE WHEN state = 'ASSIGNED' THEN 1 ELSE 0 END)::int AS assigned");
-    expect(summaryQuery.sql).toContain("SUM(CASE WHEN state = 'ASSIGNED' THEN 0 ELSE 1 END)::int AS unassigned");
-    expect(summaryQuery.sql).toContain('FROM analytics.snapshot_task_rows');
 
     await taskThinRepository.fetchWaitTimeByAssignedDateRows(snapshotId, filters);
     const waitTimeQuery = latestQuery();

@@ -1,11 +1,22 @@
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
+import { createHash } from 'node:crypto';
 import config from 'config';
 import { Pool } from 'pg';
 
 const { Logger } = require('../../../logging');
 
 const logger = Logger.getLogger('db');
+
+type PrismaDatabaseKey = 'tm' | 'crd' | 'lrd' | 'unknown';
+
+type PrismaQueryTimingConfig = {
+  enabled: boolean;
+  minDurationMs: number;
+  slowQueryThresholdMs: number;
+  includeQueryPreview: boolean;
+  queryPreviewMaxLength: number;
+};
 
 function getConfigValue<T>(path: string): T | undefined {
   return config.has(path) ? config.get<T>(path) : undefined;
@@ -43,35 +54,96 @@ function buildDatabaseUrlFromConfig(key: string): string | undefined {
   return `postgresql://${auth}@${host}:${port}/${database}${optsString}`;
 }
 
-function isPrismaQueryLoggingEnabled(): boolean {
-  return getConfigValue<boolean>('logging.prismaQueryTimings') ?? false;
+function getPrismaQueryTimingConfig(): PrismaQueryTimingConfig {
+  const settings = config.get<PrismaQueryTimingConfig>('logging.prismaQueryTimings');
+  const minDurationMs = Math.max(0, Math.floor(settings.minDurationMs));
+  const slowQueryThresholdMs = Math.max(minDurationMs, Math.max(0, Math.floor(settings.slowQueryThresholdMs)));
+  const queryPreviewMaxLength = Math.max(1, Math.floor(settings.queryPreviewMaxLength));
+
+  return {
+    enabled: settings.enabled,
+    minDurationMs,
+    slowQueryThresholdMs,
+    includeQueryPreview: settings.includeQueryPreview,
+    queryPreviewMaxLength,
+  };
 }
 
-export function createPrismaClient(databaseUrl?: string): PrismaClient {
+function normaliseQuery(query: string): string {
+  return query.replace(/\s+/g, ' ').trim();
+}
+
+function createQueryFingerprint(query: string): string {
+  return createHash('sha256').update(query).digest('hex');
+}
+
+function addQueryPreview(query: string, maxLength: number): string {
+  if (query.length <= maxLength) {
+    return query;
+  }
+  return query.slice(0, maxLength);
+}
+
+function bindQueryTimingLogger(
+  client: PrismaClient,
+  database: PrismaDatabaseKey,
+  queryTimingConfig: PrismaQueryTimingConfig
+): void {
+  const queryEventClient = client as PrismaClient<Prisma.PrismaClientOptions, 'query'>;
+
+  queryEventClient.$on('query', (event: Prisma.QueryEvent) => {
+    if (event.duration < queryTimingConfig.minDurationMs) {
+      return;
+    }
+
+    const normalisedQuery = normaliseQuery(event.query);
+    const payload: Record<string, unknown> = {
+      database,
+      durationMs: event.duration,
+      target: event.target,
+      queryFingerprint: createQueryFingerprint(normalisedQuery),
+    };
+    if (queryTimingConfig.includeQueryPreview) {
+      payload.queryPreview = addQueryPreview(normalisedQuery, queryTimingConfig.queryPreviewMaxLength);
+    }
+
+    if (event.duration >= queryTimingConfig.slowQueryThresholdMs) {
+      logger.warn('db.query.slow', payload);
+      return;
+    }
+
+    logger.info('db.query', payload);
+  });
+}
+
+export function createPrismaClient(databaseUrl?: string, database: PrismaDatabaseKey = 'unknown'): PrismaClient {
+  const queryTimingConfig = getPrismaQueryTimingConfig();
+  const shouldLogQueries = queryTimingConfig.enabled;
+
   if (!databaseUrl) {
-    return new PrismaClient();
+    if (!shouldLogQueries) {
+      return new PrismaClient();
+    }
+
+    const client = new PrismaClient({
+      log: [{ emit: 'event', level: 'query' }],
+    });
+    bindQueryTimingLogger(client, database, queryTimingConfig);
+    return client;
   }
 
   const pool = new Pool({ connectionString: databaseUrl });
+  const adapter = new PrismaPg(pool);
 
-  if (!isPrismaQueryLoggingEnabled()) {
-    return new PrismaClient({ adapter: new PrismaPg(pool) });
+  if (!shouldLogQueries) {
+    return new PrismaClient({ adapter });
   }
 
   const client = new PrismaClient({
-    adapter: new PrismaPg(pool),
+    adapter,
     log: [{ emit: 'event', level: 'query' }],
   });
-
-  client.$on('query', e => {
-    const payload: Record<string, unknown> = {
-      durationMs: e.duration,
-      target: e.target,
-      query: e.query,
-    };
-    logger.info('db.query', payload);
-  });
-
+  bindQueryTimingLogger(client, database, queryTimingConfig);
   return client;
 }
 
@@ -79,6 +151,6 @@ const tmDatabaseUrl = buildDatabaseUrlFromConfig('tm');
 const crdDatabaseUrl = buildDatabaseUrlFromConfig('crd');
 const lrdDatabaseUrl = buildDatabaseUrlFromConfig('lrd');
 
-export const tmPrisma = createPrismaClient(tmDatabaseUrl);
-export const crdPrisma = createPrismaClient(crdDatabaseUrl);
-export const lrdPrisma = createPrismaClient(lrdDatabaseUrl);
+export const tmPrisma = createPrismaClient(tmDatabaseUrl, 'tm');
+export const crdPrisma = createPrismaClient(crdDatabaseUrl, 'crd');
+export const lrdPrisma = createPrismaClient(lrdDatabaseUrl, 'lrd');

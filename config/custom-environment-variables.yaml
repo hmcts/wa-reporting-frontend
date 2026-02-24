@@ -11,6 +11,17 @@ compression:
   enabled:
     __name: COMPRESSION_ENABLED
     __format: boolean
+logging:
+  prismaQueryTimings:
+    enabled:
+      __name: LOGGING_PRISMA_QUERY_TIMINGS_ENABLED
+      __format: boolean
+    minDurationMs: LOGGING_PRISMA_QUERY_TIMINGS_MIN_DURATION_MS
+    slowQueryThresholdMs: LOGGING_PRISMA_QUERY_TIMINGS_SLOW_QUERY_THRESHOLD_MS
+    includeQueryPreview:
+      __name: LOGGING_PRISMA_QUERY_TIMINGS_INCLUDE_QUERY_PREVIEW
+      __format: boolean
+    queryPreviewMaxLength: LOGGING_PRISMA_QUERY_TIMINGS_QUERY_PREVIEW_MAX_LENGTH
 services:
   idam:
     clientID: IDAM_CLIENT_ID

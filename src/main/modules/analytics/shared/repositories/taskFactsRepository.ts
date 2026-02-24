@@ -17,8 +17,11 @@ import {
   CompletedTimelineRow,
   FilterValueRow,
   FilterValueWithTextRow,
+  OpenTasksByNameRow,
+  OpenTasksByRegionLocationRow,
   OverviewFilterOptionsRows,
   ServiceOverviewDbRow,
+  SummaryTotalsRow,
   TaskEventsByServiceDbRow,
   TasksDuePriorityRow,
 } from './types';
@@ -265,6 +268,107 @@ export class TaskFactsRepository {
       ${whereClause}
       GROUP BY reference_date, assignment_state
       ORDER BY reference_date
+    `);
+  }
+
+  async fetchOpenTasksByNameRows(snapshotId: number, filters: AnalyticsFilters): Promise<OpenTasksByNameRow[]> {
+    const whereClause = buildAnalyticsWhere(filters, [
+      asOfSnapshotCondition(snapshotId),
+      Prisma.sql`date_role = 'due'`,
+      Prisma.sql`task_status = 'open'`,
+    ]);
+    const priorityRank = priorityRankSql({
+      priorityColumn: Prisma.raw('priority'),
+      dateColumn: Prisma.raw('reference_date'),
+    });
+
+    return tmPrisma.$queryRaw<OpenTasksByNameRow[]>(Prisma.sql`
+      WITH bucketed AS (
+        SELECT
+          task_name,
+          task_count,
+          ${priorityRank} AS priority_rank
+        FROM analytics.snapshot_task_daily_facts
+        ${whereClause}
+      )
+      SELECT
+        task_name,
+        SUM(CASE WHEN priority_rank = 4 THEN task_count ELSE 0 END)::int AS urgent,
+        SUM(CASE WHEN priority_rank = 3 THEN task_count ELSE 0 END)::int AS high,
+        SUM(CASE WHEN priority_rank = 2 THEN task_count ELSE 0 END)::int AS medium,
+        SUM(CASE WHEN priority_rank = 1 THEN task_count ELSE 0 END)::int AS low
+      FROM bucketed
+      GROUP BY task_name
+      ORDER BY task_name ASC
+    `);
+  }
+
+  async fetchOpenTasksByRegionLocationRows(
+    snapshotId: number,
+    filters: AnalyticsFilters
+  ): Promise<OpenTasksByRegionLocationRow[]> {
+    const whereClause = buildAnalyticsWhere(filters, [
+      asOfSnapshotCondition(snapshotId),
+      Prisma.sql`date_role = 'due'`,
+      Prisma.sql`task_status = 'open'`,
+    ]);
+    const priorityRank = priorityRankSql({
+      priorityColumn: Prisma.raw('priority'),
+      dateColumn: Prisma.raw('reference_date'),
+    });
+
+    return tmPrisma.$queryRaw<OpenTasksByRegionLocationRow[]>(Prisma.sql`
+      WITH bucketed AS (
+        SELECT
+          region,
+          location,
+          task_count,
+          ${priorityRank} AS priority_rank
+        FROM analytics.snapshot_task_daily_facts
+        ${whereClause}
+      )
+      SELECT
+        region,
+        location,
+        SUM(task_count)::int AS open_tasks,
+        SUM(CASE WHEN priority_rank = 4 THEN task_count ELSE 0 END)::int AS urgent,
+        SUM(CASE WHEN priority_rank = 3 THEN task_count ELSE 0 END)::int AS high,
+        SUM(CASE WHEN priority_rank = 2 THEN task_count ELSE 0 END)::int AS medium,
+        SUM(CASE WHEN priority_rank = 1 THEN task_count ELSE 0 END)::int AS low
+      FROM bucketed
+      GROUP BY region, location
+      ORDER BY location ASC, region ASC
+    `);
+  }
+
+  async fetchOpenTasksSummaryRows(snapshotId: number, filters: AnalyticsFilters): Promise<SummaryTotalsRow[]> {
+    const whereClause = buildAnalyticsWhere(filters, [
+      asOfSnapshotCondition(snapshotId),
+      Prisma.sql`date_role = 'due'`,
+      Prisma.sql`task_status = 'open'`,
+    ]);
+    const priorityRank = priorityRankSql({
+      priorityColumn: Prisma.raw('priority'),
+      dateColumn: Prisma.raw('reference_date'),
+    });
+
+    return tmPrisma.$queryRaw<SummaryTotalsRow[]>(Prisma.sql`
+      WITH bucketed AS (
+        SELECT
+          assignment_state,
+          task_count,
+          ${priorityRank} AS priority_rank
+        FROM analytics.snapshot_task_daily_facts
+        ${whereClause}
+      )
+      SELECT
+        SUM(CASE WHEN assignment_state = 'Assigned' THEN task_count ELSE 0 END)::int AS assigned,
+        SUM(CASE WHEN assignment_state = 'Assigned' THEN 0 ELSE task_count END)::int AS unassigned,
+        SUM(CASE WHEN priority_rank = 4 THEN task_count ELSE 0 END)::int AS urgent,
+        SUM(CASE WHEN priority_rank = 3 THEN task_count ELSE 0 END)::int AS high,
+        SUM(CASE WHEN priority_rank = 2 THEN task_count ELSE 0 END)::int AS medium,
+        SUM(CASE WHEN priority_rank = 1 THEN task_count ELSE 0 END)::int AS low
+      FROM bucketed
     `);
   }
 

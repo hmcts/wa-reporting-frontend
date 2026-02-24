@@ -1,8 +1,8 @@
 import { openTasksByRegionLocationTableService } from '../../../../../main/modules/analytics/outstanding/visuals/openTasksByRegionLocationTableService';
-import { taskThinRepository } from '../../../../../main/modules/analytics/shared/repositories';
+import { taskFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  taskThinRepository: { fetchOpenTasksByRegionLocationRows: jest.fn() },
+  taskFactsRepository: { fetchOpenTasksByRegionLocationRows: jest.fn() },
 }));
 
 describe('openTasksByRegionLocationTableService', () => {
@@ -13,7 +13,7 @@ describe('openTasksByRegionLocationTableService', () => {
   });
 
   test('normalises values and aggregates region totals', async () => {
-    (taskThinRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
+    (taskFactsRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
       {
         region: 'North',
         location: 'Leeds',
@@ -58,7 +58,7 @@ describe('openTasksByRegionLocationTableService', () => {
   });
 
   test('defaults nullish numeric fields to zero', async () => {
-    (taskThinRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
+    (taskFactsRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
       {
         region: 'North',
         location: 'Leeds',
@@ -79,7 +79,7 @@ describe('openTasksByRegionLocationTableService', () => {
   });
 
   test('sorts location rows by location then region', async () => {
-    (taskThinRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
+    (taskFactsRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
       {
         region: 'South',
         location: 'Leeds',
@@ -119,7 +119,7 @@ describe('openTasksByRegionLocationTableService', () => {
   });
 
   test('sorts region totals alphabetically regardless of insertion order', async () => {
-    (taskThinRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
+    (taskFactsRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
       {
         region: 'South',
         location: 'Leeds',

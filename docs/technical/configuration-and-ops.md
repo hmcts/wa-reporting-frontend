@@ -60,12 +60,25 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `useCSRFProtection` and `secrets.wa.csrf-cookie-secret`.
 - `compression.enabled`: enables/disables HTTP compression middleware (default `false`).
 - `security.referrerPolicy` and HSTS settings.
-- `logging.prismaQueryTimings`: enable query timing logs.
+- `logging.prismaQueryTimings`: Prisma query timing log settings.
+  - `enabled`: turns Prisma query timing logs on/off.
+  - `minDurationMs`: logs only queries with duration at or above this value.
+  - `slowQueryThresholdMs`: logs queries at or above this value as slow-query events.
+  - `includeQueryPreview`: includes a normalised SQL preview string in logs when `true`.
+  - `queryPreviewMaxLength`: max characters in the SQL preview string.
 - `secrets.wa.app-insights-connection-string` for Azure Application Insights.
 
 ## Environment variables (selected)
 - `AUTH_ENABLED`
 - `COMPRESSION_ENABLED`
+- `ANALYTICS_CACHE_TTL_SECONDS`
+- `ANALYTICS_CACHE_WARMUP_ENABLED`
+- `ANALYTICS_CACHE_WARMUP_CRON_EXPRESSION`
+- `LOGGING_PRISMA_QUERY_TIMINGS_ENABLED`
+- `LOGGING_PRISMA_QUERY_TIMINGS_MIN_DURATION_MS`
+- `LOGGING_PRISMA_QUERY_TIMINGS_SLOW_QUERY_THRESHOLD_MS`
+- `LOGGING_PRISMA_QUERY_TIMINGS_INCLUDE_QUERY_PREVIEW`
+- `LOGGING_PRISMA_QUERY_TIMINGS_QUERY_PREVIEW_MAX_LENGTH`
 - `APPLICATIONINSIGHTS_CONNECTION_STRING`
 - `IDAM_CLIENT_ID`, `WA_REPORTING_FRONTEND_CLIENT_SECRET`, `IDAM_CLIENT_SCOPE`
 - `IDAM_PUBLIC_URL`, `WA_BASE_URL`
@@ -104,6 +117,10 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 
 ### Logging and monitoring
 - Uses a local Winston 3 logger wrapper for server logs. `LOG_LEVEL` controls verbosity (default `info`), and `JSON_PRINT=true` enables JSON output.
+- When `logging.prismaQueryTimings.enabled=true`, Prisma query events are emitted as:
+  - `db.query` for timings at or above `minDurationMs` and below `slowQueryThresholdMs`.
+  - `db.query.slow` for timings at or above `slowQueryThresholdMs`.
+  Payload fields include `database` (`tm`/`crd`/`lrd`), `durationMs`, `target`, `queryFingerprint`, and optional `queryPreview` when enabled.
 - OpenTelemetry (Azure Monitor) exports traces and logs to Application Insights when a connection string is available from `APPLICATIONINSIGHTS_CONNECTION_STRING` or `secrets.wa.app-insights-connection-string`.
 - In non-development environments, startup loads Properties Volume secrets into `config` before OpenTelemetry initialisation, so mounted Key Vault values are available during telemetry setup.
 - The service name is configured in code as `wa-reporting-frontend`.

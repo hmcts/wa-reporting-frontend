@@ -258,4 +258,51 @@ describe('analytics ajax', () => {
     expect(fetchSectionUpdateSpy).toHaveBeenCalledWith(filtersForm, 'open-tasks-summary');
     expect(initialSection.innerHTML).toContain('Updated');
   });
+
+  test('limits initial ajax section refreshes to two concurrent requests', async () => {
+    const filtersForm = document.createElement('form');
+    filtersForm.dataset.analyticsFilters = 'true';
+    document.body.appendChild(filtersForm);
+
+    ['one', 'two', 'three', 'four'].forEach(sectionId => {
+      const section = document.createElement('div');
+      section.dataset.section = sectionId;
+      section.dataset.ajaxInitial = 'true';
+      document.body.appendChild(section);
+    });
+
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const resolvers: Array<() => void> = [];
+    const fetchSectionUpdateSpy = jest.fn((_form: HTMLFormElement, _sectionId: string) => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+
+      return new Promise<void>(resolve => {
+        resolvers.push(() => {
+          inFlight -= 1;
+          resolve();
+        });
+      });
+    });
+
+    initAjaxInitialSections(fetchSectionUpdateSpy);
+    await flushPromises();
+    expect(fetchSectionUpdateSpy).toHaveBeenCalledTimes(2);
+    expect(maxInFlight).toBe(2);
+
+    resolvers.shift()?.();
+    await flushPromises();
+    expect(fetchSectionUpdateSpy).toHaveBeenCalledTimes(3);
+
+    resolvers.shift()?.();
+    await flushPromises();
+    expect(fetchSectionUpdateSpy).toHaveBeenCalledTimes(4);
+    expect(maxInFlight).toBe(2);
+
+    while (resolvers.length > 0) {
+      resolvers.shift()?.();
+    }
+    await flushPromises();
+  });
 });

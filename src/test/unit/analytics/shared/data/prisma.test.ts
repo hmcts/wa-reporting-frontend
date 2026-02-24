@@ -1,8 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import { createHash } from 'crypto';
 
 const prismaPgMock = jest.fn().mockImplementation(pool => ({ pool }));
 const poolMock = jest.fn().mockImplementation(options => ({ options }));
 const loggerInfoMock = jest.fn();
+const loggerWarnMock = jest.fn();
 
 jest.mock('@prisma/adapter-pg', () => ({
   PrismaPg: prismaPgMock,
@@ -22,7 +24,7 @@ jest.mock('@prisma/client', () => ({
 }));
 jest.mock('../../../../../main/modules/logging', () => ({
   Logger: {
-    getLogger: jest.fn(() => ({ info: loggerInfoMock })),
+    getLogger: jest.fn(() => ({ info: loggerInfoMock, warn: loggerWarnMock })),
   },
 }));
 
@@ -32,10 +34,23 @@ describe('analytics prisma configuration', () => {
     jest.resetModules();
   });
 
+  const defaultPrismaQueryTimingsConfig = {
+    enabled: false,
+    minDurationMs: 0,
+    slowQueryThresholdMs: 500,
+    includeQueryPreview: false,
+    queryPreviewMaxLength: 240,
+  };
+
   const loadModule = (configValues: Record<string, unknown>) => {
+    const resolvedConfigValues: Record<string, unknown> = {
+      'logging.prismaQueryTimings': defaultPrismaQueryTimingsConfig,
+      ...configValues,
+    };
+
     jest.doMock('config', () => ({
-      has: (path: string) => Object.prototype.hasOwnProperty.call(configValues, path),
-      get: (path: string) => configValues[path],
+      has: (path: string) => Object.prototype.hasOwnProperty.call(resolvedConfigValues, path),
+      get: (path: string) => resolvedConfigValues[path],
     }));
 
     let exports: typeof import('../../../../../main/modules/analytics/shared/data/prisma') | undefined;
@@ -132,7 +147,10 @@ describe('analytics prisma configuration', () => {
   test('enables query logging when configured', () => {
     loadModule({
       'database.tm.url': 'postgres://tm',
-      'logging.prismaQueryTimings': true,
+      'logging.prismaQueryTimings': {
+        ...defaultPrismaQueryTimingsConfig,
+        enabled: true,
+      },
     });
 
     expect(PrismaClient).toHaveBeenNthCalledWith(1, {
@@ -152,10 +170,121 @@ describe('analytics prisma configuration', () => {
     });
 
     expect(loggerInfoMock).toHaveBeenCalledWith('db.query', {
+      database: 'tm',
       durationMs: 42,
       target: 'task-manager',
-      query: 'select 1',
+      queryFingerprint: createHash('sha256').update('select 1').digest('hex'),
     });
+  });
+
+  test('supports object config with min duration, slow threshold and query preview', () => {
+    loadModule({
+      'database.tm.url': 'postgres://tm',
+      'logging.prismaQueryTimings': {
+        enabled: true,
+        minDurationMs: 50,
+        slowQueryThresholdMs: 120,
+        includeQueryPreview: true,
+        queryPreviewMaxLength: 20,
+      },
+    });
+
+    const prismaClientMock = PrismaClient as jest.Mock;
+    const prismaInstance = prismaClientMock.mock.results[0]?.value;
+    expect(prismaInstance?.$on).toHaveBeenCalledWith('query', expect.any(Function));
+
+    const queryHandler = (prismaInstance?.$on as jest.Mock).mock.calls[0]?.[1];
+    const query = 'SELECT   *\nFROM analytics.snapshot_task_rows WHERE case_id = $1';
+    const normalisedQuery = 'SELECT * FROM analytics.snapshot_task_rows WHERE case_id = $1';
+
+    queryHandler({
+      duration: 49,
+      target: 'task-manager',
+      query,
+    });
+    expect(loggerInfoMock).not.toHaveBeenCalled();
+    expect(loggerWarnMock).not.toHaveBeenCalled();
+
+    queryHandler({
+      duration: 60,
+      target: 'task-manager',
+      query,
+    });
+    expect(loggerInfoMock).toHaveBeenCalledWith('db.query', {
+      database: 'tm',
+      durationMs: 60,
+      target: 'task-manager',
+      queryFingerprint: createHash('sha256').update(normalisedQuery).digest('hex'),
+      queryPreview: normalisedQuery.slice(0, 20),
+    });
+    expect(loggerWarnMock).not.toHaveBeenCalled();
+
+    queryHandler({
+      duration: 121,
+      target: 'task-manager',
+      query,
+    });
+    expect(loggerWarnMock).toHaveBeenCalledWith('db.query.slow', {
+      database: 'tm',
+      durationMs: 121,
+      target: 'task-manager',
+      queryFingerprint: createHash('sha256').update(normalisedQuery).digest('hex'),
+      queryPreview: normalisedQuery.slice(0, 20),
+    });
+  });
+
+  test('enforces slow threshold to be at least min duration', () => {
+    loadModule({
+      'database.tm.url': 'postgres://tm',
+      'logging.prismaQueryTimings': {
+        enabled: true,
+        minDurationMs: 100,
+        slowQueryThresholdMs: 50,
+      },
+    });
+
+    const prismaClientMock = PrismaClient as jest.Mock;
+    const prismaInstance = prismaClientMock.mock.results[0]?.value;
+    const queryHandler = (prismaInstance?.$on as jest.Mock).mock.calls[0]?.[1];
+
+    queryHandler({
+      duration: 90,
+      target: 'task-manager',
+      query: 'SELECT 1',
+    });
+    expect(loggerInfoMock).not.toHaveBeenCalled();
+    expect(loggerWarnMock).not.toHaveBeenCalled();
+
+    queryHandler({
+      duration: 100,
+      target: 'task-manager',
+      query: 'SELECT 1',
+    });
+    expect(loggerWarnMock).toHaveBeenCalledWith('db.query.slow', {
+      database: 'tm',
+      durationMs: 100,
+      target: 'task-manager',
+      queryFingerprint: createHash('sha256').update('SELECT 1').digest('hex'),
+    });
+  });
+
+  test('supports query logging when client is created without an explicit URL', () => {
+    const { createPrismaClient } = loadModule({
+      'logging.prismaQueryTimings': {
+        ...defaultPrismaQueryTimingsConfig,
+        enabled: true,
+      },
+    });
+
+    jest.clearAllMocks();
+
+    const client = createPrismaClient(undefined, 'tm');
+
+    expect(client).toBeDefined();
+    expect(PrismaClient).toHaveBeenCalledWith({
+      log: [{ emit: 'event', level: 'query' }],
+    });
+    expect(client.$on as jest.Mock).toHaveBeenCalledWith('query', expect.any(Function));
   });
 
   test('returns undefined when config is incomplete', () => {

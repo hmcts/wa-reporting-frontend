@@ -15,7 +15,13 @@
     "filtersCookieMaxAgeDays": 365
   },
   "logging": {
-    "prismaQueryTimings": false
+    "prismaQueryTimings": {
+      "enabled": false,
+      "minDurationMs": 0,
+      "slowQueryThresholdMs": 0,
+      "includeQueryPreview": false,
+      "queryPreviewMaxLength": 240
+    }
   },
   "auth": {
     "enabled": true

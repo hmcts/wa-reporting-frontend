@@ -1,8 +1,8 @@
 import { openTasksSummaryStatsService } from '../../../../main/modules/analytics/outstanding/visuals/openTasksSummaryStatsService';
-import { taskThinRepository } from '../../../../main/modules/analytics/shared/repositories';
+import { taskFactsRepository } from '../../../../main/modules/analytics/shared/repositories';
 
 jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
-  taskThinRepository: {
+  taskFactsRepository: {
     fetchOpenTasksSummaryRows: jest.fn(),
   },
 }));
@@ -11,11 +11,11 @@ describe('fetchOpenTasksSummary', () => {
   const snapshotId = 302;
 
   beforeEach(() => {
-    (taskThinRepository.fetchOpenTasksSummaryRows as jest.Mock).mockReset();
+    (taskFactsRepository.fetchOpenTasksSummaryRows as jest.Mock).mockReset();
   });
 
   it('returns null when there are no rows', async () => {
-    (taskThinRepository.fetchOpenTasksSummaryRows as jest.Mock).mockResolvedValue([]);
+    (taskFactsRepository.fetchOpenTasksSummaryRows as jest.Mock).mockResolvedValue([]);
 
     const result = await openTasksSummaryStatsService.fetchOpenTasksSummary(snapshotId, {});
 
@@ -23,7 +23,7 @@ describe('fetchOpenTasksSummary', () => {
   });
 
   it('maps totals and calculates percentages', async () => {
-    (taskThinRepository.fetchOpenTasksSummaryRows as jest.Mock).mockResolvedValue([
+    (taskFactsRepository.fetchOpenTasksSummaryRows as jest.Mock).mockResolvedValue([
       {
         assigned: 20,
         unassigned: 80,
@@ -36,7 +36,7 @@ describe('fetchOpenTasksSummary', () => {
 
     const result = await openTasksSummaryStatsService.fetchOpenTasksSummary(snapshotId, { region: ['North'] });
 
-    expect(taskThinRepository.fetchOpenTasksSummaryRows).toHaveBeenCalledWith(snapshotId, { region: ['North'] });
+    expect(taskFactsRepository.fetchOpenTasksSummaryRows).toHaveBeenCalledWith(snapshotId, { region: ['North'] });
     expect(result).toEqual({
       open: 100,
       assigned: 20,
@@ -51,7 +51,7 @@ describe('fetchOpenTasksSummary', () => {
   });
 
   it('returns zero percentages when there are no assigned tasks', async () => {
-    (taskThinRepository.fetchOpenTasksSummaryRows as jest.Mock).mockResolvedValue([
+    (taskFactsRepository.fetchOpenTasksSummaryRows as jest.Mock).mockResolvedValue([
       {
         assigned: 0,
         unassigned: 0,
@@ -78,7 +78,7 @@ describe('fetchOpenTasksSummary', () => {
   });
 
   it('defaults missing totals to zero', async () => {
-    (taskThinRepository.fetchOpenTasksSummaryRows as jest.Mock).mockResolvedValue([
+    (taskFactsRepository.fetchOpenTasksSummaryRows as jest.Mock).mockResolvedValue([
       {
         assigned: null,
         unassigned: undefined,

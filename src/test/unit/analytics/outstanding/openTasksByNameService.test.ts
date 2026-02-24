@@ -1,15 +1,15 @@
 import { openTasksByNameChartService } from '../../../../main/modules/analytics/outstanding/visuals/openTasksByNameChartService';
-import { taskThinRepository } from '../../../../main/modules/analytics/shared/repositories';
+import { taskFactsRepository } from '../../../../main/modules/analytics/shared/repositories';
 
 jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
-  taskThinRepository: { fetchOpenTasksByNameRows: jest.fn() },
+  taskFactsRepository: { fetchOpenTasksByNameRows: jest.fn() },
 }));
 
 describe('fetchOpenTasksByName', () => {
   const snapshotId = 301;
 
   beforeEach(() => {
-    (taskThinRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([]);
+    (taskFactsRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([]);
   });
 
   test('applies filters to the query', async () => {
@@ -24,11 +24,11 @@ describe('fetchOpenTasksByName', () => {
 
     await openTasksByNameChartService.fetchOpenTasksByName(snapshotId, filters);
 
-    expect(taskThinRepository.fetchOpenTasksByNameRows).toHaveBeenCalledWith(snapshotId, filters);
+    expect(taskFactsRepository.fetchOpenTasksByNameRows).toHaveBeenCalledWith(snapshotId, filters);
   });
 
   test('builds breakdown totals and ordering', async () => {
-    (taskThinRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([
+    (taskFactsRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([
       { task_name: 'Task B', urgent: 2, high: 0, medium: 0, low: 1 },
       { task_name: 'Task A', urgent: 0, high: 1, medium: 0, low: 3 },
       { task_name: null, urgent: 0, high: 0, medium: 0, low: 2 },
@@ -47,7 +47,7 @@ describe('fetchOpenTasksByName', () => {
   });
 
   test('uses name order when totals are tied', async () => {
-    (taskThinRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([
+    (taskFactsRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([
       { task_name: 'Task B', urgent: 0, high: 1, medium: 0, low: 0 },
       { task_name: 'Task A', urgent: 0, high: 1, medium: 0, low: 0 },
     ]);
@@ -58,7 +58,7 @@ describe('fetchOpenTasksByName', () => {
   });
 
   test('orders by total when urgent counts are tied', async () => {
-    (taskThinRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([
+    (taskFactsRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([
       { task_name: 'Task B', urgent: 0, high: 4, medium: 0, low: 0 },
       { task_name: 'Task A', urgent: 0, high: 2, medium: 0, low: 0 },
     ]);
@@ -69,7 +69,7 @@ describe('fetchOpenTasksByName', () => {
   });
 
   test('defaults missing counts to zero', async () => {
-    (taskThinRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([
+    (taskFactsRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([
       { task_name: 'Task A', urgent: null, high: null, medium: null, low: null },
     ]);
 

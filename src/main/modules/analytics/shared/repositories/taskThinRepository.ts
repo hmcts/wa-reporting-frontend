@@ -13,10 +13,7 @@ import { asOfSnapshotCondition } from './snapshotSql';
 import {
   CompletedTaskAuditRow,
   FilterValueRow,
-  OpenTasksByNameRow,
-  OpenTasksByRegionLocationRow,
   OutstandingCriticalTaskRow,
-  SummaryTotalsRow,
   TasksDueRow,
   UserOverviewCompletedByDateRow,
   UserOverviewCompletedByTaskNameRow,
@@ -187,15 +184,18 @@ function buildCriticalTasksOrderBy(sort: SortState<CriticalTasksSortBy>): Prisma
       case 'taskName':
         return Prisma.sql`task_name`;
       case 'createdDate':
-        return Prisma.raw('created_date');
+        return Prisma.raw('analytics.snapshot_task_rows.created_date');
       case 'dueDate':
-        return Prisma.raw('due_date');
+        return Prisma.raw('analytics.snapshot_task_rows.due_date');
       case 'priority':
-        return buildPriorityRank();
+        return priorityRankSql({
+          priorityColumn: Prisma.raw('analytics.snapshot_task_rows.major_priority'),
+          dateColumn: Prisma.raw('analytics.snapshot_task_rows.due_date'),
+        });
       case 'agentName':
         return Prisma.sql`assignee`;
       default:
-        return Prisma.raw('due_date');
+        return Prisma.raw('analytics.snapshot_task_rows.due_date');
     }
   })();
 
@@ -409,91 +409,6 @@ export class TaskThinRepository {
       ${whereClause}
     `);
     return rows[0]?.total ?? 0;
-  }
-
-  async fetchOpenTasksByNameRows(snapshotId: number, filters: AnalyticsFilters): Promise<OpenTasksByNameRow[]> {
-    const priorityRank = buildPriorityRank();
-    const whereClause = buildAnalyticsWhere(filters, [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`,
-    ]);
-
-    return tmPrisma.$queryRaw<OpenTasksByNameRow[]>(Prisma.sql`
-      WITH bucketed AS (
-        SELECT
-          task_name,
-          ${priorityRank} AS priority_rank
-        FROM analytics.snapshot_task_rows
-        ${whereClause}
-      )
-      SELECT
-        task_name,
-        SUM(CASE WHEN priority_rank = 4 THEN 1 ELSE 0 END)::int AS urgent,
-        SUM(CASE WHEN priority_rank = 3 THEN 1 ELSE 0 END)::int AS high,
-        SUM(CASE WHEN priority_rank = 2 THEN 1 ELSE 0 END)::int AS medium,
-        SUM(CASE WHEN priority_rank = 1 THEN 1 ELSE 0 END)::int AS low
-      FROM bucketed
-      GROUP BY task_name
-    `);
-  }
-
-  async fetchOpenTasksByRegionLocationRows(
-    snapshotId: number,
-    filters: AnalyticsFilters
-  ): Promise<OpenTasksByRegionLocationRow[]> {
-    const priorityRank = buildPriorityRank();
-    const whereClause = buildAnalyticsWhere(filters, [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`,
-    ]);
-
-    return tmPrisma.$queryRaw<OpenTasksByRegionLocationRow[]>(Prisma.sql`
-      WITH bucketed AS (
-        SELECT
-          region,
-          location,
-          ${priorityRank} AS priority_rank
-        FROM analytics.snapshot_task_rows
-        ${whereClause}
-      )
-      SELECT
-        region,
-        location,
-        COUNT(*)::int AS open_tasks,
-        SUM(CASE WHEN priority_rank = 4 THEN 1 ELSE 0 END)::int AS urgent,
-        SUM(CASE WHEN priority_rank = 3 THEN 1 ELSE 0 END)::int AS high,
-        SUM(CASE WHEN priority_rank = 2 THEN 1 ELSE 0 END)::int AS medium,
-        SUM(CASE WHEN priority_rank = 1 THEN 1 ELSE 0 END)::int AS low
-      FROM bucketed
-      GROUP BY region, location
-      ORDER BY location ASC, region ASC
-    `);
-  }
-
-  async fetchOpenTasksSummaryRows(snapshotId: number, filters: AnalyticsFilters): Promise<SummaryTotalsRow[]> {
-    const priorityRank = buildPriorityRank();
-    const whereClause = buildAnalyticsWhere(filters, [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`,
-    ]);
-
-    return tmPrisma.$queryRaw<SummaryTotalsRow[]>(Prisma.sql`
-      WITH bucketed AS (
-        SELECT
-          state,
-          ${priorityRank} AS priority_rank
-        FROM analytics.snapshot_task_rows
-        ${whereClause}
-      )
-      SELECT
-        SUM(CASE WHEN state = 'ASSIGNED' THEN 1 ELSE 0 END)::int AS assigned,
-        SUM(CASE WHEN state = 'ASSIGNED' THEN 0 ELSE 1 END)::int AS unassigned,
-        SUM(CASE WHEN priority_rank = 4 THEN 1 ELSE 0 END)::int AS urgent,
-        SUM(CASE WHEN priority_rank = 3 THEN 1 ELSE 0 END)::int AS high,
-        SUM(CASE WHEN priority_rank = 2 THEN 1 ELSE 0 END)::int AS medium,
-        SUM(CASE WHEN priority_rank = 1 THEN 1 ELSE 0 END)::int AS low
-      FROM bucketed
-    `);
   }
 
   async fetchWaitTimeByAssignedDateRows(snapshotId: number, filters: AnalyticsFilters): Promise<WaitTimeRow[]> {

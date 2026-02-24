@@ -1,4 +1,4 @@
-import { OpenTasksByRegionLocationRow, taskThinRepository } from '../../shared/repositories';
+import { OpenTasksByRegionLocationRow, taskFactsRepository } from '../../shared/repositories';
 import { AnalyticsFilters, OutstandingByLocationRow, OutstandingByRegionRow } from '../../shared/types';
 import { normaliseLabel, toNumber } from '../../shared/utils';
 
@@ -52,7 +52,7 @@ class OpenTasksByRegionLocationTableService {
     locationRows: OutstandingByLocationRow[];
     regionRows: OutstandingByRegionRow[];
   }> {
-    const rows = await taskThinRepository.fetchOpenTasksByRegionLocationRows(snapshotId, filters);
+    const rows = await taskFactsRepository.fetchOpenTasksByRegionLocationRows(snapshotId, filters);
     const locationRows = mapLocationRows(rows);
     const regionRows = buildRegionRows(locationRows);
     return { locationRows, regionRows };

@@ -55,7 +55,7 @@ Snapshots are built/published by `analytics.run_snapshot_refresh_batch()`.
 - Each run performs a full rebuild from source data before publishing the new snapshot.
 
 ### analytics.snapshot_task_daily_facts
-Used for service overview, events, timelines, and completion summaries.
+Used for service overview, events, timelines, completion summaries, and outstanding open-task aggregates (by name, by region/location, and summary totals).
 
 Required columns:
 - snapshot_id
@@ -113,6 +113,7 @@ Required columns:
 Note:
 - Priority rank is calculated at query-time from `major_priority`, `due_date`, and `CURRENT_DATE`.
 - Row-level repositories return numeric `priority_rank`; labels are mapped in TypeScript when building UI-facing models.
+- Outstanding dashboard open-task aggregate sections do not read from this table in the warm path; they are facts-backed via `snapshot_task_daily_facts`.
 
 ### analytics.snapshot_user_completed_facts
 Used for user overview completed-by-date aggregated chart/table data.
