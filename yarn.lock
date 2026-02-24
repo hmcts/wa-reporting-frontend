@@ -12875,6 +12875,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-cron@npm:^4.2.1":
+  version: 4.2.1
+  resolution: "node-cron@npm:4.2.1"
+  checksum: 10/7550b105e4aab772597383e24c4b31b6d5dc9604c96bcefb1a4b8a94a432b8835e3010a0dfc1d34492edfb64a2e55f334cf3ad0a76901b72de11ef506cbfd31a
+  languageName: node
+  linkType: hard
+
 "node-fetch-native@npm:^1.6.6":
   version: 1.6.7
   resolution: "node-fetch-native@npm:1.6.7"
@@ -16422,6 +16429,7 @@ __metadata:
     moment: "npm:^2.30.1"
     nock: "npm:^14.0.11"
     node-cache: "npm:^5.1.2"
+    node-cron: "npm:^4.2.1"
     nodemon: "npm:^3.1.14"
     nunjucks: "npm:^3.2.4"
     pg: "npm:^8.18.0"
