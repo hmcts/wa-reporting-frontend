@@ -266,8 +266,12 @@ describe('taskFactsRepository', () => {
     expect(query.sql).toContain("date_role = 'due'");
     expect(query.sql).toContain("task_status = 'open'");
     expect(query.sql).toContain('WITH bucketed AS');
-    expect(query.sql).toContain("SUM(CASE WHEN assignment_state = 'Assigned' THEN task_count ELSE 0 END)::int AS assigned");
-    expect(query.sql).toContain("SUM(CASE WHEN assignment_state = 'Assigned' THEN 0 ELSE task_count END)::int AS unassigned");
+    expect(query.sql).toContain(
+      "SUM(CASE WHEN assignment_state = 'Assigned' THEN task_count ELSE 0 END)::int AS assigned"
+    );
+    expect(query.sql).toContain(
+      "SUM(CASE WHEN assignment_state = 'Assigned' THEN 0 ELSE task_count END)::int AS unassigned"
+    );
     expect(query.sql).toContain('priority <= 2000');
     expect(query.sql).toContain('priority = 5000 AND reference_date = CURRENT_DATE');
   });

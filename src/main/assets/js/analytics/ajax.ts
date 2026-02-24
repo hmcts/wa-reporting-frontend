@@ -20,7 +20,11 @@ export type FetchPaginatedSection = (
 
 const INITIAL_SECTION_CONCURRENCY = 2;
 
-async function runBounded<T>(items: readonly T[], concurrency: number, worker: (item: T) => Promise<void>): Promise<void> {
+async function runBounded<T>(
+  items: readonly T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>
+): Promise<void> {
   const queue = [...items];
   const workerCount = Math.min(Math.max(concurrency, 1), queue.length);
 
