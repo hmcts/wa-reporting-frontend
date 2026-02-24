@@ -1,9 +1,5 @@
 analytics:
   cacheTtlSeconds: ANALYTICS_CACHE_TTL_SECONDS
-  cacheWarmupEnabled:
-    __name: ANALYTICS_CACHE_WARMUP_ENABLED
-    __format: boolean
-  cacheWarmupSchedule: ANALYTICS_CACHE_WARMUP_CRON_EXPRESSION
   manageCaseBaseUrl: MANAGE_CASE_BASE_URL
   filtersCookieName: ANALYTICS_FILTERS_COOKIE_NAME
   filtersCookieMaxAgeDays: ANALYTICS_FILTERS_COOKIE_MAX_AGE_DAYS

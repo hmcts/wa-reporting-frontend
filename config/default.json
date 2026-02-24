@@ -9,9 +9,7 @@
     }
   },
   "analytics": {
-    "cacheTtlSeconds": 1200,
-    "cacheWarmupEnabled": true,
-    "cacheWarmupSchedule": "*/15 * * * *",
+    "cacheTtlSeconds": 900,
     "manageCaseBaseUrl": "https://manage-case.aat.platform.hmcts.net",
     "filtersCookieName": "wa-reporting-analytics-filters",
     "filtersCookieMaxAgeDays": 365

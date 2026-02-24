@@ -30,9 +30,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 ## Key configuration areas
 
 ### Analytics
-- `analytics.cacheTtlSeconds`: NodeCache TTL for filter options and reference data (default `1200` seconds / 20 minutes).
-- `analytics.cacheWarmupEnabled`: enables/disables proactive backend cache warm-up scheduler.
-- `analytics.cacheWarmupSchedule`: cron expression for warm-up cadence (default `*/15 * * * *`).
+- `analytics.cacheTtlSeconds`: NodeCache TTL for filter options and reference data.
 - `analytics.manageCaseBaseUrl`: base URL used for case links.
 - `analytics.filtersCookieName`: name for filter persistence cookie.
 - `analytics.filtersCookieMaxAgeDays`: cookie lifetime in days.
@@ -68,9 +66,6 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 ## Environment variables (selected)
 - `AUTH_ENABLED`
 - `COMPRESSION_ENABLED`
-- `ANALYTICS_CACHE_TTL_SECONDS`
-- `ANALYTICS_CACHE_WARMUP_ENABLED`
-- `ANALYTICS_CACHE_WARMUP_CRON_EXPRESSION`
 - `APPLICATIONINSIGHTS_CONNECTION_STRING`
 - `IDAM_CLIENT_ID`, `WA_REPORTING_FRONTEND_CLIENT_SECRET`, `IDAM_CLIENT_SCOPE`
 - `IDAM_PUBLIC_URL`, `WA_BASE_URL`
