@@ -83,6 +83,7 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
       fetchCompletedByNameRows: jest.fn().mockResolvedValue([]),
       fetchCompletedByLocationRows: jest.fn().mockResolvedValue([]),
       fetchCompletedByRegionRows: jest.fn().mockResolvedValue([]),
+      fetchUserOverviewCompletedTaskCount: jest.fn().mockResolvedValue(userOverviewCompletedTaskCount),
     },
   }));
 

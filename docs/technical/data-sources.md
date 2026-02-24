@@ -78,7 +78,7 @@ Required columns:
 - processing_time_days_count
 
 ### analytics.snapshot_task_rows
-Used for per-task lists (user overview, critical tasks, task audit) and processing/handling time.
+Used for per-task lists (user overview, critical tasks, task audit), completed-by-task-name aggregates on `/users`, and processing/handling time.
 
 Required columns:
 - snapshot_id
@@ -116,7 +116,7 @@ Note:
 - Outstanding dashboard open-task aggregate sections do not read from this table in the warm path; they are facts-backed via `snapshot_task_daily_facts`.
 
 ### analytics.snapshot_user_completed_facts
-Used for user overview completed-by-date aggregated chart/table data.
+Used for `/users` completed-by-date aggregated chart/table data and facts-backed completed total counting.
 
 Required columns:
 - snapshot_id
@@ -225,6 +225,13 @@ For `/users` "Completed tasks by task name", averages are calculated from `analy
   - `SUM(COALESCE(EXTRACT(EPOCH FROM due_date_to_completed_diff_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0) * -1) / COUNT(*)`
 
 Both formulas include rows with null intervals in the denominator (`COUNT(*)`) while treating null interval values as zero in the summed numerator.
+
+### User Overview completed totals
+For `/users` completed total, SQL sums `snapshot_user_completed_facts.tasks` within the selected filter scope:
+
+- `SELECT COALESCE(SUM(tasks), 0)::int AS total`
+
+This facts-backed count preserves User Overview filters (including optional assignee and completed date range filters) while avoiding row-level completed-count scans on `snapshot_task_rows`.
 
 ### Created-event determination
 Created events in task daily facts are determined by `created_date IS NOT NULL` (case state does not gate inclusion). For `date_role = 'created'`, `task_status` is derived as:

@@ -83,10 +83,10 @@ describe('taskThinRepository', () => {
 
     const expectedOrderBySqlBySort: Record<AssignedSortBy, string> = {
       caseId: 'ORDER BY case_id ASC NULLS LAST',
-      createdDate: 'ORDER BY created_date ASC NULLS LAST',
+      createdDate: 'ORDER BY analytics.snapshot_task_rows.created_date ASC NULLS LAST',
       taskName: 'ORDER BY task_name ASC NULLS LAST',
-      assignedDate: 'ORDER BY first_assigned_date ASC NULLS LAST',
-      dueDate: 'ORDER BY due_date ASC NULLS LAST',
+      assignedDate: 'ORDER BY analytics.snapshot_task_rows.first_assigned_date ASC NULLS LAST',
+      dueDate: 'ORDER BY analytics.snapshot_task_rows.due_date ASC NULLS LAST',
       priority: 'ORDER BY CASE WHEN major_priority <= 2000 THEN 4',
       totalAssignments: 'ORDER BY COALESCE(number_of_reassignments, 0) + 1 ASC NULLS LAST',
       assignee: 'ORDER BY assignee ASC NULLS LAST',
@@ -132,7 +132,9 @@ describe('taskThinRepository', () => {
       { page: 1, pageSize: 20 }
     );
     const fallbackSort = latestQuery();
-    expect(normaliseSql(fallbackSort.sql)).toContain('ORDER BY created_date DESC NULLS LAST');
+    expect(normaliseSql(fallbackSort.sql)).toContain(
+      'ORDER BY analytics.snapshot_task_rows.created_date DESC NULLS LAST'
+    );
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();
   });
@@ -155,11 +157,11 @@ describe('taskThinRepository', () => {
 
     const expectedOrderBySqlBySort: Record<CompletedSortBy, string> = {
       caseId: 'ORDER BY case_id ASC NULLS LAST',
-      createdDate: 'ORDER BY created_date ASC NULLS LAST',
+      createdDate: 'ORDER BY analytics.snapshot_task_rows.created_date ASC NULLS LAST',
       taskName: 'ORDER BY task_name ASC NULLS LAST',
-      assignedDate: 'ORDER BY first_assigned_date ASC NULLS LAST',
-      dueDate: 'ORDER BY due_date ASC NULLS LAST',
-      completedDate: 'ORDER BY completed_date ASC NULLS LAST',
+      assignedDate: 'ORDER BY analytics.snapshot_task_rows.first_assigned_date ASC NULLS LAST',
+      dueDate: 'ORDER BY analytics.snapshot_task_rows.due_date ASC NULLS LAST',
+      completedDate: 'ORDER BY analytics.snapshot_task_rows.completed_date ASC NULLS LAST',
       handlingTimeDays:
         "ORDER BY EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day') ASC NULLS LAST",
       withinDue: 'ORDER BY within_due_sort_value ASC NULLS LAST',
@@ -195,7 +197,9 @@ describe('taskThinRepository', () => {
       { page: 1, pageSize: 20 }
     );
     const fallbackSort = latestQuery();
-    expect(normaliseSql(fallbackSort.sql)).toContain('ORDER BY completed_date DESC NULLS LAST');
+    expect(normaliseSql(fallbackSort.sql)).toContain(
+      'ORDER BY analytics.snapshot_task_rows.completed_date DESC NULLS LAST'
+    );
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();
   });

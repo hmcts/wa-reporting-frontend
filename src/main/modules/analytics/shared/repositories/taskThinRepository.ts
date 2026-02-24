@@ -116,13 +116,13 @@ function buildAssignedOrderBy(sort: SortState<AssignedSortBy>): Prisma.Sql {
       case 'caseId':
         return Prisma.sql`case_id`;
       case 'createdDate':
-        return Prisma.raw('created_date');
+        return Prisma.raw('analytics.snapshot_task_rows.created_date');
       case 'taskName':
         return Prisma.sql`task_name`;
       case 'assignedDate':
-        return Prisma.raw('first_assigned_date');
+        return Prisma.raw('analytics.snapshot_task_rows.first_assigned_date');
       case 'dueDate':
-        return Prisma.raw('due_date');
+        return Prisma.raw('analytics.snapshot_task_rows.due_date');
       case 'priority':
         return buildPriorityRank();
       case 'totalAssignments':
@@ -132,7 +132,7 @@ function buildAssignedOrderBy(sort: SortState<AssignedSortBy>): Prisma.Sql {
       case 'location':
         return Prisma.sql`location`;
       default:
-        return Prisma.raw('created_date');
+        return Prisma.raw('analytics.snapshot_task_rows.created_date');
     }
   })();
 
@@ -145,15 +145,15 @@ function buildCompletedOrderBy(sort: SortState<CompletedSortBy>): Prisma.Sql {
       case 'caseId':
         return Prisma.sql`case_id`;
       case 'createdDate':
-        return Prisma.raw('created_date');
+        return Prisma.raw('analytics.snapshot_task_rows.created_date');
       case 'taskName':
         return Prisma.sql`task_name`;
       case 'assignedDate':
-        return Prisma.raw('first_assigned_date');
+        return Prisma.raw('analytics.snapshot_task_rows.first_assigned_date');
       case 'dueDate':
-        return Prisma.raw('due_date');
+        return Prisma.raw('analytics.snapshot_task_rows.due_date');
       case 'completedDate':
-        return Prisma.raw('completed_date');
+        return Prisma.raw('analytics.snapshot_task_rows.completed_date');
       case 'handlingTimeDays':
         return Prisma.sql`EXTRACT(EPOCH FROM handling_time) / ${SECONDS_PER_DAY_SQL}`;
       case 'withinDue':
@@ -165,7 +165,7 @@ function buildCompletedOrderBy(sort: SortState<CompletedSortBy>): Prisma.Sql {
       case 'location':
         return Prisma.sql`location`;
       default:
-        return Prisma.raw('completed_date');
+        return Prisma.raw('analytics.snapshot_task_rows.completed_date');
     }
   })();
 

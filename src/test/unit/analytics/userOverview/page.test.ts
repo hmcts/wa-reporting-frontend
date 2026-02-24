@@ -3,7 +3,7 @@ import {
   fetchFilterOptionsWithFallback,
   fetchPublishedSnapshotContext,
 } from '../../../../main/modules/analytics/shared/pageUtils';
-import { taskThinRepository } from '../../../../main/modules/analytics/shared/repositories';
+import { taskFactsRepository, taskThinRepository } from '../../../../main/modules/analytics/shared/repositories';
 import { caseWorkerProfileService, courtVenueService } from '../../../../main/modules/analytics/shared/services';
 import { getDefaultUserOverviewSort } from '../../../../main/modules/analytics/shared/userOverviewSort';
 import { buildUserOverviewPage } from '../../../../main/modules/analytics/userOverview/page';
@@ -34,11 +34,13 @@ jest.mock('../../../../main/modules/analytics/shared/services', () => ({
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
+  taskFactsRepository: {
+    fetchUserOverviewCompletedTaskCount: jest.fn(),
+  },
   taskThinRepository: {
     fetchUserOverviewAssignedTaskRows: jest.fn(),
     fetchUserOverviewCompletedTaskRows: jest.fn(),
     fetchUserOverviewAssignedTaskCount: jest.fn(),
-    fetchUserOverviewCompletedTaskCount: jest.fn(),
     fetchUserOverviewCompletedByDateRows: jest.fn(),
     fetchUserOverviewCompletedByTaskNameRows: jest.fn(),
   },
@@ -60,7 +62,7 @@ describe('buildUserOverviewPage', () => {
       freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
     });
     (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(0);
-    (taskThinRepository.fetchUserOverviewCompletedTaskCount as jest.Mock).mockResolvedValue(0);
+    (taskFactsRepository.fetchUserOverviewCompletedTaskCount as jest.Mock).mockResolvedValue(0);
   });
 
   test('builds the assigned partial view model with filters and options', async () => {
@@ -195,7 +197,7 @@ describe('buildUserOverviewPage', () => {
     expect(taskThinRepository.fetchUserOverviewCompletedByDateRows).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewCompletedByTaskNameRows).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).not.toHaveBeenCalled();
-    expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
+    expect(taskFactsRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
       'Failed to fetch user overview filter options from database',
       snapshotId,
@@ -220,7 +222,7 @@ describe('buildUserOverviewPage', () => {
     const viewModel = await buildUserOverviewPage({}, sort, 1, 1, 'unknown-section');
 
     expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).not.toHaveBeenCalled();
-    expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
+    expect(taskFactsRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
       'Failed to fetch user overview filter options from database',
       snapshotId,
@@ -266,7 +268,7 @@ describe('buildUserOverviewPage', () => {
 
   test('supports legacy completed ajax section alias and clamps oversized pages', async () => {
     const sort = getDefaultUserOverviewSort();
-    (taskThinRepository.fetchUserOverviewCompletedTaskCount as jest.Mock).mockResolvedValue(20000);
+    (taskFactsRepository.fetchUserOverviewCompletedTaskCount as jest.Mock).mockResolvedValue(20000);
     (taskThinRepository.fetchUserOverviewCompletedTaskRows as jest.Mock).mockResolvedValue([
       {
         case_id: 'CASE-2',
@@ -307,7 +309,7 @@ describe('buildUserOverviewPage', () => {
 
     await buildUserOverviewPage({}, sort, 1, 999, 'completed');
 
-    expect(taskThinRepository.fetchUserOverviewCompletedTaskCount).toHaveBeenCalledWith(
+    expect(taskFactsRepository.fetchUserOverviewCompletedTaskCount).toHaveBeenCalledWith(
       snapshotId,
       {},
       userOverviewQueryOptions
@@ -328,6 +330,7 @@ describe('buildUserOverviewPage', () => {
       undefined,
       userOverviewQueryOptions
     );
+    expect(taskThinRepository.fetchUserOverviewCompletedByDateRows).not.toHaveBeenCalled();
     expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
         completedPage: 10,

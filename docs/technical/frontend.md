@@ -58,6 +58,7 @@ Key behaviors:
 - Plotly charts are rendered from JSON configs in `data-chart-config` attributes.
 - Sections marked with `data-ajax-initial` are refreshed by an AJAX call after initial page load.
 - Initial `data-ajax-initial` section refreshes are queued with a concurrency limit of 2 in-flight requests.
+- Analytics section handlers should only fetch data needed for the requested section (for example, `/users` completed section does not fetch completed-by-date rows unless the completed-by-date section is requested).
 - Filter forms with `data-ajax-section` can refresh a single page section without a full reload.
 - Shared dashboard filter submissions clear any active URL hash (`#...`) before full-page navigation to avoid anchor-based scroll jumps after reload.
 - "Reset filters" is submitted as form data (`resetFilters=1`) rather than a query-string navigation, so reset does not leave `resetFilters` in the URL.
