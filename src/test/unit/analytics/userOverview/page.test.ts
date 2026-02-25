@@ -1,6 +1,6 @@
 import { completedComplianceSummaryService } from '../../../../main/modules/analytics/completed/visuals/completedComplianceSummaryService';
 import {
-  fetchFilterOptionsWithFallback,
+  fetchFacetedFilterStateWithFallback as fetchFilterOptionsWithFallback,
   fetchPublishedSnapshotContext,
 } from '../../../../main/modules/analytics/shared/pageUtils';
 import { taskFactsRepository, taskThinRepository } from '../../../../main/modules/analytics/shared/repositories';
@@ -19,7 +19,7 @@ jest.mock('../../../../main/modules/analytics/userOverview/viewModel', () => ({
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/pageUtils', () => ({
-  fetchFilterOptionsWithFallback: jest.fn(),
+  fetchFacetedFilterStateWithFallback: jest.fn(),
   fetchPublishedSnapshotContext: jest.fn(),
   normaliseDateRange: jest.requireActual('../../../../main/modules/analytics/shared/pageUtils').normaliseDateRange,
   settledValueWithFallback: jest.requireActual('../../../../main/modules/analytics/shared/pageUtils')
@@ -180,13 +180,16 @@ describe('buildUserOverviewPage', () => {
     const sort = getDefaultUserOverviewSort();
 
     (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      workTypes: [],
-      users: [],
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
     });
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-full' });
 
@@ -199,9 +202,11 @@ describe('buildUserOverviewPage', () => {
     expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).not.toHaveBeenCalled();
     expect(taskFactsRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
-      'Failed to fetch user overview filter options from database',
-      snapshotId,
-      userOverviewQueryOptions
+      expect.objectContaining({
+        errorMessage: 'Failed to fetch user overview filter options from database',
+        snapshotId,
+        queryOptions: userOverviewQueryOptions,
+      })
     );
     expect(viewModel).toEqual({ view: 'user-overview-full' });
   });
@@ -209,13 +214,16 @@ describe('buildUserOverviewPage', () => {
   test('treats unknown ajax sections as full-page requests', async () => {
     const sort = getDefaultUserOverviewSort();
     (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      workTypes: [],
-      users: [],
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
     });
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-unknown' });
 
@@ -224,9 +232,11 @@ describe('buildUserOverviewPage', () => {
     expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).not.toHaveBeenCalled();
     expect(taskFactsRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
-      'Failed to fetch user overview filter options from database',
-      snapshotId,
-      userOverviewQueryOptions
+      expect.objectContaining({
+        errorMessage: 'Failed to fetch user overview filter options from database',
+        snapshotId,
+        queryOptions: userOverviewQueryOptions,
+      })
     );
     expect(viewModel).toEqual({ view: 'user-overview-unknown' });
   });
@@ -410,13 +420,16 @@ describe('buildUserOverviewPage', () => {
       completedByDate: [],
     });
     (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      workTypes: [],
-      users: [],
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
     });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
@@ -464,13 +477,16 @@ describe('buildUserOverviewPage', () => {
       completedByDate: [],
     });
     (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      workTypes: [],
-      users: [],
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
     });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
@@ -541,13 +557,16 @@ describe('buildUserOverviewPage', () => {
       completedByDate: [],
     });
     (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      workTypes: [],
-      users: [],
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
     });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});

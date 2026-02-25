@@ -4,7 +4,7 @@ import { buildOverviewViewModel } from '../../../../main/modules/analytics/overv
 import { serviceOverviewTableService } from '../../../../main/modules/analytics/overview/visuals/serviceOverviewTableService';
 import { taskEventsByServiceChartService } from '../../../../main/modules/analytics/overview/visuals/taskEventsByServiceChartService';
 import {
-  fetchFilterOptionsWithFallback,
+  fetchFacetedFilterStateWithFallback as fetchFilterOptionsWithFallback,
   fetchPublishedSnapshotContext,
 } from '../../../../main/modules/analytics/shared/pageUtils';
 
@@ -25,7 +25,7 @@ jest.mock('../../../../main/modules/analytics/overview/visuals/taskEventsByServi
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/pageUtils', () => ({
-  fetchFilterOptionsWithFallback: jest.fn(),
+  fetchFacetedFilterStateWithFallback: jest.fn(),
   fetchPublishedSnapshotContext: jest.fn(),
   resolveDateRangeWithDefaults: jest.requireActual('../../../../main/modules/analytics/shared/pageUtils')
     .resolveDateRangeWithDefaults,
@@ -165,13 +165,16 @@ describe('buildOverviewPage', () => {
 
     (overviewService.buildOverview as jest.Mock).mockReturnValue(fallback);
     (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      workTypes: [],
-      users: [],
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
     });
     (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-empty' });
 
@@ -354,21 +357,26 @@ describe('buildOverviewPage', () => {
 
     (overviewService.buildOverview as jest.Mock).mockReturnValue(fallback);
     (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      workTypes: [],
-      users: [],
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
     });
     (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-empty' });
 
     await buildOverviewPage({});
 
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
-      'Failed to fetch overview filter options from database',
-      snapshotId
+      expect.objectContaining({
+        errorMessage: 'Failed to fetch overview filter options from database',
+        snapshotId,
+      })
     );
   });
 });

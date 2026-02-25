@@ -2,9 +2,11 @@ import config from 'config';
 import { createHmac, timingSafeEqual } from 'crypto';
 
 import { emptyOverviewFilterOptions } from './filters';
+import type { FacetFilterKey } from './filters';
 import { buildFreshnessInsetText } from './formatting';
 import type { AnalyticsQueryOptions } from './repositories/filters';
 import { snapshotStateRepository } from './repositories';
+import type { AnalyticsFilters } from './types';
 import { type FilterOptions, filterService } from './services';
 import { logDbError, settledValue } from './utils';
 
@@ -127,6 +129,33 @@ export async function fetchFilterOptionsWithFallback(
     logDbError(errorMessage, error);
   }
   return filterOptions;
+}
+
+export async function fetchFacetedFilterStateWithFallback(params: {
+  errorMessage: string;
+  snapshotId: number;
+  filters: AnalyticsFilters;
+  queryOptions?: AnalyticsQueryOptions;
+  changedFilter?: FacetFilterKey;
+  includeUserFilter?: boolean;
+}): Promise<{ filters: AnalyticsFilters; filterOptions: FilterOptions }> {
+  const { errorMessage, snapshotId, filters, queryOptions, changedFilter, includeUserFilter } = params;
+  let resolvedFilters = filters;
+  let filterOptions = emptyOverviewFilterOptions();
+
+  try {
+    const resolved = await filterService.fetchFacetedFilterState(snapshotId, filters, {
+      queryOptions,
+      changedFilter,
+      includeUserFilter,
+    });
+    resolvedFilters = resolved.filters;
+    filterOptions = resolved.filterOptions;
+  } catch (error) {
+    logDbError(errorMessage, error);
+  }
+
+  return { filters: resolvedFilters, filterOptions };
 }
 
 export function normaliseDateRange(range?: { from?: Date; to?: Date }): { from?: Date; to?: Date } | undefined {

@@ -114,12 +114,14 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 
 ### Build
 - `yarn build` builds frontend assets via webpack.
+- `yarn build:watch` rebuilds frontend assets continuously via webpack watch mode.
 - `yarn build:server` compiles server TypeScript to `dist/`.
 - `yarn build:prod` builds assets and copies views/public into `dist/main`.
 
 ### Run
 - `yarn start` runs the compiled server from `dist/main/server.js`.
 - `yarn start:dev` runs via nodemon with webpack dev middleware.
+- For local frontend iteration, run `yarn build:watch` and `yarn start:dev` in separate terminals to keep on-disk bundles current while developing.
 - Default port is 3100 (configurable via `PORT`).
 - Express trusts one proxy hop (`trust proxy = 1`) to support AKS/ingress `X-Forwarded-For` headers.
 

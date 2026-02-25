@@ -52,7 +52,11 @@ describe('filterService', () => {
     const result = await filterService.fetchFilterOptions(snapshotId);
 
     expect(result.services).toEqual(['cached']);
-    expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(CacheKeys.filterOptions, snapshotId, 'default');
+    expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(
+      CacheKeys.filterOptions,
+      snapshotId,
+      'includeUser=1|filters=none|query=default'
+    );
     expect(taskFactsRepository.fetchOverviewFilterOptionsRows).not.toHaveBeenCalled();
   });
 
@@ -95,8 +99,15 @@ describe('filterService', () => {
     expect(result.users[0]).toEqual({ value: '', text: 'All users' });
     expect(result.users[1].value).toBe('user-1');
     expect(result.users.find(option => option.value === 'user-2')).toBeUndefined();
-    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledWith(snapshotId, undefined);
-    expect(setCache).toHaveBeenCalledWith(`${CacheKeys.filterOptions}:${snapshotId}:default`, result);
+    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledWith(snapshotId, {
+      filters: {},
+      queryOptions: undefined,
+      includeUserFilter: true,
+    });
+    expect(setCache).toHaveBeenCalledWith(
+      `${CacheKeys.filterOptions}:${snapshotId}:includeUser=1|filters=none|query=default`,
+      result
+    );
   });
 
   test('uses options-aware cache key signatures and passes query options to the repository', async () => {
@@ -121,10 +132,63 @@ describe('filterService', () => {
     expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(
       CacheKeys.filterOptions,
       snapshotId,
-      'excludeRoleCategories=JUDICIAL'
+      'includeUser=1|filters=none|query=excludeRoleCategories=JUDICIAL'
     );
     expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledWith(snapshotId, {
-      excludeRoleCategories: ['Judicial'],
+      filters: {},
+      queryOptions: { excludeRoleCategories: ['Judicial'] },
+      includeUserFilter: true,
     });
+  });
+
+  test('prunes conflicting non-changed selections and refetches options for canonical filters', async () => {
+    (getCache as jest.Mock).mockReturnValue(undefined);
+    (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock)
+      .mockResolvedValueOnce({
+        services: [{ value: 'Civil' }],
+        roleCategories: [{ value: 'Ops' }],
+        regions: [{ value: 'North' }],
+        locations: [{ value: '100' }],
+        taskNames: [{ value: 'Review' }],
+        workTypes: [{ value: 'hearing-work-type', text: 'Hearing work' }],
+        assignees: [],
+      })
+      .mockResolvedValueOnce({
+        services: [{ value: 'Civil' }],
+        roleCategories: [{ value: 'Ops' }],
+        regions: [{ value: 'North' }],
+        locations: [{ value: '100' }],
+        taskNames: [{ value: 'Review' }],
+        workTypes: [{ value: 'hearing-work-type', text: 'Hearing work' }],
+        assignees: [],
+      });
+    (regionService.fetchRegions as jest.Mock).mockResolvedValue([{ region_id: '1', description: 'North' }]);
+    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([{ epimms_id: '100', site_name: 'Leeds' }]);
+
+    const result = await filterService.fetchFacetedFilterState(
+      snapshotId,
+      {
+        service: ['Civil'],
+        region: ['South'],
+      },
+      {
+        changedFilter: 'service',
+        includeUserFilter: false,
+      }
+    );
+
+    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenNthCalledWith(1, snapshotId, {
+      filters: { service: ['Civil'], region: ['South'] },
+      queryOptions: undefined,
+      includeUserFilter: false,
+    });
+    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenNthCalledWith(2, snapshotId, {
+      filters: { service: ['Civil'] },
+      queryOptions: undefined,
+      includeUserFilter: false,
+    });
+    expect(result.filters).toEqual({ service: ['Civil'] });
+    expect(result.filterOptions.services).toEqual(['Civil']);
+    expect(caseWorkerProfileService.fetchCaseWorkerProfiles).not.toHaveBeenCalled();
   });
 });

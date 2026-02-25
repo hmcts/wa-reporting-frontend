@@ -7,11 +7,11 @@ CREATE SCHEMA IF NOT EXISTS analytics;
 
 DROP PROCEDURE IF EXISTS analytics.run_snapshot_refresh_batch(BOOLEAN);
 DROP PROCEDURE IF EXISTS analytics.run_snapshot_refresh_batch();
-DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_option_values(BIGINT);
+DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facet_facts(BIGINT);
 
 -- Snapshot tables
 DROP TABLE IF EXISTS analytics.snapshot_wait_time_by_assigned_date CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_filter_option_values CASCADE;
+DROP TABLE IF EXISTS analytics.snapshot_filter_facet_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_task_daily_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_user_completed_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_task_rows CASCADE;
@@ -102,13 +102,16 @@ CREATE TABLE analytics.snapshot_wait_time_by_assigned_date (
   assigned_task_count BIGINT NOT NULL
 );
 
-CREATE TABLE analytics.snapshot_filter_option_values (
+CREATE TABLE analytics.snapshot_filter_facet_facts (
   snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  option_type TEXT NOT NULL CHECK (
-    option_type IN ('service', 'roleCategory', 'region', 'location', 'taskName', 'workType', 'assignee')
-  ),
-  value TEXT NOT NULL,
-  role_category_label TEXT
+  jurisdiction_label TEXT,
+  role_category_label TEXT,
+  region TEXT,
+  location TEXT,
+  task_name TEXT,
+  work_type TEXT,
+  assignee TEXT,
+  row_count BIGINT NOT NULL
 );
 
 -- Autovacuum tuning for high-churn snapshot tables.
@@ -144,7 +147,7 @@ ALTER TABLE analytics.snapshot_wait_time_by_assigned_date
     autovacuum_analyze_threshold = 1000
   );
 
-ALTER TABLE analytics.snapshot_filter_option_values
+ALTER TABLE analytics.snapshot_filter_facet_facts
   SET (
     autovacuum_vacuum_scale_factor = 0.01,
     autovacuum_vacuum_threshold = 1000,
@@ -309,114 +312,92 @@ CREATE INDEX ix_snapshot_wait_time_by_assigned_date_snapshot_reference_date
 CREATE INDEX ix_snapshot_wait_time_by_assigned_date_snapshot_upper_role_category
   ON analytics.snapshot_wait_time_by_assigned_date(snapshot_id, UPPER(role_category_label));
 
-CREATE UNIQUE INDEX ux_snapshot_filter_option_values_snapshot_option_value_role_category
-  ON analytics.snapshot_filter_option_values(
+CREATE UNIQUE INDEX ux_snapshot_filter_facet_facts_snapshot_dims
+  ON analytics.snapshot_filter_facet_facts(
     snapshot_id,
-    option_type,
-    value,
-    COALESCE(role_category_label, '')
+    COALESCE(jurisdiction_label, ''),
+    COALESCE(role_category_label, ''),
+    COALESCE(region, ''),
+    COALESCE(location, ''),
+    COALESCE(task_name, ''),
+    COALESCE(work_type, ''),
+    COALESCE(assignee, '')
   );
 
-CREATE INDEX ix_snapshot_filter_option_values_snapshot_option
-  ON analytics.snapshot_filter_option_values(snapshot_id, option_type, value);
+CREATE INDEX ix_snapshot_filter_facet_facts_snapshot_slicers
+  ON analytics.snapshot_filter_facet_facts(
+    snapshot_id,
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    work_type,
+    assignee
+  );
 
-CREATE INDEX ix_snapshot_filter_option_values_snapshot_upper_role_category
-  ON analytics.snapshot_filter_option_values(snapshot_id, UPPER(role_category_label));
+CREATE INDEX ix_snapshot_filter_facet_facts_snapshot_service
+  ON analytics.snapshot_filter_facet_facts(snapshot_id, jurisdiction_label);
 
-CREATE OR REPLACE PROCEDURE analytics.refresh_snapshot_filter_option_values(p_snapshot_id BIGINT)
+CREATE INDEX ix_snapshot_filter_facet_facts_snapshot_role_category
+  ON analytics.snapshot_filter_facet_facts(snapshot_id, role_category_label);
+
+CREATE INDEX ix_snapshot_filter_facet_facts_snapshot_region
+  ON analytics.snapshot_filter_facet_facts(snapshot_id, region);
+
+CREATE INDEX ix_snapshot_filter_facet_facts_snapshot_location
+  ON analytics.snapshot_filter_facet_facts(snapshot_id, location);
+
+CREATE INDEX ix_snapshot_filter_facet_facts_snapshot_task_name
+  ON analytics.snapshot_filter_facet_facts(snapshot_id, task_name);
+
+CREATE INDEX ix_snapshot_filter_facet_facts_snapshot_work_type
+  ON analytics.snapshot_filter_facet_facts(snapshot_id, work_type);
+
+CREATE INDEX ix_snapshot_filter_facet_facts_snapshot_assignee
+  ON analytics.snapshot_filter_facet_facts(snapshot_id, assignee);
+
+CREATE INDEX ix_snapshot_filter_facet_facts_snapshot_upper_role_category
+  ON analytics.snapshot_filter_facet_facts(snapshot_id, UPPER(role_category_label));
+
+CREATE OR REPLACE PROCEDURE analytics.refresh_snapshot_filter_facet_facts(p_snapshot_id BIGINT)
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  DELETE FROM analytics.snapshot_filter_option_values
+  DELETE FROM analytics.snapshot_filter_facet_facts
   WHERE snapshot_id = p_snapshot_id;
 
-  INSERT INTO analytics.snapshot_filter_option_values (
+  INSERT INTO analytics.snapshot_filter_facet_facts (
     snapshot_id,
-    option_type,
-    value,
-    role_category_label
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    work_type,
+    assignee,
+    row_count
   )
   SELECT
     p_snapshot_id,
-    option_rows.option_type,
-    option_rows.value,
-    option_rows.role_category_label
-  FROM (
-    SELECT
-      'service'::text AS option_type,
-      jurisdiction_label AS value,
-      NULLIF(BTRIM(role_category_label), '') AS role_category_label
-    FROM analytics.snapshot_task_daily_facts
-    WHERE snapshot_id = p_snapshot_id
-      AND jurisdiction_label IS NOT NULL
-    GROUP BY jurisdiction_label, NULLIF(BTRIM(role_category_label), '')
-
-    UNION ALL
-
-    SELECT
-      'roleCategory'::text AS option_type,
-      NULLIF(BTRIM(role_category_label), '') AS value,
-      NULLIF(BTRIM(role_category_label), '') AS role_category_label
-    FROM analytics.snapshot_task_daily_facts
-    WHERE snapshot_id = p_snapshot_id
-      AND NULLIF(BTRIM(role_category_label), '') IS NOT NULL
-    GROUP BY NULLIF(BTRIM(role_category_label), '')
-
-    UNION ALL
-
-    SELECT
-      'region'::text AS option_type,
-      region AS value,
-      NULLIF(BTRIM(role_category_label), '') AS role_category_label
-    FROM analytics.snapshot_task_daily_facts
-    WHERE snapshot_id = p_snapshot_id
-      AND region IS NOT NULL
-    GROUP BY region, NULLIF(BTRIM(role_category_label), '')
-
-    UNION ALL
-
-    SELECT
-      'location'::text AS option_type,
-      location AS value,
-      NULLIF(BTRIM(role_category_label), '') AS role_category_label
-    FROM analytics.snapshot_task_daily_facts
-    WHERE snapshot_id = p_snapshot_id
-      AND location IS NOT NULL
-    GROUP BY location, NULLIF(BTRIM(role_category_label), '')
-
-    UNION ALL
-
-    SELECT
-      'taskName'::text AS option_type,
-      task_name AS value,
-      NULLIF(BTRIM(role_category_label), '') AS role_category_label
-    FROM analytics.snapshot_task_daily_facts
-    WHERE snapshot_id = p_snapshot_id
-      AND task_name IS NOT NULL
-    GROUP BY task_name, NULLIF(BTRIM(role_category_label), '')
-
-    UNION ALL
-
-    SELECT
-      'workType'::text AS option_type,
-      work_type AS value,
-      NULLIF(BTRIM(role_category_label), '') AS role_category_label
-    FROM analytics.snapshot_task_daily_facts
-    WHERE snapshot_id = p_snapshot_id
-      AND work_type IS NOT NULL
-    GROUP BY work_type, NULLIF(BTRIM(role_category_label), '')
-
-    UNION ALL
-
-    SELECT
-      'assignee'::text AS option_type,
-      assignee AS value,
-      NULLIF(BTRIM(role_category_label), '') AS role_category_label
-    FROM analytics.snapshot_task_rows
-    WHERE snapshot_id = p_snapshot_id
-      AND assignee IS NOT NULL
-    GROUP BY assignee, NULLIF(BTRIM(role_category_label), '')
-  ) option_rows;
+    NULLIF(BTRIM(jurisdiction_label), '') AS jurisdiction_label,
+    NULLIF(BTRIM(role_category_label), '') AS role_category_label,
+    NULLIF(BTRIM(region), '') AS region,
+    NULLIF(BTRIM(location), '') AS location,
+    NULLIF(BTRIM(task_name), '') AS task_name,
+    NULLIF(BTRIM(work_type), '') AS work_type,
+    NULLIF(BTRIM(assignee), '') AS assignee,
+    COUNT(*)::BIGINT AS row_count
+  FROM analytics.snapshot_task_rows
+  WHERE snapshot_id = p_snapshot_id
+  GROUP BY
+    NULLIF(BTRIM(jurisdiction_label), ''),
+    NULLIF(BTRIM(role_category_label), ''),
+    NULLIF(BTRIM(region), ''),
+    NULLIF(BTRIM(location), ''),
+    NULLIF(BTRIM(task_name), ''),
+    NULLIF(BTRIM(work_type), ''),
+    NULLIF(BTRIM(assignee), '');
 END;
 $$;
 
@@ -835,7 +816,7 @@ BEGIN
         first_assigned_date;
     END IF;
 
-    CALL analytics.refresh_snapshot_filter_option_values(v_snapshot_id);
+    CALL analytics.refresh_snapshot_filter_facet_facts(v_snapshot_id);
   EXCEPTION
     WHEN OTHERS THEN
       v_batch_failed := TRUE;
@@ -847,7 +828,7 @@ BEGIN
     DELETE FROM analytics.snapshot_user_completed_facts WHERE snapshot_id = v_snapshot_id;
     DELETE FROM analytics.snapshot_task_daily_facts WHERE snapshot_id = v_snapshot_id;
     DELETE FROM analytics.snapshot_wait_time_by_assigned_date WHERE snapshot_id = v_snapshot_id;
-    DELETE FROM analytics.snapshot_filter_option_values WHERE snapshot_id = v_snapshot_id;
+    DELETE FROM analytics.snapshot_filter_facet_facts WHERE snapshot_id = v_snapshot_id;
 
     UPDATE analytics.snapshot_batches
     SET status = 'failed', completed_at = clock_timestamp(), error_message = v_batch_error_message

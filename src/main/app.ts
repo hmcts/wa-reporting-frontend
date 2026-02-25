@@ -67,6 +67,9 @@ export const bootstrap = async (): Promise<void> => {
   if (compressionEnabled) {
     app.use(compression());
   }
+  // In development, serve webpack in-memory assets before static files so fresh
+  // bundles take precedence over any stale on-disk build output.
+  setupDev(app, developmentMode);
   app.use(express.static(path.join(__dirname, 'public')));
   app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate, no-store');
@@ -87,7 +90,6 @@ export const bootstrap = async (): Promise<void> => {
     .map((filename: string) => require(filename) as RouteModule)
     .forEach((route: RouteModule) => route.default?.(app));
 
-  setupDev(app, developmentMode);
   // returning "not found" page for requests with paths not resolved by the router
   app.use((req, res) => {
     res.status(404);

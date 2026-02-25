@@ -20,7 +20,7 @@ import { tasksDueByPriorityChartService } from '../../../../main/modules/analyti
 import { waitTimeByAssignedDateChartService } from '../../../../main/modules/analytics/outstanding/visuals/waitTimeByAssignedDateChartService';
 import { getDefaultOutstandingSort } from '../../../../main/modules/analytics/shared/outstandingSort';
 import {
-  fetchFilterOptionsWithFallback,
+  fetchFacetedFilterStateWithFallback as fetchFilterOptionsWithFallback,
   fetchPublishedSnapshotContext,
 } from '../../../../main/modules/analytics/shared/pageUtils';
 import { courtVenueService, regionService } from '../../../../main/modules/analytics/shared/services';
@@ -76,7 +76,7 @@ jest.mock('../../../../main/modules/analytics/outstanding/visuals/criticalTasksT
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/pageUtils', () => ({
-  fetchFilterOptionsWithFallback: jest.fn(),
+  fetchFacetedFilterStateWithFallback: jest.fn(),
   fetchPublishedSnapshotContext: jest.fn(),
   settledArrayWithFallback: jest.requireActual('../../../../main/modules/analytics/shared/pageUtils')
     .settledArrayWithFallback,
@@ -148,13 +148,16 @@ describe('buildOutstandingPage', () => {
     (buildAssignmentDonutChart as jest.Mock).mockReturnValue('assignmentDonut');
 
     (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      workTypes: [],
-      users: [],
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
     });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ Leeds: 'Leeds Crown Court' });
 
@@ -378,13 +381,16 @@ describe('buildOutstandingPage', () => {
     (buildPriorityDonutChart as jest.Mock).mockReturnValue('priorityDonut');
     (buildAssignmentDonutChart as jest.Mock).mockReturnValue('assignmentDonut');
     (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      workTypes: [],
-      users: [],
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
     });
     (buildOutstandingViewModel as jest.Mock).mockReturnValue({ view: 'unknown-section' });
 
@@ -568,21 +574,26 @@ describe('buildOutstandingPage', () => {
     (buildPriorityDonutChart as jest.Mock).mockReturnValue('priorityDonut');
     (buildAssignmentDonutChart as jest.Mock).mockReturnValue('assignmentDonut');
     (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      services: [],
-      roleCategories: [],
-      regions: [],
-      locations: [],
-      taskNames: [],
-      workTypes: [],
-      users: [],
+      filters: {},
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
     });
     (buildOutstandingViewModel as jest.Mock).mockReturnValue({ view: 'full-page' });
 
     await buildOutstandingPage({}, getDefaultOutstandingSort(), 1, 'not-a-section');
 
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
-      'Failed to fetch outstanding filter options from database',
-      snapshotId
+      expect.objectContaining({
+        errorMessage: 'Failed to fetch outstanding filter options from database',
+        snapshotId,
+      })
     );
   });
 

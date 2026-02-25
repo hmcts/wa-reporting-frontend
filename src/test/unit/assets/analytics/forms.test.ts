@@ -4,6 +4,7 @@ import {
   getAnalyticsFiltersForm,
   getScrollStorageKey,
   initAutoSubmitForms,
+  initFacetedFilterAutoRefresh,
   initFilterPersistence,
   initMultiSelects,
   normaliseMultiSelectSelections,
@@ -188,6 +189,21 @@ describe('analytics forms', () => {
     const summary = details.querySelector('[data-multiselect-summary="true"]');
     expect(summary?.textContent).toBe('All');
 
+    const singleOptionDetails = document.createElement('details');
+    singleOptionDetails.dataset.module = 'analytics-multiselect';
+    singleOptionDetails.dataset.allText = 'All';
+    singleOptionDetails.innerHTML = `
+      <summary data-multiselect-summary="true">All</summary>
+      <div class="govuk-checkboxes__item">
+        <input type="checkbox" data-multiselect-item="true" value="London" data-item-label="London" checked />
+      </div>
+      <input type="checkbox" data-select-all="true" checked />
+    `;
+    document.body.appendChild(singleOptionDetails);
+    initMultiSelects();
+    singleOptionDetails.dispatchEvent(new Event('toggle'));
+    expect(singleOptionDetails.querySelector('[data-multiselect-summary="true"]')?.textContent).toBe('London');
+
     const searchInput = details.querySelector<HTMLInputElement>('[data-multiselect-search="true"]');
     if (searchInput) {
       searchInput.value = 'two';
@@ -256,6 +272,37 @@ describe('analytics forms', () => {
     expect(details.open).toBe(false);
   });
 
+  test('keeps multiselect open for internal clicks and closes on outside click', () => {
+    const details = document.createElement('details');
+    details.dataset.module = 'analytics-multiselect';
+    details.open = true;
+    details.innerHTML = `
+      <summary data-multiselect-summary="true">All</summary>
+      <div class="analytics-multiselect__panel">
+        <div class="govuk-checkboxes__item">
+          <input id="region-1" type="checkbox" data-multiselect-item="true" value="London" />
+          <label for="region-1">London</label>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(details);
+
+    initMultiSelects();
+
+    const panel = details.querySelector('.analytics-multiselect__panel');
+    panel?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(details.open).toBe(true);
+
+    const optionLabel = details.querySelector('label[for="region-1"]');
+    optionLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const option = details.querySelector<HTMLInputElement>('#region-1');
+    expect(option?.checked).toBe(true);
+    expect(details.open).toBe(true);
+
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(details.open).toBe(false);
+  });
+
   test('auto-submits filter forms on checkbox changes', () => {
     const form = document.createElement('form');
     form.dataset.autoSubmit = 'true';
@@ -296,5 +343,61 @@ describe('analytics forms', () => {
     checkbox.dispatchEvent(new Event('change', { bubbles: true }));
 
     expect(form.requestSubmit).not.toHaveBeenCalled();
+  });
+
+  test('refreshes shared filters when a changed multiselect closes', async () => {
+    const form = document.createElement('form');
+    form.dataset.analyticsFilters = 'true';
+    const details = document.createElement('details');
+    details.dataset.module = 'analytics-multiselect';
+    details.dataset.filterKey = 'service';
+    details.open = true;
+    details.innerHTML = `
+      <div class="govuk-checkboxes__item">
+        <input type="checkbox" data-multiselect-item="true" value="A" />
+      </div>
+    `;
+    form.appendChild(details);
+    document.body.appendChild(form);
+
+    const refreshSharedFilters = jest.fn().mockResolvedValue(undefined);
+    initFacetedFilterAutoRefresh(refreshSharedFilters);
+
+    const checkbox = details.querySelector<HTMLInputElement>('[data-multiselect-item="true"]');
+    checkbox?.dispatchEvent(new Event('change', { bubbles: true }));
+
+    details.open = false;
+    details.dispatchEvent(new Event('toggle'));
+    await Promise.resolve();
+
+    expect(refreshSharedFilters).toHaveBeenCalledWith(form, 'service');
+  });
+
+  test('refreshes shared filters on focusout when selection changed and details is closed', async () => {
+    const form = document.createElement('form');
+    form.dataset.analyticsFilters = 'true';
+    const details = document.createElement('details');
+    details.dataset.module = 'analytics-multiselect';
+    details.dataset.filterKey = 'region';
+    details.open = true;
+    details.innerHTML = `
+      <div class="govuk-checkboxes__item">
+        <input type="checkbox" data-multiselect-item="true" value="North" />
+      </div>
+    `;
+    form.appendChild(details);
+    document.body.appendChild(form);
+
+    const refreshSharedFilters = jest.fn().mockResolvedValue(undefined);
+    initFacetedFilterAutoRefresh(refreshSharedFilters);
+
+    const checkbox = details.querySelector<HTMLInputElement>('[data-multiselect-item="true"]');
+    checkbox?.dispatchEvent(new Event('change', { bubbles: true }));
+
+    details.open = false;
+    details.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    await Promise.resolve();
+
+    expect(refreshSharedFilters).toHaveBeenCalledWith(form, 'region');
   });
 });
