@@ -24,6 +24,8 @@ module.exports = [
       '**/*.js',
       '.yarn/**',
       '.pnp.*',
+      '.stryker-tmp/**',
+      '.stryker-tmp-*/**',
       'src/main/views/govuk/**',
       'src/main/views/moj/**',
     ],
