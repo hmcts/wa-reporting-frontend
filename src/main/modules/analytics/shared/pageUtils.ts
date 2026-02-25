@@ -8,10 +8,7 @@ import { snapshotStateRepository } from './repositories';
 import { type FilterOptions, filterService } from './services';
 import { logDbError, settledValue } from './utils';
 
-const SNAPSHOT_TOKEN_SECRET_FALLBACK = 'snapshot-token-fallback-secret';
-const snapshotTokenSecret: string = config.has('secrets.wa.session-secret')
-  ? config.get('secrets.wa.session-secret')
-  : SNAPSHOT_TOKEN_SECRET_FALLBACK;
+const snapshotTokenSecret: string = config.get('secrets.wa.wa-reporting-frontend-session-secret');
 
 export type PublishedSnapshotContext = {
   snapshotId: number;
