@@ -7,8 +7,18 @@ const buildAppModule = async (options: {
   compressionEnabled?: boolean;
   routePaths?: string[];
   routeMocks?: Record<string, jest.Mock>;
+  snapshotRefreshCronBootstrapError?: Error;
+  snapshotRefreshCronBootstrapEnabled?: boolean;
 }) => {
-  const { env, authEnabled, compressionEnabled, routePaths = [], routeMocks = {} } = options;
+  const {
+    env,
+    authEnabled,
+    compressionEnabled,
+    routePaths = [],
+    routeMocks = {},
+    snapshotRefreshCronBootstrapError,
+    snapshotRefreshCronBootstrapEnabled = false,
+  } = options;
 
   if (env === undefined) {
     delete process.env.NODE_ENV;
@@ -22,8 +32,15 @@ const buildAppModule = async (options: {
   const oidcEnableFor = jest.fn();
   const healthRoute = jest.fn();
   const infoRoute = jest.fn();
+  const bootstrapSnapshotRefreshCron = jest.fn();
   const compressionMiddleware = jest.fn((_req: unknown, _res: unknown, next: () => void) => next());
   const compressionFactory = jest.fn(() => compressionMiddleware);
+
+  if (snapshotRefreshCronBootstrapError) {
+    bootstrapSnapshotRefreshCron.mockRejectedValue(snapshotRefreshCronBootstrapError);
+  } else {
+    bootstrapSnapshotRefreshCron.mockResolvedValue(undefined);
+  }
 
   const configGet = jest.fn((key: string) => {
     if (key === 'auth.enabled') {
@@ -34,6 +51,9 @@ const buildAppModule = async (options: {
     }
     if (key === 'security') {
       return { enabled: true };
+    }
+    if (key === 'analytics.snapshotRefreshCronBootstrap.enabled') {
+      return snapshotRefreshCronBootstrapEnabled;
     }
     return undefined;
   });
@@ -95,6 +115,10 @@ const buildAppModule = async (options: {
     setupDev,
   }));
 
+  jest.doMock('../../../main/modules/analytics/shared/data/snapshotRefreshCronBootstrap', () => ({
+    bootstrapSnapshotRefreshCron,
+  }));
+
   let app: Express | undefined;
   let bootstrap: (() => Promise<void>) | undefined;
 
@@ -121,6 +145,7 @@ const buildAppModule = async (options: {
     infoRoute,
     configGet,
     compressionFactory,
+    bootstrapSnapshotRefreshCron,
   };
 };
 
@@ -187,8 +212,16 @@ describe('app bootstrap', () => {
   });
 
   it('initialises middleware, locals, and dev setup in development mode', async () => {
-    const { app, setupDev, enableFor, appSessionEnableFor, oidcEnableFor, healthRoute, infoRoute } =
-      await buildAppModule({ env: 'development' });
+    const {
+      app,
+      setupDev,
+      enableFor,
+      appSessionEnableFor,
+      oidcEnableFor,
+      healthRoute,
+      infoRoute,
+      bootstrapSnapshotRefreshCron,
+    } = await buildAppModule({ env: 'development', snapshotRefreshCronBootstrapEnabled: true });
 
     expect(app.locals.ENV).toBe('development');
     expect(enableFor).toHaveBeenCalled();
@@ -196,7 +229,32 @@ describe('app bootstrap', () => {
     expect(oidcEnableFor).toHaveBeenCalledWith(app);
     expect(healthRoute).toHaveBeenCalledWith(app);
     expect(infoRoute).toHaveBeenCalledWith(app);
+    expect(bootstrapSnapshotRefreshCron).toHaveBeenCalled();
     expect(setupDev).toHaveBeenCalledWith(app, true);
+  });
+
+  it('does not run snapshot refresh cron bootstrap when the feature is disabled', async () => {
+    const { bootstrapSnapshotRefreshCron } = await buildAppModule({
+      env: 'development',
+      snapshotRefreshCronBootstrapEnabled: false,
+    });
+
+    expect(bootstrapSnapshotRefreshCron).not.toHaveBeenCalled();
+  });
+
+  it('logs and continues bootstrapping when snapshot refresh cron bootstrap rejects', async () => {
+    const startupError = new Error('cron bootstrap failed');
+    const { setupDev, logger, bootstrapSnapshotRefreshCron } = await buildAppModule({
+      env: 'development',
+      snapshotRefreshCronBootstrapEnabled: true,
+      snapshotRefreshCronBootstrapError: startupError,
+    });
+
+    await Promise.resolve();
+
+    expect(bootstrapSnapshotRefreshCron).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith('Snapshot refresh cron bootstrap failed during startup', startupError);
+    expect(setupDev).toHaveBeenCalled();
   });
 
   it('uses production mode setup when NODE_ENV is not development', async () => {

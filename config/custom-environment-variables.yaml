@@ -3,6 +3,14 @@ analytics:
   manageCaseBaseUrl: MANAGE_CASE_BASE_URL
   filtersCookieName: ANALYTICS_FILTERS_COOKIE_NAME
   filtersCookieMaxAgeDays: ANALYTICS_FILTERS_COOKIE_MAX_AGE_DAYS
+  snapshotRefreshCronBootstrap:
+    enabled:
+      __name: SNAPSHOT_REFRESH_CRON_BOOTSTRAP_ENABLED
+      __format: boolean
+    jobName: SNAPSHOT_REFRESH_CRON_JOB_NAME
+    schedule: SNAPSHOT_REFRESH_CRON_SCHEDULE
+    targetDatabase: SNAPSHOT_REFRESH_CRON_TARGET_DATABASE
+    cronDatabase: SNAPSHOT_REFRESH_CRON_DATABASE
 auth:
   enabled:
     __name: AUTH_ENABLED
@@ -11,6 +19,17 @@ compression:
   enabled:
     __name: COMPRESSION_ENABLED
     __format: boolean
+logging:
+  prismaQueryTimings:
+    enabled:
+      __name: LOGGING_PRISMA_QUERY_TIMINGS_ENABLED
+      __format: boolean
+    minDurationMs: LOGGING_PRISMA_QUERY_TIMINGS_MIN_DURATION_MS
+    slowQueryThresholdMs: LOGGING_PRISMA_QUERY_TIMINGS_SLOW_QUERY_THRESHOLD_MS
+    includeQueryPreview:
+      __name: LOGGING_PRISMA_QUERY_TIMINGS_INCLUDE_QUERY_PREVIEW
+      __format: boolean
+    queryPreviewMaxLength: LOGGING_PRISMA_QUERY_TIMINGS_QUERY_PREVIEW_MAX_LENGTH
 services:
   idam:
     clientID: IDAM_CLIENT_ID

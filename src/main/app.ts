@@ -42,6 +42,14 @@ type RouteModule = { default?: (app: Express) => void };
 
 export const bootstrap = async (): Promise<void> => {
   new PropertiesVolume().enableFor(app);
+  const snapshotRefreshCronBootstrapEnabled: boolean =
+    config.get('analytics.snapshotRefreshCronBootstrap.enabled') ?? false;
+  if (snapshotRefreshCronBootstrapEnabled) {
+    const { bootstrapSnapshotRefreshCron } = require('./modules/analytics/shared/data/snapshotRefreshCronBootstrap');
+    void bootstrapSnapshotRefreshCron().catch((error: unknown) => {
+      logger.error('Snapshot refresh cron bootstrap failed during startup', error);
+    });
+  }
   new Nunjucks(developmentMode).enableFor(app);
   // secure the application by adding various HTTP headers to its responses
   new Helmet(config.get('security')).enableFor(app);
