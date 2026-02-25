@@ -18,7 +18,7 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
     'services.idam.scope': 'openid profile',
     'services.idam.url.wa': 'http://wa',
     'services.idam.url.public': 'http://idam',
-    'secrets.wa.session-secret': 'session-secret',
+    'secrets.wa.wa-reporting-frontend-session-secret': 'wa-reporting-frontend-session-secret',
     'RBAC.access': 'role-access',
     'session.cookie.name': 'session-cookie',
     'secrets.wa.wa-reporting-redis-host': 'redis-host',

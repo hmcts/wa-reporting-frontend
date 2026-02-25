@@ -49,7 +49,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `secrets.wa.wa-reporting-frontend-client-secret`: IDAM client secret.
 
 ### Session
-- `secrets.wa.session-secret`: session signing secret.
+- `secrets.wa.wa-reporting-frontend-session-secret`: session signing secret.
 - `session.cookie.name`: cookie for OIDC session.
 - `session.appCookie.name`: cookie for app session.
 - `secrets.wa.wa-reporting-redis-host`, `wa-reporting-redis-port`, `wa-reporting-redis-access-key`: Redis connection for session storage.
@@ -60,9 +60,14 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `secrets.wa.tm-db-user`/`secrets.wa.tm-db-password`: TM database credentials.
 - `secrets.wa.crd-db-user`/`secrets.wa.crd-db-password`: CRD database credentials.
 - `secrets.wa.lrd-db-user`/`secrets.wa.lrd-db-password`: LRD database credentials.
+- Terraform reads the source credentials from Key Vault `rd-<env>` and writes them into WA Key Vault under the repo key names:
+  - `caseworker-ref-api-POSTGRES-USER` -> `rd-caseworker-ref-api-POSTGRES-USER`
+  - `caseworker-ref-api-POSTGRES-PASS` -> `rd-caseworker-ref-api-POSTGRES-PASS`
+  - `location-ref-api-POSTGRES-USER` -> `rd-location-ref-api-POSTGRES-USER`
+  - `location-ref-api-POSTGRES-PASS` -> `rd-location-ref-api-POSTGRES-PASS`
 
 ### Security and logging
-- `useCSRFProtection` and `secrets.wa.csrf-cookie-secret`.
+- `useCSRFProtection`.
 - `compression.enabled`: enables/disables HTTP compression middleware (default `false`).
 - `security.referrerPolicy` and HSTS settings.
 - `logging.prismaQueryTimings`: Prisma query timing log settings.
@@ -95,13 +100,11 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `TM_DB_*`, `CRD_DB_*`, `LRD_DB_*`
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_KEY`
 - `SESSION_SECRET`, `SESSION_COOKIE_NAME`, `SESSION_APP_COOKIE_NAME`
-- `CSRF_COOKIE_SECRET`
 
 ## Secrets via Properties Volume
 When not in development, `PropertiesVolume` loads Kubernetes secrets into the configuration under `secrets.wa.*`, including:
 - IDAM client secret
 - Session secret
-- CSRF cookie secret
 - Redis credentials
 - Database credentials
 

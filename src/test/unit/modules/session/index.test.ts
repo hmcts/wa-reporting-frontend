@@ -8,7 +8,7 @@ describe('AppSession module', () => {
 
   it('configures redis-backed sessions when redis is available', () => {
     const configValues: Record<string, unknown> = {
-      'secrets.wa.session-secret': 'secret',
+      'secrets.wa.wa-reporting-frontend-session-secret': 'secret',
       'session.appCookie.name': 'app-cookie',
       'secrets.wa.wa-reporting-redis-host': 'redis-host',
       'secrets.wa.wa-reporting-redis-port': 6379,
@@ -56,7 +56,7 @@ describe('AppSession module', () => {
 
   it('configures redis without tls when access key is not provided', () => {
     const configValues: Record<string, unknown> = {
-      'secrets.wa.session-secret': 'secret',
+      'secrets.wa.wa-reporting-frontend-session-secret': 'secret',
       'session.appCookie.name': 'app-cookie',
       'secrets.wa.wa-reporting-redis-host': 'redis-host',
       'secrets.wa.wa-reporting-redis-port': 6379,
@@ -102,7 +102,7 @@ describe('AppSession module', () => {
 
   it('falls back to file store when redis is missing', () => {
     const configValues: Record<string, unknown> = {
-      'secrets.wa.session-secret': 'secret',
+      'secrets.wa.wa-reporting-frontend-session-secret': 'secret',
       'session.appCookie.name': 'app-cookie',
       'secrets.wa.wa-reporting-redis-host': undefined,
       'secrets.wa.wa-reporting-redis-port': undefined,
