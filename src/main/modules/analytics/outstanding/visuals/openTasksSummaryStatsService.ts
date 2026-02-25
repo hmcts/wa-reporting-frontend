@@ -1,4 +1,4 @@
-import { taskThinRepository } from '../../shared/repositories';
+import { taskFactsRepository } from '../../shared/repositories';
 import { emptyOutstandingSummary } from '../../shared/series';
 import { AnalyticsFilters, OutstandingResponse } from '../../shared/types';
 import { calculatePercent, toNumber } from '../../shared/utils';
@@ -19,7 +19,7 @@ function finaliseSummary(summary: Summary): Summary {
 
 class OpenTasksSummaryStatsService {
   async fetchOpenTasksSummary(snapshotId: number, filters: AnalyticsFilters): Promise<Summary | null> {
-    const rows = await taskThinRepository.fetchOpenTasksSummaryRows(snapshotId, filters);
+    const rows = await taskFactsRepository.fetchOpenTasksSummaryRows(snapshotId, filters);
 
     if (rows.length === 0) {
       return null;

@@ -10,7 +10,7 @@ import {
 import { getCappedTotalPages, normalisePage } from '../shared/pagination';
 import { priorityLabelFromRank } from '../shared/priority/priorityRankSql';
 import type { AnalyticsQueryOptions } from '../shared/repositories';
-import { UserOverviewTaskRow, taskThinRepository } from '../shared/repositories';
+import { UserOverviewTaskRow, taskFactsRepository, taskThinRepository } from '../shared/repositories';
 import { caseWorkerProfileService, courtVenueService } from '../shared/services';
 import { AnalyticsFilters, Task, TaskStatus } from '../shared/types';
 import { UserOverviewSort } from '../shared/userOverviewSort';
@@ -114,7 +114,7 @@ export async function buildUserOverviewPage(
         )
       : Promise.resolve(0),
     shouldFetchCompleted
-      ? taskThinRepository.fetchUserOverviewCompletedTaskCount(
+      ? taskFactsRepository.fetchUserOverviewCompletedTaskCount(
           snapshotContext.snapshotId,
           filters,
           USER_OVERVIEW_QUERY_OPTIONS
@@ -178,7 +178,7 @@ export async function buildUserOverviewPage(
           USER_OVERVIEW_QUERY_OPTIONS
         )
       : Promise.resolve([]),
-    shouldFetchCompleted || shouldFetchCompletedByDate
+    shouldFetchCompletedByDate
       ? taskThinRepository.fetchUserOverviewCompletedByDateRows(
           snapshotContext.snapshotId,
           filters,

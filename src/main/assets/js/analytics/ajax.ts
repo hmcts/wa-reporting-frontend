@@ -18,6 +18,29 @@ export type FetchPaginatedSection = (
   page: string
 ) => Promise<void>;
 
+const INITIAL_SECTION_CONCURRENCY = 2;
+
+async function runBounded<T>(
+  items: readonly T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>
+): Promise<void> {
+  const queue = [...items];
+  const workerCount = Math.min(Math.max(concurrency, 1), queue.length);
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (queue.length > 0) {
+        const item = queue.shift();
+        if (!item) {
+          return;
+        }
+        await worker(item);
+      }
+    })
+  );
+}
+
 export function buildUrlEncodedBody(form: HTMLFormElement, extra: Record<string, string> = {}): URLSearchParams {
   const formData = new FormData(form);
   const params = new URLSearchParams();
@@ -148,6 +171,7 @@ export function initAjaxInitialSections(fetchSectionUpdateWithDeps: FetchSection
     return;
   }
   const sections = document.querySelectorAll<HTMLElement>('[data-ajax-initial="true"][data-section]');
+  const sectionIds: string[] = [];
   sections.forEach(section => {
     if (section.dataset.ajaxInitialBound === 'true') {
       return;
@@ -156,7 +180,8 @@ export function initAjaxInitialSections(fetchSectionUpdateWithDeps: FetchSection
     if (!sectionId) {
       return;
     }
-    void fetchSectionUpdateWithDeps(form, sectionId);
     section.dataset.ajaxInitialBound = 'true';
+    sectionIds.push(sectionId);
   });
+  void runBounded(sectionIds, INITIAL_SECTION_CONCURRENCY, sectionId => fetchSectionUpdateWithDeps(form, sectionId));
 }
