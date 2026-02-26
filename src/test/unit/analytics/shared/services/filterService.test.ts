@@ -141,6 +141,41 @@ describe('filterService', () => {
     });
   });
 
+  test('normalises excludeRoleCategories signature and falls back to default when values are blank', async () => {
+    (getCache as jest.Mock).mockReturnValue(undefined);
+    (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      assignees: [],
+    });
+    (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
+    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
+    (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([]);
+
+    await filterService.fetchFilterOptions(snapshotId, {
+      excludeRoleCategories: ['  ', '', ' judicial ', 'ADMIN', 'admin'],
+    });
+
+    expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(
+      CacheKeys.filterOptions,
+      snapshotId,
+      'includeUser=1|filters=none|query=excludeRoleCategories=ADMIN,JUDICIAL'
+    );
+
+    await filterService.fetchFilterOptions(snapshotId, {
+      excludeRoleCategories: ['  ', ''],
+    });
+    expect(buildSnapshotScopedCacheKey).toHaveBeenLastCalledWith(
+      CacheKeys.filterOptions,
+      snapshotId,
+      'includeUser=1|filters=none|query=default'
+    );
+  });
+
   test('prunes conflicting non-changed selections and refetches options for canonical filters', async () => {
     (getCache as jest.Mock).mockReturnValue(undefined);
     (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock)
@@ -190,5 +225,66 @@ describe('filterService', () => {
     expect(result.filters).toEqual({ service: ['Civil'] });
     expect(result.filterOptions.services).toEqual(['Civil']);
     expect(caseWorkerProfileService.fetchCaseWorkerProfiles).not.toHaveBeenCalled();
+  });
+
+  test('retains compatible values for non-changed filters and keeps original filters when changed filter is missing', async () => {
+    (getCache as jest.Mock).mockReturnValue(undefined);
+    (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock).mockResolvedValue({
+      services: [{ value: 'Civil' }],
+      roleCategories: [{ value: 'Ops' }],
+      regions: [{ value: 'North' }],
+      locations: [{ value: '100' }],
+      taskNames: [{ value: 'Review' }],
+      workTypes: [{ value: 'hearing-work-type', text: 'Hearing work' }],
+      assignees: [{ value: '111' }],
+    });
+    (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
+    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
+    (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([
+      { case_worker_id: '111', first_name: 'Sam', last_name: 'Lee', email_id: 'sam@example.com', region_id: 1 },
+    ]);
+
+    const retained = await filterService.fetchFacetedFilterState(
+      snapshotId,
+      {
+        service: [' Civil '],
+        roleCategory: ['Ops', 'Legacy'],
+        user: ['111'],
+      },
+      {
+        changedFilter: 'service',
+        includeUserFilter: true,
+      }
+    );
+    expect(retained.filters).toEqual({
+      service: ['Civil'],
+      roleCategory: ['Ops'],
+      user: ['111'],
+    });
+    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledTimes(2);
+
+    (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock).mockClear();
+    (buildSnapshotScopedCacheKey as jest.Mock).mockClear();
+
+    const unchanged = await filterService.fetchFacetedFilterState(
+      snapshotId,
+      {
+        service: [' Civil '],
+        roleCategory: [' Ops '],
+      },
+      {
+        includeUserFilter: false,
+      }
+    );
+    expect(unchanged.filters).toEqual({
+      service: ['Civil'],
+      roleCategory: ['Ops'],
+    });
+    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledTimes(1);
+    expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(
+      CacheKeys.filterOptions,
+      snapshotId,
+      'includeUser=0|filters=service=Civil;roleCategory=Ops|query=default'
+    );
   });
 });

@@ -71,13 +71,6 @@ export async function fetchPublishedSnapshotContext(requestedSnapshotId?: number
 }
 
 function parseSnapshotIdInput(value: unknown): number | undefined {
-  if (typeof value === 'number') {
-    if (Number.isSafeInteger(value) && value > 0) {
-      return value;
-    }
-    return undefined;
-  }
-
   if (typeof value !== 'string' || !/^\d+$/.test(value)) {
     return undefined;
   }

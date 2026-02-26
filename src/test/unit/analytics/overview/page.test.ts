@@ -379,4 +379,78 @@ describe('buildOverviewPage', () => {
       })
     );
   });
+
+  test('treats unknown ajax sections as full-page requests', async () => {
+    const fallback = {
+      serviceRows: [],
+      totals: {
+        service: 'Total',
+        open: 0,
+        assigned: 0,
+        assignedPct: 0,
+        urgent: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+    };
+
+    (overviewService.buildOverview as jest.Mock).mockReturnValue(fallback);
+    (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
+      filters: { service: ['Civil'] },
+      filterOptions: {
+        services: ['Civil'],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
+    });
+    (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-unknown-section' });
+
+    await buildOverviewPage({ service: ['Civil'] }, 'not-a-real-section');
+
+    expect(fetchFilterOptionsWithFallback).toHaveBeenCalled();
+    expect(serviceOverviewTableService.fetchServiceOverview).not.toHaveBeenCalled();
+    expect(taskEventsByServiceChartService.fetchTaskEventsByService).not.toHaveBeenCalled();
+  });
+
+  test('falls back to empty filter options when faceted filter state retrieval rejects', async () => {
+    const fallback = {
+      serviceRows: [],
+      totals: {
+        service: 'Total',
+        open: 0,
+        assigned: 0,
+        assignedPct: 0,
+        urgent: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+    };
+
+    (overviewService.buildOverview as jest.Mock).mockReturnValue(fallback);
+    (fetchFilterOptionsWithFallback as jest.Mock).mockRejectedValue(new Error('faceted-failed'));
+    (buildOverviewViewModel as jest.Mock).mockReturnValue({ view: 'overview-faceted-fallback' });
+
+    await buildOverviewPage({}, 'not-a-real-section');
+
+    expect(buildOverviewViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: {},
+        filterOptions: {
+          services: [],
+          roleCategories: [],
+          regions: [],
+          locations: [],
+          taskNames: [],
+          workTypes: [],
+          users: [],
+        },
+      })
+    );
+  });
 });

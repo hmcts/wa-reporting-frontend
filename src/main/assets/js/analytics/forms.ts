@@ -121,9 +121,7 @@ export function initFacetedFilterAutoRefresh(
 ): void {
   const forms = document.querySelectorAll<HTMLFormElement>('form[data-analytics-filters="true"]');
   forms.forEach(form => {
-    const multiselects = form.querySelectorAll<HTMLDetailsElement>(
-      'details[data-module="analytics-multiselect"][data-filter-key]'
-    );
+    const multiselects = form.querySelectorAll<HTMLDetailsElement>('details[data-module="analytics-multiselect"]');
     multiselects.forEach(details => {
       if (details.dataset.facetRefreshBound === 'true') {
         return;

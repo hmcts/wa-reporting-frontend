@@ -1,5 +1,6 @@
 import {
   createSnapshotToken,
+  fetchFacetedFilterStateWithFallback,
   fetchFilterOptionsWithFallback,
   fetchPublishedSnapshotContext,
   normaliseDateRange,
@@ -12,7 +13,7 @@ import { filterService } from '../../../../main/modules/analytics/shared/service
 import { logDbError } from '../../../../main/modules/analytics/shared/utils';
 
 jest.mock('../../../../main/modules/analytics/shared/services', () => ({
-  filterService: { fetchFilterOptions: jest.fn() },
+  filterService: { fetchFilterOptions: jest.fn(), fetchFacetedFilterState: jest.fn() },
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
@@ -160,6 +161,11 @@ describe('pageUtils', () => {
     expect(parseSnapshotTokenInput(undefined)).toBeUndefined();
   });
 
+  test('parseSnapshotTokenInput rejects invalid snapshot id parts', () => {
+    expect(parseSnapshotTokenInput('abc.signature')).toBeUndefined();
+    expect(parseSnapshotTokenInput('9007199254740993.signature')).toBeUndefined();
+  });
+
   test('normaliseDateRange swaps dates when needed', () => {
     const range = normaliseDateRange({ from: new Date('2024-05-10'), to: new Date('2024-05-01') });
 
@@ -243,5 +249,64 @@ describe('pageUtils', () => {
     const result = settledArrayWithFallback({ status: 'fulfilled', value: [3] }, 'Failed', [1, 2]);
 
     expect(result).toEqual([3]);
+  });
+
+  test('fetchFacetedFilterStateWithFallback returns resolved state on success', async () => {
+    (filterService.fetchFacetedFilterState as jest.Mock).mockResolvedValue({
+      filters: { service: ['Civil'] },
+      filterOptions: {
+        services: ['Civil'],
+        roleCategories: ['Ops'],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
+    });
+
+    const result = await fetchFacetedFilterStateWithFallback({
+      errorMessage: 'Faceted failed',
+      snapshotId: 12,
+      filters: { service: ['Civil'] },
+      changedFilter: 'service',
+      includeUserFilter: false,
+    });
+
+    expect(filterService.fetchFacetedFilterState).toHaveBeenCalledWith(
+      12,
+      { service: ['Civil'] },
+      {
+        queryOptions: undefined,
+        changedFilter: 'service',
+        includeUserFilter: false,
+      }
+    );
+    expect(result.filters).toEqual({ service: ['Civil'] });
+    expect(result.filterOptions.services).toEqual(['Civil']);
+  });
+
+  test('fetchFacetedFilterStateWithFallback returns safe defaults on error', async () => {
+    (filterService.fetchFacetedFilterState as jest.Mock).mockRejectedValue(new Error('db'));
+
+    const result = await fetchFacetedFilterStateWithFallback({
+      errorMessage: 'Faceted failed',
+      snapshotId: 12,
+      filters: { region: ['North'] },
+    });
+
+    expect(result).toEqual({
+      filters: { region: ['North'] },
+      filterOptions: {
+        services: [],
+        roleCategories: [],
+        regions: [],
+        locations: [],
+        taskNames: [],
+        workTypes: [],
+        users: [],
+      },
+    });
+    expect(logDbError).toHaveBeenCalledWith('Faceted failed', expect.any(Error));
   });
 });

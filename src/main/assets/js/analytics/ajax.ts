@@ -33,10 +33,10 @@ async function runBounded<T>(
 
   await Promise.all(
     Array.from({ length: workerCount }, async () => {
-      while (queue.length > 0) {
+      while (true) {
         const item = queue.shift();
-        if (!item) {
-          return;
+        if (item === undefined) {
+          break;
         }
         await worker(item);
       }
@@ -251,7 +251,7 @@ export function initAjaxInitialSections(fetchSectionUpdateWithDeps: FetchSection
   if (!form) {
     return;
   }
-  const sections = document.querySelectorAll<HTMLElement>('[data-ajax-initial="true"][data-section]');
+  const sections = document.querySelectorAll<HTMLElement>('[data-ajax-initial="true"]');
   const sectionIds: string[] = [];
   sections.forEach(section => {
     if (section.dataset.ajaxInitialBound === 'true') {
