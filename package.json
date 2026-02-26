@@ -147,7 +147,7 @@
   "resolutions": {
     "bn.js": "^5.2.3",
     "lodash": "^4.17.23",
-    "hono": "^4.11.7"
+    "hono": "^4.12.3"
   },
   "husky": {
     "hooks": {
