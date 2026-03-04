@@ -34,7 +34,7 @@ type CronBootstrapConfig = {
 const defaultBootstrapConfig: CronBootstrapConfig = {
   enabled: true,
   jobName: 'analytics_snapshot_refresh_batch',
-  schedule: '*/30 * * * *',
+  schedule: '15 * * * *',
   targetDatabase: 'cft_task_db',
   cronDatabase: 'postgres',
 };
@@ -116,7 +116,7 @@ describe('snapshotRefreshCronBootstrap', () => {
     expect(scheduleQuery.strings.join('')).toContain('cron.schedule_in_database');
     expect(scheduleQuery.values).toEqual([
       'analytics_snapshot_refresh_batch',
-      '*/30 * * * *',
+      '15 * * * *',
       'CALL analytics.run_snapshot_refresh_batch()',
       'cft_task_db',
     ]);
@@ -126,7 +126,7 @@ describe('snapshotRefreshCronBootstrap', () => {
       expect.objectContaining({
         jobId: '42',
         jobName: 'analytics_snapshot_refresh_batch',
-        schedule: '*/30 * * * *',
+        schedule: '15 * * * *',
         targetDatabase: 'cft_task_db',
         cronDatabase: 'postgres',
       })
@@ -238,7 +238,7 @@ describe('snapshotRefreshCronBootstrap', () => {
       'Failed to bootstrap snapshot refresh cron registration',
       expect.objectContaining({
         jobName: 'analytics_snapshot_refresh_batch',
-        schedule: '*/30 * * * *',
+        schedule: '15 * * * *',
         targetDatabase: 'cft_task_db',
         cronDatabase: 'postgres',
         errorName: 'Error',
