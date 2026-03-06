@@ -584,7 +584,7 @@ export class TaskFactsRepository {
   ): Promise<CompletedProcessingHandlingTimeRow[]> {
     const conditions: Prisma.Sql[] = [
       asOfSnapshotCondition(snapshotId),
-      Prisma.sql`LOWER(termination_reason) = 'completed'`,
+      Prisma.sql`termination_reason = 'completed'`,
       Prisma.sql`completed_date IS NOT NULL`,
     ];
     if (range?.from) {

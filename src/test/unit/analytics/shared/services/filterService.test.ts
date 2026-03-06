@@ -132,7 +132,7 @@ describe('filterService', () => {
     expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(
       CacheKeys.filterOptions,
       snapshotId,
-      'includeUser=1|filters=none|query=excludeRoleCategories=JUDICIAL'
+      'includeUser=1|filters=none|query=excludeRoleCategories=Judicial'
     );
     expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledWith(snapshotId, {
       filters: {},
@@ -141,7 +141,7 @@ describe('filterService', () => {
     });
   });
 
-  test('normalises excludeRoleCategories signature and falls back to default when values are blank', async () => {
+  test('uses excludeRoleCategories exactly in the cache signature and falls back to default when omitted', async () => {
     (getCache as jest.Mock).mockReturnValue(undefined);
     (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock).mockResolvedValue({
       services: [],
@@ -157,22 +157,46 @@ describe('filterService', () => {
     (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([]);
 
     await filterService.fetchFilterOptions(snapshotId, {
-      excludeRoleCategories: ['  ', '', ' judicial ', 'ADMIN', 'admin'],
+      excludeRoleCategories: ['Admin', 'Judicial'],
     });
 
     expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(
       CacheKeys.filterOptions,
       snapshotId,
-      'includeUser=1|filters=none|query=excludeRoleCategories=ADMIN,JUDICIAL'
+      'includeUser=1|filters=none|query=excludeRoleCategories=Admin,Judicial'
     );
 
-    await filterService.fetchFilterOptions(snapshotId, {
-      excludeRoleCategories: ['  ', ''],
-    });
+    await filterService.fetchFilterOptions(snapshotId);
     expect(buildSnapshotScopedCacheKey).toHaveBeenLastCalledWith(
       CacheKeys.filterOptions,
       snapshotId,
       'includeUser=1|filters=none|query=default'
+    );
+  });
+
+  test('preserves excludeRoleCategories case in the cache signature', async () => {
+    (getCache as jest.Mock).mockReturnValue(undefined);
+    (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      assignees: [],
+    });
+    (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
+    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
+    (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([]);
+
+    await filterService.fetchFilterOptions(snapshotId, {
+      excludeRoleCategories: ['judicial'],
+    });
+
+    expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(
+      CacheKeys.filterOptions,
+      snapshotId,
+      'includeUser=1|filters=none|query=excludeRoleCategories=judicial'
     );
   });
 

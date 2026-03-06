@@ -5,6 +5,11 @@
 - `config/custom-environment-variables.yaml` maps config keys to environment variables for overrides.
 - `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` define Key Vault secret names that are injected into the app in non-local environments.
 
+## Dependency management
+- The repo uses Yarn 4 (see `packageManager` in `package.json`) for installs, lockfile management, and security remediation.
+- `package.json` may carry top-level `resolutions` for transitive packages when upstream direct dependencies have not yet published a fixed release path. Current enforced overrides keep `@prisma/dev` on patched `@hono/node-server` and `hono` versions, and also retain the existing `bn.js` and `lodash` policy pins.
+- After dependency upgrades, rerun the production audit (`yarn npm audit --recursive --environment production --json`) and verify each top-level resolution still changes the resolved version before keeping it.
+
 ## Configuration flow and precedence
 1. `config/default.json` provides the baseline values (used directly for local development).
 2. Environment variables (wired via `config/custom-environment-variables.yaml`) override defaults.

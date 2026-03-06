@@ -10,21 +10,11 @@ function inCondition(column: string, values: string[]): Prisma.Sql {
   return Prisma.sql`${Prisma.raw(column)} IN (${Prisma.join(values)})`;
 }
 
-function normaliseExcludedRoleCategories(queryOptions?: AnalyticsQueryOptions): string[] {
-  const excluded = queryOptions?.excludeRoleCategories;
-  if (!excluded || excluded.length === 0) {
-    return [];
-  }
-  return [...new Set(excluded.map(value => value.trim().toUpperCase()).filter(value => value.length > 0))].sort(
-    (a, b) => a.localeCompare(b)
-  );
-}
-
 function excludedRoleCategoriesCondition(values: string[]): Prisma.Sql | null {
   if (values.length === 0) {
     return null;
   }
-  return Prisma.sql`(role_category_label IS NULL OR UPPER(role_category_label) NOT IN (${Prisma.join(values)}))`;
+  return Prisma.sql`(role_category_label IS NULL OR role_category_label NOT IN (${Prisma.join(values)}))`;
 }
 
 export function buildAnalyticsWhere(
@@ -48,7 +38,7 @@ export function buildAnalyticsWhere(
     }
   }
 
-  const excludedRoleCategories = normaliseExcludedRoleCategories(queryOptions);
+  const excludedRoleCategories = queryOptions?.excludeRoleCategories ?? [];
   const excludedRoleCategoriesSql = excludedRoleCategoriesCondition(excludedRoleCategories);
   if (excludedRoleCategoriesSql) {
     conditions.push(excludedRoleCategoriesSql);

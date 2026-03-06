@@ -80,17 +80,11 @@ function buildLocationOptions(
 }
 
 function buildQueryOptionsCacheSignature(queryOptions?: AnalyticsQueryOptions): string {
-  const excluded = queryOptions?.excludeRoleCategories;
-  if (!excluded || excluded.length === 0) {
+  const excludedRoleCategories = queryOptions?.excludeRoleCategories ?? [];
+  if (excludedRoleCategories.length === 0) {
     return 'default';
   }
-  const normalised = [...new Set(excluded.map(value => value.trim().toUpperCase()).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b)
-  );
-  if (normalised.length === 0) {
-    return 'default';
-  }
-  return `excludeRoleCategories=${normalised.join(',')}`;
+  return `excludeRoleCategories=${excludedRoleCategories.join(',')}`;
 }
 
 function buildFilterValuesCacheSignature(filters: AnalyticsFilters, includeUserFilter: boolean): string {

@@ -45,7 +45,7 @@ function applyCompletedDateFilters(filters: AnalyticsFilters, conditions: Prisma
 }
 
 function buildCompletedTaskConditions(filters: AnalyticsFilters, caseId?: string): Prisma.Sql[] {
-  const conditions: Prisma.Sql[] = [Prisma.sql`LOWER(termination_reason) = 'completed'`];
+  const conditions: Prisma.Sql[] = [Prisma.sql`termination_reason = 'completed'`];
   applyCompletedDateFilters(filters, conditions);
   if (caseId) {
     conditions.push(Prisma.sql`case_id = ${caseId}`);
@@ -114,11 +114,11 @@ function buildAssignedOrderBy(sort: SortState<AssignedSortBy>): Prisma.Sql {
   const column = (() => {
     switch (sort.by) {
       case 'caseId':
-        return Prisma.sql`case_id`;
+        return Prisma.raw('analytics.snapshot_task_rows.case_id');
       case 'createdDate':
         return Prisma.raw('analytics.snapshot_task_rows.created_date');
       case 'taskName':
-        return Prisma.sql`task_name`;
+        return Prisma.raw('analytics.snapshot_task_rows.task_name');
       case 'assignedDate':
         return Prisma.raw('analytics.snapshot_task_rows.first_assigned_date');
       case 'dueDate':
@@ -128,9 +128,9 @@ function buildAssignedOrderBy(sort: SortState<AssignedSortBy>): Prisma.Sql {
       case 'totalAssignments':
         return Prisma.sql`COALESCE(number_of_reassignments, 0) + 1`;
       case 'assignee':
-        return Prisma.sql`assignee`;
+        return Prisma.raw('analytics.snapshot_task_rows.assignee');
       case 'location':
-        return Prisma.sql`location`;
+        return Prisma.raw('analytics.snapshot_task_rows.location');
       default:
         return Prisma.raw('analytics.snapshot_task_rows.created_date');
     }
@@ -143,11 +143,11 @@ function buildCompletedOrderBy(sort: SortState<CompletedSortBy>): Prisma.Sql {
   const column = (() => {
     switch (sort.by) {
       case 'caseId':
-        return Prisma.sql`case_id`;
+        return Prisma.raw('analytics.snapshot_task_rows.case_id');
       case 'createdDate':
         return Prisma.raw('analytics.snapshot_task_rows.created_date');
       case 'taskName':
-        return Prisma.sql`task_name`;
+        return Prisma.raw('analytics.snapshot_task_rows.task_name');
       case 'assignedDate':
         return Prisma.raw('analytics.snapshot_task_rows.first_assigned_date');
       case 'dueDate':
@@ -161,9 +161,9 @@ function buildCompletedOrderBy(sort: SortState<CompletedSortBy>): Prisma.Sql {
       case 'totalAssignments':
         return Prisma.sql`COALESCE(number_of_reassignments, 0) + 1`;
       case 'assignee':
-        return Prisma.sql`assignee`;
+        return Prisma.raw('analytics.snapshot_task_rows.assignee');
       case 'location':
-        return Prisma.sql`location`;
+        return Prisma.raw('analytics.snapshot_task_rows.location');
       default:
         return Prisma.raw('analytics.snapshot_task_rows.completed_date');
     }
@@ -176,13 +176,13 @@ function buildCriticalTasksOrderBy(sort: SortState<CriticalTasksSortBy>): Prisma
   const column = (() => {
     switch (sort.by) {
       case 'caseId':
-        return Prisma.sql`case_id`;
+        return Prisma.raw('analytics.snapshot_task_rows.case_id');
       case 'caseType':
-        return Prisma.sql`case_type_label`;
+        return Prisma.raw('analytics.snapshot_task_rows.case_type_label');
       case 'location':
-        return Prisma.sql`location`;
+        return Prisma.raw('analytics.snapshot_task_rows.location');
       case 'taskName':
-        return Prisma.sql`task_name`;
+        return Prisma.raw('analytics.snapshot_task_rows.task_name');
       case 'createdDate':
         return Prisma.raw('analytics.snapshot_task_rows.created_date');
       case 'dueDate':
@@ -193,7 +193,7 @@ function buildCriticalTasksOrderBy(sort: SortState<CriticalTasksSortBy>): Prisma
           dateColumn: Prisma.raw('analytics.snapshot_task_rows.due_date'),
         });
       case 'agentName':
-        return Prisma.sql`assignee`;
+        return Prisma.raw('analytics.snapshot_task_rows.assignee');
       default:
         return Prisma.raw('analytics.snapshot_task_rows.due_date');
     }
@@ -312,11 +312,7 @@ export class TaskThinRepository {
     filters: AnalyticsFilters,
     queryOptions?: AnalyticsQueryOptions
   ): Promise<UserOverviewCompletedByTaskNameRow[]> {
-    const conditions: Prisma.Sql[] = [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`completed_date IS NOT NULL`,
-      Prisma.sql`LOWER(termination_reason) = 'completed'`,
-    ];
+    const conditions: Prisma.Sql[] = [asOfSnapshotCondition(snapshotId), Prisma.sql`completed_date IS NOT NULL`];
     applyCompletedDateFilters(filters, conditions);
     if (filters.user && filters.user.length > 0) {
       conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
@@ -324,18 +320,24 @@ export class TaskThinRepository {
     const whereClause = buildAnalyticsWhere(filters, conditions, queryOptions);
 
     return tmPrisma.$queryRaw<UserOverviewCompletedByTaskNameRow[]>(Prisma.sql`
+      WITH aggregated AS (
+        SELECT
+          task_name,
+          SUM(tasks)::int AS tasks,
+          COALESCE(SUM(handling_time_sum), 0)::double precision AS handling_time_sum,
+          COALESCE(SUM(days_beyond_sum), 0)::double precision AS days_beyond_sum
+        FROM analytics.snapshot_user_completed_facts
+        ${whereClause}
+        GROUP BY task_name
+      )
       SELECT
         task_name,
-        COUNT(*)::int AS tasks,
-        SUM(COALESCE(EXTRACT(EPOCH FROM handling_time) / ${SECONDS_PER_DAY_SQL}, 0))::double precision AS handling_time_sum,
-        COUNT(*)::int AS handling_time_count,
-        SUM(
-          COALESCE(EXTRACT(EPOCH FROM due_date_to_completed_diff_time) / ${SECONDS_PER_DAY_SQL}, 0) * -1
-        )::double precision AS days_beyond_sum,
-        COUNT(*)::int AS days_beyond_count
-      FROM analytics.snapshot_task_rows
-      ${whereClause}
-      GROUP BY task_name
+        tasks,
+        handling_time_sum,
+        tasks AS handling_time_count,
+        days_beyond_sum,
+        tasks AS days_beyond_count
+      FROM aggregated
       ORDER BY tasks DESC NULLS LAST, task_name ASC
     `);
   }
