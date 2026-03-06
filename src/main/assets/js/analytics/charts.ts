@@ -29,6 +29,30 @@ type PlotlyGraphNode = HTMLElement & {
   removeAllListeners?: (event: string) => void;
 };
 
+type VisibleWindow = {
+  lower: number;
+  upper: number;
+};
+
+type VisibleTracePoint = {
+  timestamp: number;
+  value: number;
+};
+
+type AxisRelayoutState = {
+  autorange: boolean;
+  range: [number, number] | null;
+};
+
+type CategoryRangeMetrics = {
+  upper: number;
+  windowSize: number;
+  min: number;
+  max: number;
+  totalSpan: number;
+  availableSpan: number;
+};
+
 type ScrollPanState = {
   track: HTMLDivElement;
   handle: HTMLDivElement;
@@ -46,6 +70,27 @@ const autoFitYAxesStateByNode = new WeakMap<HTMLElement, AutoFitYAxesState>();
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function buildChartLayout(layout: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    ...baseLayout,
+    ...layout,
+    margin: { ...baseLayout.margin, ...(layout.margin as Record<string, unknown> | undefined) },
+  };
+}
+
+function removePlotlyRelayoutListener(node: PlotlyGraphNode, handler: ((eventData?: unknown) => void) | null): void {
+  if (!handler) {
+    return;
+  }
+
+  if (node.removeListener) {
+    node.removeListener('plotly_relayout', handler);
+    return;
+  }
+
+  node.removeAllListeners?.('plotly_relayout');
 }
 
 function axisLayoutKey(axis: PlotlyAutoFitAxisRule['axis']): 'yaxis' | 'yaxis2' {
@@ -85,7 +130,7 @@ function toFiniteNumber(value: unknown): number | null {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
-function getVisibleXWindow(node: PlotlyGraphNode): { lower: number; upper: number } | null {
+function getVisibleXWindow(node: PlotlyGraphNode): VisibleWindow | null {
   const range = node._fullLayout?.xaxis?.range;
   if (!range) {
     return null;
@@ -105,15 +150,15 @@ function isInVisibleWindow(value: unknown, window: { lower: number; upper: numbe
   return timestamp !== null && timestamp >= window.lower && timestamp <= window.upper;
 }
 
-function collectVisibleStackedBarMaximum(
+function forEachVisibleTracePoint(
   traces: PlotlyData[],
   axis: PlotlyAutoFitAxisRule['axis'],
-  window: { lower: number; upper: number }
-): number {
-  const totalsByTimestamp = new Map<number, number>();
-
+  traceType: 'bar' | 'scatter',
+  window: VisibleWindow,
+  visit: (point: VisibleTracePoint) => void
+): void {
   traces.forEach(trace => {
-    if (trace.type !== 'bar' || getTraceAxis(trace) !== axis) {
+    if (trace.type !== traceType || getTraceAxis(trace) !== axis) {
       return;
     }
 
@@ -127,14 +172,26 @@ function collectVisibleStackedBarMaximum(
       }
 
       const timestamp = toTimestamp(xValues[index]);
-      const yValue = toFiniteNumber(yValues[index]);
-      if (timestamp === null || yValue === null) {
+      const value = toFiniteNumber(yValues[index]);
+      if (timestamp === null || value === null) {
         continue;
       }
 
-      const contribution = Math.max(0, yValue);
-      totalsByTimestamp.set(timestamp, (totalsByTimestamp.get(timestamp) ?? 0) + contribution);
+      visit({ timestamp, value });
     }
+  });
+}
+
+function collectVisibleStackedBarMaximum(
+  traces: PlotlyData[],
+  axis: PlotlyAutoFitAxisRule['axis'],
+  window: VisibleWindow
+): number {
+  const totalsByTimestamp = new Map<number, number>();
+
+  forEachVisibleTracePoint(traces, axis, 'bar', window, ({ timestamp, value }) => {
+    const contribution = Math.max(0, value);
+    totalsByTimestamp.set(timestamp, (totalsByTimestamp.get(timestamp) ?? 0) + contribution);
   });
 
   return Math.max(0, ...totalsByTimestamp.values());
@@ -143,31 +200,12 @@ function collectVisibleStackedBarMaximum(
 function collectVisibleLineMaximum(
   traces: PlotlyData[],
   axis: PlotlyAutoFitAxisRule['axis'],
-  window: { lower: number; upper: number }
+  window: VisibleWindow
 ): number {
   let maximum = 0;
 
-  traces.forEach(trace => {
-    if (trace.type !== 'scatter' || getTraceAxis(trace) !== axis) {
-      return;
-    }
-
-    const xValues = Array.isArray(trace.x) ? trace.x : [];
-    const yValues = Array.isArray(trace.y) ? trace.y : [];
-    const pointCount = Math.min(xValues.length, yValues.length);
-
-    for (let index = 0; index < pointCount; index += 1) {
-      if (!isInVisibleWindow(xValues[index], window)) {
-        continue;
-      }
-
-      const yValue = toFiniteNumber(yValues[index]);
-      if (yValue === null) {
-        continue;
-      }
-
-      maximum = Math.max(maximum, yValue);
-    }
+  forEachVisibleTracePoint(traces, axis, 'scatter', window, ({ value }) => {
+    maximum = Math.max(maximum, value);
   });
 
   return Math.max(0, maximum);
@@ -208,6 +246,26 @@ function shouldHandleXRelayout(eventData: unknown): boolean {
   return Object.keys(eventData).some(key => key.startsWith('xaxis.'));
 }
 
+function buildAxisRelayoutUpdate(
+  rules: PlotlyAutoFitAxisRule[],
+  createAxisState: (rule: PlotlyAutoFitAxisRule) => AxisRelayoutState
+): Record<string, unknown> {
+  return rules.reduce<Record<string, unknown>>((update, rule) => {
+    const layoutKey = axisLayoutKey(rule.axis);
+    const axisState = createAxisState(rule);
+    update[`${layoutKey}.autorange`] = axisState.autorange;
+    update[`${layoutKey}.range`] = axisState.range;
+    return update;
+  }, {});
+}
+
+function applyAutoFitRelayout(node: HTMLElement, state: AutoFitYAxesState, update: Record<string, unknown>): void {
+  state.isApplyingRelayout = true;
+  void Plotly.relayout(node, update).finally(() => {
+    state.isApplyingRelayout = false;
+  });
+}
+
 export function bindAutoFitYAxesOnXZoom(node: HTMLElement, config: PlotlyConfig): void {
   const rules = config.behaviors?.autoFitYAxesOnXZoom;
   if (!rules || rules.length === 0) {
@@ -224,13 +282,7 @@ export function bindAutoFitYAxesOnXZoom(node: HTMLElement, config: PlotlyConfig)
     autoFitYAxesStateByNode.set(node, state);
   }
 
-  if (state.relayoutHandler) {
-    if (plotlyNode.removeListener) {
-      plotlyNode.removeListener('plotly_relayout', state.relayoutHandler);
-    } else if (plotlyNode.removeAllListeners) {
-      plotlyNode.removeAllListeners('plotly_relayout');
-    }
-  }
+  removePlotlyRelayoutListener(plotlyNode, state.relayoutHandler);
 
   state.relayoutHandler = eventData => {
     if (state?.isApplyingRelayout || !shouldHandleXRelayout(eventData)) {
@@ -239,17 +291,14 @@ export function bindAutoFitYAxesOnXZoom(node: HTMLElement, config: PlotlyConfig)
 
     const xaxis = plotlyNode._fullLayout?.xaxis;
     if (xaxis?.autorange) {
-      const autorangeUpdate = rules.reduce<Record<string, unknown>>((update, rule) => {
-        const layoutKey = axisLayoutKey(rule.axis);
-        update[`${layoutKey}.autorange`] = true;
-        update[`${layoutKey}.range`] = null;
-        return update;
-      }, {});
-
-      state.isApplyingRelayout = true;
-      void Plotly.relayout(node, autorangeUpdate).finally(() => {
-        state.isApplyingRelayout = false;
-      });
+      applyAutoFitRelayout(
+        node,
+        state,
+        buildAxisRelayoutUpdate(rules, () => ({
+          autorange: true,
+          range: null,
+        }))
+      );
       return;
     }
 
@@ -258,47 +307,64 @@ export function bindAutoFitYAxesOnXZoom(node: HTMLElement, config: PlotlyConfig)
       return;
     }
 
-    const relayoutUpdate = rules.reduce<Record<string, unknown>>((update, rule) => {
-      const layoutKey = axisLayoutKey(rule.axis);
-      update[`${layoutKey}.autorange`] = false;
-      update[`${layoutKey}.range`] = buildAutoFitRange(
-        computeVisibleAxisMaximum(config.data, rule, visibleWindow),
-        rule
-      );
-      return update;
-    }, {});
-
-    state.isApplyingRelayout = true;
-    void Plotly.relayout(node, relayoutUpdate).finally(() => {
-      state.isApplyingRelayout = false;
-    });
+    applyAutoFitRelayout(
+      node,
+      state,
+      buildAxisRelayoutUpdate(rules, rule => ({
+        autorange: false,
+        range: buildAutoFitRange(computeVisibleAxisMaximum(config.data, rule, visibleWindow), rule),
+      }))
+    );
   };
 
   plotlyNode.on?.('plotly_relayout', state.relayoutHandler);
 }
 
-function updateScrollHandle(node: HTMLElement, state: ScrollPanState): void {
-  const graph = node as PlotlyGraphNode;
-  const range = graph._fullLayout?.yaxis?.range;
-  if (!range || state.categoryCount <= 0) {
-    state.track.style.display = 'none';
-    return;
+function getCategoryRangeMetrics(categoryCount: number, range?: [number, number]): CategoryRangeMetrics | null {
+  if (!range || categoryCount <= 0) {
+    return null;
   }
 
   const windowSize = range[0] - range[1];
   const min = -0.5;
-  const max = state.categoryCount - 0.5;
+  const max = categoryCount - 0.5;
   const totalSpan = max - min;
-  const availableSpan = totalSpan - windowSize;
-  if (availableSpan <= 0) {
+
+  return {
+    upper: range[0],
+    windowSize,
+    min,
+    max,
+    totalSpan,
+    availableSpan: totalSpan - windowSize,
+  };
+}
+
+function getScrollHandleHeight(trackHeight: number, metrics: CategoryRangeMetrics): number {
+  return Math.max(24, (metrics.windowSize / metrics.totalSpan) * trackHeight);
+}
+
+function relayoutScrollPanRange(node: HTMLElement, state: ScrollPanState, range: [number, number]): void {
+  void Plotly.relayout(node, { 'yaxis.range': range }).then(() => updateScrollHandle(node, state));
+}
+
+function updateScrollHandle(node: HTMLElement, state: ScrollPanState): void {
+  const graph = node as PlotlyGraphNode;
+  const metrics = getCategoryRangeMetrics(state.categoryCount, graph._fullLayout?.yaxis?.range);
+  if (!metrics) {
+    state.track.style.display = 'none';
+    return;
+  }
+
+  if (metrics.availableSpan <= 0) {
     state.track.style.display = 'none';
     return;
   }
 
   state.track.style.display = '';
   const trackHeight = state.track.getBoundingClientRect().height;
-  const handleHeight = Math.max(24, (windowSize / totalSpan) * trackHeight);
-  const position = (range[0] - (min + windowSize)) / availableSpan;
+  const handleHeight = getScrollHandleHeight(trackHeight, metrics);
+  const position = (metrics.upper - (metrics.min + metrics.windowSize)) / metrics.availableSpan;
   const top = Math.min(trackHeight - handleHeight, Math.max(0, position * (trackHeight - handleHeight)));
   state.handle.style.height = `${handleHeight}px`;
   state.handle.style.top = `${top}px`;
@@ -327,14 +393,10 @@ export function renderCharts(): void {
     }
     try {
       const parsed = JSON.parse(raw) as PlotlyConfig;
-      const parsedConfig = parsed.config ?? {};
-      const parsedLayout = parsed.layout ?? {};
-      const layout = {
-        ...baseLayout,
-        ...parsedLayout,
-        margin: { ...baseLayout.margin, ...(parsedLayout.margin ?? {}) },
-      };
-      Plotly.newPlot(node, parsed.data, layout, { ...baseChartConfig, ...parsedConfig }).then(() => {
+      Plotly.newPlot(node, parsed.data, buildChartLayout(parsed.layout), {
+        ...baseChartConfig,
+        ...(parsed.config ?? {}),
+      }).then(() => {
         labelModebarButtons(node);
         bindAutoFitYAxesOnXZoom(node, parsed);
       });
@@ -349,13 +411,7 @@ export function renderCharts(): void {
 }
 
 export function renderOpenByNameChart(node: HTMLElement, config: PlotlyConfig): void {
-  const parsedLayout = config.layout ?? {};
-  const layout = {
-    ...baseLayout,
-    ...parsedLayout,
-    margin: { ...baseLayout.margin, ...(parsedLayout.margin ?? {}) },
-  };
-  Plotly.newPlot(node, config.data, layout, { ...baseChartConfig, ...(config.config ?? {}) });
+  Plotly.newPlot(node, config.data, buildChartLayout(config.layout), { ...baseChartConfig, ...(config.config ?? {}) });
   bindScrollPan(node, config);
 }
 
@@ -392,30 +448,25 @@ export function bindScrollPan(node: HTMLElement, config: PlotlyConfig): void {
       dragRafId = null;
       const graph = node as PlotlyGraphNode;
       const range = graph._fullLayout?.yaxis?.range;
-      if (!range || pendingDragTop === null) {
+      const metrics = getCategoryRangeMetrics(newState.categoryCount, range);
+      if (!metrics || pendingDragTop === null) {
         pendingDragTop = null;
         return;
       }
+      if (metrics.availableSpan <= 0) {
+        pendingDragTop = null;
+        return;
+      }
+
       const rect = newState.track.getBoundingClientRect();
-      const windowSize = range[0] - range[1];
-      const min = -0.5;
-      const max = newState.categoryCount - 0.5;
-      const totalSpan = max - min;
-      const availableSpan = totalSpan - windowSize;
-      if (availableSpan <= 0) {
-        pendingDragTop = null;
-        return;
-      }
       const trackHeight = rect.height;
-      const handleHeight = Math.max(24, (windowSize / totalSpan) * trackHeight);
+      const handleHeight = getScrollHandleHeight(trackHeight, metrics);
       const clampedTop = Math.min(trackHeight - handleHeight, Math.max(0, pendingDragTop));
       pendingDragTop = null;
       const position = clampedTop / (trackHeight - handleHeight);
-      const nextLower = min + availableSpan * position;
-      const nextUpper = nextLower + windowSize;
-      void Plotly.relayout(node, { 'yaxis.range': [nextUpper, nextLower] }).then(() =>
-        updateScrollHandle(node, newState)
-      );
+      const nextLower = metrics.min + metrics.availableSpan * position;
+      const nextUpper = nextLower + metrics.windowSize;
+      relayoutScrollPanRange(node, newState, [nextUpper, nextLower]);
     };
 
     const onDragMove = (event: MouseEvent) => {
@@ -449,21 +500,16 @@ export function bindScrollPan(node: HTMLElement, config: PlotlyConfig): void {
     const applyWheelStep = () => {
       rafId = null;
       const graph = node as PlotlyGraphNode;
-      const range = graph._fullLayout?.yaxis?.range;
-      if (!range || pendingStep === 0) {
+      const metrics = getCategoryRangeMetrics(newState.categoryCount, graph._fullLayout?.yaxis?.range);
+      if (!metrics || pendingStep === 0) {
         pendingStep = 0;
         return;
       }
       const step = pendingStep;
       pendingStep = 0;
-      const windowSize = range[0] - range[1];
-      const min = -0.5;
-      const max = newState.categoryCount - 0.5;
-      const nextUpper = Math.min(max, Math.max(min + windowSize, range[0] + step));
-      const nextLower = nextUpper - windowSize;
-      void Plotly.relayout(node, { 'yaxis.range': [nextUpper, nextLower] }).then(() =>
-        updateScrollHandle(node, newState)
-      );
+      const nextUpper = Math.min(metrics.max, Math.max(metrics.min + metrics.windowSize, metrics.upper + step));
+      const nextLower = nextUpper - metrics.windowSize;
+      relayoutScrollPanRange(node, newState, [nextUpper, nextLower]);
     };
 
     node.addEventListener(
@@ -487,13 +533,7 @@ export function bindScrollPan(node: HTMLElement, config: PlotlyConfig): void {
   state.categoryCount = categoryCount;
 
   const plotlyNode = node as PlotlyGraphNode;
-  if (state.relayoutHandler) {
-    if (plotlyNode.removeAllListeners) {
-      plotlyNode.removeAllListeners('plotly_relayout');
-    } else if (plotlyNode.removeListener) {
-      plotlyNode.removeListener('plotly_relayout', state.relayoutHandler);
-    }
-  }
+  removePlotlyRelayoutListener(plotlyNode, state.relayoutHandler);
 
   state.relayoutHandler = () => updateScrollHandle(node, state);
   plotlyNode.on?.('plotly_relayout', state.relayoutHandler);
