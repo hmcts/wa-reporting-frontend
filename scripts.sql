@@ -162,11 +162,11 @@ CREATE INDEX ix_snapshot_task_rows_snapshot_state_created_desc
   ON analytics.snapshot_task_rows(snapshot_id, state, created_date DESC);
 
 CREATE INDEX ix_snapshot_task_rows_snapshot_completed_reason_date_desc
-  ON analytics.snapshot_task_rows(snapshot_id, LOWER(termination_reason), completed_date DESC);
+  ON analytics.snapshot_task_rows(snapshot_id, termination_reason, completed_date DESC);
 
 CREATE INDEX ix_snapshot_task_rows_snapshot_completed_assignee_date_desc
   ON analytics.snapshot_task_rows(snapshot_id, assignee, completed_date DESC)
-  WHERE LOWER(termination_reason) = 'completed' AND assignee IS NOT NULL;
+  WHERE termination_reason = 'completed' AND assignee IS NOT NULL;
 
 CREATE INDEX ix_snapshot_task_rows_snapshot_case_id
   ON analytics.snapshot_task_rows(snapshot_id, case_id);
@@ -174,8 +174,8 @@ CREATE INDEX ix_snapshot_task_rows_snapshot_case_id
 CREATE INDEX ix_snapshot_task_rows_snapshot_assignee
   ON analytics.snapshot_task_rows(snapshot_id, assignee);
 
-CREATE INDEX ix_snapshot_task_rows_snapshot_upper_role_category
-  ON analytics.snapshot_task_rows(snapshot_id, UPPER(role_category_label));
+CREATE INDEX ix_snapshot_task_rows_snapshot_role_category
+  ON analytics.snapshot_task_rows(snapshot_id, role_category_label);
 
 CREATE INDEX ix_snapshot_task_rows_snapshot_within_due_sort
   ON analytics.snapshot_task_rows(snapshot_id, within_due_sort_value, completed_date);
@@ -217,8 +217,8 @@ CREATE INDEX ix_snapshot_user_completed_facts_snapshot_slicers
 CREATE INDEX ix_snapshot_user_completed_facts_snapshot_completed_date
   ON analytics.snapshot_user_completed_facts(snapshot_id, completed_date);
 
-CREATE INDEX ix_snapshot_user_completed_facts_snapshot_upper_role_category
-  ON analytics.snapshot_user_completed_facts(snapshot_id, UPPER(role_category_label));
+CREATE INDEX ix_snapshot_user_completed_facts_snapshot_role_category
+  ON analytics.snapshot_user_completed_facts(snapshot_id, role_category_label);
 
 CREATE UNIQUE INDEX ux_snapshot_task_daily_facts_snapshot_key
   ON analytics.snapshot_task_daily_facts(
@@ -268,8 +268,8 @@ CREATE INDEX ix_snapshot_task_daily_facts_snapshot_assignment_state
 CREATE INDEX ix_snapshot_task_daily_facts_snapshot_sla_flag
   ON analytics.snapshot_task_daily_facts(snapshot_id, sla_flag);
 
-CREATE INDEX ix_snapshot_task_daily_facts_snapshot_upper_role_category
-  ON analytics.snapshot_task_daily_facts(snapshot_id, UPPER(role_category_label));
+CREATE INDEX ix_snapshot_task_daily_facts_snapshot_role_category
+  ON analytics.snapshot_task_daily_facts(snapshot_id, role_category_label);
 
 CREATE UNIQUE INDEX ux_snapshot_wait_time_by_assigned_date_snapshot_key
   ON analytics.snapshot_wait_time_by_assigned_date(
@@ -297,8 +297,8 @@ CREATE INDEX ix_snapshot_wait_time_by_assigned_date_snapshot_slicers
 CREATE INDEX ix_snapshot_wait_time_by_assigned_date_snapshot_reference_date
   ON analytics.snapshot_wait_time_by_assigned_date(snapshot_id, reference_date);
 
-CREATE INDEX ix_snapshot_wait_time_by_assigned_date_snapshot_upper_role_category
-  ON analytics.snapshot_wait_time_by_assigned_date(snapshot_id, UPPER(role_category_label));
+CREATE INDEX ix_snapshot_wait_time_by_assigned_date_snapshot_role_category
+  ON analytics.snapshot_wait_time_by_assigned_date(snapshot_id, role_category_label);
 
 CREATE UNIQUE INDEX ux_snapshot_filter_facet_facts_snapshot_dims
   ON analytics.snapshot_filter_facet_facts(
@@ -344,9 +344,6 @@ CREATE INDEX ix_snapshot_filter_facet_facts_snapshot_work_type
 
 CREATE INDEX ix_snapshot_filter_facet_facts_snapshot_assignee
   ON analytics.snapshot_filter_facet_facts(snapshot_id, assignee);
-
-CREATE INDEX ix_snapshot_filter_facet_facts_snapshot_upper_role_category
-  ON analytics.snapshot_filter_facet_facts(snapshot_id, UPPER(role_category_label));
 
 CREATE OR REPLACE PROCEDURE analytics.refresh_snapshot_filter_facet_facts(p_snapshot_id BIGINT)
 LANGUAGE plpgsql
@@ -574,13 +571,13 @@ BEGIN
       );
 
       EXECUTE format(
-        'CREATE INDEX %I ON analytics.%I(snapshot_id, LOWER(termination_reason), completed_date DESC)',
+        'CREATE INDEX %I ON analytics.%I(snapshot_id, termination_reason, completed_date DESC)',
         format('ix_str_p_%s_completed_reason_date', v_snapshot_id),
         v_task_rows_partition_name
       );
 
       EXECUTE format(
-        'CREATE INDEX %I ON analytics.%I(snapshot_id, assignee, completed_date DESC) WHERE LOWER(termination_reason) = ''completed'' AND assignee IS NOT NULL',
+        'CREATE INDEX %I ON analytics.%I(snapshot_id, assignee, completed_date DESC) WHERE termination_reason = ''completed'' AND assignee IS NOT NULL',
         format('ix_str_p_%s_completed_assignee_date', v_snapshot_id),
         v_task_rows_partition_name
       );
@@ -598,8 +595,8 @@ BEGIN
       );
 
       EXECUTE format(
-        'CREATE INDEX %I ON analytics.%I(snapshot_id, UPPER(role_category_label))',
-        format('ix_str_p_%s_upper_role_category', v_snapshot_id),
+        'CREATE INDEX %I ON analytics.%I(snapshot_id, role_category_label)',
+        format('ix_str_p_%s_role_category', v_snapshot_id),
         v_task_rows_partition_name
       );
 
@@ -666,7 +663,7 @@ BEGIN
       FROM analytics.snapshot_task_rows
       WHERE snapshot_id = v_snapshot_id
         AND completed_date IS NOT NULL
-        AND LOWER(termination_reason) = 'completed'
+        AND termination_reason = 'completed'
       GROUP BY
         assignee,
         jurisdiction_label,
@@ -760,7 +757,7 @@ BEGIN
           work_type,
           priority,
           CASE
-            WHEN LOWER(termination_reason) = 'completed' THEN 'completed'
+            WHEN termination_reason = 'completed' THEN 'completed'
             WHEN state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED') THEN 'open'
             ELSE 'other'
           END AS task_status,
@@ -783,7 +780,7 @@ BEGIN
         WHERE due_date IS NOT NULL
           AND (
             state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')
-            OR LOWER(termination_reason) = 'completed'
+            OR termination_reason = 'completed'
           )
         GROUP BY
           1,2,3,4,5,6,7,8,9,10,11,12,13
@@ -802,7 +799,7 @@ BEGIN
           work_type,
           priority,
           CASE
-            WHEN LOWER(termination_reason) = 'completed' THEN 'completed'
+            WHEN termination_reason = 'completed' THEN 'completed'
             WHEN state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED') THEN 'open'
             ELSE 'other'
           END AS task_status,
@@ -849,7 +846,7 @@ BEGIN
           COUNT(*)::bigint AS task_count
         FROM base
         WHERE completed_date IS NOT NULL
-          AND LOWER(termination_reason) = 'completed'
+          AND termination_reason = 'completed'
         GROUP BY
           1,2,3,4,5,6,7,8,9,10,11,12,13
 
@@ -948,8 +945,8 @@ BEGIN
       );
 
       EXECUTE format(
-        'CREATE INDEX %I ON analytics.%I(snapshot_id, UPPER(role_category_label))',
-        format('ix_stdf_p_%s_upper_role_category', v_snapshot_id),
+        'CREATE INDEX %I ON analytics.%I(snapshot_id, role_category_label)',
+        format('ix_stdf_p_%s_role_category', v_snapshot_id),
         v_task_daily_partition_name
       );
 

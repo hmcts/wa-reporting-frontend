@@ -82,15 +82,15 @@ describe('taskThinRepository', () => {
     ];
 
     const expectedOrderBySqlBySort: Record<AssignedSortBy, string> = {
-      caseId: 'ORDER BY case_id ASC NULLS LAST',
+      caseId: 'ORDER BY analytics.snapshot_task_rows.case_id ASC NULLS LAST',
       createdDate: 'ORDER BY analytics.snapshot_task_rows.created_date ASC NULLS LAST',
-      taskName: 'ORDER BY task_name ASC NULLS LAST',
+      taskName: 'ORDER BY analytics.snapshot_task_rows.task_name ASC NULLS LAST',
       assignedDate: 'ORDER BY analytics.snapshot_task_rows.first_assigned_date ASC NULLS LAST',
       dueDate: 'ORDER BY analytics.snapshot_task_rows.due_date ASC NULLS LAST',
       priority: 'ORDER BY CASE WHEN major_priority <= 2000 THEN 4',
       totalAssignments: 'ORDER BY COALESCE(number_of_reassignments, 0) + 1 ASC NULLS LAST',
-      assignee: 'ORDER BY assignee ASC NULLS LAST',
-      location: 'ORDER BY location ASC NULLS LAST',
+      assignee: 'ORDER BY analytics.snapshot_task_rows.assignee ASC NULLS LAST',
+      location: 'ORDER BY analytics.snapshot_task_rows.location ASC NULLS LAST',
     };
 
     for (const key of sortKeys) {
@@ -118,7 +118,7 @@ describe('taskThinRepository', () => {
     const userFiltered = latestQuery();
     const userFilteredNormalised = normaliseSql(userFiltered.sql);
     expect(userFiltered.sql).toContain('assignee IN');
-    expect(userFilteredNormalised).toContain('ORDER BY case_id ASC NULLS LAST');
+    expect(userFilteredNormalised).toContain('ORDER BY analytics.snapshot_task_rows.case_id ASC NULLS LAST');
     expect(userFiltered.values).toContain('user-1');
 
     await taskThinRepository.fetchUserOverviewAssignedTaskRows(
@@ -156,9 +156,9 @@ describe('taskThinRepository', () => {
     ];
 
     const expectedOrderBySqlBySort: Record<CompletedSortBy, string> = {
-      caseId: 'ORDER BY case_id ASC NULLS LAST',
+      caseId: 'ORDER BY analytics.snapshot_task_rows.case_id ASC NULLS LAST',
       createdDate: 'ORDER BY analytics.snapshot_task_rows.created_date ASC NULLS LAST',
-      taskName: 'ORDER BY task_name ASC NULLS LAST',
+      taskName: 'ORDER BY analytics.snapshot_task_rows.task_name ASC NULLS LAST',
       assignedDate: 'ORDER BY analytics.snapshot_task_rows.first_assigned_date ASC NULLS LAST',
       dueDate: 'ORDER BY analytics.snapshot_task_rows.due_date ASC NULLS LAST',
       completedDate: 'ORDER BY analytics.snapshot_task_rows.completed_date ASC NULLS LAST',
@@ -166,8 +166,8 @@ describe('taskThinRepository', () => {
         "ORDER BY EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day') ASC NULLS LAST",
       withinDue: 'ORDER BY within_due_sort_value ASC NULLS LAST',
       totalAssignments: 'ORDER BY COALESCE(number_of_reassignments, 0) + 1 ASC NULLS LAST',
-      assignee: 'ORDER BY assignee ASC NULLS LAST',
-      location: 'ORDER BY location ASC NULLS LAST',
+      assignee: 'ORDER BY analytics.snapshot_task_rows.assignee ASC NULLS LAST',
+      location: 'ORDER BY analytics.snapshot_task_rows.location ASC NULLS LAST',
     };
 
     for (const key of sortKeys) {
@@ -181,7 +181,7 @@ describe('taskThinRepository', () => {
       const query = latestQuery();
       const normalised = normaliseSql(query.sql);
       expect(normalised).toContain(expectedOrderBySqlBySort[key]);
-      expect(query.sql).toContain("LOWER(termination_reason) = 'completed'");
+      expect(query.sql).toContain("termination_reason = 'completed'");
       expect(query.sql).not.toContain("state IN ('COMPLETED', 'TERMINATED')");
       expect(query.sql).toContain('completed_date >=');
       expect(query.sql).toContain('completed_date <=');
@@ -266,18 +266,18 @@ describe('taskThinRepository', () => {
       queryOptions
     );
     const assignedRowsQuery = latestQuery();
-    expect(assignedRowsQuery.sql).toContain('UPPER(role_category_label) NOT IN');
-    expect(assignedRowsQuery.values).toContain('JUDICIAL');
+    expect(assignedRowsQuery.sql).toContain('role_category_label NOT IN');
+    expect(assignedRowsQuery.values).toContain('Judicial');
 
     await taskThinRepository.fetchUserOverviewCompletedTaskCount(snapshotId, completedFilters, queryOptions);
     const completedCountQuery = latestQuery();
-    expect(completedCountQuery.sql).toContain('UPPER(role_category_label) NOT IN');
-    expect(completedCountQuery.values).toContain('JUDICIAL');
+    expect(completedCountQuery.sql).toContain('role_category_label NOT IN');
+    expect(completedCountQuery.values).toContain('Judicial');
 
     await taskThinRepository.fetchUserOverviewCompletedByDateRows(snapshotId, completedFilters, queryOptions);
     const completedByDateQuery = latestQuery();
-    expect(completedByDateQuery.sql).toContain('UPPER(role_category_label) NOT IN');
-    expect(completedByDateQuery.values).toContain('JUDICIAL');
+    expect(completedByDateQuery.sql).toContain('role_category_label NOT IN');
+    expect(completedByDateQuery.values).toContain('Judicial');
   });
 
   test('builds completed task conditions with and without case id', () => {
@@ -293,9 +293,7 @@ describe('taskThinRepository', () => {
       'CASE-42'
     );
 
-    expect(withoutCaseId.map(condition => condition.sql).join(' ')).toContain(
-      "LOWER(termination_reason) = 'completed'"
-    );
+    expect(withoutCaseId.map(condition => condition.sql).join(' ')).toContain("termination_reason = 'completed'");
     expect(withoutCaseId.map(condition => condition.sql).join(' ')).not.toContain(
       "state IN ('COMPLETED', 'TERMINATED')"
     );
@@ -318,14 +316,14 @@ describe('taskThinRepository', () => {
     ] as const;
 
     const expectedSqlBySort: Record<(typeof sortKeys)[number], string> = {
-      caseId: 'ORDER BY case_id ASC NULLS LAST',
-      caseType: 'ORDER BY case_type_label ASC NULLS LAST',
-      location: 'ORDER BY location ASC NULLS LAST',
-      taskName: 'ORDER BY task_name ASC NULLS LAST',
+      caseId: 'ORDER BY analytics.snapshot_task_rows.case_id ASC NULLS LAST',
+      caseType: 'ORDER BY analytics.snapshot_task_rows.case_type_label ASC NULLS LAST',
+      location: 'ORDER BY analytics.snapshot_task_rows.location ASC NULLS LAST',
+      taskName: 'ORDER BY analytics.snapshot_task_rows.task_name ASC NULLS LAST',
       createdDate: 'ORDER BY analytics.snapshot_task_rows.created_date ASC NULLS LAST',
       dueDate: 'ORDER BY analytics.snapshot_task_rows.due_date ASC NULLS LAST',
       priority: 'ORDER BY CASE WHEN analytics.snapshot_task_rows.major_priority <= 2000 THEN 4',
-      agentName: 'ORDER BY assignee ASC NULLS LAST',
+      agentName: 'ORDER BY analytics.snapshot_task_rows.assignee ASC NULLS LAST',
     };
 
     for (const key of sortKeys) {
@@ -448,7 +446,7 @@ describe('taskThinRepository', () => {
     expect(assignedCountQuery.sql).toContain("state = 'ASSIGNED'");
     expect(assignedCountQuery.sql).toContain('assignee IN');
     expect(assignedCountQuery.values).toContain('user-1');
-    expect(completedCountQuery.sql).toContain("LOWER(termination_reason) = 'completed'");
+    expect(completedCountQuery.sql).toContain("termination_reason = 'completed'");
     expect(completedCountQuery.sql).not.toContain("state IN ('COMPLETED', 'TERMINATED')");
     expect(completedCountQuery.sql).toContain('completed_date >=');
     expect(completedCountQuery.sql).toContain('completed_date <=');
@@ -473,14 +471,14 @@ describe('taskThinRepository', () => {
 
     await taskThinRepository.fetchUserOverviewCompletedTaskRows(snapshotId, {}, sort, { page: 1, pageSize: 20 });
     const completedRowsQuery = latestQuery();
-    expect(completedRowsQuery.sql).toContain("LOWER(termination_reason) = 'completed'");
+    expect(completedRowsQuery.sql).toContain("termination_reason = 'completed'");
     expect(completedRowsQuery.sql).not.toContain('completed_date >=');
     expect(completedRowsQuery.sql).not.toContain('completed_date <=');
 
     (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 4 }]);
     await taskThinRepository.fetchUserOverviewCompletedTaskCount(snapshotId, {});
     const completedCountQuery = latestQuery();
-    expect(completedCountQuery.sql).toContain("LOWER(termination_reason) = 'completed'");
+    expect(completedCountQuery.sql).toContain("termination_reason = 'completed'");
     expect(completedCountQuery.sql).not.toContain('completed_date >=');
     expect(completedCountQuery.sql).not.toContain('completed_date <=');
   });
@@ -505,20 +503,18 @@ describe('taskThinRepository', () => {
     const completedByTaskNameQuery = latestQuery();
     const completedByTaskNameNormalised = normaliseSql(completedByTaskNameQuery.sql);
     expect(completedByTaskNameNormalised).toContain('completed_date IS NOT NULL');
-    expect(completedByTaskNameNormalised).toContain("LOWER(termination_reason) = 'completed'");
-    expect(completedByTaskNameNormalised).toContain('COUNT(*)::int AS tasks');
+    expect(completedByTaskNameNormalised).toContain('SUM(tasks)::int AS tasks');
     expect(completedByTaskNameNormalised).toContain(
-      "SUM(COALESCE(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0))::double precision AS handling_time_sum"
+      'COALESCE(SUM(handling_time_sum), 0)::double precision AS handling_time_sum'
     );
-    expect(completedByTaskNameNormalised).toContain('COUNT(*)::int AS handling_time_count');
-    expect(completedByTaskNameNormalised).toContain('due_date_to_completed_diff_time');
     expect(completedByTaskNameNormalised).toContain(
-      "EXTRACT(EPOCH FROM due_date_to_completed_diff_time) / EXTRACT(EPOCH FROM INTERVAL '1 day')"
+      'COALESCE(SUM(days_beyond_sum), 0)::double precision AS days_beyond_sum'
     );
-    expect(completedByTaskNameNormalised).toContain('* -1');
+    expect(completedByTaskNameNormalised).toContain('tasks AS handling_time_count');
     expect(completedByTaskNameNormalised).toContain('AS days_beyond_sum');
-    expect(completedByTaskNameNormalised).toContain('COUNT(*)::int AS days_beyond_count');
-    expect(completedByTaskNameNormalised).toContain('FROM analytics.snapshot_task_rows');
+    expect(completedByTaskNameNormalised).toContain('tasks AS days_beyond_count');
+    expect(completedByTaskNameNormalised).toContain('FROM analytics.snapshot_user_completed_facts');
+    expect(completedByTaskNameNormalised).toContain('WITH aggregated AS');
     expect(completedByTaskNameNormalised).toContain('GROUP BY task_name');
     expect(completedByTaskNameNormalised).toContain('ORDER BY tasks DESC NULLS LAST, task_name ASC');
     expect(completedByTaskNameNormalised).toContain('assignee IN');
@@ -577,7 +573,7 @@ describe('taskThinRepository', () => {
     const assigneeIds = await taskThinRepository.fetchAssigneeIds(snapshotId);
     const assigneeQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[1][0];
 
-    expect(auditQuery.sql).toContain("LOWER(termination_reason) = 'completed'");
+    expect(auditQuery.sql).toContain("termination_reason = 'completed'");
     expect(auditQuery.sql).toContain("to_char(completed_date, 'YYYY-MM-DD') AS completed_date");
     expect(auditQuery.sql).toContain('outcome');
     expect(auditQuery.sql).toContain('ORDER BY completed_date DESC NULLS LAST');

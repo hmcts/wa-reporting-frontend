@@ -87,17 +87,17 @@ flowchart TB
   - Average handling time (days)
   - Average days beyond due date
 - Calculations:
-  - `Average handling time (days)` = `SUM(COALESCE(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0)) / COUNT(*)` for the filtered completed rows grouped by task name.
-  - `Average days beyond due date` = `SUM(COALESCE(EXTRACT(EPOCH FROM due_date_to_completed_diff_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0) * -1) / COUNT(*)` for the filtered completed rows grouped by task name.
-  - Rows with null interval values are still included in the denominator (`COUNT(*)`).
+  - `Average handling time (days)` = `SUM(handling_time_sum) / SUM(tasks)` for the filtered completed facts grouped by task name.
+  - `Average days beyond due date` = `SUM(days_beyond_sum) / SUM(tasks)` for the filtered completed facts grouped by task name.
+  - Denominators are tasks totals (`SUM(tasks)`), so rows represented by facts aggregates remain included in the average-count basis.
 - Default table sort is Tasks descending.
 
 ## Notes
 - CSV export is available for all tables.
 - The user filter is optional; if not selected, results span all users.
-- User Overview excludes records where `role_category_label` is Judicial (case-insensitive), so Judicial role category data is not shown in tables, charts, summaries, or role-category filter options on this page.
+- User Overview excludes records where `role_category_label` is `Judicial`, so Judicial role category data is not shown in tables, charts, summaries, or role-category filter options on this page.
 - Completed total is facts-backed from `analytics.snapshot_user_completed_facts` (`SUM(tasks)` within the active filters).
-- Completed tasks by task name remains row-level from `analytics.snapshot_task_rows` to preserve interval-based average calculations.
+- Completed tasks by task name is facts-backed from `analytics.snapshot_user_completed_facts` using task-level aggregate sums and counts.
 - AJAX section refreshes only load the requested section's data path (for example, completed-by-date data is fetched only for the completed-by-date section).
 - Sorting state and pagination are preserved through hidden form inputs.
 - The priority donut uses the GOV.UK palette mapping Urgent `#98285d` (purple), High `#16548a` (dark blue), Medium `#8eb8dc` (light blue), and Low `#cecece` (light grey).

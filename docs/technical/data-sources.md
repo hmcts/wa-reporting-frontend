@@ -229,7 +229,8 @@ Work type display values:
 Date filters:
 - completedFrom/completedTo -> completed_date in snapshot_task_rows or reference_date in snapshot_task_daily_facts.
 - eventsFrom/eventsTo -> reference_date in snapshot_task_daily_facts for created/completed/cancelled events.
-- User Overview page applies an additional scoped exclusion: `UPPER(role_category_label) <> 'JUDICIAL'` (null-safe), and this scoped rule is not applied on `/`, `/outstanding`, or `/completed`.
+- User Overview page applies an additional scoped exclusion: `role_category_label <> 'Judicial'` (null-safe), and this scoped rule is not applied on `/`, `/outstanding`, or `/completed`.
+- Repository query helpers now pass `excludeRoleCategories` values through as exact stored labels. They no longer case-fold values in SQL, so callers must pass canonical labels such as `Judicial`.
 
 ## Derived concepts and calculations
 
@@ -253,17 +254,23 @@ Within due date is computed as:
 - Otherwise, compare completed_date <= due_date
 
 ### Completed-task determination
-Completed tasks are determined by case-insensitive `termination_reason = 'completed'` across thin/facts query paths. Completed-state values such as `COMPLETED` or `TERMINATED` are not required for completed classification.
+Completed tasks are determined by exact-match `termination_reason = 'completed'` across thin/facts query paths. Completed-state values such as `COMPLETED` or `TERMINATED` are not required for completed classification.
 
 ### User Overview task-name average calculations
-For `/users` "Completed tasks by task name", averages are calculated from `analytics.snapshot_task_rows` interval columns (not from `snapshot_user_completed_facts` day-difference aggregates):
+For `/users` "Completed tasks by task name", aggregates are facts-backed from `analytics.snapshot_user_completed_facts`, grouped by `task_name`:
 
+- `tasks`:
+  - `SUM(tasks)`
+- `handling_time_sum`:
+  - `SUM(handling_time_sum)`
+- `days_beyond_sum`:
+  - `SUM(days_beyond_sum)`
 - Average handling time (days):
-  - `SUM(COALESCE(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0)) / COUNT(*)`
+  - `SUM(handling_time_sum) / SUM(tasks)`
 - Average days beyond due date:
-  - `SUM(COALESCE(EXTRACT(EPOCH FROM due_date_to_completed_diff_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'), 0) * -1) / COUNT(*)`
+  - `SUM(days_beyond_sum) / SUM(tasks)`
 
-Both formulas include rows with null intervals in the denominator (`COUNT(*)`) while treating null interval values as zero in the summed numerator.
+The count basis for both averages is `SUM(tasks)` (surfaced to the UI as both handling and days-beyond counts).
 
 ### User Overview completed totals
 For `/users` completed total, SQL sums `snapshot_user_completed_facts.tasks` within the selected filter scope:
@@ -274,7 +281,7 @@ This facts-backed count preserves User Overview filters (including optional assi
 
 ### Created-event determination
 Created events in task daily facts are determined by `created_date IS NOT NULL` (case state does not gate inclusion). For `date_role = 'created'`, `task_status` is derived as:
-- `completed` when `LOWER(termination_reason) = 'completed'`
+- `completed` when `termination_reason = 'completed'`
 - `open` when `state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`
 - `other` otherwise
 

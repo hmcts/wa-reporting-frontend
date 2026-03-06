@@ -31,10 +31,20 @@ describe('buildAnalyticsWhere', () => {
 
   test('adds role-category exclusion when query options are provided', () => {
     const sql = buildAnalyticsWhere({}, [Prisma.sql`snapshot_id = 7`], {
-      excludeRoleCategories: ['Judicial', ' Judicial '],
+      excludeRoleCategories: ['Judicial'],
     });
 
-    expect(sql.sql).toContain('UPPER(role_category_label) NOT IN');
-    expect(sql.values).toEqual(expect.arrayContaining(['JUDICIAL']));
+    expect(sql.sql).toContain('role_category_label NOT IN');
+    expect(sql.values).toEqual(expect.arrayContaining(['Judicial']));
+  });
+
+  test('uses excluded role categories exactly as provided', () => {
+    const sql = buildAnalyticsWhere({}, [Prisma.sql`snapshot_id = 7`], {
+      excludeRoleCategories: ['judicial'],
+    });
+
+    expect(sql.sql).toContain('role_category_label NOT IN');
+    expect(sql.values).toEqual(expect.arrayContaining(['judicial']));
+    expect(sql.values).not.toEqual(expect.arrayContaining(['Judicial']));
   });
 });

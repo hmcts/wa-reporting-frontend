@@ -41,8 +41,8 @@ describe('analytics cache', () => {
     const { buildSnapshotScopedCacheKey } = loadCacheModule();
 
     expect(buildSnapshotScopedCacheKey('filter-options', 11)).toBe('filter-options:11:default');
-    expect(buildSnapshotScopedCacheKey('filter-options', 11, 'excludeRoleCategories=JUDICIAL')).toBe(
-      'filter-options:11:excludeRoleCategories=JUDICIAL'
+    expect(buildSnapshotScopedCacheKey('filter-options', 11, 'excludeRoleCategories=Judicial')).toBe(
+      'filter-options:11:excludeRoleCategories=Judicial'
     );
   });
 });

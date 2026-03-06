@@ -141,8 +141,8 @@ describe('taskFactsRepository', () => {
     });
 
     const query = queryCall();
-    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
-    expect(query.values).toContain('JUDICIAL');
+    expect(query.sql).toContain('role_category_label NOT IN');
+    expect(query.values).toContain('Judicial');
   });
 
   test('omits assignee branch when user filter facet is disabled', async () => {
@@ -161,7 +161,7 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from, to });
     const query = queryCall();
 
-    expect(query.sql).toContain("LOWER(termination_reason) = 'completed'");
+    expect(query.sql).toContain("termination_reason = 'completed'");
     expect(query.sql).not.toContain("state IN ('COMPLETED', 'TERMINATED')");
     expect(query.sql).toContain('completed_date IS NOT NULL');
     expect(query.sql).toContain('completed_date >=');
@@ -181,8 +181,8 @@ describe('taskFactsRepository', () => {
     expect(query.sql).toContain("date_role = 'completed'");
     expect(query.sql).toContain("task_status = 'completed'");
     expect(query.sql).toContain('snapshot_id =');
-    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
-    expect(query.values).toContain('JUDICIAL');
+    expect(query.sql).toContain('role_category_label NOT IN');
+    expect(query.values).toContain('Judicial');
   });
 
   test('builds facts-backed user-overview completed count query with filters and query options', async () => {
@@ -209,9 +209,9 @@ describe('taskFactsRepository', () => {
     expect(query.sql).toContain('completed_date >=');
     expect(query.sql).toContain('completed_date <=');
     expect(query.sql).toContain('assignee IN');
-    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.sql).toContain('role_category_label NOT IN');
     expect(query.values).toEqual(
-      expect.arrayContaining([snapshotId, completedFrom, completedTo, 'user-1', 'Service A', 'JUDICIAL'])
+      expect.arrayContaining([snapshotId, completedFrom, completedTo, 'user-1', 'Service A', 'Judicial'])
     );
   });
 
@@ -412,7 +412,7 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
     expect(fromQuery.sql).toContain('snapshot_id =');
-    expect(fromQuery.sql).toContain("LOWER(termination_reason) = 'completed'");
+    expect(fromQuery.sql).toContain("termination_reason = 'completed'");
     expect(fromQuery.sql).toContain('completed_date IS NOT NULL');
     expect(fromQuery.sql).toContain("AVG(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'))");
     expect(fromQuery.sql).toContain(
@@ -426,7 +426,7 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { to });
     const toQuery = queryCall();
     expect(toQuery.sql).toContain('snapshot_id =');
-    expect(toQuery.sql).toContain("LOWER(termination_reason) = 'completed'");
+    expect(toQuery.sql).toContain("termination_reason = 'completed'");
     expect(toQuery.sql).toContain('completed_date IS NOT NULL');
     expect(toQuery.sql).toContain('completed_date <=');
     expect(toQuery.sql).not.toContain('completed_date >=');
