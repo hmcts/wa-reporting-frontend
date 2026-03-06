@@ -2,6 +2,7 @@
 import Plotly from 'plotly.js-basic-dist-min';
 
 import {
+  bindAutoFitYAxesOnXZoom,
   bindScrollPan,
   labelModebarButtons,
   renderCharts,
@@ -47,14 +48,19 @@ describe('analytics charts', () => {
 
   test('renders charts and labels modebar buttons', async () => {
     const chartNode = document.createElement('div');
+    const onSpy = jest.fn();
     chartNode.dataset.chartConfig = JSON.stringify({
       data: [{ y: ['A', 'B'] }],
       layout: { margin: { l: 10 } },
+      behaviors: {
+        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 }],
+      },
     });
     chartNode.dataset.scrollPan = 'true';
     (chartNode as unknown as { _fullLayout?: { yaxis?: { range?: [number, number] } } })._fullLayout = {
       yaxis: { range: [4, 0] },
     };
+    (chartNode as unknown as { on?: (event: string, handler: (eventData?: unknown) => void) => void }).on = onSpy;
     const modebar = document.createElement('a');
     modebar.className = 'modebar-btn';
     modebar.dataset.title = 'Download plot';
@@ -85,8 +91,153 @@ describe('analytics charts', () => {
     expect(Plotly.newPlot).toHaveBeenCalled();
     expect(modebar.getAttribute('aria-label')).toBe('Download plot');
     expect(chartNode.dataset.scrollPanBound).toBe('true');
+    expect(onSpy).toHaveBeenCalledWith('plotly_relayout', expect.any(Function));
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
+  });
+
+  test('auto-fits stacked-bar y ranges when the visible x window narrows', () => {
+    const node = document.createElement('div');
+    const plotlyNode = node as unknown as {
+      _fullLayout?: {
+        xaxis?: { range?: [unknown, unknown]; autorange?: boolean };
+        yaxis?: { range?: [number, number]; autorange?: boolean };
+      };
+      on?: (event: string, handler: (eventData?: unknown) => void) => void;
+    };
+
+    plotlyNode._fullLayout = {
+      xaxis: { range: ['2024-01-01', '2024-01-02'], autorange: false },
+      yaxis: { range: [0, 20], autorange: false },
+    };
+
+    let relayoutHandler: ((eventData?: unknown) => void) | undefined;
+    plotlyNode.on = jest.fn((_event: string, handler: (eventData?: unknown) => void) => {
+      relayoutHandler = handler;
+    });
+
+    bindAutoFitYAxesOnXZoom(node, {
+      data: [
+        { type: 'bar', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [1, 2, 10] },
+        { type: 'bar', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [0, 1, 5] },
+      ],
+      behaviors: {
+        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0.05, minUpperBound: 1 }],
+      },
+    });
+
+    relayoutHandler?.({ 'xaxis.range[0]': '2024-01-01', 'xaxis.range[1]': '2024-01-02' });
+
+    expect(Plotly.relayout).toHaveBeenCalledWith(node, {
+      'yaxis.autorange': false,
+      'yaxis.range': [0, 3.1500000000000004],
+    });
+  });
+
+  test('auto-fits line-only charts and ignores charts without auto-fit metadata', () => {
+    const node = document.createElement('div');
+    const plotlyNode = node as unknown as {
+      _fullLayout?: {
+        xaxis?: { range?: [unknown, unknown]; autorange?: boolean };
+        yaxis?: { range?: [number, number]; autorange?: boolean };
+      };
+      on?: (event: string, handler: (eventData?: unknown) => void) => void;
+    };
+
+    plotlyNode._fullLayout = {
+      xaxis: { range: ['2024-01-01', '2024-01-02'], autorange: false },
+      yaxis: { range: [0, 20], autorange: false },
+    };
+
+    let relayoutHandler: ((eventData?: unknown) => void) | undefined;
+    plotlyNode.on = jest.fn((_event: string, handler: (eventData?: unknown) => void) => {
+      relayoutHandler = handler;
+    });
+
+    bindAutoFitYAxesOnXZoom(node, {
+      data: [
+        { type: 'scatter', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [1, 3, 12] },
+        { type: 'scatter', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [2, 4, 10] },
+      ],
+      behaviors: {
+        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 }],
+      },
+    });
+
+    relayoutHandler?.({ 'xaxis.range[0]': '2024-01-01', 'xaxis.range[1]': '2024-01-02' });
+
+    expect(Plotly.relayout).toHaveBeenLastCalledWith(node, {
+      'yaxis.autorange': false,
+      'yaxis.range': [0, 4.2],
+    });
+
+    (Plotly.relayout as jest.Mock).mockClear();
+    bindAutoFitYAxesOnXZoom(document.createElement('div'), { data: [{ type: 'scatter', x: ['2024-01-01'], y: [1] }] });
+    expect(Plotly.relayout).not.toHaveBeenCalled();
+  });
+
+  test('auto-fits dual-axis charts and restores autorange on reset', async () => {
+    const node = document.createElement('div');
+    const plotlyNode = node as unknown as {
+      _fullLayout?: {
+        xaxis?: { range?: [unknown, unknown]; autorange?: boolean };
+        yaxis?: { range?: [number, number]; autorange?: boolean };
+        yaxis2?: { range?: [number, number]; autorange?: boolean };
+      };
+      on?: (event: string, handler: (eventData?: unknown) => void) => void;
+    };
+
+    plotlyNode._fullLayout = {
+      xaxis: { range: ['2024-01-01', '2024-01-02'], autorange: false },
+      yaxis: { range: [0, 20], autorange: false },
+      yaxis2: { range: [0, 20], autorange: false },
+    };
+
+    let relayoutHandler: ((eventData?: unknown) => void) | undefined;
+    plotlyNode.on = jest.fn((_event: string, handler: (eventData?: unknown) => void) => {
+      relayoutHandler = handler;
+    });
+
+    bindAutoFitYAxesOnXZoom(node, {
+      data: [
+        { type: 'bar', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [1, 2, 10] },
+        { type: 'bar', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [0, 1, 4] },
+        { type: 'scatter', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [2, 4, 20], yaxis: 'y2' },
+      ],
+      behaviors: {
+        autoFitYAxesOnXZoom: [
+          { axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0.05, minUpperBound: 1 },
+          { axis: 'y2', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 },
+        ],
+      },
+    });
+
+    relayoutHandler?.({ 'xaxis.range[0]': '2024-01-01', 'xaxis.range[1]': '2024-01-02' });
+    await flushPromises();
+
+    expect(Plotly.relayout).toHaveBeenLastCalledWith(node, {
+      'yaxis.autorange': false,
+      'yaxis.range': [0, 3.1500000000000004],
+      'yaxis2.autorange': false,
+      'yaxis2.range': [0, 4.2],
+    });
+
+    (Plotly.relayout as jest.Mock).mockClear();
+    plotlyNode._fullLayout = {
+      xaxis: { range: ['2024-01-01', '2024-01-03'], autorange: true },
+      yaxis: { range: [0, 20], autorange: false },
+      yaxis2: { range: [0, 20], autorange: false },
+    };
+
+    relayoutHandler?.({ 'xaxis.autorange': true });
+    await flushPromises();
+
+    expect(Plotly.relayout).toHaveBeenCalledWith(node, {
+      'yaxis.autorange': true,
+      'yaxis.range': null,
+      'yaxis2.autorange': true,
+      'yaxis2.range': null,
+    });
   });
 
   test('renders charts when HTML-escaped chart config contains apostrophes in chart labels', async () => {
