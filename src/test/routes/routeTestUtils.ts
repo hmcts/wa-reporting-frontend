@@ -9,6 +9,7 @@ type RouteAnalyticsMocks = {
   completedByNameRows?: unknown[];
   userOverviewAssignedTaskRows?: unknown[];
   userOverviewCompletedTaskRows?: unknown[];
+  userOverviewCompletedSummaryRows?: unknown[];
   userOverviewAssignedTaskCount?: number;
   userOverviewCompletedTaskCount?: number;
   outstandingCriticalTaskRows?: unknown[];
@@ -56,6 +57,7 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
   const completedByNameRows = analyticsMocks.completedByNameRows ?? [];
   const userOverviewAssignedTaskRows = analyticsMocks.userOverviewAssignedTaskRows ?? [];
   const userOverviewCompletedTaskRows = analyticsMocks.userOverviewCompletedTaskRows ?? [];
+  const userOverviewCompletedSummaryRows = analyticsMocks.userOverviewCompletedSummaryRows ?? [];
   const userOverviewAssignedTaskCount = analyticsMocks.userOverviewAssignedTaskCount ?? 0;
   const userOverviewCompletedTaskCount = analyticsMocks.userOverviewCompletedTaskCount ?? 0;
   const outstandingCriticalTaskRows = analyticsMocks.outstandingCriticalTaskRows ?? [];
@@ -85,6 +87,7 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
       fetchCompletedByNameRows: jest.fn().mockResolvedValue(completedByNameRows),
       fetchCompletedByLocationRows: jest.fn().mockResolvedValue([]),
       fetchCompletedByRegionRows: jest.fn().mockResolvedValue([]),
+      fetchUserOverviewCompletedSummaryRows: jest.fn().mockResolvedValue(userOverviewCompletedSummaryRows),
       fetchUserOverviewCompletedTaskCount: jest.fn().mockResolvedValue(userOverviewCompletedTaskCount),
     },
   }));

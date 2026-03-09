@@ -1,10 +1,8 @@
-import { completedComplianceSummaryService } from '../completed/visuals/completedComplianceSummaryService';
 import { emptyOverviewFilterOptions } from '../shared/filters';
 import type { FacetFilterKey } from '../shared/filters';
 import {
   fetchFacetedFilterStateWithFallback,
   fetchPublishedSnapshotContext,
-  normaliseDateRange,
   settledArrayWithFallback,
   settledValueWithFallback,
 } from '../shared/pageUtils';
@@ -106,7 +104,6 @@ export async function buildUserOverviewPage(
   const shouldFetchCompleted = shouldFetchSection(requestedSection, 'user-overview-completed');
   const shouldFetchCompletedByDate = shouldFetchSection(requestedSection, 'user-overview-completed-by-date');
   const shouldFetchCompletedByTaskName = shouldFetchSection(requestedSection, 'user-overview-completed-by-task-name');
-  const range = normaliseDateRange({ from: filters.completedFrom, to: filters.completedTo });
   const [assignedCountResult, completedCountResult] = await Promise.allSettled([
     shouldFetchAssigned
       ? taskThinRepository.fetchUserOverviewAssignedTaskCount(
@@ -195,13 +192,12 @@ export async function buildUserOverviewPage(
         )
       : Promise.resolve([]),
     shouldFetchCompleted
-      ? completedComplianceSummaryService.fetchCompletedSummary(
+      ? taskFactsRepository.fetchUserOverviewCompletedSummaryRows(
           snapshotContext.snapshotId,
           filters,
-          range,
           USER_OVERVIEW_QUERY_OPTIONS
         )
-      : Promise.resolve(null),
+      : Promise.resolve([]),
     shouldFetchAssigned || shouldFetchCompleted ? courtVenueService.fetchCourtVenueDescriptions() : Promise.resolve({}),
     shouldFetchAssigned || shouldFetchCompleted
       ? caseWorkerProfileService.fetchCaseWorkerProfileNames()
@@ -232,10 +228,10 @@ export async function buildUserOverviewPage(
     'Failed to fetch user overview completed by task name rows from database',
     []
   );
-  const completedCompliance = settledValueWithFallback(
+  const completedSummaryRows = settledValueWithFallback(
     completedComplianceResult,
-    'Failed to fetch completed compliance summary from database',
-    null
+    'Failed to fetch user overview completed summary from database',
+    []
   );
   const locationDescriptions = settledValueWithFallback(
     locationDescriptionsResult,
@@ -297,12 +293,13 @@ export async function buildUserOverviewPage(
     }),
     { tasks: 0, withinDue: 0 }
   );
+  const completedSummary = completedSummaryRows[0];
   const completedComplianceSummary = {
-    total: completedCompliance?.total ?? completedByDateTotals.tasks,
-    withinDueYes: completedCompliance?.within ?? completedByDateTotals.withinDue,
+    total: completedSummary?.total ?? completedByDateTotals.tasks,
+    withinDueYes: completedSummary?.within ?? completedByDateTotals.withinDue,
     withinDueNo:
-      completedCompliance?.within !== undefined
-        ? completedCompliance.total - completedCompliance.within
+      completedSummary?.within !== undefined
+        ? completedSummary.total - completedSummary.within
         : completedByDateTotals.tasks - completedByDateTotals.withinDue,
   };
 

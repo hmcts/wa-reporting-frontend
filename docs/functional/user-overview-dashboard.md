@@ -63,6 +63,7 @@ flowchart TB
   - Completed total
   - Within due date
   - Beyond due date
+- The summary panel and donut chart use the same active filter scope as the completed table, including the optional `User` filter and the completed date range.
 - Donut chart for within vs beyond due date.
 
 ### 3) Completed tasks by date
@@ -96,7 +97,7 @@ flowchart TB
 - CSV export is available for all tables.
 - The user filter is optional; if not selected, results span all users.
 - User Overview excludes records where `role_category_label` is Judicial (case-insensitive), so Judicial role category data is not shown in tables, charts, summaries, or role-category filter options on this page.
-- Completed total is facts-backed from `analytics.snapshot_user_completed_facts` (`SUM(tasks)` within the active filters).
+- Completed total and completed summary are facts-backed from `analytics.snapshot_user_completed_facts` (`SUM(tasks)` and `SUM(within_due)` within the active filters).
 - Completed tasks by task name remains row-level from `analytics.snapshot_task_rows` to preserve interval-based average calculations.
 - AJAX section refreshes only load the requested section's data path (for example, completed-by-date data is fetched only for the completed-by-date section).
 - Sorting state and pagination are preserved through hidden form inputs.

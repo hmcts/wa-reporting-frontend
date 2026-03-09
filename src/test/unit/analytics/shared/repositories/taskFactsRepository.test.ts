@@ -32,6 +32,7 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchOpenTasksSummaryRows(snapshotId, {});
     await taskFactsRepository.fetchTasksDuePriorityRows(snapshotId, {});
     await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, {}, range);
+    await taskFactsRepository.fetchUserOverviewCompletedSummaryRows(snapshotId, {});
     await taskFactsRepository.fetchUserOverviewCompletedTaskCount(snapshotId, {});
     await taskFactsRepository.fetchCompletedTimelineRows(snapshotId, {}, range);
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, range);
@@ -183,6 +184,38 @@ describe('taskFactsRepository', () => {
     expect(query.sql).toContain('snapshot_id =');
     expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
     expect(query.values).toContain('JUDICIAL');
+  });
+
+  test('builds facts-backed user-overview completed summary query with filters and query options', async () => {
+    const completedFrom = new Date('2024-08-01');
+    const completedTo = new Date('2024-08-31');
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 42, within: 30 }]);
+
+    const rows = await taskFactsRepository.fetchUserOverviewCompletedSummaryRows(
+      snapshotId,
+      {
+        service: ['Service A'],
+        user: ['user-1'],
+        completedFrom,
+        completedTo,
+      },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+    const query = queryCall();
+
+    expect(rows).toEqual([{ total: 42, within: 30 }]);
+    expect(query.sql).toContain('SELECT');
+    expect(query.sql).toContain('COALESCE(SUM(tasks), 0)::int AS total');
+    expect(query.sql).toContain('COALESCE(SUM(within_due), 0)::int AS within');
+    expect(query.sql).toContain('FROM analytics.snapshot_user_completed_facts');
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('completed_date >=');
+    expect(query.sql).toContain('completed_date <=');
+    expect(query.sql).toContain('assignee IN');
+    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.values).toEqual(
+      expect.arrayContaining([snapshotId, completedFrom, completedTo, 'user-1', 'Service A', 'JUDICIAL'])
+    );
   });
 
   test('builds facts-backed user-overview completed count query with filters and query options', async () => {

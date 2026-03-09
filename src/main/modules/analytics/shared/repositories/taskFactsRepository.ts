@@ -51,6 +51,24 @@ type OverviewFilterOptionsParams = {
 
 type OverviewFilterOptionsInput = OverviewFilterOptionsParams | AnalyticsQueryOptions | undefined;
 
+function buildUserOverviewCompletedFactsWhere(
+  snapshotId: number,
+  filters: AnalyticsFilters,
+  queryOptions?: AnalyticsQueryOptions
+): Prisma.Sql {
+  const conditions: Prisma.Sql[] = [asOfSnapshotCondition(snapshotId)];
+  if (filters.completedFrom) {
+    conditions.push(Prisma.sql`completed_date >= ${filters.completedFrom}`);
+  }
+  if (filters.completedTo) {
+    conditions.push(Prisma.sql`completed_date <= ${filters.completedTo}`);
+  }
+  if (filters.user && filters.user.length > 0) {
+    conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
+  }
+  return buildAnalyticsWhere(filters, conditions, queryOptions);
+}
+
 export class TaskFactsRepository {
   private resolveOverviewFilterOptionsParams(params: OverviewFilterOptionsInput): OverviewFilterOptionsParams {
     if (!params) {
@@ -522,22 +540,28 @@ export class TaskFactsRepository {
     `);
   }
 
+  async fetchUserOverviewCompletedSummaryRows(
+    snapshotId: number,
+    filters: AnalyticsFilters,
+    queryOptions?: AnalyticsQueryOptions
+  ): Promise<CompletedSummaryRow[]> {
+    const whereClause = buildUserOverviewCompletedFactsWhere(snapshotId, filters, queryOptions);
+
+    return tmPrisma.$queryRaw<CompletedSummaryRow[]>(Prisma.sql`
+      SELECT
+        COALESCE(SUM(tasks), 0)::int AS total,
+        COALESCE(SUM(within_due), 0)::int AS within
+      FROM analytics.snapshot_user_completed_facts
+      ${whereClause}
+    `);
+  }
+
   async fetchUserOverviewCompletedTaskCount(
     snapshotId: number,
     filters: AnalyticsFilters,
     queryOptions?: AnalyticsQueryOptions
   ): Promise<number> {
-    const conditions: Prisma.Sql[] = [asOfSnapshotCondition(snapshotId)];
-    if (filters.completedFrom) {
-      conditions.push(Prisma.sql`completed_date >= ${filters.completedFrom}`);
-    }
-    if (filters.completedTo) {
-      conditions.push(Prisma.sql`completed_date <= ${filters.completedTo}`);
-    }
-    if (filters.user && filters.user.length > 0) {
-      conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
-    }
-    const whereClause = buildAnalyticsWhere(filters, conditions, queryOptions);
+    const whereClause = buildUserOverviewCompletedFactsWhere(snapshotId, filters, queryOptions);
 
     const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
       SELECT COALESCE(SUM(tasks), 0)::int AS total
