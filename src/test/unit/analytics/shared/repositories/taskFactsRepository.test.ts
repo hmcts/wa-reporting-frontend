@@ -100,7 +100,7 @@ describe('taskFactsRepository', () => {
 
     expect(normalised).toContain('WITH option_rows AS');
     expect(normalised).toContain('deduped_options AS');
-    expect(normalised).toContain('FROM analytics.snapshot_filter_facet_facts');
+    expect(normalised).toContain('FROM analytics.snapshot_overview_filter_facts');
     expect(normalised).toContain('snapshot_id =');
     expect(normalised).toContain("SELECT 'service'::text AS option_type");
     expect(normalised).toContain("SELECT 'assignee'::text AS option_type");
@@ -162,11 +162,10 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from, to });
     const query = queryCall();
 
-    expect(query.sql).toContain("LOWER(termination_reason) = 'completed'");
-    expect(query.sql).not.toContain("state IN ('COMPLETED', 'TERMINATED')");
-    expect(query.sql).toContain('completed_date IS NOT NULL');
-    expect(query.sql).toContain('completed_date >=');
-    expect(query.sql).toContain('completed_date <=');
+    expect(query.sql).toContain("date_role = 'completed'");
+    expect(query.sql).toContain("task_status = 'completed'");
+    expect(query.sql).toContain('reference_date >=');
+    expect(query.sql).toContain('reference_date <=');
     expect(query.values).toEqual(expect.arrayContaining([from, to]));
   });
 
@@ -445,24 +444,24 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
     expect(fromQuery.sql).toContain('snapshot_id =');
-    expect(fromQuery.sql).toContain("LOWER(termination_reason) = 'completed'");
-    expect(fromQuery.sql).toContain('completed_date IS NOT NULL');
-    expect(fromQuery.sql).toContain("AVG(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'))");
-    expect(fromQuery.sql).toContain(
-      "STDDEV_POP(EXTRACT(EPOCH FROM processing_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'))"
-    );
-    expect(fromQuery.sql).toContain('COUNT(processing_time)::int AS processing_count');
-    expect(fromQuery.sql).toContain('completed_date >=');
-    expect(fromQuery.sql).not.toContain('completed_date <=');
+    expect(fromQuery.sql).toContain("date_role = 'completed'");
+    expect(fromQuery.sql).toContain("task_status = 'completed'");
+    expect(fromQuery.sql).toContain('SUM(handling_time_days_sum)::double precision AS handling_sum');
+    expect(fromQuery.sql).toContain('SUM(handling_time_days_sum_squares)::double precision');
+    expect(fromQuery.sql).toContain('SUM(processing_time_days_sum)::double precision AS processing_sum');
+    expect(fromQuery.sql).toContain('SUM(processing_time_days_sum_squares)::double precision');
+    expect(fromQuery.sql).toContain('SUM(processing_time_days_count)::int AS processing_count');
+    expect(fromQuery.sql).toContain('reference_date >=');
+    expect(fromQuery.sql).not.toContain('reference_date <=');
     expect(fromQuery.values).toEqual(expect.arrayContaining([from]));
 
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { to });
     const toQuery = queryCall();
     expect(toQuery.sql).toContain('snapshot_id =');
-    expect(toQuery.sql).toContain("LOWER(termination_reason) = 'completed'");
-    expect(toQuery.sql).toContain('completed_date IS NOT NULL');
-    expect(toQuery.sql).toContain('completed_date <=');
-    expect(toQuery.sql).not.toContain('completed_date >=');
+    expect(toQuery.sql).toContain("date_role = 'completed'");
+    expect(toQuery.sql).toContain("task_status = 'completed'");
+    expect(toQuery.sql).toContain('reference_date <=');
+    expect(toQuery.sql).not.toContain('reference_date >=');
     expect(toQuery.values).toEqual(expect.arrayContaining([to]));
   });
 });

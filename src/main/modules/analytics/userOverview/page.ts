@@ -262,6 +262,7 @@ export async function buildUserOverviewPage(
     : await fetchFacetedFilterStateWithFallback({
         errorMessage: 'Failed to fetch user overview filter options from database',
         snapshotId: snapshotContext.snapshotId,
+        scope: 'userOverview',
         filters,
         queryOptions: USER_OVERVIEW_QUERY_OPTIONS,
         changedFilter,
