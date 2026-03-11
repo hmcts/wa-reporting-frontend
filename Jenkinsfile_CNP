@@ -11,6 +11,8 @@ def yarnBuilder = new uk.gov.hmcts.contino.YarnBuilder(this)
 env.AUTH_ENABLED="false"
 
 withPipeline(type, product, component) {
+  enableDbMigration()
+
   def archiveTestReports = {
     steps.archiveArtifacts(
       allowEmptyArchive: true,
