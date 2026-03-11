@@ -48,5 +48,9 @@ reports/mutation/
 !.yarn/sdks
 !.yarn/versions
 
+.gradle/
 .codex
 !.codex/prompts
+EXECPLAN*
+
+test-review/

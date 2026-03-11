@@ -2,11 +2,44 @@
 
 @Library("Infrastructure")
 
+static LinkedHashMap<String, Object> secret(String secretName, String envVar) {
+  [
+    $class: 'AzureKeyVaultSecret',
+    secretType: 'Secret',
+    name: secretName,
+    version: '',
+    envVariable: envVar
+  ]
+}
+
 def type = "nodejs"
 def product = "wa"
 def component = "reporting-frontend"
 
 def yarnBuilder = new uk.gov.hmcts.contino.YarnBuilder(this)
+
+def loadFlywaySecrets = { String environmentName ->
+  loadVaultSecrets([
+    "wa-${environmentName}": [
+      secret('cft-task-POSTGRES-USER-FLEXIBLE-REPLICA', 'TM_DB_MIGRATION_USER'),
+      secret('cft-task-POSTGRES-PASS-FLEXIBLE-REPLICA', 'TM_DB_MIGRATION_PASSWORD')
+    ]
+  ])
+  env.TM_DB_REPLICA_HOST = "cft-task-postgres-db-flexible-replica--${environmentName}.postgres.database.azure.com"
+}
+
+def runFlywayMigration = { String environmentName ->
+  loadFlywaySecrets(environmentName)
+  sh '''
+    set -euo pipefail
+    cd db/flyway
+    ./gradlew --no-daemon \
+      -Dflyway.url="jdbc:postgresql://${TM_DB_REPLICA_HOST}:5432/cft_task_db?sslmode=verify-full" \
+      -Dflyway.user="${TM_DB_MIGRATION_USER}" \
+      -Dflyway.password="${TM_DB_MIGRATION_PASSWORD}" \
+      flywayValidate flywayMigrate
+  '''
+}
 
 env.AUTH_ENABLED="false"
 
@@ -28,6 +61,26 @@ withPipeline(type, product, component) {
 
   afterSuccess('test') {
     yarnBuilder.yarn('test:routes')
+  }
+
+  afterSuccess('buildinfra:aat') {
+    runFlywayMigration('aat')
+  }
+
+  afterSuccess('buildinfra:demo') {
+    runFlywayMigration('demo')
+  }
+
+  afterSuccess('buildinfra:ithc') {
+    runFlywayMigration('ithc')
+  }
+
+  afterSuccess('buildinfra:perftest') {
+    runFlywayMigration('perftest')
+  }
+
+  afterSuccess('buildinfra:prod') {
+    runFlywayMigration('prod')
   }
 
   afterAlways('test') {

@@ -66,6 +66,15 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
   - `location-ref-api-POSTGRES-USER` -> `rd-location-ref-api-POSTGRES-USER`
   - `location-ref-api-POSTGRES-PASS` -> `rd-location-ref-api-POSTGRES-PASS`
 
+### Flyway analytics migrations
+- The analytics schema is managed by Flyway migrations under `db/migrations/tm/`.
+- `db/migrations/tm/V001__init_analytics_schema.sql` is a repository-local copy of the previously deployed HMCTS analytics baseline from `wa-task-management-api` `V1.0.44__init_analytics_schema.sql`.
+- Later repository-owned migrations, including `V002__redesign_analytics_snapshot_schema.sql`, evolve that baseline to the schema expected by this application branch.
+- `db/flyway/` contains a minimal Gradle wrapper project used only for Flyway commands (`flywayInfo`, `flywayBaseline`, `flywayValidate`, `flywayMigrate`).
+- Existing environments that already match the HMCTS baseline need a one-time Flyway baseline to version `001`; new empty environments should run `flywayMigrate` directly.
+- Flyway must run against the TM primary host with write-capable credentials. The runtime application continues to use the TM read replica and must not run schema migrations on startup.
+- In Jenkins, the Flyway step is wired as an explicit post-`buildinfra` action for `aat`, `demo`, `ithc`, `perftest`, and `prod`, with `TM_DB_MIGRATION_USER` / `TM_DB_MIGRATION_PASSWORD` loaded inside that step from WA Key Vault secrets `cft-task-POSTGRES-USER-FLEXIBLE` and `cft-task-POSTGRES-PASS-FLEXIBLE`.
+
 ### Security and logging
 - `useCSRFProtection`.
 - `compression.enabled`: enables/disables HTTP compression middleware (default `false`).
@@ -117,6 +126,7 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 - `yarn build:watch` rebuilds frontend assets continuously via webpack watch mode.
 - `yarn build:server` compiles server TypeScript to `dist/`.
 - `yarn build:prod` builds assets and copies views/public into `dist/main`.
+- `db/flyway/gradlew` runs repository-owned Flyway commands for the TM analytics schema.
 
 ### Run
 - `yarn start` runs the compiled server from `dist/main/server.js`.
@@ -146,6 +156,7 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 - Registration is non-fatal: startup logs failures and continues serving requests.
 - Failure logs include structured error fields (`errorName`, `errorMessage`, optional `errorCode`/`errorDetail`/`errorHint`/`errorMeta`, and `errorStack`) to aid diagnosis in JSON logging mode.
 - Startup registration is idempotent: existing jobs matching `jobName` and `targetDatabase` are unscheduled before registering the configured definition.
+- This bootstrap does not initialize or advance Flyway schema history; Flyway remains a separate Jenkins-run concern.
 - Prerequisites:
   - `pg_cron` extension and `cron` schema/functions are available in `cronDatabase`.
   - The application DB role has permissions to read from `cron.job` and execute `cron.unschedule(...)` / `cron.schedule_in_database(...)`.

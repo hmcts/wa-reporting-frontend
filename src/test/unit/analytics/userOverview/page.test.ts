@@ -1,4 +1,3 @@
-import { completedComplianceSummaryService } from '../../../../main/modules/analytics/completed/visuals/completedComplianceSummaryService';
 import {
   fetchFacetedFilterStateWithFallback as fetchFilterOptionsWithFallback,
   fetchPublishedSnapshotContext,
@@ -7,12 +6,7 @@ import { taskFactsRepository, taskThinRepository } from '../../../../main/module
 import { caseWorkerProfileService, courtVenueService } from '../../../../main/modules/analytics/shared/services';
 import { getDefaultUserOverviewSort } from '../../../../main/modules/analytics/shared/userOverviewSort';
 import { buildUserOverviewPage } from '../../../../main/modules/analytics/userOverview/page';
-import { userOverviewService } from '../../../../main/modules/analytics/userOverview/service';
 import { buildUserOverviewViewModel } from '../../../../main/modules/analytics/userOverview/viewModel';
-
-jest.mock('../../../../main/modules/analytics/userOverview/service', () => ({
-  userOverviewService: { buildUserOverview: jest.fn() },
-}));
 
 jest.mock('../../../../main/modules/analytics/userOverview/viewModel', () => ({
   buildUserOverviewViewModel: jest.fn(),
@@ -35,34 +29,21 @@ jest.mock('../../../../main/modules/analytics/shared/services', () => ({
 
 jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
   taskFactsRepository: {
+    fetchUserOverviewAssignedSummaryRows: jest.fn(),
+    fetchUserOverviewCompletedSummaryRows: jest.fn(),
     fetchUserOverviewCompletedTaskCount: jest.fn(),
   },
   taskThinRepository: {
     fetchUserOverviewAssignedTaskRows: jest.fn(),
     fetchUserOverviewCompletedTaskRows: jest.fn(),
-    fetchUserOverviewAssignedTaskCount: jest.fn(),
     fetchUserOverviewCompletedByDateRows: jest.fn(),
     fetchUserOverviewCompletedByTaskNameRows: jest.fn(),
   },
 }));
 
-jest.mock('../../../../main/modules/analytics/completed/visuals/completedComplianceSummaryService', () => ({
-  completedComplianceSummaryService: { fetchCompletedSummary: jest.fn() },
-}));
-
 describe('buildUserOverviewPage', () => {
   const snapshotId = 104;
   const userOverviewQueryOptions = { excludeRoleCategories: ['Judicial'] };
-  const buildDefaultUserOverviewAggregate = () => ({
-    assigned: [],
-    completed: [],
-    prioritySummary: { urgent: 0, high: 0, medium: 0, low: 0 },
-    completedSummary: { total: 0, withinDueYes: 0, withinDueNo: 0 },
-    completedByDate: [],
-  });
-  const mockDefaultUserOverviewAggregate = () => {
-    (userOverviewService.buildUserOverview as jest.Mock).mockReturnValue(buildDefaultUserOverviewAggregate());
-  };
   const buildDefaultUserOverviewFilterState = () => ({
     filters: {},
     filterOptions: {
@@ -86,8 +67,9 @@ describe('buildUserOverviewPage', () => {
       publishedAt: new Date('2026-02-17T10:15:00.000Z'),
       freshnessInsetText: 'Data last refreshed: 17 February 2026 at 10:15 GMT.',
     });
-    (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(0);
+    (taskFactsRepository.fetchUserOverviewAssignedSummaryRows as jest.Mock).mockResolvedValue([]);
     (taskFactsRepository.fetchUserOverviewCompletedTaskCount as jest.Mock).mockResolvedValue(0);
+    (taskFactsRepository.fetchUserOverviewCompletedSummaryRows as jest.Mock).mockResolvedValue([]);
   });
 
   test('builds the assigned partial view model with filters and options', async () => {
@@ -130,9 +112,10 @@ describe('buildUserOverviewPage', () => {
         number_of_reassignments: 0,
       },
     ];
-    (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(2);
+    (taskFactsRepository.fetchUserOverviewAssignedSummaryRows as jest.Mock).mockResolvedValue([
+      { total: 2, urgent: 1, high: 0, medium: 0, low: 1 },
+    ]);
     (taskThinRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue(assignedRows);
-    mockDefaultUserOverviewAggregate();
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ Leeds: 'Leeds Crown Court' });
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({
       'user-1': 'Sam Taylor',
@@ -148,36 +131,15 @@ describe('buildUserOverviewPage', () => {
       { page: 1, pageSize: 50 },
       userOverviewQueryOptions
     );
-    expect(taskThinRepository.fetchUserOverviewAssignedTaskRows).toHaveBeenCalledWith(
+    expect(taskFactsRepository.fetchUserOverviewAssignedSummaryRows).toHaveBeenCalledWith(
       snapshotId,
       { user: ['user-1'] },
-      sort.assigned,
-      null,
       userOverviewQueryOptions
     );
     expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewCompletedByDateRows).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewCompletedByTaskNameRows).not.toHaveBeenCalled();
     expect(fetchFilterOptionsWithFallback).not.toHaveBeenCalled();
-    expect(userOverviewService.buildUserOverview).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({
-          caseId: 'CASE-1',
-          assignedDate: '2024-01-02',
-          priority: 'Urgent',
-          status: 'assigned',
-          totalAssignments: 1,
-          assigneeName: 'Sam Taylor',
-        }),
-        expect.objectContaining({
-          caseId: 'CASE-3',
-          assignedDate: '2024-01-06',
-          status: 'assigned',
-          totalAssignments: 1,
-          assigneeName: 'user-2',
-        }),
-      ])
-    );
     expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
         filters: { user: ['user-1'] },
@@ -185,11 +147,30 @@ describe('buildUserOverviewPage', () => {
         sort,
         assignedPage: 1,
         completedPage: 1,
-        assignedTasks: expect.any(Array),
+        assignedTasks: [
+          expect.objectContaining({
+            caseId: 'CASE-1',
+            assignedDate: '2024-01-02',
+            priority: 'Urgent',
+            status: 'assigned',
+            totalAssignments: 1,
+            assigneeName: 'Sam Taylor',
+          }),
+          expect.objectContaining({
+            caseId: 'CASE-3',
+            assignedDate: '2024-01-06',
+            status: 'assigned',
+            totalAssignments: 1,
+            assigneeName: 'user-2',
+          }),
+        ],
         completedTasks: expect.any(Array),
         completedByDate: expect.any(Array),
         completedByTaskName: expect.any(Array),
         assignedTotalResults: 2,
+        overview: expect.objectContaining({
+          prioritySummary: { urgent: 1, high: 0, medium: 0, low: 1 },
+        }),
       })
     );
     expect(viewModel).toEqual({ view: 'user-overview' });
@@ -207,7 +188,7 @@ describe('buildUserOverviewPage', () => {
     expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewCompletedByDateRows).not.toHaveBeenCalled();
     expect(taskThinRepository.fetchUserOverviewCompletedByTaskNameRows).not.toHaveBeenCalled();
-    expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).not.toHaveBeenCalled();
+    expect(taskFactsRepository.fetchUserOverviewAssignedSummaryRows).not.toHaveBeenCalled();
     expect(taskFactsRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -226,7 +207,7 @@ describe('buildUserOverviewPage', () => {
 
     const viewModel = await buildUserOverviewPage({}, sort, 1, 1, 'unknown-section');
 
-    expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).not.toHaveBeenCalled();
+    expect(taskFactsRepository.fetchUserOverviewAssignedSummaryRows).not.toHaveBeenCalled();
     expect(taskFactsRepository.fetchUserOverviewCompletedTaskCount).not.toHaveBeenCalled();
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -240,16 +221,17 @@ describe('buildUserOverviewPage', () => {
 
   test('supports legacy assigned ajax section alias', async () => {
     const sort = getDefaultUserOverviewSort();
-    (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(1);
+    (taskFactsRepository.fetchUserOverviewAssignedSummaryRows as jest.Mock).mockResolvedValue([
+      { total: 1, urgent: 1, high: 0, medium: 0, low: 0 },
+    ]);
     (taskThinRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue([]);
-    mockDefaultUserOverviewAggregate();
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-assigned-alias' });
 
     await buildUserOverviewPage({}, sort, 1, 1, 'assigned');
 
-    expect(taskThinRepository.fetchUserOverviewAssignedTaskCount).toHaveBeenCalledWith(
+    expect(taskFactsRepository.fetchUserOverviewAssignedSummaryRows).toHaveBeenCalledWith(
       snapshotId,
       {},
       userOverviewQueryOptions
@@ -267,9 +249,12 @@ describe('buildUserOverviewPage', () => {
     expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).not.toHaveBeenCalled();
   });
 
-  test('supports legacy completed ajax section alias and clamps oversized pages', async () => {
+  test('supports legacy completed ajax section alias, applies the user filter to summary data, and clamps oversized pages', async () => {
     const sort = getDefaultUserOverviewSort();
     (taskFactsRepository.fetchUserOverviewCompletedTaskCount as jest.Mock).mockResolvedValue(20000);
+    (taskFactsRepository.fetchUserOverviewCompletedSummaryRows as jest.Mock).mockResolvedValue([
+      { total: 1, within: 1 },
+    ]);
     (taskThinRepository.fetchUserOverviewCompletedTaskRows as jest.Mock).mockResolvedValue([
       {
         case_id: 'CASE-2',
@@ -291,38 +276,32 @@ describe('buildUserOverviewPage', () => {
       },
     ]);
     (taskThinRepository.fetchUserOverviewCompletedByDateRows as jest.Mock).mockResolvedValue([]);
-    (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock).mockResolvedValue({
-      total: 1,
-      within: 1,
-    });
-    mockDefaultUserOverviewAggregate();
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({
       'user-1': 'Sam Taylor',
     });
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-completed-alias' });
 
-    await buildUserOverviewPage({}, sort, 1, 999, 'completed');
+    await buildUserOverviewPage({ user: ['user-1'] }, sort, 1, 999, 'completed');
 
     expect(taskFactsRepository.fetchUserOverviewCompletedTaskCount).toHaveBeenCalledWith(
       snapshotId,
-      {},
+      { user: ['user-1'] },
+      userOverviewQueryOptions
+    );
+    expect(taskFactsRepository.fetchUserOverviewCompletedSummaryRows).toHaveBeenCalledWith(
+      snapshotId,
+      { user: ['user-1'] },
       userOverviewQueryOptions
     );
     expect(taskThinRepository.fetchUserOverviewCompletedTaskRows).toHaveBeenCalledWith(
       snapshotId,
-      {},
+      { user: ['user-1'] },
       sort.completed,
       {
         page: 10,
         pageSize: 50,
       },
-      userOverviewQueryOptions
-    );
-    expect(completedComplianceSummaryService.fetchCompletedSummary).toHaveBeenCalledWith(
-      snapshotId,
-      {},
-      undefined,
       userOverviewQueryOptions
     );
     expect(taskThinRepository.fetchUserOverviewCompletedByDateRows).not.toHaveBeenCalled();
@@ -337,9 +316,10 @@ describe('buildUserOverviewPage', () => {
 
   test('clamps oversized assigned page requests to the 500-result window', async () => {
     const sort = getDefaultUserOverviewSort();
-    (taskThinRepository.fetchUserOverviewAssignedTaskCount as jest.Mock).mockResolvedValue(20000);
+    (taskFactsRepository.fetchUserOverviewAssignedSummaryRows as jest.Mock).mockResolvedValue([
+      { total: 20000, urgent: 1, high: 2, medium: 3, low: 4 },
+    ]);
     (taskThinRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue([]);
-    mockDefaultUserOverviewAggregate();
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-clamped' });
@@ -391,7 +371,9 @@ describe('buildUserOverviewPage', () => {
     (taskThinRepository.fetchUserOverviewCompletedTaskRows as jest.Mock).mockResolvedValue([]);
     (taskThinRepository.fetchUserOverviewCompletedByDateRows as jest.Mock).mockResolvedValue([]);
     (taskThinRepository.fetchUserOverviewCompletedByTaskNameRows as jest.Mock).mockResolvedValue([]);
-    mockDefaultUserOverviewAggregate();
+    (taskFactsRepository.fetchUserOverviewAssignedSummaryRows as jest.Mock).mockResolvedValue([
+      { total: 1, urgent: 0, high: 0, medium: 1, low: 0 },
+    ]);
     mockDefaultUserOverviewFilterState();
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
@@ -399,20 +381,27 @@ describe('buildUserOverviewPage', () => {
 
     await buildUserOverviewPage({}, sort, 1, 1, 'user-overview-assigned');
 
-    expect(userOverviewService.buildUserOverview).toHaveBeenCalledWith([
+    expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
-        caseId: 'CASE-10',
-        service: '',
-        roleCategory: '',
-        region: '',
-        location: '',
-        taskName: '',
-        createdDate: '-',
-        withinSla: false,
-        assigneeName: undefined,
-        totalAssignments: 1,
-      }),
-    ]);
+        assignedTasks: [
+          expect.objectContaining({
+            caseId: 'CASE-10',
+            service: '',
+            roleCategory: '',
+            region: '',
+            location: '',
+            taskName: '',
+            createdDate: '-',
+            withinSla: false,
+            assigneeName: undefined,
+            totalAssignments: 1,
+          }),
+        ],
+        overview: expect.objectContaining({
+          prioritySummary: { urgent: 0, high: 0, medium: 1, low: 0 },
+        }),
+      })
+    );
   });
 
   test('defaults missing aggregates when mapping completed summaries', async () => {
@@ -430,8 +419,6 @@ describe('buildUserOverviewPage', () => {
         handling_time_count: 0,
       },
     ]);
-    (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock).mockResolvedValue({ total: 1, within: 1 });
-    mockDefaultUserOverviewAggregate();
     mockDefaultUserOverviewFilterState();
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
@@ -459,7 +446,6 @@ describe('buildUserOverviewPage', () => {
         days_beyond_count: 0,
       },
     ]);
-    mockDefaultUserOverviewAggregate();
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-task-name' });
 
     await buildUserOverviewPage({}, sort, 1, 1, 'user-overview-completed-by-task-name');
@@ -487,8 +473,6 @@ describe('buildUserOverviewPage', () => {
       },
     ]);
     (taskThinRepository.fetchUserOverviewCompletedByTaskNameRows as jest.Mock).mockResolvedValue([]);
-    (completedComplianceSummaryService.fetchCompletedSummary as jest.Mock).mockResolvedValue(null);
-    mockDefaultUserOverviewAggregate();
     mockDefaultUserOverviewFilterState();
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
@@ -501,5 +485,6 @@ describe('buildUserOverviewPage', () => {
         completedComplianceSummary: { total: 4, withinDueYes: 3, withinDueNo: 1 },
       })
     );
+    expect(taskFactsRepository.fetchUserOverviewCompletedSummaryRows).not.toHaveBeenCalled();
   });
 });

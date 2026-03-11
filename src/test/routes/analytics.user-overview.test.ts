@@ -29,6 +29,7 @@ const assignedHighPriorityRow = {
 beforeAll(async () => {
   ({ server, close: closeServer } = await buildRouteTestServer({
     analyticsMocks: {
+      userOverviewAssignedSummaryRows: [{ total: 1, urgent: 0, high: 1, medium: 0, low: 0 }],
       userOverviewAssignedTaskRows: [assignedHighPriorityRow],
       userOverviewAssignedTaskCount: 1,
     },

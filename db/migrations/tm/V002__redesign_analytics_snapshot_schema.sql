@@ -1,3 +1,5 @@
+-- Migrates the deployed HMCTS analytics baseline to the redesigned
+-- snapshot schema expected by this repository.
 CREATE SCHEMA IF NOT EXISTS analytics;
 
 -- ============================================================================
