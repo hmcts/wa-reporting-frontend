@@ -22,6 +22,7 @@ flyway {
   schemas = ['analytics']
   defaultSchema = 'analytics'
   table = 'flyway_schema_history'
+  baselineOnMigrate = true
   baselineVersion = '001'
   baselineDescription = 'init analytics schema'
 }
