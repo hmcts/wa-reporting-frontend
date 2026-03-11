@@ -38,15 +38,16 @@ withPipeline(type, product, component) {
     ) {
       env.TM_DB_REPLICA_HOST = "cft-task-postgres-db-flexible-replica-${environmentName}.postgres.database.azure.com"
 
-      sh '''
-      set -eu
-      cd db/flyway
-      ./gradlew --no-daemon \
-        -Dflyway.url="jdbc:postgresql://${TM_DB_REPLICA_HOST}:5432/cft_task_db?sslmode=verify-full" \
-        -Dflyway.user="${TM_DB_MIGRATION_USER}" \
-        -Dflyway.password="${TM_DB_MIGRATION_PASSWORD}" \
-        flywayValidate flywayMigrate
-      '''
+      dir("${env.WORKSPACE}/db/flyway") {
+        sh '''
+        set -eu
+        ./gradlew --no-daemon \
+          -Dflyway.url="jdbc:postgresql://${TM_DB_REPLICA_HOST}:5432/cft_task_db?sslmode=verify-full" \
+          -Dflyway.user="${TM_DB_MIGRATION_USER}" \
+          -Dflyway.password="${TM_DB_MIGRATION_PASSWORD}" \
+          flywayValidate flywayMigrate
+        '''
+      }
     }
   }
 
