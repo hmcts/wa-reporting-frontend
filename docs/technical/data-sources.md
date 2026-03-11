@@ -27,6 +27,7 @@ Performance review:
 - The post-redesign benchmark pass and current remaining opportunities live in [docs/technical/analytics-benchmark-report.md](/Users/danlysiak/development/hmcts/expressjs-speckit-powerbi/docs/technical/analytics-benchmark-report.md).
 - The redesign rationale and original review notes live in [docs/technical/analytics-query-performance-review.md](/Users/danlysiak/development/hmcts/expressjs-speckit-powerbi/docs/technical/analytics-query-performance-review.md).
 - The current schema described below is the implemented post-redesign state.
+- The `analytics` schema is owned in this repository through Flyway migrations under `db/migrations/tm/`.
 
 ```mermaid
 flowchart TB
@@ -45,6 +46,7 @@ All analytics reads are snapshot-scoped:
 - `snapshot_id = :snapshotId`
 
 Published snapshots are immutable. The app reads one selected snapshot at a time.
+The application reads these tables only; it does not apply Flyway migrations at startup.
 
 ### Snapshot metadata
 
@@ -329,6 +331,10 @@ Notes for all facet tables:
 - Blank strings are normalised to `NULL` at materialisation time.
 - Work type display labels are still resolved at read-time by joining `cft_task_db.work_types`.
 - User Overview still applies its query-time Judicial exclusion when reading row and fact queries.
+
+Flyway ownership note:
+- The current schema shape documented in this file is the target state produced by the repository-owned Flyway migrations under `db/migrations/tm/`.
+- Upstream dependencies remain external: Flyway does not create `cft_task_db.reportable_task` or `cft_task_db.work_types`.
 
 ## Reference data
 
