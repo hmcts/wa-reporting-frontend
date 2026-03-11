@@ -73,7 +73,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `db/flyway/` contains a minimal Gradle wrapper project used only for Flyway commands (`flywayInfo`, `flywayBaseline`, `flywayValidate`, `flywayMigrate`).
 - Existing environments that already match the HMCTS baseline need a one-time Flyway baseline to version `001`; new empty environments should run `flywayMigrate` directly.
 - Flyway is wired in Jenkins to use the TM replica host and replica credential secrets. The runtime application still does not run schema migrations on startup.
-- In Jenkins, the Flyway step is wired as an explicit post-`buildinfra` action for `aat`, `demo`, `ithc`, `perftest`, and `prod`, with `TM_DB_MIGRATION_USER` / `TM_DB_MIGRATION_PASSWORD` loaded inside that step from WA Key Vault secrets `cft-task-POSTGRES-USER-FLEXIBLE-REPLICA` and `cft-task-POSTGRES-PASS-FLEXIBLE-REPLICA`.
+- In Jenkins, the Flyway step is wired as an explicit post-`buildinfra` action for `aat`, `demo`, `ithc`, `perftest`, and `prod`, with `TM_DB_MIGRATION_USER` / `TM_DB_MIGRATION_PASSWORD` loaded inside that step from WA Key Vault secrets `cft-task-POSTGRES-USER-FLEXIBLE-REPLICA` and `cft-task-POSTGRES-PASS-FLEXIBLE-REPLICA`. The Flyway JDBC URL mirrors the Jenkins library Gradle migration pattern and uses `?ssl=true&sslmode=require`.
 
 ### Security and logging
 - `useCSRFProtection`.

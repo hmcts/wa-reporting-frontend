@@ -42,7 +42,7 @@ withPipeline(type, product, component) {
         sh '''
         set -eu
         ./gradlew --no-daemon \
-          -Dflyway.url="jdbc:postgresql://${TM_DB_REPLICA_HOST}:5432/cft_task_db?sslmode=verify-full" \
+          -Dflyway.url="jdbc:postgresql://${TM_DB_REPLICA_HOST}:5432/cft_task_db?ssl=true&sslmode=require" \
           -Dflyway.user="${TM_DB_MIGRATION_USER}" \
           -Dflyway.password="${TM_DB_MIGRATION_PASSWORD}" \
           flywayValidate flywayMigrate
