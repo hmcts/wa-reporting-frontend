@@ -1,10 +1,8 @@
-import { completedComplianceSummaryService } from '../completed/visuals/completedComplianceSummaryService';
 import { emptyOverviewFilterOptions } from '../shared/filters';
 import type { FacetFilterKey } from '../shared/filters';
 import {
   fetchFacetedFilterStateWithFallback,
   fetchPublishedSnapshotContext,
-  normaliseDateRange,
   settledArrayWithFallback,
   settledValueWithFallback,
 } from '../shared/pageUtils';
@@ -13,11 +11,12 @@ import { priorityLabelFromRank } from '../shared/priority/priorityRankSql';
 import type { AnalyticsQueryOptions } from '../shared/repositories';
 import { UserOverviewTaskRow, taskFactsRepository, taskThinRepository } from '../shared/repositories';
 import { caseWorkerProfileService, courtVenueService } from '../shared/services';
+import { PrioritySummary } from '../shared/types';
 import { AnalyticsFilters, Task, TaskStatus } from '../shared/types';
 import { UserOverviewSort } from '../shared/userOverviewSort';
 
 import { USER_OVERVIEW_PAGE_SIZE } from './pagination';
-import { CompletedByDatePoint, userOverviewService } from './service';
+import { CompletedByDatePoint, UserOverviewMetrics } from './service';
 import { CompletedByTaskNameAggregate } from './types';
 import { buildUserOverviewViewModel } from './viewModel';
 
@@ -106,15 +105,14 @@ export async function buildUserOverviewPage(
   const shouldFetchCompleted = shouldFetchSection(requestedSection, 'user-overview-completed');
   const shouldFetchCompletedByDate = shouldFetchSection(requestedSection, 'user-overview-completed-by-date');
   const shouldFetchCompletedByTaskName = shouldFetchSection(requestedSection, 'user-overview-completed-by-task-name');
-  const range = normaliseDateRange({ from: filters.completedFrom, to: filters.completedTo });
-  const [assignedCountResult, completedCountResult] = await Promise.allSettled([
+  const [assignedSummaryResult, completedCountResult] = await Promise.allSettled([
     shouldFetchAssigned
-      ? taskThinRepository.fetchUserOverviewAssignedTaskCount(
+      ? taskFactsRepository.fetchUserOverviewAssignedSummaryRows(
           snapshotContext.snapshotId,
           filters,
           USER_OVERVIEW_QUERY_OPTIONS
         )
-      : Promise.resolve(0),
+      : Promise.resolve([]),
     shouldFetchCompleted
       ? taskFactsRepository.fetchUserOverviewCompletedTaskCount(
           snapshotContext.snapshotId,
@@ -123,11 +121,13 @@ export async function buildUserOverviewPage(
         )
       : Promise.resolve(0),
   ]);
-  const assignedTotalResults = settledValueWithFallback(
-    assignedCountResult,
-    'Failed to fetch user overview assigned tasks count from database',
-    0
+  const assignedSummaryRows = settledValueWithFallback(
+    assignedSummaryResult,
+    'Failed to fetch user overview assigned summary from database',
+    []
   );
+  const assignedSummary = assignedSummaryRows[0];
+  const assignedTotalResults = assignedSummary?.total ?? 0;
   const completedTotalResults = settledValueWithFallback(
     completedCountResult,
     'Failed to fetch user overview completed tasks count from database',
@@ -140,7 +140,6 @@ export async function buildUserOverviewPage(
   const [
     assignedResult,
     completedResult,
-    assignedAllResult,
     completedByDateResult,
     completedByTaskNameResult,
     completedComplianceResult,
@@ -171,15 +170,6 @@ export async function buildUserOverviewPage(
           USER_OVERVIEW_QUERY_OPTIONS
         )
       : Promise.resolve([]),
-    shouldFetchAssigned
-      ? taskThinRepository.fetchUserOverviewAssignedTaskRows(
-          snapshotContext.snapshotId,
-          filters,
-          sort.assigned,
-          null,
-          USER_OVERVIEW_QUERY_OPTIONS
-        )
-      : Promise.resolve([]),
     shouldFetchCompletedByDate
       ? taskThinRepository.fetchUserOverviewCompletedByDateRows(
           snapshotContext.snapshotId,
@@ -195,13 +185,12 @@ export async function buildUserOverviewPage(
         )
       : Promise.resolve([]),
     shouldFetchCompleted
-      ? completedComplianceSummaryService.fetchCompletedSummary(
+      ? taskFactsRepository.fetchUserOverviewCompletedSummaryRows(
           snapshotContext.snapshotId,
           filters,
-          range,
           USER_OVERVIEW_QUERY_OPTIONS
         )
-      : Promise.resolve(null),
+      : Promise.resolve([]),
     shouldFetchAssigned || shouldFetchCompleted ? courtVenueService.fetchCourtVenueDescriptions() : Promise.resolve({}),
     shouldFetchAssigned || shouldFetchCompleted
       ? caseWorkerProfileService.fetchCaseWorkerProfileNames()
@@ -217,11 +206,6 @@ export async function buildUserOverviewPage(
     'Failed to fetch user overview completed tasks from database',
     []
   );
-  const assignedAllRows = settledArrayWithFallback(
-    assignedAllResult,
-    'Failed to fetch user overview assigned tasks for charts from database',
-    assignedRows
-  );
   const completedByDateRows = settledArrayWithFallback(
     completedByDateResult,
     'Failed to fetch user overview completed by date rows from database',
@@ -232,10 +216,10 @@ export async function buildUserOverviewPage(
     'Failed to fetch user overview completed by task name rows from database',
     []
   );
-  const completedCompliance = settledValueWithFallback(
+  const completedSummaryRows = settledValueWithFallback(
     completedComplianceResult,
-    'Failed to fetch completed compliance summary from database',
-    null
+    'Failed to fetch user overview completed summary from database',
+    []
   );
   const locationDescriptions = settledValueWithFallback(
     locationDescriptionsResult,
@@ -255,17 +239,13 @@ export async function buildUserOverviewPage(
     ...mapUserOverviewRow(row, caseWorkerNames),
     status: 'completed' as TaskStatus,
   }));
-  const assignedTasksAll = assignedAllRows.map(row => ({
-    ...mapUserOverviewRow(row, caseWorkerNames),
-    status: 'assigned' as TaskStatus,
-  }));
-  const allTasks = shouldFetchAssigned ? [...assignedTasksAll, ...completedTasks] : completedTasks;
-  const overview = userOverviewService.buildUserOverview(allTasks);
+  const allTasks = shouldFetchAssigned ? [...assignedTasks, ...completedTasks] : completedTasks;
   const facetedFilterState = requestedSection
     ? { filters, filterOptions: emptyOverviewFilterOptions() }
     : await fetchFacetedFilterStateWithFallback({
         errorMessage: 'Failed to fetch user overview filter options from database',
         snapshotId: snapshotContext.snapshotId,
+        scope: 'userOverview',
         filters,
         queryOptions: USER_OVERVIEW_QUERY_OPTIONS,
         changedFilter,
@@ -297,13 +277,55 @@ export async function buildUserOverviewPage(
     }),
     { tasks: 0, withinDue: 0 }
   );
+  const completedSummary = completedSummaryRows[0];
   const completedComplianceSummary = {
-    total: completedCompliance?.total ?? completedByDateTotals.tasks,
-    withinDueYes: completedCompliance?.within ?? completedByDateTotals.withinDue,
+    total: completedSummary?.total ?? completedByDateTotals.tasks,
+    withinDueYes: completedSummary?.within ?? completedByDateTotals.withinDue,
     withinDueNo:
-      completedCompliance?.within !== undefined
-        ? completedCompliance.total - completedCompliance.within
+      completedSummary?.within !== undefined
+        ? completedSummary.total - completedSummary.within
         : completedByDateTotals.tasks - completedByDateTotals.withinDue,
+  };
+  const prioritySummary: PrioritySummary = {
+    urgent: assignedSummary?.urgent ?? 0,
+    high: assignedSummary?.high ?? 0,
+    medium: assignedSummary?.medium ?? 0,
+    low: assignedSummary?.low ?? 0,
+  };
+  const overview: UserOverviewMetrics = {
+    assigned: assignedTasks.map(task => ({
+      caseId: task.caseId,
+      taskName: task.taskName,
+      createdDate: task.createdDate,
+      assignedDate: task.assignedDate,
+      dueDate: task.dueDate,
+      completedDate: task.completedDate,
+      handlingTimeDays: task.handlingTimeDays,
+      withinDue: null,
+      priority: task.priority,
+      totalAssignments: task.totalAssignments ?? 0,
+      assigneeName: task.assigneeName,
+      location: task.location,
+      status: task.status ?? 'assigned',
+    })),
+    completed: completedTasks.map(task => ({
+      caseId: task.caseId,
+      taskName: task.taskName,
+      createdDate: task.createdDate,
+      assignedDate: task.assignedDate,
+      dueDate: task.dueDate,
+      completedDate: task.completedDate,
+      handlingTimeDays: task.handlingTimeDays,
+      withinDue: task.withinSla,
+      priority: task.priority,
+      totalAssignments: task.totalAssignments ?? 0,
+      assigneeName: task.assigneeName,
+      location: task.location,
+      status: task.status ?? 'completed',
+    })),
+    prioritySummary,
+    completedSummary: completedComplianceSummary,
+    completedByDate,
   };
 
   return buildUserOverviewViewModel({
