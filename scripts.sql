@@ -1014,6 +1014,11 @@ BEGIN
       v_open_rows_partition_name
     );
     EXECUTE format(
+      'CREATE INDEX %I ON analytics.%I(created_date DESC NULLS LAST) WHERE state = ''ASSIGNED'' AND (role_category_label IS NULL OR UPPER(role_category_label) <> ''JUDICIAL'')',
+      format('ix_sotr_p_%s_uo_assigned_default', v_snapshot_id),
+      v_open_rows_partition_name
+    );
+    EXECUTE format(
       'CREATE INDEX %I ON analytics.%I(state, assignee, created_date DESC) WHERE assignee IS NOT NULL',
       format('ix_sotr_p_%s_state_assignee_created', v_snapshot_id),
       v_open_rows_partition_name
@@ -1042,6 +1047,11 @@ BEGIN
     EXECUTE format(
       'CREATE INDEX %I ON analytics.%I(completed_date DESC)',
       format('ix_sctr_p_%s_completed_date', v_snapshot_id),
+      v_completed_rows_partition_name
+    );
+    EXECUTE format(
+      'CREATE INDEX %I ON analytics.%I(completed_date DESC NULLS LAST) WHERE role_category_label IS NULL OR UPPER(role_category_label) <> ''JUDICIAL''',
+      format('ix_sctr_p_%s_uo_completed_default', v_snapshot_id),
       v_completed_rows_partition_name
     );
     EXECUTE format(

@@ -28,6 +28,7 @@ type PaginationOptions = {
 const WITHIN_DUE_SORT_SQL = Prisma.sql`within_due_sort_value`;
 const OPEN_TASK_ROWS_TABLE = 'analytics.snapshot_open_task_rows';
 const COMPLETED_TASK_ROWS_TABLE = 'analytics.snapshot_completed_task_rows';
+const OUTSTANDING_FILTER_FACTS_TABLE = 'analytics.snapshot_outstanding_filter_facts';
 const ROWS_ALIAS = 'rows';
 
 function qualifiedColumn(column: string, tableAlias = ROWS_ALIAS): Prisma.Sql {
@@ -452,13 +453,10 @@ export class TaskThinRepository {
   }
 
   async fetchOutstandingCriticalTaskCount(snapshotId: number, filters: AnalyticsFilters): Promise<number> {
-    const whereClause = buildAnalyticsWhere(filters, [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`state NOT IN ('COMPLETED', 'TERMINATED')`,
-    ]);
+    const whereClause = buildAnalyticsWhere(filters, [asOfSnapshotCondition(snapshotId)]);
     const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
-      SELECT COUNT(*)::int AS total
-      FROM ${Prisma.raw(OPEN_TASK_ROWS_TABLE)}
+      SELECT COALESCE(SUM(row_count), 0)::int AS total
+      FROM ${Prisma.raw(OUTSTANDING_FILTER_FACTS_TABLE)}
       ${whereClause}
     `);
     return rows[0]?.total ?? 0;

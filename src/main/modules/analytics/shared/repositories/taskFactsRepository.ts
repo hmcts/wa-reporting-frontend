@@ -24,6 +24,7 @@ import {
   SummaryTotalsRow,
   TaskEventsByServiceDbRow,
   TasksDuePriorityRow,
+  UserOverviewAssignedSummaryRow,
 } from './types';
 
 type OverviewFilterOptionKind =
@@ -571,6 +572,62 @@ export class TaskFactsRepository {
         COALESCE(SUM(within_due), 0)::int AS within
       FROM analytics.snapshot_user_completed_facts
       ${whereClause}
+    `);
+  }
+
+  async fetchUserOverviewAssignedSummaryRows(
+    snapshotId: number,
+    filters: AnalyticsFilters,
+    queryOptions?: AnalyticsQueryOptions
+  ): Promise<UserOverviewAssignedSummaryRow[]> {
+    if (filters.user && filters.user.length > 0) {
+      const conditions: Prisma.Sql[] = [asOfSnapshotCondition(snapshotId), Prisma.sql`state = 'ASSIGNED'`];
+      conditions.push(Prisma.sql`assignee IN (${Prisma.join(filters.user)})`);
+      const whereClause = buildAnalyticsWhere(filters, conditions, queryOptions);
+      const priorityRank = priorityRankSql({
+        priorityColumn: Prisma.raw('major_priority'),
+        dateColumn: Prisma.raw('due_date'),
+      });
+
+      return tmPrisma.$queryRaw<UserOverviewAssignedSummaryRow[]>(Prisma.sql`
+        SELECT
+          COUNT(*)::int AS total,
+          COALESCE(SUM(CASE WHEN ${priorityRank} = 4 THEN 1 ELSE 0 END), 0)::int AS urgent,
+          COALESCE(SUM(CASE WHEN ${priorityRank} = 3 THEN 1 ELSE 0 END), 0)::int AS high,
+          COALESCE(SUM(CASE WHEN ${priorityRank} = 2 THEN 1 ELSE 0 END), 0)::int AS medium,
+          COALESCE(SUM(CASE WHEN ${priorityRank} = 1 THEN 1 ELSE 0 END), 0)::int AS low
+        FROM analytics.snapshot_open_task_rows rows
+        ${whereClause}
+      `);
+    }
+
+    const conditions: Prisma.Sql[] = [
+      asOfSnapshotCondition(snapshotId),
+      Prisma.sql`date_role = 'due'`,
+      Prisma.sql`task_status = 'open'`,
+      Prisma.sql`assignment_state = 'Assigned'`,
+    ];
+    const whereClause = buildAnalyticsWhere(filters, conditions, queryOptions);
+    const priorityRank = priorityRankSql({
+      priorityColumn: Prisma.raw('priority'),
+      dateColumn: Prisma.raw('reference_date'),
+    });
+
+    return tmPrisma.$queryRaw<UserOverviewAssignedSummaryRow[]>(Prisma.sql`
+      WITH bucketed AS (
+        SELECT
+          task_count,
+          ${priorityRank} AS priority_rank
+        FROM analytics.snapshot_task_daily_facts
+        ${whereClause}
+      )
+      SELECT
+        COALESCE(SUM(task_count), 0)::int AS total,
+        COALESCE(SUM(CASE WHEN priority_rank = 4 THEN task_count ELSE 0 END), 0)::int AS urgent,
+        COALESCE(SUM(CASE WHEN priority_rank = 3 THEN task_count ELSE 0 END), 0)::int AS high,
+        COALESCE(SUM(CASE WHEN priority_rank = 2 THEN task_count ELSE 0 END), 0)::int AS medium,
+        COALESCE(SUM(CASE WHEN priority_rank = 1 THEN task_count ELSE 0 END), 0)::int AS low
+      FROM bucketed
     `);
   }
 

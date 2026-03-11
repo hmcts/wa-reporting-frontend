@@ -32,6 +32,7 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchOpenTasksSummaryRows(snapshotId, {});
     await taskFactsRepository.fetchTasksDuePriorityRows(snapshotId, {});
     await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, {}, range);
+    await taskFactsRepository.fetchUserOverviewAssignedSummaryRows(snapshotId, {});
     await taskFactsRepository.fetchUserOverviewCompletedSummaryRows(snapshotId, {});
     await taskFactsRepository.fetchUserOverviewCompletedTaskCount(snapshotId, {});
     await taskFactsRepository.fetchCompletedTimelineRows(snapshotId, {}, range);
@@ -215,6 +216,51 @@ describe('taskFactsRepository', () => {
     expect(query.values).toEqual(
       expect.arrayContaining([snapshotId, completedFrom, completedTo, 'user-1', 'Service A', 'JUDICIAL'])
     );
+  });
+
+  test('builds facts-backed user-overview assigned summary query when no user filter is active', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 42, urgent: 10, high: 11, medium: 12, low: 9 }]);
+
+    const rows = await taskFactsRepository.fetchUserOverviewAssignedSummaryRows(
+      snapshotId,
+      {
+        service: ['Service A'],
+      },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+    const query = queryCall();
+
+    expect(rows).toEqual([{ total: 42, urgent: 10, high: 11, medium: 12, low: 9 }]);
+    expect(query.sql).toContain('WITH bucketed AS');
+    expect(query.sql).toContain("date_role = 'due'");
+    expect(query.sql).toContain("task_status = 'open'");
+    expect(query.sql).toContain("assignment_state = 'Assigned'");
+    expect(query.sql).toContain('FROM analytics.snapshot_task_daily_facts');
+    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.sql).toContain('SUM(CASE WHEN priority_rank = 4 THEN task_count ELSE 0 END)');
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'Service A', 'JUDICIAL']));
+  });
+
+  test('builds row-aggregate user-overview assigned summary query when a user filter is active', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 7, urgent: 1, high: 2, medium: 3, low: 1 }]);
+
+    const rows = await taskFactsRepository.fetchUserOverviewAssignedSummaryRows(
+      snapshotId,
+      {
+        service: ['Service A'],
+        user: ['user-1'],
+      },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+    const query = queryCall();
+
+    expect(rows).toEqual([{ total: 7, urgent: 1, high: 2, medium: 3, low: 1 }]);
+    expect(query.sql).toContain("state = 'ASSIGNED'");
+    expect(query.sql).toContain('FROM analytics.snapshot_open_task_rows rows');
+    expect(query.sql).toContain('assignee IN');
+    expect(query.sql).toContain('major_priority');
+    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'user-1', 'Service A', 'JUDICIAL']));
   });
 
   test('builds facts-backed user-overview completed count query with filters and query options', async () => {

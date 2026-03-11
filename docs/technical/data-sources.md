@@ -101,7 +101,8 @@ Thin row store for row-backed open or otherwise not-completed task views.
 
 Used by:
 - `/users` assigned table and assigned count
-- `/outstanding` critical tasks table and count
+- `/users` assigned total and priority summary when a `User` filter is active
+- `/outstanding` critical tasks table
 
 Row population rule:
 - Includes source rows where `state NOT IN ('COMPLETED', 'TERMINATED')`
@@ -128,6 +129,7 @@ Required columns:
 Notes:
 - The `/users` assigned table adds `state = 'ASSIGNED'` on top of this table.
 - Priority rank is still calculated at query-time from `major_priority`, `due_date`, and `CURRENT_DATE`.
+- Child partitions also create a User Overview-specific partial index for the default assigned-table query: non-Judicial `state = 'ASSIGNED'` rows ordered by `created_date DESC NULLS LAST`.
 
 ### analytics.snapshot_completed_task_rows
 Thin row store for completed-task row views.
@@ -161,6 +163,9 @@ Required columns:
 - `assignee`
 - `number_of_reassignments`
 - `within_due_sort_value`
+
+Notes:
+- Child partitions also create a User Overview-specific partial index for the default completed-table query: non-Judicial rows ordered by `completed_date DESC NULLS LAST`.
 
 ### analytics.snapshot_user_completed_facts
 Assignee-aware completed-task facts for the User Overview page.
@@ -205,6 +210,7 @@ Used by:
 - `/` service overview
 - `/` task events by service
 - `/outstanding` open-task charts/tables backed by daily facts
+- `/users` assigned total and priority summary when no `User` filter is active
 - `/completed` completed summary
 - `/completed` completed timeline
 - `/completed` completed by name / region / location
@@ -245,6 +251,7 @@ Open-task classification inside daily facts:
 
 Notes:
 - `/completed` processing and handling time no longer scans row data; it reconstructs averages and population standard deviations from `sum`, `sum_squares`, and `count`.
+- `/users` assigned total and priority summary read this table only when no assignee filter is active, because `snapshot_task_daily_facts` is not assignee-aware.
 
 ### analytics.snapshot_wait_time_by_assigned_date
 Assigned-task wait-time facts.
@@ -298,6 +305,10 @@ Facet source for `/outstanding`.
 
 Population rule:
 - Aggregated from `snapshot_open_task_rows`
+
+Used by:
+- `/outstanding` shared filter options
+- `/outstanding` critical tasks total count
 
 #### analytics.snapshot_completed_filter_facts
 Facet source for `/completed`.

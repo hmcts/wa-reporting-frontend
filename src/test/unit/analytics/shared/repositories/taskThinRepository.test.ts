@@ -459,10 +459,27 @@ describe('taskThinRepository', () => {
     const query = latestQuery();
 
     expect(total).toBe(9);
-    expect(query.sql).toContain('COUNT(*)::int AS total');
+    expect(query.sql).toContain('COALESCE(SUM(row_count), 0)::int AS total');
     expect(query.sql).toContain('snapshot_id =');
-    expect(query.sql).toContain("state NOT IN ('COMPLETED', 'TERMINATED')");
+    expect(query.sql).toContain('FROM analytics.snapshot_outstanding_filter_facts');
+    expect(query.sql).not.toContain("state NOT IN ('COMPLETED', 'TERMINATED')");
     expect(query.values).toContain(snapshotId);
+    expect(query.values).toContain('North');
+  });
+
+  test('returns zero when outstanding critical task count query returns no rows', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([]);
+
+    const total = await taskThinRepository.fetchOutstandingCriticalTaskCount(snapshotId, {
+      service: ['Private Law'],
+      taskName: ['Review the appeal'],
+    });
+    const query = latestQuery();
+
+    expect(total).toBe(0);
+    expect(query.sql).toContain('FROM analytics.snapshot_outstanding_filter_facts');
+    expect(query.sql).toContain('COALESCE(SUM(row_count), 0)::int AS total');
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'Private Law', 'Review the appeal']));
   });
 
   test('omits completed date predicates when completed filters are not provided', async () => {
