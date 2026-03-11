@@ -29,23 +29,25 @@ withPipeline(type, product, component) {
   }
 
   def runFlywayMigration = { String environmentName ->
-    loadVaultSecrets([
-      "wa-${environmentName}": [
+    withAzureKeyvault(
+      azureKeyVaultSecrets: [
         secret('cft-task-POSTGRES-USER-FLEXIBLE-REPLICA', 'TM_DB_MIGRATION_USER'),
         secret('cft-task-POSTGRES-PASS-FLEXIBLE-REPLICA', 'TM_DB_MIGRATION_PASSWORD')
-      ]
-    ])
-    env.TM_DB_REPLICA_HOST = "cft-task-postgres-db-flexible-replica--${environmentName}.postgres.database.azure.com"
+      ],
+      keyVaultURLOverride: "https://wa-${environmentName}.vault.azure.net/"
+    ) {
+      env.TM_DB_REPLICA_HOST = "cft-task-postgres-db-flexible-replica-${environmentName}.postgres.database.azure.com"
 
-    sh '''
-      set -euo pipefail
+      sh '''
+      set -eu
       cd db/flyway
       ./gradlew --no-daemon \
         -Dflyway.url="jdbc:postgresql://${TM_DB_REPLICA_HOST}:5432/cft_task_db?sslmode=verify-full" \
         -Dflyway.user="${TM_DB_MIGRATION_USER}" \
         -Dflyway.password="${TM_DB_MIGRATION_PASSWORD}" \
         flywayValidate flywayMigrate
-    '''
+      '''
+    }
   }
 
   afterSuccess('build') {
