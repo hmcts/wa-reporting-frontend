@@ -44,8 +44,6 @@ def runFlywayMigration = { String environmentName ->
 env.AUTH_ENABLED="false"
 
 withPipeline(type, product, component) {
-  enableDbMigration('wa')
-
   def archiveTestReports = {
     steps.archiveArtifacts(
       allowEmptyArchive: true,
