@@ -79,6 +79,7 @@ export async function buildOverviewPage(
       : fetchFacetedFilterStateWithFallback({
           errorMessage: 'Failed to fetch overview filter options from database',
           snapshotId: snapshotContext.snapshotId,
+          scope: 'overview',
           filters,
           changedFilter,
           includeUserFilter: false,

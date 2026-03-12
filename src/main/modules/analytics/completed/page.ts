@@ -220,6 +220,7 @@ export async function buildCompletedPage(
     : await fetchFacetedFilterStateWithFallback({
         errorMessage: 'Failed to fetch completed filter options from database',
         snapshotId: snapshotContext.snapshotId,
+        scope: 'completed',
         filters,
         changedFilter,
         includeUserFilter: false,
