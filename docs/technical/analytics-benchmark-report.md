@@ -9,14 +9,20 @@ The pre-redesign rationale and original findings remain in [docs/technical/analy
 - On 2026-03-10, the `/users` assigned summary/count path was moved off the old full-row fetch, and the dedicated default-sort indexes for `/users` assigned and completed tables were implemented.
 - On 2026-03-11, a full `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` audit was rerun across the live query set used by the app.
 - On 2026-03-11, the `/outstanding` critical-task total count was moved from `snapshot_open_task_rows` to `snapshot_outstanding_filter_facts`.
-- Remaining substantial opportunities after that audit are:
+- On 2026-03-13, the strategic Overview split was implemented in schema and repository code:
+  - `analytics.snapshot_open_due_daily_facts` now owns the due/open aggregate workload used by `/`, `/outstanding`, and the no-user branch of `/users`
+  - `analytics.snapshot_task_event_daily_facts` now owns Overview created/completed/cancelled service events
+- On 2026-03-13, a local prototype against the current published snapshot confirmed the final grains and lean index set for those two new table families before the next cron-built snapshot publishes them.
+- Remaining substantial opportunities after that work are:
   - redesign the `/users` assignee filter source
+  - create dedicated facts for the remaining `created/open` and completed aggregate workloads when they become the next bottleneck
 
 ## Scope and method
 
 Benchmark dates:
 - 2026-03-10
 - 2026-03-11
+- 2026-03-13
 
 Environment:
 - local PostgreSQL instance configured from `config/default.json`
@@ -30,12 +36,15 @@ Dataset at benchmark time:
 - `analytics.snapshot_user_completed_facts_p_1`: `32,550` rows
 - `analytics.snapshot_task_daily_facts_p_1`: `254,591` rows
 - `analytics.snapshot_user_filter_facts_p_1`: `43,939` rows
+- `analytics.tmp_open_due_daily_facts`: `80,762` rows
+- `analytics.tmp_task_event_daily_facts_v2`: `115,373` rows
 
 Method:
 - representative SQL was taken from the live repository methods under `src/main/modules/analytics/shared/repositories/`
 - server timings used `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)`
 - where a query has more than one real runtime shape, each shape was benchmarked separately
 - the 2026-03-11 pass used the exact repository ordering semantics, including `ORDER BY rows.created_date`, `rows.completed_date`, and `rows.due_date`
+- the 2026-03-13 pass added disposable prototype tables projected from `analytics.snapshot_task_daily_facts_p_1` to validate the final dedicated-table grains and child-local indexes before schema migration
 - results are directional local-machine measurements, not production SLAs
 
 Important correction:
@@ -47,10 +56,13 @@ Important correction:
 
 | App path | Current source | Server execution | Notes |
 | --- | --- | ---: | --- |
+| `/` service overview | `tmp_open_due_daily_facts` prototype for `snapshot_open_due_daily_facts` | `54.1 ms` | parallel seq scan over the exact `due/open` slice only (`80,762` rows) |
+| `/` task events by service | `tmp_task_event_daily_facts_v2` prototype for `snapshot_task_event_daily_facts` | `12.2 ms` | final grain aggregates across priority; unique key on `(event_date, event_type, slicers...)` was sufficient without extra secondary indexes |
+| selective due/open aggregate | `tmp_open_due_daily_facts` with final slicer index set | `10.4 ms` | prototype stayed acceptable after dropping the experimental assignment-state and `UPPER(role_category_label)` indexes |
 | `/users` shared filter options | `snapshot_user_filter_facts` | `261.0 ms` | returns `42,754` raw option rows and still scans the user facet table |
 | `/outstanding` critical tasks total count (pre-change benchmark) | `snapshot_open_task_rows` | `114.8 ms` | old exact count did a full parallel scan of the open row table |
 | `/outstanding` critical tasks total count candidate / implemented replacement | `snapshot_outstanding_filter_facts` | `0.544 ms` | `SUM(row_count)` matched the old count exactly in benchmark checks |
-| `/` service overview | `snapshot_task_daily_facts` | `44.3 ms` | facts-backed and acceptable on the current local volume |
+| `/` service overview (historical pre-split benchmark) | `snapshot_task_daily_facts` | `44.3 ms` | earlier smaller-snapshot baseline before the dedicated-table redesign |
 | `/users` assigned table page 1 | `snapshot_open_task_rows` | `1.97 ms` | uses `ix_sotr_p_1_uo_assigned_default` |
 | `/users` completed table page 1 | `snapshot_completed_task_rows` | `0.114 ms` | uses `ix_sctr_p_1_uo_completed_default` |
 | `/outstanding` critical tasks page 1 | `snapshot_open_task_rows` | `0.11 ms` | uses `ix_sotr_p_1_due_date` |
@@ -58,12 +70,36 @@ Important correction:
 
 Summary:
 - the default row-page queries that previously looked suspicious are confirmed healthy
+- the dedicated-table prototype validates the strategic Overview split and keeps the moved due/open and event reads in the low tens of milliseconds on the current local snapshot
 - almost all remaining live queries are low tens of milliseconds or better
-- the only material remaining cost is `/users` user-filter options
+- the clearest remaining cost is `/users` user-filter options
 
 ## Findings
 
-### 1. `/users` assignee filter source is still the biggest open problem
+### 1. The dedicated Overview split was validated before migration
+
+Prototype shape:
+- `tmp_open_due_daily_facts`: projected from the `due/open` slice only, `80,762` rows on snapshot `1`
+- `tmp_task_event_daily_facts_v2`: projected from created/completed/cancelled rows and regrouped to the final event grain, `115,373` rows on snapshot `1`
+
+Important discovery:
+- the first event-table prototype still duplicated rows at the intended event grain because the old generic facts include `priority`
+- the final `snapshot_task_event_daily_facts` design therefore groups across priority and does not carry it as a column
+
+Prototype-backed index decisions:
+- `snapshot_open_due_daily_facts` keeps a unique key on `(due_date, jurisdiction_label, role_category_label, region, location, task_name, work_type, priority, assignment_state)` plus one shared slicer index on `(jurisdiction_label, role_category_label, region, location, task_name, work_type)`
+- `snapshot_task_event_daily_facts` keeps only a unique key on `(event_date, event_type, jurisdiction_label, role_category_label, region, location, task_name, work_type)`; extra slicer and `UPPER(role_category_label)` indexes were not needed on the current dataset
+
+Measured prototype results:
+- service overview on the open-due shape: `54.1 ms`
+- task events by service on the final event shape: `12.2 ms`
+- representative filtered due/open aggregate after dropping experimental secondary indexes: `10.4 ms`
+
+Conclusion:
+- the storage redesign is doing the useful work here
+- the remaining decision is when to move the not-yet-split created/open and completed aggregate workloads, not whether Overview needed dedicated facts
+
+### 2. `/users` assignee filter source is still the biggest open problem
 
 Measured current state on `snapshot_user_filter_facts_p_1`:
 - `42,754` raw option rows returned on initial render
@@ -88,7 +124,7 @@ What is not likely to help enough:
 - more indexes on `snapshot_user_filter_facts.assignee`
 - small rewrites of the current `GROUP BY assignee` query while it still returns `42k+` raw values
 
-### 2. `/outstanding` critical-task total count was a real hotspot, and the facts-backed replacement was validated
+### 3. `/outstanding` critical-task total count was a real hotspot, and the facts-backed replacement was validated
 
 Current behavior:
 - the critical-task page query itself is fast
@@ -140,7 +176,7 @@ Implemented direction:
 
 This closes the only non-`/users` hotspot that still stood out in the corrected full query-plan audit.
 
-### 3. The implemented `/users` row-page optimizations are now verified
+### 4. The implemented `/users` row-page optimizations are now verified
 
 Corrected query-plan audit results:
 - assigned page 1: `1.97 ms` using `ix_sotr_p_1_uo_assigned_default`
@@ -150,7 +186,7 @@ The relevant concern from the earlier benchmark draft is now closed:
 - the new default-sort indexes are being used by the live repository query shape
 - no further substantial work is justified on those two default page queries right now
 
-### 4. The Outstanding critical-task page query itself is also verified
+### 5. The Outstanding critical-task page query itself is also verified
 
 Corrected query-plan audit result:
 - page 1 default sort: `0.11 ms`
@@ -158,7 +194,7 @@ Corrected query-plan audit result:
 
 So the Outstanding row path does not need redesign. Only the exact count path remains expensive.
 
-### 5. Everything else is acceptable on the current local dataset
+### 6. Everything else is acceptable on the current local dataset
 
 After the corrected full audit, the following no longer justify another broad schema round on the current data volume:
 - `/` service overview
@@ -168,9 +204,9 @@ After the corrected full audit, the following no longer justify another broad sc
 - completed task audit, because it is keyed by case ID and already uses `ix_sctr_p_1_case_id_completed`
 
 A possible future secondary optimization still exists:
-- materialise `priority_bucket` directly into `snapshot_task_daily_facts`
+- split the remaining `created/open` and completed aggregates away from `snapshot_task_daily_facts`
 
-That could reduce repeated runtime `CASE` expressions in overview and outstanding fact queries, but current timings do not make it a substantial next step.
+That is the next strategic step if those workloads become the next bottleneck. The current implementation intentionally leaves them on the generic daily-facts table so the proven Overview hotspot can be fixed coherently first.
 
 ## Recommended next steps
 

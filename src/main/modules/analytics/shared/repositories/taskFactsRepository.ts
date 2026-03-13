@@ -123,14 +123,10 @@ export class TaskFactsRepository {
   }
 
   async fetchServiceOverviewRows(snapshotId: number, filters: AnalyticsFilters): Promise<ServiceOverviewDbRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'due'`,
-      Prisma.sql`task_status = 'open'`,
-    ]);
+    const whereClause = buildAnalyticsWhere(filters, [asOfSnapshotCondition(snapshotId)]);
     const priorityRank = priorityRankSql({
       priorityColumn: Prisma.raw('priority'),
-      dateColumn: Prisma.raw('reference_date'),
+      dateColumn: Prisma.raw('due_date'),
     });
 
     return tmPrisma.$queryRaw<ServiceOverviewDbRow[]>(Prisma.sql`
@@ -140,7 +136,7 @@ export class TaskFactsRepository {
           assignment_state,
           task_count,
           ${priorityRank} AS priority_rank
-        FROM analytics.snapshot_task_daily_facts
+        FROM analytics.snapshot_open_due_daily_facts
         ${whereClause}
       )
       SELECT
@@ -164,18 +160,17 @@ export class TaskFactsRepository {
   ): Promise<TaskEventsByServiceDbRow[]> {
     const whereClause = buildAnalyticsWhere(filters, [
       asOfSnapshotCondition(snapshotId),
-      Prisma.sql`reference_date >= ${range.from}`,
-      Prisma.sql`reference_date <= ${range.to}`,
-      Prisma.sql`date_role IN ('created', 'completed', 'cancelled')`,
+      Prisma.sql`event_date >= ${range.from}`,
+      Prisma.sql`event_date <= ${range.to}`,
     ]);
 
     return tmPrisma.$queryRaw<TaskEventsByServiceDbRow[]>(Prisma.sql`
       SELECT
         jurisdiction_label AS service,
-        SUM(CASE WHEN date_role = 'completed' THEN task_count ELSE 0 END)::int AS completed,
-        SUM(CASE WHEN date_role = 'cancelled' THEN task_count ELSE 0 END)::int AS cancelled,
-        SUM(CASE WHEN date_role = 'created' THEN task_count ELSE 0 END)::int AS created
-      FROM analytics.snapshot_task_daily_facts
+        SUM(CASE WHEN event_type = 'completed' THEN task_count ELSE 0 END)::int AS completed,
+        SUM(CASE WHEN event_type = 'cancelled' THEN task_count ELSE 0 END)::int AS cancelled,
+        SUM(CASE WHEN event_type = 'created' THEN task_count ELSE 0 END)::int AS created
+      FROM analytics.snapshot_task_event_daily_facts
       ${whereClause}
       GROUP BY jurisdiction_label
       ORDER BY service ASC
@@ -399,14 +394,10 @@ export class TaskFactsRepository {
   }
 
   async fetchOpenTasksByNameRows(snapshotId: number, filters: AnalyticsFilters): Promise<OpenTasksByNameRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'due'`,
-      Prisma.sql`task_status = 'open'`,
-    ]);
+    const whereClause = buildAnalyticsWhere(filters, [asOfSnapshotCondition(snapshotId)]);
     const priorityRank = priorityRankSql({
       priorityColumn: Prisma.raw('priority'),
-      dateColumn: Prisma.raw('reference_date'),
+      dateColumn: Prisma.raw('due_date'),
     });
 
     return tmPrisma.$queryRaw<OpenTasksByNameRow[]>(Prisma.sql`
@@ -415,7 +406,7 @@ export class TaskFactsRepository {
           task_name,
           task_count,
           ${priorityRank} AS priority_rank
-        FROM analytics.snapshot_task_daily_facts
+        FROM analytics.snapshot_open_due_daily_facts
         ${whereClause}
       )
       SELECT
@@ -434,14 +425,10 @@ export class TaskFactsRepository {
     snapshotId: number,
     filters: AnalyticsFilters
   ): Promise<OpenTasksByRegionLocationRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'due'`,
-      Prisma.sql`task_status = 'open'`,
-    ]);
+    const whereClause = buildAnalyticsWhere(filters, [asOfSnapshotCondition(snapshotId)]);
     const priorityRank = priorityRankSql({
       priorityColumn: Prisma.raw('priority'),
-      dateColumn: Prisma.raw('reference_date'),
+      dateColumn: Prisma.raw('due_date'),
     });
 
     return tmPrisma.$queryRaw<OpenTasksByRegionLocationRow[]>(Prisma.sql`
@@ -451,7 +438,7 @@ export class TaskFactsRepository {
           location,
           task_count,
           ${priorityRank} AS priority_rank
-        FROM analytics.snapshot_task_daily_facts
+        FROM analytics.snapshot_open_due_daily_facts
         ${whereClause}
       )
       SELECT
@@ -469,14 +456,10 @@ export class TaskFactsRepository {
   }
 
   async fetchOpenTasksSummaryRows(snapshotId: number, filters: AnalyticsFilters): Promise<SummaryTotalsRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'due'`,
-      Prisma.sql`task_status = 'open'`,
-    ]);
+    const whereClause = buildAnalyticsWhere(filters, [asOfSnapshotCondition(snapshotId)]);
     const priorityRank = priorityRankSql({
       priorityColumn: Prisma.raw('priority'),
-      dateColumn: Prisma.raw('reference_date'),
+      dateColumn: Prisma.raw('due_date'),
     });
 
     return tmPrisma.$queryRaw<SummaryTotalsRow[]>(Prisma.sql`
@@ -485,7 +468,7 @@ export class TaskFactsRepository {
           assignment_state,
           task_count,
           ${priorityRank} AS priority_rank
-        FROM analytics.snapshot_task_daily_facts
+        FROM analytics.snapshot_open_due_daily_facts
         ${whereClause}
       )
       SELECT
@@ -500,34 +483,30 @@ export class TaskFactsRepository {
   }
 
   async fetchTasksDuePriorityRows(snapshotId: number, filters: AnalyticsFilters): Promise<TasksDuePriorityRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'due'`,
-      Prisma.sql`task_status = 'open'`,
-    ]);
+    const whereClause = buildAnalyticsWhere(filters, [asOfSnapshotCondition(snapshotId)]);
     const priorityRank = priorityRankSql({
       priorityColumn: Prisma.raw('priority'),
-      dateColumn: Prisma.raw('reference_date'),
+      dateColumn: Prisma.raw('due_date'),
     });
 
     return tmPrisma.$queryRaw<TasksDuePriorityRow[]>(Prisma.sql`
       WITH bucketed AS (
         SELECT
-          reference_date,
+          due_date,
           task_count,
           ${priorityRank} AS priority_rank
-        FROM analytics.snapshot_task_daily_facts
+        FROM analytics.snapshot_open_due_daily_facts
         ${whereClause}
       )
       SELECT
-        to_char(reference_date, 'YYYY-MM-DD') AS date_key,
+        to_char(due_date, 'YYYY-MM-DD') AS date_key,
         SUM(CASE WHEN priority_rank = 4 THEN task_count ELSE 0 END)::int AS urgent,
         SUM(CASE WHEN priority_rank = 3 THEN task_count ELSE 0 END)::int AS high,
         SUM(CASE WHEN priority_rank = 2 THEN task_count ELSE 0 END)::int AS medium,
         SUM(CASE WHEN priority_rank = 1 THEN task_count ELSE 0 END)::int AS low
       FROM bucketed
-      GROUP BY reference_date
-      ORDER BY reference_date
+      GROUP BY due_date
+      ORDER BY due_date
     `);
   }
 
@@ -601,16 +580,11 @@ export class TaskFactsRepository {
       `);
     }
 
-    const conditions: Prisma.Sql[] = [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'due'`,
-      Prisma.sql`task_status = 'open'`,
-      Prisma.sql`assignment_state = 'Assigned'`,
-    ];
+    const conditions: Prisma.Sql[] = [asOfSnapshotCondition(snapshotId), Prisma.sql`assignment_state = 'Assigned'`];
     const whereClause = buildAnalyticsWhere(filters, conditions, queryOptions);
     const priorityRank = priorityRankSql({
       priorityColumn: Prisma.raw('priority'),
-      dateColumn: Prisma.raw('reference_date'),
+      dateColumn: Prisma.raw('due_date'),
     });
 
     return tmPrisma.$queryRaw<UserOverviewAssignedSummaryRow[]>(Prisma.sql`
@@ -618,7 +592,7 @@ export class TaskFactsRepository {
         SELECT
           task_count,
           ${priorityRank} AS priority_rank
-        FROM analytics.snapshot_task_daily_facts
+        FROM analytics.snapshot_open_due_daily_facts
         ${whereClause}
       )
       SELECT

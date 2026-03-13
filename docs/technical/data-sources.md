@@ -209,13 +209,10 @@ Notes:
 - `days_beyond_count` preserves `COUNT(*)` semantics for the `/users` completed-by-task-name average.
 
 ### analytics.snapshot_task_daily_facts
-Shared daily fact table for overview, outstanding, and completed dashboards.
+Shared daily fact table for the remaining created/open and completed aggregate workloads.
 
 Used by:
-- `/` service overview
-- `/` task events by service
-- `/outstanding` open-task charts/tables backed by daily facts
-- `/users` assigned total and priority summary when no `User` filter is active
+- `/outstanding` open-tasks created by assignment
 - `/completed` completed summary
 - `/completed` completed timeline
 - `/completed` completed by name / region / location
@@ -256,7 +253,67 @@ Open-task classification inside daily facts:
 
 Notes:
 - `/completed` processing and handling time no longer scans row data; it reconstructs averages and population standard deviations from `sum`, `sum_squares`, and `count`.
-- `/users` assigned total and priority summary read this table only when no assignee filter is active, because `snapshot_task_daily_facts` is not assignee-aware.
+
+### analytics.snapshot_open_due_daily_facts
+Open-task fact table for the shared due/open aggregate workload.
+
+Used by:
+- `/` service overview
+- `/outstanding` open-task summary
+- `/outstanding` open tasks by name
+- `/outstanding` open tasks by region/location
+- `/outstanding` tasks due by priority
+- `/users` assigned total and priority summary when no `User` filter is active
+
+Population rule:
+- Source rows where `due_date IS NOT NULL`
+- Only open-task classification (`state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`)
+- Grouped by shared slicers plus `due_date`, `priority`, and `assignment_state`
+
+Required columns:
+- `snapshot_id`
+- `due_date`
+- `jurisdiction_label`
+- `role_category_label`
+- `region`
+- `location`
+- `task_name`
+- `work_type`
+- `priority`
+- `assignment_state`
+- `task_count`
+
+Notes:
+- This table intentionally omits completed and created event slices.
+- Priority buckets are still derived at read time from `priority` and `due_date` so ageing snapshots preserve current semantics.
+
+### analytics.snapshot_task_event_daily_facts
+Overview event fact table for created, completed, and cancelled counts by date and shared slicers.
+
+Used by:
+- `/` task events by service
+
+Population rule:
+- Created rows where `created_date IS NOT NULL`
+- Completed rows where `completed_date IS NOT NULL` and `LOWER(termination_reason) = 'completed'`
+- Cancelled rows where `completed_date IS NOT NULL` and `LOWER(termination_reason) = 'deleted'`
+- Grouped by shared slicers plus `event_date` and `event_type`
+
+Required columns:
+- `snapshot_id`
+- `event_date`
+- `event_type`
+- `jurisdiction_label`
+- `role_category_label`
+- `region`
+- `location`
+- `task_name`
+- `work_type`
+- `task_count`
+
+Notes:
+- This table intentionally omits `priority` and `task_status`.
+- The refresh aggregates across those fields so Overview event counts cannot be duplicated by dimensions that the UI never groups on.
 
 ### analytics.snapshot_wait_time_by_assigned_date
 Assigned-task wait-time facts.
@@ -300,10 +357,9 @@ User-only extra column:
 Facet source for `/`.
 
 Population rule:
-- Aggregated from `snapshot_task_daily_facts`
-- Includes overview page workloads:
-  - `date_role = 'due' AND task_status = 'open'`
-  - `date_role IN ('created', 'completed', 'cancelled')`
+- Aggregated from the union of:
+  - `snapshot_open_due_daily_facts`
+  - `snapshot_task_event_daily_facts`
 
 #### analytics.snapshot_outstanding_filter_facts
 Facet source for `/outstanding`.

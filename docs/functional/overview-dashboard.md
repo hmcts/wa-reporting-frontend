@@ -55,3 +55,5 @@ flowchart LR
 ## Notes
 - The dashboard is designed for broad monitoring rather than deep drill-down.
 - All values are numeric and formatted for readability.
+- The open/assigned service table reads `analytics.snapshot_open_due_daily_facts`.
+- The created/completed/cancelled service table reads `analytics.snapshot_task_event_daily_facts`.

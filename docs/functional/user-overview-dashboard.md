@@ -97,7 +97,7 @@ flowchart TB
 - CSV export is available for all tables.
 - The user filter is optional; if not selected, results span all users.
 - User Overview excludes records where `role_category_label` is Judicial (case-insensitive), so Judicial role category data is not shown in tables, charts, summaries, or role-category filter options on this page.
-- Assigned total and priority summary are aggregate-backed. With no `User` filter selected, they read `analytics.snapshot_task_daily_facts`; when a `User` filter is selected, they fall back to a server-side aggregate on `analytics.snapshot_open_task_rows` so the summary still reflects the assignee exactly without loading all assigned rows into the app.
+- Assigned total and priority summary are aggregate-backed. With no `User` filter selected, they read `analytics.snapshot_open_due_daily_facts`; when a `User` filter is selected, they fall back to a server-side aggregate on `analytics.snapshot_open_task_rows` so the summary still reflects the assignee exactly without loading all assigned rows into the app.
 - The assigned table itself remains row-backed from `analytics.snapshot_open_task_rows`.
 - Completed total and completed summary are facts-backed from `analytics.snapshot_user_completed_facts` (`SUM(tasks)` and `SUM(within_due)` within the active filters).
 - Completed tasks by task name is facts-backed from `analytics.snapshot_user_completed_facts`, with refresh-time aggregates preserving the same average calculations as the previous row-level query.
