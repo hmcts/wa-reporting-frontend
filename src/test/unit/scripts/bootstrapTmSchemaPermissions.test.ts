@@ -14,7 +14,6 @@ type ScriptModule = {
   buildConnectionString: (env?: Record<string, string | undefined>) => string | undefined;
   bootstrapTmSchemaPermissions: (
     config?: {
-      enabled: boolean;
       connectionString?: string;
       dbReaderUsername: string;
     },
@@ -31,10 +30,8 @@ type ScriptModule = {
     }
   ) => Promise<void>;
   normaliseOptions: (options?: string) => string;
-  parseBoolean: (value?: string) => boolean;
   quoteIdentifier: (identifier: string) => string;
   resolveBootstrapConfig: (env?: Record<string, string | undefined>) => {
-    enabled: boolean;
     connectionString?: string;
     dbReaderUsername: string;
   };
@@ -79,7 +76,6 @@ describe('bootstrap-tm-schema-permissions script', () => {
 
     expect(
       resolveBootstrapConfig({
-        TM_SCHEMA_PERMISSIONS_BOOTSTRAP_ENABLED: 'true',
         TM_DB_HOST: 'tm.db.host',
         TM_DB_PORT: '5433',
         TM_DB_USER: 'bootstrap-user',
@@ -88,7 +84,6 @@ describe('bootstrap-tm-schema-permissions script', () => {
         TM_DB_OPTIONS: '?sslmode=require',
       })
     ).toEqual({
-      enabled: true,
       connectionString: 'postgresql://bootstrap-user:s3cret@tm.db.host:5433/analytics_db?sslmode=require',
       dbReaderUsername: DEFAULT_DB_READER_USERNAME,
     });
@@ -123,11 +118,9 @@ describe('bootstrap-tm-schema-permissions script', () => {
     );
   });
 
-  test('normalises boolean and option environment inputs', () => {
-    const { normaliseOptions, parseBoolean } = loadModule();
+  test('normalises option environment inputs', () => {
+    const { normaliseOptions } = loadModule();
 
-    expect(parseBoolean()).toBe(false);
-    expect(parseBoolean('On')).toBe(true);
     expect(normaliseOptions()).toBe('');
     expect(normaliseOptions(' ?sslmode=require')).toBe('sslmode=require');
   });
@@ -138,7 +131,6 @@ describe('bootstrap-tm-schema-permissions script', () => {
 
     process.env = {
       ...previousEnvironment,
-      TM_SCHEMA_PERMISSIONS_BOOTSTRAP_ENABLED: 'false',
       TM_DB_HOST: 'tm.db.host',
       TM_DB_USER: 'bootstrap-user',
       TM_DB_NAME: 'analytics_db',
@@ -156,36 +148,30 @@ describe('bootstrap-tm-schema-permissions script', () => {
 
       expect(buildConnectionString()).toBe('postgresql://bootstrap-user@tm.db.host:5432/analytics_db');
       expect(resolveBootstrapConfig()).toEqual({
-        enabled: false,
         connectionString: 'postgresql://bootstrap-user@tm.db.host:5432/analytics_db',
         dbReaderUsername: DEFAULT_DB_READER_USERNAME,
       });
 
       await expect(runFromEnvironment()).resolves.toBeUndefined();
-      await expect(bootstrapTmSchemaPermissions()).resolves.toBeUndefined();
 
-      expect(consoleInfoSpy).toHaveBeenCalledWith('TM schema permissions bootstrap disabled; skipping');
+      expect(connectMock).toHaveBeenCalledTimes(1);
+      expect(queryMock).toHaveBeenCalledWith('GRANT USAGE ON SCHEMA analytics TO "DTS JIT Access wa DB Reader SC"');
+      await expect(
+        bootstrapTmSchemaPermissions({
+          connectionString: 'postgresql://bootstrap-user@tm.db.host:5432/analytics_db',
+          dbReaderUsername: DEFAULT_DB_READER_USERNAME,
+        })
+      ).resolves.toBeUndefined();
+      expect(consoleInfoSpy).toHaveBeenCalledWith(
+        'Granted TM analytics schema permissions to configured DB reader role',
+        {
+          dbReaderUsername: DEFAULT_DB_READER_USERNAME,
+        }
+      );
     } finally {
       process.env = previousEnvironment;
       consoleInfoSpy.mockRestore();
     }
-  });
-
-  test('skips work when the bootstrap toggle is disabled', async () => {
-    const logger = { info: jest.fn(), warn: jest.fn() };
-    const { runFromEnvironment } = loadModule();
-
-    await expect(
-      runFromEnvironment(
-        {
-          TM_SCHEMA_PERMISSIONS_BOOTSTRAP_ENABLED: 'false',
-        },
-        { logger }
-      )
-    ).resolves.toBeUndefined();
-
-    expect(clientConstructorMock).not.toHaveBeenCalled();
-    expect(logger.info).toHaveBeenCalledWith('TM schema permissions bootstrap disabled; skipping');
   });
 
   test('runs the TM analytics schema grants inside a transaction', async () => {
@@ -194,7 +180,6 @@ describe('bootstrap-tm-schema-permissions script', () => {
 
     await bootstrapTmSchemaPermissions(
       {
-        enabled: true,
         connectionString: 'postgresql://bootstrap-user:s3cret@tm.db.host:5432/cft_task_db?sslmode=require',
         dbReaderUsername: 'DTS JIT Access wa DB Reader SC',
       },
@@ -219,14 +204,12 @@ describe('bootstrap-tm-schema-permissions script', () => {
     expect(endMock).toHaveBeenCalledTimes(1);
   });
 
-  test('fails fast when enabled without a resolvable connection string', async () => {
+  test('fails fast without a resolvable connection string', async () => {
     const { runFromEnvironment } = loadModule();
 
-    await expect(
-      runFromEnvironment({
-        TM_SCHEMA_PERMISSIONS_BOOTSTRAP_ENABLED: 'yes',
-      })
-    ).rejects.toThrow('Unable to resolve TM schema permissions bootstrap database URL');
+    await expect(runFromEnvironment({})).rejects.toThrow(
+      'Unable to resolve TM schema permissions bootstrap database URL'
+    );
 
     expect(clientConstructorMock).not.toHaveBeenCalled();
   });
@@ -242,7 +225,6 @@ describe('bootstrap-tm-schema-permissions script', () => {
     await expect(
       bootstrapTmSchemaPermissions(
         {
-          enabled: true,
           connectionString: 'postgresql://bootstrap-user:s3cret@tm.db.host:5432/cft_task_db?sslmode=require',
           dbReaderUsername: 'Reader "SC"',
         },

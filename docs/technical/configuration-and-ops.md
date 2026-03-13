@@ -110,7 +110,6 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `TM_DB_*`, `CRD_DB_*`, `LRD_DB_*`
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_KEY`
 - `SESSION_SECRET`, `SESSION_COOKIE_NAME`, `SESSION_APP_COOKIE_NAME`
-- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_ENABLED`
 - `TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME`
 - `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_URL`
 - `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_HOST`
@@ -174,7 +173,6 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 
 ### TM schema permissions bootstrap
 - `yarn bootstrap:tm-schema-permissions` grants `USAGE` on schema `analytics` and `SELECT` on all tables in that schema to a configured reader role.
-- The bootstrap is disabled unless `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_ENABLED=true` (the script also accepts common truthy forms such as `1`, `yes`, and `on`).
 - `TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME` defaults to `DTS JIT Access wa DB Reader SC`.
 - Connection resolution order is:
   - `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_URL`
@@ -182,4 +180,5 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
   - fallback TM env vars used by Jenkins or local shells: `TM_DB_PRIMARY_HOST` or `TM_DB_REPLICA_HOST` or `TM_DB_HOST`, plus `TM_DB_MIGRATION_USER` or `TM_DB_USER`, `TM_DB_MIGRATION_PASSWORD` or `TM_DB_PASSWORD`, `TM_DB_NAME`, `TM_DB_PORT`, and `TM_DB_OPTIONS`
 - The bootstrap is safe to rerun because repeated `GRANT` statements are idempotent for the target role.
 - This bootstrap is intentionally external to application startup: the runtime service remains read-only and should continue to use its normal TM read connection.
-- In Jenkins, the bootstrap runs after Flyway on `demo` and `prod`, so grants are re-applied after schema changes create new analytics tables in those environments.
+- In Jenkins, the Demo and Prod stages invoke the bootstrap directly after Flyway, so stage selection is the environment toggle.
+- The Demo bootstrap overrides `TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME` to `DTS CFT DB Access Reader`; the Prod bootstrap invocation does not set a stage-specific reader username.

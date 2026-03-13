@@ -5,17 +5,7 @@ const DEFAULT_TM_DATABASE = 'cft_task_db';
 const DEFAULT_TM_PORT = '5432';
 const DEFAULT_TM_OPTIONS = 'ssl=true&sslmode=require';
 
-const truthyValues = new Set(['1', 'true', 'yes', 'on']);
-
 const firstDefined = (...values) => values.find(value => value !== undefined);
-
-const parseBoolean = value => {
-  if (typeof value !== 'string') {
-    return false;
-  }
-
-  return truthyValues.has(value.trim().toLowerCase());
-};
 
 const normaliseOptions = options => {
   if (typeof options !== 'string') {
@@ -72,7 +62,6 @@ const buildConnectionString = (env = process.env) => {
 };
 
 const resolveBootstrapConfig = (env = process.env) => ({
-  enabled: parseBoolean(env.TM_SCHEMA_PERMISSIONS_BOOTSTRAP_ENABLED),
   connectionString: buildConnectionString(env),
   dbReaderUsername: env.TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME || DEFAULT_DB_READER_USERNAME,
 });
@@ -81,11 +70,6 @@ const bootstrapTmSchemaPermissions = async (
   config = resolveBootstrapConfig(),
   { ClientCtor = Client, logger = console } = {}
 ) => {
-  if (!config.enabled) {
-    logger.info('TM schema permissions bootstrap disabled; skipping');
-    return;
-  }
-
   if (!config.connectionString) {
     throw new Error('Unable to resolve TM schema permissions bootstrap database URL');
   }
@@ -125,7 +109,6 @@ module.exports = {
   buildConnectionString,
   bootstrapTmSchemaPermissions,
   normaliseOptions,
-  parseBoolean,
   quoteIdentifier,
   resolveBootstrapConfig,
   runFromEnvironment,
