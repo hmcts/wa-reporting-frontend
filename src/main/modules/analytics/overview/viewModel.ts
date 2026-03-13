@@ -73,11 +73,21 @@ function buildOverviewTotalsRow(totals: OverviewResponse['totals']): TableRow {
 }
 
 function buildTaskEventsRows(rows: TaskEventsRow[]): TableRows {
-  return rows.map(row => [{ text: row.service }, buildNumericCell(row.created), buildNumericCell(row.completed)]);
+  return rows.map(row => [
+    { text: row.service },
+    buildNumericCell(row.created),
+    buildNumericCell(row.completed),
+    buildNumericCell(row.cancelled),
+  ]);
 }
 
 function buildTaskEventsTotalsRow(totals: TaskEventsRow): TableRow {
-  return [buildTotalLabelCell(totals.service), buildNumericCell(totals.created), buildNumericCell(totals.completed)];
+  return [
+    buildTotalLabelCell(totals.service),
+    buildNumericCell(totals.created),
+    buildNumericCell(totals.completed),
+    buildNumericCell(totals.cancelled),
+  ];
 }
 
 export function buildOverviewViewModel(params: {
