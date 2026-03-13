@@ -4,6 +4,7 @@ const endMock = jest.fn();
 const clientConstructorMock = jest.fn();
 
 jest.mock('pg', () => ({
+  escapeIdentifier: jest.requireActual('pg').escapeIdentifier,
   Client: function (...args: unknown[]) {
     return clientConstructorMock(...args);
   },
@@ -30,7 +31,7 @@ type ScriptModule = {
     }
   ) => Promise<void>;
   normaliseOptions: (options?: string) => string;
-  quoteIdentifier: (identifier: string) => string;
+  validateIdentifier: (identifier: string) => void;
   resolveBootstrapConfig: (env?: Record<string, string | undefined>) => {
     connectionString?: string;
     dbReaderUsername: string;
@@ -108,12 +109,12 @@ describe('bootstrap-tm-schema-permissions script', () => {
     ).toBe('postgresql://readonly@tm.db.host:5432/cft_task_db');
   });
 
-  test('quotes role identifiers safely', () => {
-    const { quoteIdentifier } = loadModule();
+  test('validates role identifiers before passing them to pg escaping', () => {
+    const { validateIdentifier } = loadModule();
 
-    expect(quoteIdentifier('DTS JIT Access wa DB Reader SC')).toBe('"DTS JIT Access wa DB Reader SC"');
-    expect(quoteIdentifier('Reader "SC"')).toBe('"Reader ""SC"""');
-    expect(() => quoteIdentifier('   ')).toThrow(
+    expect(validateIdentifier('DTS JIT Access wa DB Reader SC')).toBeUndefined();
+    expect(validateIdentifier('Reader "SC"')).toBeUndefined();
+    expect(() => validateIdentifier('   ')).toThrow(
       'TM schema permissions bootstrap requires a non-empty dbReaderUsername'
     );
   });

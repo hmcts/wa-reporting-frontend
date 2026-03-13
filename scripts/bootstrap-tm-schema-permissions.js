@@ -1,4 +1,4 @@
-const { Client } = require('pg');
+const { Client, escapeIdentifier } = require('pg');
 
 const DEFAULT_DB_READER_USERNAME = 'DTS JIT Access wa DB Reader SC';
 const DEFAULT_TM_DATABASE = 'cft_task_db';
@@ -20,12 +20,10 @@ const normaliseOptions = options => {
   return trimmedOptions.replace(/^\?+/, '');
 };
 
-const quoteIdentifier = identifier => {
+const validateIdentifier = identifier => {
   if (typeof identifier !== 'string' || identifier.trim() === '') {
     throw new Error('TM schema permissions bootstrap requires a non-empty dbReaderUsername');
   }
-
-  return `"${identifier.replace(/"/g, '""')}"`;
 };
 
 const buildConnectionString = (env = process.env) => {
@@ -75,7 +73,8 @@ const bootstrapTmSchemaPermissions = async (
   }
 
   const client = new ClientCtor({ connectionString: config.connectionString });
-  const quotedDbReaderUsername = quoteIdentifier(config.dbReaderUsername);
+  validateIdentifier(config.dbReaderUsername);
+  const quotedDbReaderUsername = escapeIdentifier(config.dbReaderUsername);
 
   await client.connect();
 
@@ -109,9 +108,9 @@ module.exports = {
   buildConnectionString,
   bootstrapTmSchemaPermissions,
   normaliseOptions,
-  quoteIdentifier,
   resolveBootstrapConfig,
   runFromEnvironment,
+  validateIdentifier,
 };
 
 /* istanbul ignore next */
