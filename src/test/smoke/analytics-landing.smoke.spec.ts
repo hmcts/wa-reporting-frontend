@@ -7,4 +7,6 @@ test('analytics landing page loads @smoke', async ({ page }) => {
   await analyticsLandingPage.goto();
 
   await expect(analyticsLandingPage.heading).toBeVisible();
+  await expect(analyticsLandingPage.taskEventsHeading).toBeVisible();
+  await expect(analyticsLandingPage.taskEventsCancelledHeader).toBeVisible();
 });

@@ -244,7 +244,7 @@ Date-role semantics:
 - `due`: rows with `due_date IS NOT NULL` and either open-state tasks or completed tasks
 - `created`: rows with `created_date IS NOT NULL`
 - `completed`: completed tasks with `completed_date IS NOT NULL`
-- `cancelled`: cancelled/terminated tasks with `completed_date IS NOT NULL`
+- `cancelled`: deleted tasks with `completed_date IS NOT NULL`
 
 Open-task classification inside daily facts:
 - `open` when `state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`
@@ -409,6 +409,10 @@ Within due date is computed as:
 ### Completed-task determination
 Completed-task paths use case-insensitive `termination_reason = 'completed'`.
 Task `state` is not used to classify completion.
+
+### Cancelled-event determination
+Overview cancelled task events use case-insensitive `termination_reason = 'deleted'`.
+The facts-backed metric stores those rows as `date_role = 'cancelled'` and `task_status = 'cancelled'`, and it does not apply an additional `state` predicate.
 
 ### User Overview task-name averages
 `/users` "Completed tasks by task name" preserves the previous averages while reading facts instead of rows:
