@@ -76,6 +76,7 @@ Current refresh shape:
 - Creates a narrow temp staging table with only the columns and derived values needed by the app.
 - Builds detached per-snapshot tables for every snapshot parent before publish.
 - Loads thin row tables first, then facts, then page-scoped facet tables.
+- Populates `analytics.snapshot_completed_dashboard_facts` directly from `tmp_snapshot_fact_source` for the `/completed` aggregate workload.
 - Creates the generic task-daily child index on `(snapshot_id, date_role, reference_date)` for each detached `snapshot_task_daily_facts` partition.
 - Runs `ANALYZE` on every detached snapshot table before publish.
 - Commits the detached build tables before publish, then opens a short publish transaction that only attaches those tables as partitions and updates `analytics.snapshot_state`.
@@ -210,14 +211,11 @@ Notes:
 - `days_beyond_count` preserves `COUNT(*)` semantics for the `/users` completed-by-task-name average.
 
 ### analytics.snapshot_task_daily_facts
-Shared daily fact table for the remaining created/open and completed aggregate workloads.
+Shared daily fact table for the remaining created/open aggregate workloads.
 
 Used by:
 - `/outstanding` open-tasks created by assignment
-- `/completed` completed summary
-- `/completed` completed timeline
-- `/completed` completed by name / region / location
-- `/completed` processing and handling time
+- `/outstanding` tasks due by date
 
 Required columns:
 - `snapshot_id`
@@ -253,10 +251,44 @@ Open-task classification inside daily facts:
 - `other` otherwise
 
 Notes:
-- `/completed` processing and handling time no longer scans row data; it reconstructs averages and population standard deviations from `sum`, `sum_squares`, and `count`.
-- Completed-only aggregate readers now constrain `date_role = 'completed'` without an extra `task_status = 'completed'` predicate because the completed date-role slice is already materialised as completed-only data.
 - The generic task-daily date index is owned as a parent index on `(snapshot_id, date_role, reference_date)` and as matching child-partition indexes on `(snapshot_id, date_role, reference_date)`.
-- The `/completed` region and region/location tables are served from one `GROUPING SETS ((location, region), (region))` aggregate over this fact table.
+
+### analytics.snapshot_completed_dashboard_facts
+Page-scoped completed-task fact table for the `/completed` aggregate workload.
+
+Used by:
+- `/completed` completed summary
+- `/completed` completed timeline
+- `/completed` completed by name / region / location
+- `/completed` processing and handling time
+
+Population rule:
+- Source rows where `completed_date IS NOT NULL` and `LOWER(termination_reason) = 'completed'`
+- Grouped by shared slicers plus `reference_date = completed_date`
+- Populated directly from `tmp_snapshot_fact_source` during refresh
+
+Required columns:
+- `snapshot_id`
+- `reference_date`
+- `jurisdiction_label`
+- `role_category_label`
+- `region`
+- `location`
+- `task_name`
+- `work_type`
+- `total_task_count`
+- `within_task_count`
+- `handling_time_days_sum`
+- `handling_time_days_sum_squares`
+- `handling_time_days_count`
+- `processing_time_days_sum`
+- `processing_time_days_sum_squares`
+- `processing_time_days_count`
+
+Notes:
+- `/completed` processing and handling time reconstructs averages and population standard deviations from `sum`, `sum_squares`, and `count`.
+- The `/completed` region and region/location tables are served from one `GROUPING SETS ((location, region), (region))` aggregate over this table.
+- This table is populated only for snapshots created after `V007__completed_dashboard_facts.sql`; `/completed` aggregate readers are therefore supported from the first post-migration refreshed snapshot onward.
 
 ### analytics.snapshot_open_due_daily_facts
 Open-task fact table for the shared due/open aggregate workload.
@@ -442,7 +474,7 @@ Shared filter mappings:
 - User -> `assignee` (User Overview only)
 
 Date filter mappings:
-- `completedFrom` / `completedTo` -> `completed_date` in completed row / user-completed facts, or `reference_date` in completed daily facts
+- `completedFrom` / `completedTo` -> `completed_date` in completed row / user-completed facts, or `reference_date` in completed dashboard facts
 - `eventsFrom` / `eventsTo` -> `reference_date` in task-daily facts for created / completed / cancelled events
 
 Scoped exclusions:
@@ -490,7 +522,7 @@ The facts-backed metric stores those rows as `date_role = 'cancelled'` and `task
 Those fact columns are populated so null intervals still contribute zero to the numerator while remaining in the denominator.
 
 ### Completed processing and handling time
-`/completed` processing/handling time is derived from daily facts:
+`/completed` processing/handling time is derived from completed dashboard facts:
 
 - Average = `sum / count`
 - Population standard deviation = `sqrt((sum_squares / count) - power(sum / count, 2))`

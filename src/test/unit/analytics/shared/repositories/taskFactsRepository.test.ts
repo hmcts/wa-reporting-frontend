@@ -76,7 +76,9 @@ describe('taskFactsRepository', () => {
 
     await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
-    expect(fromQuery.sql).toContain("date_role = 'completed'");
+    expect(fromQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(fromQuery.sql).toContain('SUM(total_task_count)::int AS total');
+    expect(fromQuery.sql).toContain('SUM(within_task_count)::int AS within');
     expect(fromQuery.sql).toContain('snapshot_id =');
     expect(fromQuery.sql).toContain('reference_date >=');
     expect(fromQuery.sql).not.toContain('reference_date <=');
@@ -84,7 +86,7 @@ describe('taskFactsRepository', () => {
 
     await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, {}, { to });
     const toQuery = queryCall();
-    expect(toQuery.sql).toContain("date_role = 'completed'");
+    expect(toQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
     expect(toQuery.sql).toContain('snapshot_id =');
     expect(toQuery.sql).toContain('reference_date <=');
     expect(toQuery.sql).not.toContain('reference_date >=');
@@ -274,7 +276,7 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from, to });
     const query = queryCall();
 
-    expect(query.sql).toContain("date_role = 'completed'");
+    expect(query.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
     expect(query.sql).toContain('reference_date >=');
     expect(query.sql).toContain('reference_date <=');
     expect(query.values).toEqual(expect.arrayContaining([from, to]));
@@ -289,7 +291,7 @@ describe('taskFactsRepository', () => {
     );
     const query = queryCall();
 
-    expect(query.sql).toContain("date_role = 'completed'");
+    expect(query.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
     expect(query.sql).toContain('snapshot_id =');
     expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
     expect(query.values).toContain('JUDICIAL');
@@ -524,7 +526,9 @@ describe('taskFactsRepository', () => {
 
     await taskFactsRepository.fetchCompletedTimelineRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
-    expect(fromQuery.sql).toContain("date_role = 'completed'");
+    expect(fromQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(fromQuery.sql).toContain('SUM(total_task_count)::int AS total');
+    expect(fromQuery.sql).toContain('SUM(within_task_count)::int AS within');
     expect(fromQuery.sql).toContain('snapshot_id =');
     expect(fromQuery.sql).toContain('reference_date >=');
     expect(fromQuery.sql).not.toContain('reference_date <=');
@@ -534,7 +538,7 @@ describe('taskFactsRepository', () => {
 
     await taskFactsRepository.fetchCompletedTimelineRows(snapshotId, {}, { to });
     const toQuery = queryCall();
-    expect(toQuery.sql).toContain("date_role = 'completed'");
+    expect(toQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
     expect(toQuery.sql).toContain('snapshot_id =');
     expect(toQuery.sql).toContain('reference_date <=');
     expect(toQuery.sql).not.toContain('reference_date >=');
@@ -547,11 +551,11 @@ describe('taskFactsRepository', () => {
 
     await taskFactsRepository.fetchCompletedByNameRows(snapshotId, { service: ['Service A'] }, { from, to });
     const byNameQuery = queryCall();
-    expect(byNameQuery.sql).toContain("date_role = 'completed'");
+    expect(byNameQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
     expect(byNameQuery.sql).toContain('snapshot_id =');
     expect(byNameQuery.sql).toContain('task_name');
-    expect(byNameQuery.sql).toContain('SUM(task_count)::int AS total');
-    expect(byNameQuery.sql).toContain('SUM(CASE WHEN sla_flag IS TRUE THEN task_count ELSE 0 END)::int AS within');
+    expect(byNameQuery.sql).toContain('SUM(total_task_count)::int AS total');
+    expect(byNameQuery.sql).toContain('SUM(within_task_count)::int AS within');
     expect(byNameQuery.sql).toContain('GROUP BY task_name');
     expect(byNameQuery.sql).toContain('ORDER BY total DESC');
     expect(byNameQuery.values).toEqual(expect.arrayContaining([from, to]));
@@ -565,10 +569,11 @@ describe('taskFactsRepository', () => {
     const query = queryCall();
     const normalised = normaliseSql(query.sql);
 
-    expect(normalised).toContain("date_role = 'completed'");
-    expect(normalised).not.toContain("task_status = 'completed'");
+    expect(normalised).toContain('FROM analytics.snapshot_completed_dashboard_facts');
     expect(normalised).toContain('snapshot_id =');
     expect(normalised).toContain("CASE WHEN GROUPING(location) = 0 THEN 'location' ELSE 'region' END AS grouping_type");
+    expect(normalised).toContain('SUM(total_task_count)::int AS total');
+    expect(normalised).toContain('SUM(within_task_count)::int AS within');
     expect(normalised).toContain('SUM(handling_time_days_sum)::double precision AS handling_time_days_sum');
     expect(normalised).toContain('SUM(processing_time_days_count)::int AS processing_time_days_count');
     expect(normalised).toContain('GROUP BY GROUPING SETS ((location, region), (region))');
@@ -583,7 +588,8 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
     expect(fromQuery.sql).toContain('snapshot_id =');
-    expect(fromQuery.sql).toContain("date_role = 'completed'");
+    expect(fromQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(fromQuery.sql).toContain('SUM(total_task_count)::int AS task_count');
     expect(fromQuery.sql).toContain('SUM(handling_time_days_sum)::double precision AS handling_sum');
     expect(fromQuery.sql).toContain('SUM(handling_time_days_sum_squares)::double precision');
     expect(fromQuery.sql).toContain('SUM(processing_time_days_sum)::double precision AS processing_sum');
@@ -596,7 +602,7 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { to });
     const toQuery = queryCall();
     expect(toQuery.sql).toContain('snapshot_id =');
-    expect(toQuery.sql).toContain("date_role = 'completed'");
+    expect(toQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
     expect(toQuery.sql).toContain('reference_date <=');
     expect(toQuery.sql).not.toContain('reference_date >=');
     expect(toQuery.values).toEqual(expect.arrayContaining([to]));

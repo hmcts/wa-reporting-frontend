@@ -329,13 +329,13 @@ export class TaskFactsRepository {
     return buildAnalyticsWhere(branchFilters, conditions, queryOptions);
   }
 
-  private buildCompletedFactsWhereClause(params: {
+  private buildCompletedDashboardFactsWhereClause(params: {
     snapshotId: number;
     filters: AnalyticsFilters;
     range?: { from?: Date; to?: Date };
     queryOptions?: AnalyticsQueryOptions;
   }): Prisma.Sql {
-    const conditions: Prisma.Sql[] = [asOfSnapshotCondition(params.snapshotId), Prisma.sql`date_role = 'completed'`];
+    const conditions: Prisma.Sql[] = [asOfSnapshotCondition(params.snapshotId)];
     if (params.range?.from) {
       conditions.push(Prisma.sql`reference_date >= ${params.range.from}`);
     }
@@ -730,13 +730,13 @@ export class TaskFactsRepository {
     range?: { from?: Date; to?: Date },
     queryOptions?: AnalyticsQueryOptions
   ): Promise<CompletedSummaryRow[]> {
-    const whereClause = this.buildCompletedFactsWhereClause({ snapshotId, filters, range, queryOptions });
+    const whereClause = this.buildCompletedDashboardFactsWhereClause({ snapshotId, filters, range, queryOptions });
 
     return tmPrisma.$queryRaw<CompletedSummaryRow[]>(Prisma.sql`
       SELECT
-        SUM(task_count)::int AS total,
-        SUM(CASE WHEN sla_flag IS TRUE THEN task_count ELSE 0 END)::int AS within
-      FROM analytics.snapshot_task_daily_facts
+        SUM(total_task_count)::int AS total,
+        SUM(within_task_count)::int AS within
+      FROM analytics.snapshot_completed_dashboard_facts
       ${whereClause}
     `);
   }
@@ -828,14 +828,14 @@ export class TaskFactsRepository {
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedTimelineRow[]> {
-    const whereClause = this.buildCompletedFactsWhereClause({ snapshotId, filters, range });
+    const whereClause = this.buildCompletedDashboardFactsWhereClause({ snapshotId, filters, range });
 
     return tmPrisma.$queryRaw<CompletedTimelineRow[]>(Prisma.sql`
       SELECT
         to_char(reference_date, 'YYYY-MM-DD') AS date_key,
-        SUM(task_count)::int AS total,
-        SUM(CASE WHEN sla_flag IS TRUE THEN task_count ELSE 0 END)::int AS within
-      FROM analytics.snapshot_task_daily_facts
+        SUM(total_task_count)::int AS total,
+        SUM(within_task_count)::int AS within
+      FROM analytics.snapshot_completed_dashboard_facts
       ${whereClause}
       GROUP BY reference_date
       ORDER BY reference_date
@@ -847,12 +847,12 @@ export class TaskFactsRepository {
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedProcessingHandlingTimeRow[]> {
-    const whereClause = this.buildCompletedFactsWhereClause({ snapshotId, filters, range });
+    const whereClause = this.buildCompletedDashboardFactsWhereClause({ snapshotId, filters, range });
 
     return tmPrisma.$queryRaw<CompletedProcessingHandlingTimeRow[]>(Prisma.sql`
       SELECT
         to_char(reference_date, 'YYYY-MM-DD') AS date_key,
-        SUM(task_count)::int AS task_count,
+        SUM(total_task_count)::int AS task_count,
         CASE
           WHEN SUM(handling_time_days_count) = 0 THEN NULL
           ELSE SUM(handling_time_days_sum)::double precision / SUM(handling_time_days_count)::double precision
@@ -885,7 +885,7 @@ export class TaskFactsRepository {
         END AS processing_stddev,
         SUM(processing_time_days_sum)::double precision AS processing_sum,
         SUM(processing_time_days_count)::int AS processing_count
-      FROM analytics.snapshot_task_daily_facts
+      FROM analytics.snapshot_completed_dashboard_facts
       ${whereClause}
       GROUP BY reference_date
       ORDER BY reference_date
@@ -897,14 +897,14 @@ export class TaskFactsRepository {
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedByNameRow[]> {
-    const whereClause = this.buildCompletedFactsWhereClause({ snapshotId, filters, range });
+    const whereClause = this.buildCompletedDashboardFactsWhereClause({ snapshotId, filters, range });
 
     return tmPrisma.$queryRaw<CompletedByNameRow[]>(Prisma.sql`
       SELECT
         task_name,
-        SUM(task_count)::int AS total,
-        SUM(CASE WHEN sla_flag IS TRUE THEN task_count ELSE 0 END)::int AS within
-      FROM analytics.snapshot_task_daily_facts
+        SUM(total_task_count)::int AS total,
+        SUM(within_task_count)::int AS within
+      FROM analytics.snapshot_completed_dashboard_facts
       ${whereClause}
       GROUP BY task_name
       ORDER BY total DESC
@@ -916,7 +916,7 @@ export class TaskFactsRepository {
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedRegionLocationAggregateRow[]> {
-    const whereClause = this.buildCompletedFactsWhereClause({ snapshotId, filters, range });
+    const whereClause = this.buildCompletedDashboardFactsWhereClause({ snapshotId, filters, range });
 
     return tmPrisma.$queryRaw<CompletedRegionLocationAggregateRow[]>(Prisma.sql`
       SELECT
@@ -926,13 +926,13 @@ export class TaskFactsRepository {
         END AS grouping_type,
         location,
         region,
-        SUM(task_count)::int AS total,
-        SUM(CASE WHEN sla_flag IS TRUE THEN task_count ELSE 0 END)::int AS within,
+        SUM(total_task_count)::int AS total,
+        SUM(within_task_count)::int AS within,
         SUM(handling_time_days_sum)::double precision AS handling_time_days_sum,
         SUM(handling_time_days_count)::int AS handling_time_days_count,
         SUM(processing_time_days_sum)::double precision AS processing_time_days_sum,
         SUM(processing_time_days_count)::int AS processing_time_days_count
-      FROM analytics.snapshot_task_daily_facts
+      FROM analytics.snapshot_completed_dashboard_facts
       ${whereClause}
       GROUP BY GROUPING SETS ((location, region), (region))
       ORDER BY
