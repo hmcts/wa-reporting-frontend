@@ -47,7 +47,7 @@ type ScriptModule = {
   ) => Promise<void>;
 };
 
-const loadModule = (): ScriptModule => {
+const loadBootstrapTmSchemaPermissionsModule = (): ScriptModule => {
   let moduleExports: ScriptModule | undefined;
 
   jest.isolateModules(() => {
@@ -73,7 +73,7 @@ describe('bootstrap-tm-schema-permissions script', () => {
   });
 
   test('resolves the default reader role name and TM env fallback connection string', () => {
-    const { DEFAULT_DB_READER_USERNAME, resolveBootstrapConfig } = loadModule();
+    const { DEFAULT_DB_READER_USERNAME, resolveBootstrapConfig } = loadBootstrapTmSchemaPermissionsModule();
 
     expect(
       resolveBootstrapConfig({
@@ -91,7 +91,7 @@ describe('bootstrap-tm-schema-permissions script', () => {
   });
 
   test('prefers an explicit bootstrap URL and supports password-less connection strings', () => {
-    const { buildConnectionString } = loadModule();
+    const { buildConnectionString } = loadBootstrapTmSchemaPermissionsModule();
 
     expect(
       buildConnectionString({
@@ -110,7 +110,7 @@ describe('bootstrap-tm-schema-permissions script', () => {
   });
 
   test('validates role identifiers before passing them to pg escaping', () => {
-    const { validateIdentifier } = loadModule();
+    const { validateIdentifier } = loadBootstrapTmSchemaPermissionsModule();
 
     expect(validateIdentifier('DTS JIT Access wa DB Reader SC')).toBeUndefined();
     expect(validateIdentifier('Reader "SC"')).toBeUndefined();
@@ -120,7 +120,7 @@ describe('bootstrap-tm-schema-permissions script', () => {
   });
 
   test('normalises option environment inputs', () => {
-    const { normaliseOptions } = loadModule();
+    const { normaliseOptions } = loadBootstrapTmSchemaPermissionsModule();
 
     expect(normaliseOptions()).toBe('');
     expect(normaliseOptions(' ?sslmode=require')).toBe('sslmode=require');
@@ -145,7 +145,7 @@ describe('bootstrap-tm-schema-permissions script', () => {
         buildConnectionString,
         resolveBootstrapConfig,
         runFromEnvironment,
-      } = loadModule();
+      } = loadBootstrapTmSchemaPermissionsModule();
 
       expect(buildConnectionString()).toBe('postgresql://bootstrap-user@tm.db.host:5432/analytics_db');
       expect(resolveBootstrapConfig()).toEqual({
@@ -177,7 +177,7 @@ describe('bootstrap-tm-schema-permissions script', () => {
 
   test('runs the TM analytics schema grants inside a transaction', async () => {
     const logger = { info: jest.fn(), warn: jest.fn() };
-    const { bootstrapTmSchemaPermissions } = loadModule();
+    const { bootstrapTmSchemaPermissions } = loadBootstrapTmSchemaPermissionsModule();
 
     await bootstrapTmSchemaPermissions(
       {
@@ -206,7 +206,7 @@ describe('bootstrap-tm-schema-permissions script', () => {
   });
 
   test('fails fast without a resolvable connection string', async () => {
-    const { runFromEnvironment } = loadModule();
+    const { runFromEnvironment } = loadBootstrapTmSchemaPermissionsModule();
 
     await expect(runFromEnvironment({})).rejects.toThrow(
       'Unable to resolve TM schema permissions bootstrap database URL'
@@ -217,7 +217,7 @@ describe('bootstrap-tm-schema-permissions script', () => {
 
   test('rolls back and warns when a grant fails and the rollback also fails', async () => {
     const logger = { info: jest.fn(), warn: jest.fn() };
-    const { bootstrapTmSchemaPermissions } = loadModule();
+    const { bootstrapTmSchemaPermissions } = loadBootstrapTmSchemaPermissionsModule();
     const grantError = new Error('grant failed');
     const rollbackError = new Error('rollback failed');
 
