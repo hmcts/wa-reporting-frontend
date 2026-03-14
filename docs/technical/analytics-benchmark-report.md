@@ -13,6 +13,7 @@ The pre-redesign rationale and original findings remain in [docs/technical/analy
   - `analytics.snapshot_open_due_daily_facts` now owns the due/open aggregate workload used by `/`, `/outstanding`, and the no-user branch of `/users`
   - `analytics.snapshot_task_event_daily_facts` now owns Overview created/completed/cancelled service events
 - On 2026-03-13, a local prototype against the current published snapshot confirmed the final grains and lean index set for those two new table families before the next cron-built snapshot publishes them.
+- On 2026-03-14, the unfiltered `/users` filter-options query was rewritten in the repository to use a narrow `GROUPING SETS` fast path for `scope = 'userOverview'` with no active facet filters.
 - Remaining substantial opportunities after that work are:
   - redesign the `/users` assignee filter source
   - create dedicated facts for the remaining `created/open` and completed aggregate workloads when they become the next bottleneck
@@ -23,11 +24,14 @@ Benchmark dates:
 - 2026-03-10
 - 2026-03-11
 - 2026-03-13
+- 2026-03-14
 
 Environment:
 - local PostgreSQL instance configured from `config/default.json`
 - database: `cft_task_db`
-- published snapshot at benchmark time: `snapshot_id = 1`
+- published snapshot at benchmark times:
+  - `snapshot_id = 1` for the 2026-03-10 to 2026-03-13 benchmark set
+  - `snapshot_id = 2` for the 2026-03-14 `/users` filter-options follow-up
 
 Dataset at benchmark time:
 - `cft_task_db.reportable_task`: `1,469,326` rows
@@ -45,6 +49,7 @@ Method:
 - where a query has more than one real runtime shape, each shape was benchmarked separately
 - the 2026-03-11 pass used the exact repository ordering semantics, including `ORDER BY rows.created_date`, `rows.completed_date`, and `rows.due_date`
 - the 2026-03-13 pass added disposable prototype tables projected from `analytics.snapshot_task_daily_facts_p_1` to validate the final dedicated-table grains and child-local indexes before schema migration
+- the 2026-03-14 pass used the final repository-shaped unfiltered `/users` fast-path SQL with `GROUPING SETS`
 - results are directional local-machine measurements, not production SLAs
 
 Important correction:
@@ -59,7 +64,8 @@ Important correction:
 | `/` service overview | `tmp_open_due_daily_facts` prototype for `snapshot_open_due_daily_facts` | `54.1 ms` | parallel seq scan over the exact `due/open` slice only (`80,762` rows) |
 | `/` task events by service | `tmp_task_event_daily_facts_v2` prototype for `snapshot_task_event_daily_facts` | `12.2 ms` | final grain aggregates across priority; unique key on `(event_date, event_type, slicers...)` was sufficient without extra secondary indexes |
 | selective due/open aggregate | `tmp_open_due_daily_facts` with final slicer index set | `10.4 ms` | prototype stayed acceptable after dropping the experimental assignment-state and `UPPER(role_category_label)` indexes |
-| `/users` shared filter options | `snapshot_user_filter_facts` | `261.0 ms` | returns `42,754` raw option rows and still scans the user facet table |
+| `/users` shared filter options, pre-fast-path benchmark | `snapshot_user_filter_facts` | `261.0 ms` | earlier repeated-branch shape on snapshot `1`; returned `42,754` raw option rows |
+| `/users` shared filter options, current unfiltered fast path | `snapshot_user_filter_facts` | `197.1 ms` | snapshot `2`; one scan plus one aggregate via `GROUPING SETS`, still returning `42,754` option rows |
 | `/outstanding` critical tasks total count (pre-change benchmark) | `snapshot_open_task_rows` | `114.8 ms` | old exact count did a full parallel scan of the open row table |
 | `/outstanding` critical tasks total count candidate / implemented replacement | `snapshot_outstanding_filter_facts` | `0.544 ms` | `SUM(row_count)` matched the old count exactly in benchmark checks |
 | `/` service overview (historical pre-split benchmark) | `snapshot_task_daily_facts` | `44.3 ms` | earlier smaller-snapshot baseline before the dedicated-table redesign |
@@ -72,7 +78,7 @@ Summary:
 - the default row-page queries that previously looked suspicious are confirmed healthy
 - the dedicated-table prototype validates the strategic Overview split and keeps the moved due/open and event reads in the low tens of milliseconds on the current local snapshot
 - almost all remaining live queries are low tens of milliseconds or better
-- the clearest remaining cost is `/users` user-filter options
+- the clearest remaining cost is still `/users` user-filter options, but the repeated-scan query shape is no longer the current unfiltered implementation
 
 ## Findings
 
@@ -99,12 +105,20 @@ Conclusion:
 - the storage redesign is doing the useful work here
 - the remaining decision is when to move the not-yet-split created/open and completed aggregate workloads, not whether Overview needed dedicated facts
 
-### 2. `/users` assignee filter source is still the biggest open problem
+### 2. `/users` assignee filter source is still the biggest structural open problem, even after the query-only win
 
-Measured current state on `snapshot_user_filter_facts_p_1`:
-- `42,754` raw option rows returned on initial render
-- `261.0 ms` server execution in the latest full query-plan audit
-- the plan still performs a large scan of `snapshot_user_filter_facts_p_1`
+Measured states:
+- pre-fast-path local benchmark on `snapshot_user_filter_facts_p_1`:
+  - `42,754` raw option rows returned on initial render
+  - `261.0 ms` server execution in the earlier full query-plan audit
+  - repeated grouped scans over the same facet table
+- current local fast-path benchmark on `snapshot_user_filter_facts_p_2`:
+  - `42,754` raw option rows returned on initial render
+  - `197.1 ms` execution time
+  - one `Seq Scan on snapshot_user_filter_facts_p_2`, one `HashAggregate`, then the final sort
+- supplied production prototype for the same query shape on `snapshot_user_filter_facts_p_137`:
+  - `256.6 ms`
+  - one `Seq Scan`, one in-memory `HashAggregate`, small final sort
 
 What the app actually needs:
 - a full visible dropdown of renderable caseworkers
@@ -120,9 +134,12 @@ The core issue is still workload shape, not a missing index. The visible dropdow
 Recommendation:
 - redesign the `/users` assignee filter source so it only materialises profile-backed, actually renderable users
 
-What is not likely to help enough:
+What was worth doing tactically:
+- the repository now uses a narrow `GROUPING SETS` fast path for the unfiltered `/users` request, because that removes the repeated per-facet scans and gives a clear query-only improvement without changing filtered-state semantics
+
+What is not likely to help enough on its own:
 - more indexes on `snapshot_user_filter_facts.assignee`
-- small rewrites of the current `GROUP BY assignee` query while it still returns `42k+` raw values
+- further small rewrites while the read path still returns `42k+` raw values and then drops most of them during CRD profile intersection
 
 ### 3. `/outstanding` critical-task total count was a real hotspot, and the facts-backed replacement was validated
 
@@ -212,6 +229,7 @@ That is the next strategic step if those workloads become the next bottleneck. T
 
 Priority order:
 1. redesign the `/users` assignee filter source so it stops returning raw unusable assignee IDs
-2. stop broader schema/index work here unless data volume or user behavior changes materially
+2. keep the current unfiltered `GROUPING SETS` fast path unless a later schema redesign makes it obsolete
+3. stop broader schema/index work here unless data volume or user behavior changes materially
 
 If that remaining change lands, there is no other clearly substantial query-path improvement indicated by the current local query-plan audit.
