@@ -14,10 +14,14 @@ The review is based on:
 ## Current workload summary
 
 ### Read paths actually used by the app
-- Most overview, outstanding, and completed charts read `analytics.snapshot_task_daily_facts`.
+- Overview now reads dedicated facts:
+  - `analytics.snapshot_open_due_daily_facts` for open/assigned service and shared due/open aggregates
+  - `analytics.snapshot_task_event_daily_facts` for created/completed/cancelled service events
+- Outstanding due/open aggregate charts/tables and the no-user `/users` assigned summary now also read `analytics.snapshot_open_due_daily_facts`.
+- The remaining completed and created/open aggregate paths still read `analytics.snapshot_task_daily_facts`.
 - `/users` completed summary/count/by-date reads `analytics.snapshot_user_completed_facts`.
 - Wait-time by assigned date reads `analytics.snapshot_wait_time_by_assigned_date`.
-- Shared filter dropdowns read `analytics.snapshot_filter_facet_facts`.
+- Shared filter dropdowns read page-scoped filter-fact tables.
 - The expensive row-level reads still come from `analytics.snapshot_task_rows`:
   - `/users` assigned table
   - `/users` completed table
@@ -28,14 +32,16 @@ The review is based on:
 
 ### Refresh flow built by `scripts.sql`
 - Every refresh does a full rebuild.
-- The procedure full-scans `cft_task_db.reportable_task` into `tmp_source_full`.
-- It copies that data again into a new `snapshot_task_rows` partition.
-- It then scans `snapshot_task_rows` multiple times to derive:
+- The procedure full-scans `cft_task_db.reportable_task` into `tmp_snapshot_source`.
+- It derives a shared `tmp_snapshot_fact_source` for the aggregate tables.
+- It then scans staging data multiple times to derive:
   - `snapshot_user_completed_facts`
   - `snapshot_task_daily_facts`
+  - `snapshot_open_due_daily_facts`
+  - `snapshot_task_event_daily_facts`
   - `snapshot_wait_time_by_assigned_date`
-  - `snapshot_filter_facet_facts`
-- Only `snapshot_task_rows` and `snapshot_task_daily_facts` are partitioned by `snapshot_id`.
+  - page-scoped filter-fact tables
+- Snapshot tables now participating in detached publish and retention all use snapshot-partitioned children, including the dedicated open-due and task-event facts.
 
 ## Findings
 

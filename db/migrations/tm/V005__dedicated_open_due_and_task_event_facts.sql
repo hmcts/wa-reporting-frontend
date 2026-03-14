@@ -1,166 +1,3 @@
-CREATE SCHEMA IF NOT EXISTS analytics;
-
--- ============================================================================
--- Multi-snapshot full-rebuild analytics model with immutable snapshot reads.
--- This script is intentionally rerunnable from scratch via explicit drops.
--- ============================================================================
-
-DROP PROCEDURE IF EXISTS analytics.run_snapshot_refresh_batch(BOOLEAN);
-DROP PROCEDURE IF EXISTS analytics.run_snapshot_refresh_batch();
-DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facts(BIGINT);
-DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facts_from_tables(
-  BIGINT,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS
-);
-DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facts_from_tables(
-  BIGINT,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS
-);
-DROP PROCEDURE IF EXISTS analytics.cleanup_snapshot_partitions(BIGINT);
-DROP PROCEDURE IF EXISTS analytics.cleanup_snapshot_retention();
-DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facet_facts(BIGINT);
-
--- Snapshot tables
-DROP TABLE IF EXISTS analytics.snapshot_task_rows CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_filter_facet_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_user_filter_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_completed_filter_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_outstanding_filter_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_overview_filter_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_wait_time_by_assigned_date CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_task_event_daily_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_open_due_daily_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_task_daily_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_user_completed_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_completed_task_rows CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_open_task_rows CASCADE;
-
--- Metadata/state
-DROP TABLE IF EXISTS analytics.snapshot_state CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_batches CASCADE;
-DROP SEQUENCE IF EXISTS analytics.snapshot_id_seq;
-
--- Snapshot metadata
-CREATE SEQUENCE analytics.snapshot_id_seq;
-
-CREATE TABLE analytics.snapshot_batches (
-  snapshot_id BIGINT PRIMARY KEY,
-  started_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
-  completed_at TIMESTAMPTZ,
-  status TEXT NOT NULL CHECK (status IN ('running', 'succeeded', 'failed')),
-  error_message TEXT
-);
-
-CREATE TABLE analytics.snapshot_state (
-  -- Single-row control table: tracks current publish pointer.
-  singleton_id BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (singleton_id),
-  published_snapshot_id BIGINT REFERENCES analytics.snapshot_batches(snapshot_id),
-  published_at TIMESTAMPTZ,
-  in_progress_snapshot_id BIGINT REFERENCES analytics.snapshot_batches(snapshot_id)
-);
-
-INSERT INTO analytics.snapshot_state (singleton_id) VALUES (TRUE);
-
--- Snapshot data tables (immutable rows keyed by snapshot_id).
-CREATE TABLE analytics.snapshot_open_task_rows (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  task_id TEXT NOT NULL,
-  case_id TEXT,
-  task_name TEXT,
-  case_type_label TEXT,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  work_type TEXT,
-  state TEXT NOT NULL,
-  created_date DATE,
-  first_assigned_date DATE,
-  due_date DATE,
-  major_priority INTEGER,
-  assignee TEXT,
-  number_of_reassignments INTEGER NOT NULL DEFAULT 0
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_completed_task_rows (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  task_id TEXT NOT NULL,
-  case_id TEXT,
-  task_name TEXT,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  work_type TEXT,
-  created_date DATE,
-  first_assigned_date DATE,
-  due_date DATE,
-  completed_date DATE,
-  handling_time_days DOUBLE PRECISION,
-  is_within_sla TEXT,
-  termination_process_label TEXT,
-  outcome TEXT,
-  major_priority INTEGER,
-  assignee TEXT,
-  number_of_reassignments INTEGER NOT NULL DEFAULT 0,
-  within_due_sort_value SMALLINT
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_user_completed_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  assignee TEXT,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  completed_date DATE,
-  tasks INTEGER NOT NULL,
-  within_due INTEGER NOT NULL,
-  beyond_due INTEGER NOT NULL,
-  handling_time_sum NUMERIC NOT NULL,
-  handling_time_count INTEGER NOT NULL,
-  days_beyond_sum NUMERIC NOT NULL,
-  days_beyond_count INTEGER NOT NULL
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_task_daily_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  date_role TEXT NOT NULL,
-  reference_date DATE,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  priority BIGINT,
-  task_status TEXT NOT NULL,
-  assignment_state TEXT,
-  sla_flag BOOLEAN,
-  handling_time_days_sum NUMERIC NOT NULL,
-  handling_time_days_sum_squares NUMERIC NOT NULL,
-  handling_time_days_count BIGINT NOT NULL,
-  processing_time_days_sum NUMERIC NOT NULL,
-  processing_time_days_sum_squares NUMERIC NOT NULL,
-  processing_time_days_count BIGINT NOT NULL,
-  task_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
-
 CREATE TABLE analytics.snapshot_open_due_daily_facts (
   snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
   due_date DATE NOT NULL,
@@ -188,70 +25,27 @@ CREATE TABLE analytics.snapshot_task_event_daily_facts (
   task_count BIGINT NOT NULL
 ) PARTITION BY LIST (snapshot_id);
 
-CREATE TABLE analytics.snapshot_wait_time_by_assigned_date (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  reference_date DATE,
-  total_wait_time_days_sum NUMERIC NOT NULL,
-  assigned_task_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_overview_filter_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  row_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_outstanding_filter_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  row_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_completed_filter_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  row_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_user_filter_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  assignee TEXT,
-  row_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
-
--- Build analytics snapshots in detached tables, then publish in a short
--- attach transaction so parent-table reads continue during refresh.
-
-DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facts(BIGINT);
-DROP FUNCTION IF EXISTS analytics.snapshot_partition_catalog(BIGINT);
-
+DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facts_from_tables(
+  BIGINT,
+  REGCLASS,
+  REGCLASS,
+  REGCLASS,
+  REGCLASS,
+  REGCLASS,
+  REGCLASS,
+  REGCLASS
+);
+DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facts_from_tables(
+  BIGINT,
+  REGCLASS,
+  REGCLASS,
+  REGCLASS,
+  REGCLASS,
+  REGCLASS,
+  REGCLASS,
+  REGCLASS,
+  REGCLASS
+);
 CREATE OR REPLACE FUNCTION analytics.snapshot_partition_catalog(p_snapshot_id BIGINT)
 RETURNS TABLE (
   parent_table REGCLASS,
@@ -281,8 +75,6 @@ AS $$
   ORDER BY ord;
 $$;
 
--- Internal helper for run_snapshot_refresh_batch(); the target tables are
--- newly created detached tables, so this procedure only inserts rows.
 CREATE OR REPLACE PROCEDURE analytics.refresh_snapshot_filter_facts_from_tables(
   p_snapshot_id BIGINT,
   p_open_due_table REGCLASS,
@@ -494,114 +286,6 @@ BEGIN
     p_completed_task_rows_table
   )
   USING p_snapshot_id;
-END;
-$$;
-
-CREATE OR REPLACE PROCEDURE analytics.cleanup_snapshot_partitions(p_snapshot_id BIGINT)
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  v_partition RECORD;
-  v_child_table REGCLASS;
-BEGIN
-  BEGIN
-    PERFORM set_config('lock_timeout', '500ms', TRUE);
-
-    FOR v_partition IN
-      SELECT *
-      FROM analytics.snapshot_partition_catalog(p_snapshot_id)
-    LOOP
-      v_child_table := to_regclass(format('analytics.%I', v_partition.partition_name));
-
-      IF v_child_table IS NOT NULL
-         AND EXISTS (
-           SELECT 1
-           FROM pg_inherits
-           WHERE inhparent = v_partition.parent_table
-             AND inhrelid = v_child_table
-         ) THEN
-        EXECUTE format(
-          'ALTER TABLE %s DETACH PARTITION %s',
-          v_partition.parent_table,
-          v_child_table
-        );
-      END IF;
-    END LOOP;
-  EXCEPTION
-    WHEN OTHERS THEN
-      RAISE WARNING 'Snapshot retention detach skipped for %: %', p_snapshot_id, SQLERRM;
-      COMMIT;
-      RETURN;
-  END;
-
-  COMMIT;
-
-  BEGIN
-    FOR v_partition IN
-      SELECT *
-      FROM analytics.snapshot_partition_catalog(p_snapshot_id)
-    LOOP
-      EXECUTE format('DROP TABLE IF EXISTS analytics.%I', v_partition.partition_name);
-    END LOOP;
-
-    DELETE FROM analytics.snapshot_batches
-    WHERE snapshot_id = p_snapshot_id;
-  EXCEPTION
-    WHEN OTHERS THEN
-      RAISE WARNING 'Snapshot retention drop skipped for %: %', p_snapshot_id, SQLERRM;
-  END;
-
-  COMMIT;
-END;
-$$;
-
-CREATE OR REPLACE PROCEDURE analytics.cleanup_snapshot_retention()
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  v_drop_snapshot_id BIGINT;
-BEGIN
-  FOR v_drop_snapshot_id IN
-    WITH pinned AS (
-      SELECT published_snapshot_id AS snapshot_id
-      FROM analytics.snapshot_state
-      WHERE singleton_id = TRUE
-      UNION
-      SELECT in_progress_snapshot_id AS snapshot_id
-      FROM analytics.snapshot_state
-      WHERE singleton_id = TRUE
-    ),
-    keep_succeeded AS (
-      SELECT snapshot_id
-      FROM analytics.snapshot_batches
-      WHERE status = 'succeeded'
-      ORDER BY snapshot_id DESC
-      LIMIT 3
-    )
-    SELECT batches.snapshot_id
-    FROM analytics.snapshot_batches batches
-    WHERE batches.status = 'succeeded'
-      AND batches.snapshot_id NOT IN (SELECT snapshot_id FROM keep_succeeded)
-      AND batches.snapshot_id NOT IN (SELECT snapshot_id FROM pinned WHERE snapshot_id IS NOT NULL)
-  LOOP
-    CALL analytics.cleanup_snapshot_partitions(v_drop_snapshot_id);
-  END LOOP;
-
-  FOR v_drop_snapshot_id IN
-    WITH keep_failed AS (
-      SELECT snapshot_id
-      FROM analytics.snapshot_batches
-      WHERE status = 'failed'
-      ORDER BY snapshot_id DESC
-      LIMIT 100
-    )
-    SELECT batches.snapshot_id
-    FROM analytics.snapshot_batches batches
-    WHERE batches.status = 'failed'
-      AND batches.snapshot_id NOT IN (SELECT snapshot_id FROM keep_failed)
-  LOOP
-    CALL analytics.cleanup_snapshot_partitions(v_drop_snapshot_id);
-  END LOOP;
 END;
 $$;
 
@@ -1783,7 +1467,3 @@ BEGIN
   PERFORM pg_advisory_unlock(v_lock_key);
 END;
 $$;
--- Snapshot refresh scheduling is registered by application startup when
--- analytics.snapshotRefreshCronBootstrap.enabled=true. Startup registration
--- uses cron.schedule_in_database(...) from the configured cron metadata
--- database (default postgres) targeting this analytics database.
