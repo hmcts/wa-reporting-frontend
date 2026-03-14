@@ -2,8 +2,9 @@ import config from 'config';
 import { createHmac, timingSafeEqual } from 'crypto';
 
 import {
-  getCurrentPublishedSnapshotFromCache,
-  setCurrentPublishedSnapshotInCache,
+  CacheKeys as PublishedSnapshotCacheKeys,
+  getCache as getPublishedSnapshotCache,
+  setCache as setPublishedSnapshotCache,
 } from './cache/publishedSnapshotCache';
 import { emptyOverviewFilterOptions } from './filters';
 import type { AnalyticsFacetScope, FacetFilterKey } from './filters';
@@ -67,14 +68,16 @@ async function fetchCurrentPublishedSnapshot(cachedSnapshot?: PublishedSnapshot)
 
   const snapshot = await snapshotStateRepository.fetchPublishedSnapshot();
   if (snapshot) {
-    setCurrentPublishedSnapshotInCache(snapshot);
+    setPublishedSnapshotCache(PublishedSnapshotCacheKeys.currentPublishedSnapshot, snapshot);
   }
 
   return snapshot;
 }
 
 export async function fetchPublishedSnapshotContext(requestedSnapshotId?: number): Promise<PublishedSnapshotContext> {
-  const cachedCurrentSnapshot = getCurrentPublishedSnapshotFromCache();
+  const cachedCurrentSnapshot = getPublishedSnapshotCache<PublishedSnapshot>(
+    PublishedSnapshotCacheKeys.currentPublishedSnapshot
+  );
 
   if (requestedSnapshotId !== undefined) {
     if (cachedCurrentSnapshot?.snapshotId === requestedSnapshotId) {
@@ -84,7 +87,7 @@ export async function fetchPublishedSnapshotContext(requestedSnapshotId?: number
     const requested = await snapshotStateRepository.fetchSnapshotById(requestedSnapshotId);
     if (requested) {
       if (requested.publishedAt) {
-        setCurrentPublishedSnapshotInCache(requested);
+        setPublishedSnapshotCache(PublishedSnapshotCacheKeys.currentPublishedSnapshot, requested);
       }
       return toPublishedSnapshotContext(requested);
     }

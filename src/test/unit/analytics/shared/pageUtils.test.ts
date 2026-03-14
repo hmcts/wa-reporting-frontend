@@ -1,8 +1,4 @@
 import {
-  clearCurrentPublishedSnapshotCache,
-  setCurrentPublishedSnapshotInCache,
-} from '../../../../main/modules/analytics/shared/cache/publishedSnapshotCache';
-import {
   createSnapshotToken,
   fetchFacetedFilterStateWithFallback,
   fetchFilterOptionsWithFallback,
@@ -15,6 +11,28 @@ import {
 } from '../../../../main/modules/analytics/shared/pageUtils';
 import { filterService } from '../../../../main/modules/analytics/shared/services';
 import { logDbError } from '../../../../main/modules/analytics/shared/utils';
+
+const mockPublishedSnapshotCacheStore = new Map<string, unknown>();
+function mockGetPublishedSnapshotCache(key: string): unknown {
+  return mockPublishedSnapshotCacheStore.get(key);
+}
+
+function mockSetPublishedSnapshotCache(key: string, value: unknown): void {
+  mockPublishedSnapshotCacheStore.set(key, value);
+}
+const currentPublishedSnapshotCacheKey = 'current-published-snapshot';
+
+function cacheCurrentPublishedSnapshot(snapshot: { snapshotId: number; publishedAt?: Date }): void {
+  mockPublishedSnapshotCacheStore.set(currentPublishedSnapshotCacheKey, snapshot);
+}
+
+jest.mock('../../../../main/modules/analytics/shared/cache/publishedSnapshotCache', () => ({
+  CacheKeys: {
+    currentPublishedSnapshot: 'current-published-snapshot',
+  },
+  getCache: mockGetPublishedSnapshotCache,
+  setCache: mockSetPublishedSnapshotCache,
+}));
 
 jest.mock('../../../../main/modules/analytics/shared/services', () => ({
   filterService: { fetchFilterOptions: jest.fn(), fetchFacetedFilterState: jest.fn() },
@@ -32,11 +50,11 @@ jest.mock('../../../../main/modules/analytics/shared/utils', () => ({
 describe('pageUtils', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    clearCurrentPublishedSnapshotCache();
+    mockPublishedSnapshotCacheStore.clear();
   });
 
   afterEach(() => {
-    clearCurrentPublishedSnapshotCache();
+    mockPublishedSnapshotCacheStore.clear();
     jest.useRealTimers();
   });
 
@@ -192,7 +210,7 @@ describe('pageUtils', () => {
       snapshotId: 17,
       publishedAt: new Date('2026-02-17T10:40:00Z'),
     };
-    setCurrentPublishedSnapshotInCache(cachedSnapshot);
+    cacheCurrentPublishedSnapshot(cachedSnapshot);
 
     const result = await fetchPublishedSnapshotContext(17);
 
@@ -252,7 +270,7 @@ describe('pageUtils', () => {
 
   test('fetchPublishedSnapshotContext does not overwrite the cached current snapshot when an older snapshot is requested', async () => {
     const { snapshotStateRepository } = jest.requireMock('../../../../main/modules/analytics/shared/repositories');
-    setCurrentPublishedSnapshotInCache({
+    cacheCurrentPublishedSnapshot({
       snapshotId: 19,
       publishedAt: new Date('2026-02-17T11:00:00Z'),
     });

@@ -1,22 +1,17 @@
 import config from 'config';
 import NodeCache from 'node-cache';
 
-import type { PublishedSnapshot } from '../repositories/snapshotStateRepository';
+const stdTTL = config.get<number>('analytics.publishedSnapshotCacheTtlSeconds');
+const cache = new NodeCache({ stdTTL });
 
-export const PUBLISHED_SNAPSHOT_CACHE_TTL_SECONDS = config.get<number>('analytics.publishedSnapshotCacheTtlSeconds');
+export const CacheKeys = {
+  currentPublishedSnapshot: 'current-published-snapshot',
+} as const;
 
-const CURRENT_PUBLISHED_SNAPSHOT_CACHE_KEY = 'current-published-snapshot';
-
-const publishedSnapshotCache = new NodeCache({ stdTTL: PUBLISHED_SNAPSHOT_CACHE_TTL_SECONDS });
-
-export function getCurrentPublishedSnapshotFromCache(): PublishedSnapshot | undefined {
-  return publishedSnapshotCache.get<PublishedSnapshot>(CURRENT_PUBLISHED_SNAPSHOT_CACHE_KEY);
+export function getCache<T>(key: string): T | undefined {
+  return cache.get<T>(key);
 }
 
-export function setCurrentPublishedSnapshotInCache(snapshot: PublishedSnapshot): void {
-  publishedSnapshotCache.set(CURRENT_PUBLISHED_SNAPSHOT_CACHE_KEY, snapshot);
-}
-
-export function clearCurrentPublishedSnapshotCache(): void {
-  publishedSnapshotCache.del(CURRENT_PUBLISHED_SNAPSHOT_CACHE_KEY);
+export function setCache<T>(key: string, value: T): void {
+  cache.set(key, value);
 }
