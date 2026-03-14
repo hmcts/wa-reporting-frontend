@@ -9,10 +9,9 @@ import { AnalyticsQueryOptions, buildAnalyticsWhere } from './filters';
 import { asOfSnapshotCondition } from './snapshotSql';
 import {
   AssignmentRow,
-  CompletedByLocationRow,
   CompletedByNameRow,
-  CompletedByRegionRow,
   CompletedProcessingHandlingTimeRow,
+  CompletedRegionLocationAggregateRow,
   CompletedSummaryRow,
   CompletedTimelineRow,
   FilterValueRow,
@@ -130,6 +129,18 @@ export class TaskFactsRepository {
     );
   }
 
+  private shouldUseUnfilteredNonUserOverviewOptionsFastPath(params: {
+    scope: AnalyticsFacetScope;
+    filters: AnalyticsFilters;
+    includeUserFilter: boolean;
+  }): boolean {
+    return (
+      params.scope !== 'userOverview' &&
+      !params.includeUserFilter &&
+      !this.hasActiveOverviewFacetFilters(params.filters, params.includeUserFilter)
+    );
+  }
+
   private buildUnfilteredUserOverviewFilterOptionsQuery(
     snapshotId: number,
     queryOptions?: AnalyticsQueryOptions
@@ -176,6 +187,66 @@ export class TaskFactsRepository {
           OR (GROUPING(task_name) = 0 AND task_name IS NOT NULL)
           OR (GROUPING(work_type) = 0 AND work_type IS NOT NULL)
           OR (GROUPING(assignee) = 0 AND assignee IS NOT NULL)
+      )
+      SELECT
+        grouped_options.option_type,
+        grouped_options.value,
+        CASE
+          WHEN grouped_options.option_type = 'workType'
+            THEN COALESCE(work_types.label, grouped_options.value)
+          ELSE grouped_options.value
+        END AS text
+      FROM grouped_options
+      LEFT JOIN cft_task_db.work_types work_types
+        ON grouped_options.option_type = 'workType'
+       AND work_types.work_type_id = grouped_options.value
+      ORDER BY grouped_options.option_type ASC, text ASC, grouped_options.value ASC
+    `;
+  }
+
+  private buildUnfilteredNonUserOverviewFilterOptionsQuery(
+    snapshotId: number,
+    tableName: Prisma.Sql,
+    queryOptions?: AnalyticsQueryOptions
+  ): Prisma.Sql {
+    const whereClause = buildAnalyticsWhere({}, [asOfSnapshotCondition(snapshotId)], queryOptions);
+
+    return Prisma.sql`
+      WITH grouped_options AS (
+        SELECT
+          CASE
+            WHEN GROUPING(jurisdiction_label) = 0 THEN 'service'
+            WHEN GROUPING(role_category_label) = 0 THEN 'roleCategory'
+            WHEN GROUPING(region) = 0 THEN 'region'
+            WHEN GROUPING(location) = 0 THEN 'location'
+            WHEN GROUPING(task_name) = 0 THEN 'taskName'
+            WHEN GROUPING(work_type) = 0 THEN 'workType'
+          END AS option_type,
+          CASE
+            WHEN GROUPING(jurisdiction_label) = 0 THEN jurisdiction_label::text
+            WHEN GROUPING(role_category_label) = 0 THEN role_category_label::text
+            WHEN GROUPING(region) = 0 THEN region::text
+            WHEN GROUPING(location) = 0 THEN location::text
+            WHEN GROUPING(task_name) = 0 THEN task_name::text
+            WHEN GROUPING(work_type) = 0 THEN work_type::text
+          END AS value
+        FROM ${tableName}
+        ${whereClause}
+        GROUP BY GROUPING SETS (
+          (jurisdiction_label),
+          (role_category_label),
+          (region),
+          (location),
+          (task_name),
+          (work_type)
+        )
+        HAVING
+          (GROUPING(jurisdiction_label) = 0 AND jurisdiction_label IS NOT NULL)
+          OR (GROUPING(role_category_label) = 0 AND role_category_label IS NOT NULL AND BTRIM(role_category_label) <> '')
+          OR (GROUPING(region) = 0 AND region IS NOT NULL)
+          OR (GROUPING(location) = 0 AND location IS NOT NULL)
+          OR (GROUPING(task_name) = 0 AND task_name IS NOT NULL)
+          OR (GROUPING(work_type) = 0 AND work_type IS NOT NULL)
       )
       SELECT
         grouped_options.option_type,
@@ -258,6 +329,22 @@ export class TaskFactsRepository {
     return buildAnalyticsWhere(branchFilters, conditions, queryOptions);
   }
 
+  private buildCompletedFactsWhereClause(params: {
+    snapshotId: number;
+    filters: AnalyticsFilters;
+    range?: { from?: Date; to?: Date };
+    queryOptions?: AnalyticsQueryOptions;
+  }): Prisma.Sql {
+    const conditions: Prisma.Sql[] = [asOfSnapshotCondition(params.snapshotId), Prisma.sql`date_role = 'completed'`];
+    if (params.range?.from) {
+      conditions.push(Prisma.sql`reference_date >= ${params.range.from}`);
+    }
+    if (params.range?.to) {
+      conditions.push(Prisma.sql`reference_date <= ${params.range.to}`);
+    }
+    return buildAnalyticsWhere(params.filters, conditions, params.queryOptions);
+  }
+
   async fetchServiceOverviewRows(snapshotId: number, filters: AnalyticsFilters): Promise<ServiceOverviewDbRow[]> {
     const whereClause = buildAnalyticsWhere(filters, [asOfSnapshotCondition(snapshotId)]);
     const priorityRank = priorityRankSql({
@@ -337,6 +424,19 @@ export class TaskFactsRepository {
     }
 
     const tableName = this.filterFactsTable(scope);
+
+    if (
+      this.shouldUseUnfilteredNonUserOverviewOptionsFastPath({
+        scope,
+        filters,
+        includeUserFilter,
+      })
+    ) {
+      const optionRows = await tmPrisma.$queryRaw<OverviewFilterOptionRow[]>(
+        this.buildUnfilteredNonUserOverviewFilterOptionsQuery(snapshotId, tableName, queryOptions)
+      );
+      return this.mapOverviewFilterOptionRows(optionRows);
+    }
 
     const optionBranches: Prisma.Sql[] = [];
     const serviceWhere = this.buildOverviewFacetWhereClause({
@@ -630,18 +730,7 @@ export class TaskFactsRepository {
     range?: { from?: Date; to?: Date },
     queryOptions?: AnalyticsQueryOptions
   ): Promise<CompletedSummaryRow[]> {
-    const conditions: Prisma.Sql[] = [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'completed'`,
-      Prisma.sql`task_status = 'completed'`,
-    ];
-    if (range?.from) {
-      conditions.push(Prisma.sql`reference_date >= ${range.from}`);
-    }
-    if (range?.to) {
-      conditions.push(Prisma.sql`reference_date <= ${range.to}`);
-    }
-    const whereClause = buildAnalyticsWhere(filters, conditions, queryOptions);
+    const whereClause = this.buildCompletedFactsWhereClause({ snapshotId, filters, range, queryOptions });
 
     return tmPrisma.$queryRaw<CompletedSummaryRow[]>(Prisma.sql`
       SELECT
@@ -739,18 +828,7 @@ export class TaskFactsRepository {
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedTimelineRow[]> {
-    const conditions: Prisma.Sql[] = [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'completed'`,
-      Prisma.sql`task_status = 'completed'`,
-    ];
-    if (range?.from) {
-      conditions.push(Prisma.sql`reference_date >= ${range.from}`);
-    }
-    if (range?.to) {
-      conditions.push(Prisma.sql`reference_date <= ${range.to}`);
-    }
-    const whereClause = buildAnalyticsWhere(filters, conditions);
+    const whereClause = this.buildCompletedFactsWhereClause({ snapshotId, filters, range });
 
     return tmPrisma.$queryRaw<CompletedTimelineRow[]>(Prisma.sql`
       SELECT
@@ -769,18 +847,7 @@ export class TaskFactsRepository {
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedProcessingHandlingTimeRow[]> {
-    const conditions: Prisma.Sql[] = [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'completed'`,
-      Prisma.sql`task_status = 'completed'`,
-    ];
-    if (range?.from) {
-      conditions.push(Prisma.sql`reference_date >= ${range.from}`);
-    }
-    if (range?.to) {
-      conditions.push(Prisma.sql`reference_date <= ${range.to}`);
-    }
-    const whereClause = buildAnalyticsWhere(filters, conditions);
+    const whereClause = this.buildCompletedFactsWhereClause({ snapshotId, filters, range });
 
     return tmPrisma.$queryRaw<CompletedProcessingHandlingTimeRow[]>(Prisma.sql`
       SELECT
@@ -830,18 +897,7 @@ export class TaskFactsRepository {
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedByNameRow[]> {
-    const conditions: Prisma.Sql[] = [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'completed'`,
-      Prisma.sql`task_status = 'completed'`,
-    ];
-    if (range?.from) {
-      conditions.push(Prisma.sql`reference_date >= ${range.from}`);
-    }
-    if (range?.to) {
-      conditions.push(Prisma.sql`reference_date <= ${range.to}`);
-    }
-    const whereClause = buildAnalyticsWhere(filters, conditions);
+    const whereClause = this.buildCompletedFactsWhereClause({ snapshotId, filters, range });
 
     return tmPrisma.$queryRaw<CompletedByNameRow[]>(Prisma.sql`
       SELECT
@@ -855,26 +911,19 @@ export class TaskFactsRepository {
     `);
   }
 
-  async fetchCompletedByLocationRows(
+  async fetchCompletedRegionLocationRows(
     snapshotId: number,
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
-  ): Promise<CompletedByLocationRow[]> {
-    const conditions: Prisma.Sql[] = [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'completed'`,
-      Prisma.sql`task_status = 'completed'`,
-    ];
-    if (range?.from) {
-      conditions.push(Prisma.sql`reference_date >= ${range.from}`);
-    }
-    if (range?.to) {
-      conditions.push(Prisma.sql`reference_date <= ${range.to}`);
-    }
-    const whereClause = buildAnalyticsWhere(filters, conditions);
+  ): Promise<CompletedRegionLocationAggregateRow[]> {
+    const whereClause = this.buildCompletedFactsWhereClause({ snapshotId, filters, range });
 
-    return tmPrisma.$queryRaw<CompletedByLocationRow[]>(Prisma.sql`
+    return tmPrisma.$queryRaw<CompletedRegionLocationAggregateRow[]>(Prisma.sql`
       SELECT
+        CASE
+          WHEN GROUPING(location) = 0 THEN 'location'
+          ELSE 'region'
+        END AS grouping_type,
         location,
         region,
         SUM(task_count)::int AS total,
@@ -885,42 +934,11 @@ export class TaskFactsRepository {
         SUM(processing_time_days_count)::int AS processing_time_days_count
       FROM analytics.snapshot_task_daily_facts
       ${whereClause}
-      GROUP BY location, region
-      ORDER BY location ASC, region ASC
-    `);
-  }
-
-  async fetchCompletedByRegionRows(
-    snapshotId: number,
-    filters: AnalyticsFilters,
-    range?: { from?: Date; to?: Date }
-  ): Promise<CompletedByRegionRow[]> {
-    const conditions: Prisma.Sql[] = [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'completed'`,
-      Prisma.sql`task_status = 'completed'`,
-    ];
-    if (range?.from) {
-      conditions.push(Prisma.sql`reference_date >= ${range.from}`);
-    }
-    if (range?.to) {
-      conditions.push(Prisma.sql`reference_date <= ${range.to}`);
-    }
-    const whereClause = buildAnalyticsWhere(filters, conditions);
-
-    return tmPrisma.$queryRaw<CompletedByRegionRow[]>(Prisma.sql`
-      SELECT
-        region,
-        SUM(task_count)::int AS total,
-        SUM(CASE WHEN sla_flag IS TRUE THEN task_count ELSE 0 END)::int AS within,
-        SUM(handling_time_days_sum)::double precision AS handling_time_days_sum,
-        SUM(handling_time_days_count)::int AS handling_time_days_count,
-        SUM(processing_time_days_sum)::double precision AS processing_time_days_sum,
-        SUM(processing_time_days_count)::int AS processing_time_days_count
-      FROM analytics.snapshot_task_daily_facts
-      ${whereClause}
-      GROUP BY region
-      ORDER BY region ASC
+      GROUP BY GROUPING SETS ((location, region), (region))
+      ORDER BY
+        CASE WHEN GROUPING(location) = 0 THEN 1 ELSE 0 END ASC,
+        CASE WHEN GROUPING(location) = 0 THEN location ELSE region END ASC,
+        region ASC
     `);
   }
 }

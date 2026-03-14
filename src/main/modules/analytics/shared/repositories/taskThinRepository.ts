@@ -412,9 +412,9 @@ export class TaskThinRepository {
         location,
         termination_process_label,
         outcome
-      FROM ${Prisma.raw(COMPLETED_TASK_ROWS_TABLE)}
+      FROM ${Prisma.raw(COMPLETED_TASK_ROWS_TABLE)} rows
       ${whereClause}
-      ORDER BY completed_date DESC NULLS LAST
+      ORDER BY rows.completed_date DESC NULLS LAST
     `);
   }
 

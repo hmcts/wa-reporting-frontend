@@ -76,6 +76,7 @@ Current refresh shape:
 - Creates a narrow temp staging table with only the columns and derived values needed by the app.
 - Builds detached per-snapshot tables for every snapshot parent before publish.
 - Loads thin row tables first, then facts, then page-scoped facet tables.
+- Creates the generic task-daily child index on `(snapshot_id, date_role, reference_date)` for each detached `snapshot_task_daily_facts` partition.
 - Runs `ANALYZE` on every detached snapshot table before publish.
 - Commits the detached build tables before publish, then opens a short publish transaction that only attaches those tables as partitions and updates `analytics.snapshot_state`.
 - Keeps the previous published snapshot readable during the detached build phase because the live parent tables are not modified until the final attach step.
@@ -253,6 +254,9 @@ Open-task classification inside daily facts:
 
 Notes:
 - `/completed` processing and handling time no longer scans row data; it reconstructs averages and population standard deviations from `sum`, `sum_squares`, and `count`.
+- Completed-only aggregate readers now constrain `date_role = 'completed'` without an extra `task_status = 'completed'` predicate because the completed date-role slice is already materialised as completed-only data.
+- The generic task-daily date index is owned as a parent index on `(snapshot_id, date_role, reference_date)` and as matching child-partition indexes on `(snapshot_id, date_role, reference_date)`.
+- The `/completed` region and region/location tables are served from one `GROUPING SETS ((location, region), (region))` aggregate over this fact table.
 
 ### analytics.snapshot_open_due_daily_facts
 Open-task fact table for the shared due/open aggregate workload.
@@ -390,6 +394,8 @@ Notes for all facet tables:
 - Blank strings are normalised to `NULL` at materialisation time.
 - Work type display labels are still resolved at read-time by joining `cft_task_db.work_types`.
 - User Overview still applies its query-time Judicial exclusion when reading row and fact queries.
+- Unfiltered non-user scopes (`/`, `/outstanding`, and `/completed`) read filter options with one `GROUPING SETS` query per page-scoped facet table.
+- Filtered states still use per-facet queries so each dropdown can exclude its own active filter while respecting the others.
 
 Flyway ownership note:
 - The current schema shape documented in this file is the target state produced by the repository-owned Flyway migrations under `db/migrations/tm/`.

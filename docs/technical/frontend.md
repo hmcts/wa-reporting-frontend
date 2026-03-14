@@ -23,6 +23,7 @@ The Nunjucks environment adds:
 ## Date display standard
 - Analytics UI dates are displayed as `D Mon YYYY` (for example, `3 Mar 2020`).
 - Source date values remain ISO `YYYY-MM-DD` for sorting and CSV export.
+- Server-side SQL keeps native date columns in `WHERE`, `GROUP BY`, and `ORDER BY`; formatting to ISO is projection-only.
 - Client-side sortable date cells keep ISO values in `data-sort-value`.
 - Server-sorted priority columns include numeric `data-sort-value` metadata (`Urgent=4`, `High=3`, `Medium=2`, `Low=1`) so client-side table enhancement preserves severity ordering.
 - CSV export prefers cell `data-export-value` so visible formatted dates can export as ISO.

@@ -3,8 +3,7 @@ import { taskFactsRepository } from '../../../../../main/modules/analytics/share
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
   taskFactsRepository: {
-    fetchCompletedByLocationRows: jest.fn(),
-    fetchCompletedByRegionRows: jest.fn(),
+    fetchCompletedRegionLocationRows: jest.fn(),
   },
 }));
 
@@ -15,9 +14,21 @@ describe('completedRegionLocationTableService', () => {
     jest.clearAllMocks();
   });
 
-  test('maps location rows and calculates averages', async () => {
-    (taskFactsRepository.fetchCompletedByLocationRows as jest.Mock).mockResolvedValue([
+  test('maps combined region and location rows and calculates averages', async () => {
+    (taskFactsRepository.fetchCompletedRegionLocationRows as jest.Mock).mockResolvedValue([
       {
+        grouping_type: 'region',
+        location: null,
+        region: null,
+        total: 2,
+        within: 1,
+        handling_time_days_sum: 4,
+        handling_time_days_count: 2,
+        processing_time_days_sum: 6,
+        processing_time_days_count: 3,
+      },
+      {
+        grouping_type: 'location',
         location: null,
         region: 'North',
         total: 4,
@@ -28,6 +39,7 @@ describe('completedRegionLocationTableService', () => {
         processing_time_days_count: 2,
       },
       {
+        grouping_type: 'location',
         location: 'Leeds',
         region: null,
         total: 1,
@@ -38,6 +50,7 @@ describe('completedRegionLocationTableService', () => {
         processing_time_days_count: 0,
       },
       {
+        grouping_type: 'location',
         location: 'York',
         region: 'North',
         total: 1,
@@ -49,69 +62,55 @@ describe('completedRegionLocationTableService', () => {
       },
     ]);
 
-    const result = await completedRegionLocationTableService.fetchCompletedByLocation(snapshotId, {});
+    const result = await completedRegionLocationTableService.fetchCompletedRegionLocation(snapshotId, {});
 
-    expect(result).toEqual([
-      {
-        location: 'Unknown',
-        region: 'North',
-        tasks: 4,
-        withinDue: 2,
-        beyondDue: 2,
-        handlingTimeDays: 3,
-        processingTimeDays: 4,
-      },
-      {
-        location: 'Leeds',
-        region: 'Unknown',
-        tasks: 1,
-        withinDue: 1,
-        beyondDue: 0,
-        handlingTimeDays: null,
-        processingTimeDays: null,
-      },
-      {
-        location: 'York',
-        region: 'North',
-        tasks: 1,
-        withinDue: 0,
-        beyondDue: 1,
-        handlingTimeDays: null,
-        processingTimeDays: null,
-      },
-    ]);
+    expect(result).toEqual({
+      byLocation: [
+        {
+          location: 'Unknown',
+          region: 'North',
+          tasks: 4,
+          withinDue: 2,
+          beyondDue: 2,
+          handlingTimeDays: 3,
+          processingTimeDays: 4,
+        },
+        {
+          location: 'Leeds',
+          region: 'Unknown',
+          tasks: 1,
+          withinDue: 1,
+          beyondDue: 0,
+          handlingTimeDays: null,
+          processingTimeDays: null,
+        },
+        {
+          location: 'York',
+          region: 'North',
+          tasks: 1,
+          withinDue: 0,
+          beyondDue: 1,
+          handlingTimeDays: null,
+          processingTimeDays: null,
+        },
+      ],
+      byRegion: [
+        {
+          region: 'Unknown',
+          tasks: 2,
+          withinDue: 1,
+          beyondDue: 1,
+          handlingTimeDays: 2,
+          processingTimeDays: 2,
+        },
+      ],
+    });
   });
 
-  test('maps region rows with fallback labels', async () => {
-    (taskFactsRepository.fetchCompletedByRegionRows as jest.Mock).mockResolvedValue([
+  test('defaults missing totals to zero in both result groups', async () => {
+    (taskFactsRepository.fetchCompletedRegionLocationRows as jest.Mock).mockResolvedValue([
       {
-        region: null,
-        total: 2,
-        within: 1,
-        handling_time_days_sum: 4,
-        handling_time_days_count: 2,
-        processing_time_days_sum: 6,
-        processing_time_days_count: 3,
-      },
-    ]);
-
-    const result = await completedRegionLocationTableService.fetchCompletedByRegion(snapshotId, {});
-
-    expect(result).toEqual([
-      {
-        region: 'Unknown',
-        tasks: 2,
-        withinDue: 1,
-        beyondDue: 1,
-        handlingTimeDays: 2,
-        processingTimeDays: 2,
-      },
-    ]);
-  });
-
-  test('defaults missing totals to zero for location and region rows', async () => {
-    (taskFactsRepository.fetchCompletedByLocationRows as jest.Mock).mockResolvedValue([
-      {
+        grouping_type: 'location',
         location: 'Leeds',
         region: 'North',
         total: null,
@@ -121,10 +120,9 @@ describe('completedRegionLocationTableService', () => {
         processing_time_days_sum: null,
         processing_time_days_count: null,
       },
-    ]);
-
-    (taskFactsRepository.fetchCompletedByRegionRows as jest.Mock).mockResolvedValue([
       {
+        grouping_type: 'region',
+        location: null,
         region: 'North',
         total: undefined,
         within: null,
@@ -135,29 +133,30 @@ describe('completedRegionLocationTableService', () => {
       },
     ]);
 
-    const locationResult = await completedRegionLocationTableService.fetchCompletedByLocation(snapshotId, {});
-    const regionResult = await completedRegionLocationTableService.fetchCompletedByRegion(snapshotId, {});
+    const result = await completedRegionLocationTableService.fetchCompletedRegionLocation(snapshotId, {});
 
-    expect(locationResult).toEqual([
-      {
-        location: 'Leeds',
-        region: 'North',
-        tasks: 0,
-        withinDue: 0,
-        beyondDue: 0,
-        handlingTimeDays: null,
-        processingTimeDays: null,
-      },
-    ]);
-    expect(regionResult).toEqual([
-      {
-        region: 'North',
-        tasks: 0,
-        withinDue: 0,
-        beyondDue: 0,
-        handlingTimeDays: null,
-        processingTimeDays: null,
-      },
-    ]);
+    expect(result).toEqual({
+      byLocation: [
+        {
+          location: 'Leeds',
+          region: 'North',
+          tasks: 0,
+          withinDue: 0,
+          beyondDue: 0,
+          handlingTimeDays: null,
+          processingTimeDays: null,
+        },
+      ],
+      byRegion: [
+        {
+          region: 'North',
+          tasks: 0,
+          withinDue: 0,
+          beyondDue: 0,
+          handlingTimeDays: null,
+          processingTimeDays: null,
+        },
+      ],
+    });
   });
 });

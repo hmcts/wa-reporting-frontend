@@ -581,10 +581,10 @@ describe('taskThinRepository', () => {
     const assigneeIds = await taskThinRepository.fetchAssigneeIds(snapshotId);
     const assigneeQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[1][0];
 
-    expect(auditQuery.sql).toContain('FROM analytics.snapshot_completed_task_rows');
+    expect(auditQuery.sql).toContain('FROM analytics.snapshot_completed_task_rows rows');
     expect(auditQuery.sql).toContain("to_char(completed_date, 'YYYY-MM-DD') AS completed_date");
     expect(auditQuery.sql).toContain('outcome');
-    expect(auditQuery.sql).toContain('ORDER BY completed_date DESC NULLS LAST');
+    expect(auditQuery.sql).toContain('ORDER BY rows.completed_date DESC NULLS LAST');
     expect(auditQuery.values).toContain('CASE-100');
     expect(assigneeQuery.sql).toContain('SELECT DISTINCT value');
     expect(assigneeQuery.sql).toContain('FROM analytics.snapshot_open_task_rows');
