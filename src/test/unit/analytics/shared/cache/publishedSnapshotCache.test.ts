@@ -1,16 +1,16 @@
-const getMock = jest.fn();
-const setMock = jest.fn();
-const configGetMock = jest.fn().mockReturnValue(15);
-const nodeCacheMock = jest.fn().mockImplementation(() => ({
-  get: getMock,
-  set: setMock,
+const publishedSnapshotGetMock = jest.fn();
+const publishedSnapshotSetMock = jest.fn();
+const publishedSnapshotConfigGetMock = jest.fn().mockReturnValue(15);
+const publishedSnapshotNodeCacheMock = jest.fn().mockImplementation(() => ({
+  get: publishedSnapshotGetMock,
+  set: publishedSnapshotSetMock,
 }));
 
 jest.mock('config', () => ({
-  get: configGetMock,
+  get: publishedSnapshotConfigGetMock,
 }));
 
-jest.mock('node-cache', () => nodeCacheMock);
+jest.mock('node-cache', () => publishedSnapshotNodeCacheMock);
 
 describe('publishedSnapshotCache', () => {
   beforeEach(() => {
@@ -23,19 +23,19 @@ describe('publishedSnapshotCache', () => {
   test('initialises cache with configured TTL', () => {
     const { CacheKeys } = loadCacheModule();
 
-    expect(configGetMock).toHaveBeenCalledWith('analytics.publishedSnapshotCacheTtlSeconds');
-    expect(nodeCacheMock).toHaveBeenCalledWith({ stdTTL: 15 });
+    expect(publishedSnapshotConfigGetMock).toHaveBeenCalledWith('analytics.publishedSnapshotCacheTtlSeconds');
+    expect(publishedSnapshotNodeCacheMock).toHaveBeenCalledWith({ stdTTL: 15 });
     expect(CacheKeys.currentPublishedSnapshot).toBe('current-published-snapshot');
   });
 
   test('getCache and setCache proxy to NodeCache', () => {
     const { getCache, setCache } = loadCacheModule();
     const snapshot = { snapshotId: 21, publishedAt: new Date('2026-03-14T18:55:00.000Z') };
-    getMock.mockReturnValue(snapshot);
+    publishedSnapshotGetMock.mockReturnValue(snapshot);
 
     expect(getCache('key')).toEqual(snapshot);
 
     setCache('key', snapshot);
-    expect(setMock).toHaveBeenCalledWith('key', snapshot);
+    expect(publishedSnapshotSetMock).toHaveBeenCalledWith('key', snapshot);
   });
 });
