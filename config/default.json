@@ -10,6 +10,7 @@
   },
   "analytics": {
     "cacheTtlSeconds": 900,
+    "publishedSnapshotCacheTtlSeconds": 15,
     "manageCaseBaseUrl": "https://manage-case.aat.platform.hmcts.net",
     "filtersCookieName": "wa-reporting-analytics-filters",
     "filtersCookieMaxAgeDays": 365,
