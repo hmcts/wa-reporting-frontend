@@ -1,9 +1,14 @@
 import config from 'config';
 import { createHmac, timingSafeEqual } from 'crypto';
 
+import {
+  getCurrentPublishedSnapshotFromCache,
+  setCurrentPublishedSnapshotInCache,
+} from './cache/publishedSnapshotCache';
 import { emptyOverviewFilterOptions } from './filters';
 import type { AnalyticsFacetScope, FacetFilterKey } from './filters';
 import { buildFreshnessInsetText } from './formatting';
+import type { PublishedSnapshot } from './repositories';
 import type { AnalyticsQueryOptions } from './repositories/filters';
 import { snapshotStateRepository } from './repositories';
 import type { AnalyticsFilters } from './types';
@@ -55,15 +60,37 @@ function toUnpublishedSnapshotContext(): PublishedSnapshotContext {
   };
 }
 
+async function fetchCurrentPublishedSnapshot(cachedSnapshot?: PublishedSnapshot): Promise<PublishedSnapshot | null> {
+  if (cachedSnapshot) {
+    return cachedSnapshot;
+  }
+
+  const snapshot = await snapshotStateRepository.fetchPublishedSnapshot();
+  if (snapshot) {
+    setCurrentPublishedSnapshotInCache(snapshot);
+  }
+
+  return snapshot;
+}
+
 export async function fetchPublishedSnapshotContext(requestedSnapshotId?: number): Promise<PublishedSnapshotContext> {
+  const cachedCurrentSnapshot = getCurrentPublishedSnapshotFromCache();
+
   if (requestedSnapshotId !== undefined) {
+    if (cachedCurrentSnapshot?.snapshotId === requestedSnapshotId) {
+      return toPublishedSnapshotContext(cachedCurrentSnapshot);
+    }
+
     const requested = await snapshotStateRepository.fetchSnapshotById(requestedSnapshotId);
     if (requested) {
+      if (requested.publishedAt) {
+        setCurrentPublishedSnapshotInCache(requested);
+      }
       return toPublishedSnapshotContext(requested);
     }
   }
 
-  const snapshot = await snapshotStateRepository.fetchPublishedSnapshot();
+  const snapshot = await fetchCurrentPublishedSnapshot(cachedCurrentSnapshot);
   if (!snapshot) {
     return toUnpublishedSnapshotContext();
   }

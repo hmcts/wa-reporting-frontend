@@ -1,5 +1,6 @@
 analytics:
   cacheTtlSeconds: ANALYTICS_CACHE_TTL_SECONDS
+  publishedSnapshotCacheTtlSeconds: ANALYTICS_PUBLISHED_SNAPSHOT_CACHE_TTL_SECONDS
   manageCaseBaseUrl: MANAGE_CASE_BASE_URL
   filtersCookieName: ANALYTICS_FILTERS_COOKIE_NAME
   filtersCookieMaxAgeDays: ANALYTICS_FILTERS_COOKIE_MAX_AGE_DAYS
