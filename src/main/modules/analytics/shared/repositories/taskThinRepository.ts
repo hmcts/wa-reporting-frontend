@@ -329,21 +329,6 @@ export class TaskThinRepository {
     return rows[0]?.total ?? 0;
   }
 
-  async fetchUserOverviewCompletedTaskCount(
-    snapshotId: number,
-    filters: AnalyticsFilters,
-    queryOptions?: AnalyticsQueryOptions
-  ): Promise<number> {
-    const conditions = buildCompletedRowConditions(filters);
-    const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions, queryOptions);
-    const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
-      SELECT COUNT(*)::int AS total
-      FROM ${Prisma.raw(COMPLETED_TASK_ROWS_TABLE)}
-      ${whereClause}
-    `);
-    return rows[0]?.total ?? 0;
-  }
-
   async fetchUserOverviewCompletedByDateRows(
     snapshotId: number,
     filters: AnalyticsFilters,

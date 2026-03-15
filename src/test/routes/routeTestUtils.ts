@@ -12,7 +12,6 @@ type RouteAnalyticsMocks = {
   userOverviewCompletedTaskRows?: unknown[];
   userOverviewCompletedSummaryRows?: unknown[];
   userOverviewAssignedTaskCount?: number;
-  userOverviewCompletedTaskCount?: number;
   outstandingCriticalTaskRows?: unknown[];
   outstandingCriticalTaskCount?: number;
 };
@@ -61,7 +60,6 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
   const userOverviewCompletedTaskRows = analyticsMocks.userOverviewCompletedTaskRows ?? [];
   const userOverviewCompletedSummaryRows = analyticsMocks.userOverviewCompletedSummaryRows ?? [];
   const userOverviewAssignedTaskCount = analyticsMocks.userOverviewAssignedTaskCount ?? 0;
-  const userOverviewCompletedTaskCount = analyticsMocks.userOverviewCompletedTaskCount ?? 0;
   const outstandingCriticalTaskRows = analyticsMocks.outstandingCriticalTaskRows ?? [];
   const outstandingCriticalTaskCount = analyticsMocks.outstandingCriticalTaskCount ?? 0;
 
@@ -91,7 +89,6 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
       fetchCompletedRegionLocationRows: jest.fn().mockResolvedValue([]),
       fetchUserOverviewAssignedSummaryRows: jest.fn().mockResolvedValue(userOverviewAssignedSummaryRows),
       fetchUserOverviewCompletedSummaryRows: jest.fn().mockResolvedValue(userOverviewCompletedSummaryRows),
-      fetchUserOverviewCompletedTaskCount: jest.fn().mockResolvedValue(userOverviewCompletedTaskCount),
     },
   }));
 
@@ -100,7 +97,6 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
       fetchUserOverviewAssignedTaskRows: jest.fn().mockResolvedValue(userOverviewAssignedTaskRows),
       fetchUserOverviewCompletedTaskRows: jest.fn().mockResolvedValue(userOverviewCompletedTaskRows),
       fetchUserOverviewAssignedTaskCount: jest.fn().mockResolvedValue(userOverviewAssignedTaskCount),
-      fetchUserOverviewCompletedTaskCount: jest.fn().mockResolvedValue(userOverviewCompletedTaskCount),
       fetchUserOverviewCompletedByDateRows: jest.fn().mockResolvedValue([]),
       fetchUserOverviewCompletedByTaskNameRows: jest.fn().mockResolvedValue([]),
       fetchCompletedTaskAuditRows: jest.fn().mockResolvedValue([]),

@@ -114,6 +114,20 @@ describe('Analytics user overview route', () => {
       expect(completedSummaryIndex).toBeLessThan(completedTableIndex);
     });
 
+    test('should render the combined completed overview partial for ajax requests', async () => {
+      const response = await request(server)
+        .get('/users?ajaxSection=user-overview-completed-overview')
+        .set('X-Requested-With', 'fetch')
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('Completed tasks');
+      expect(response.text).toContain('Completed tasks by date');
+      expect(response.text).toContain('data-section="user-overview-completed"');
+      expect(response.text).toContain('data-section="user-overview-completed-by-date"');
+      expect(response.text).not.toContain('User overview');
+    });
+
     test('should fall back to the full page when ajaxSection is unknown', async () => {
       const response = await request(server)
         .get('/users?ajaxSection=unknown-section')

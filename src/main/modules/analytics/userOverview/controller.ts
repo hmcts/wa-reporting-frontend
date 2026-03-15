@@ -22,6 +22,7 @@ class UserOverviewController {
     assigned: 'analytics/user-overview/partials/assigned-tasks',
     completed: 'analytics/user-overview/partials/completed-tasks',
     'user-overview-assigned': 'analytics/user-overview/partials/assigned-tasks',
+    'user-overview-completed-overview': 'analytics/user-overview/partials/completed-overview',
     'user-overview-completed': 'analytics/user-overview/partials/completed-tasks',
     'user-overview-completed-by-date': 'analytics/user-overview/partials/completed-by-date',
     'user-overview-completed-by-task-name': 'analytics/user-overview/partials/completed-by-task-name',

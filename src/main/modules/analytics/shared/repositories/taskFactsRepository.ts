@@ -818,21 +818,6 @@ export class TaskFactsRepository {
     `);
   }
 
-  async fetchUserOverviewCompletedTaskCount(
-    snapshotId: number,
-    filters: AnalyticsFilters,
-    queryOptions?: AnalyticsQueryOptions
-  ): Promise<number> {
-    const whereClause = buildUserOverviewCompletedFactsWhere(snapshotId, filters, queryOptions);
-
-    const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
-      SELECT COALESCE(SUM(tasks), 0)::int AS total
-      FROM analytics.snapshot_user_completed_facts
-      ${whereClause}
-    `);
-    return rows[0]?.total ?? 0;
-  }
-
   async fetchCompletedTimelineRows(
     snapshotId: number,
     filters: AnalyticsFilters,

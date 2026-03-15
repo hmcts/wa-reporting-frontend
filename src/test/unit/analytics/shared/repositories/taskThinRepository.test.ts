@@ -45,7 +45,6 @@ describe('taskThinRepository', () => {
     });
     await taskThinRepository.fetchUserOverviewCompletedTaskRows(snapshotId, {}, sort.completed, null);
     await taskThinRepository.fetchUserOverviewAssignedTaskCount(snapshotId, {});
-    await taskThinRepository.fetchUserOverviewCompletedTaskCount(snapshotId, {});
     await taskThinRepository.fetchUserOverviewCompletedByDateRows(snapshotId, {});
     await taskThinRepository.fetchUserOverviewCompletedByTaskNameRows(snapshotId, {});
     await taskThinRepository.fetchOutstandingCriticalTaskRows(snapshotId, {}, outstandingSort.criticalTasks, {
@@ -264,10 +263,16 @@ describe('taskThinRepository', () => {
     expect(assignedRowsQuery.sql).toContain('UPPER(role_category_label) NOT IN');
     expect(assignedRowsQuery.values).toContain('JUDICIAL');
 
-    await taskThinRepository.fetchUserOverviewCompletedTaskCount(snapshotId, completedFilters, queryOptions);
-    const completedCountQuery = latestQuery();
-    expect(completedCountQuery.sql).toContain('UPPER(role_category_label) NOT IN');
-    expect(completedCountQuery.values).toContain('JUDICIAL');
+    await taskThinRepository.fetchUserOverviewCompletedTaskRows(
+      snapshotId,
+      completedFilters,
+      getDefaultUserOverviewSort().completed,
+      { page: 1, pageSize: 20 },
+      queryOptions
+    );
+    const completedRowsQuery = latestQuery();
+    expect(completedRowsQuery.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(completedRowsQuery.values).toContain('JUDICIAL');
 
     await taskThinRepository.fetchUserOverviewCompletedByDateRows(snapshotId, completedFilters, queryOptions);
     const completedByDateQuery = latestQuery();
@@ -424,31 +429,18 @@ describe('taskThinRepository', () => {
     expect(criticalPriorityQuery.sql).toContain('AS priority_rank');
   });
 
-  test('returns zero when count queries return no rows', async () => {
-    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([]);
+  test('returns zero when the assigned count query has no rows', async () => {
     (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([]);
 
     const assignedTotal = await taskThinRepository.fetchUserOverviewAssignedTaskCount(snapshotId, { user: ['user-1'] });
-    const completedTotal = await taskThinRepository.fetchUserOverviewCompletedTaskCount(snapshotId, {
-      user: ['user-1'],
-      completedFrom: new Date('2024-02-01'),
-      completedTo: new Date('2024-02-28'),
-    });
 
-    const assignedCountQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
-    const completedCountQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[1][0];
+    const assignedCountQuery = latestQuery();
 
     expect(assignedTotal).toBe(0);
-    expect(completedTotal).toBe(0);
     expect(assignedCountQuery.sql).toContain('COUNT(*)::int AS total');
     expect(assignedCountQuery.sql).toContain("state = 'ASSIGNED'");
     expect(assignedCountQuery.sql).toContain('assignee IN');
     expect(assignedCountQuery.values).toContain('user-1');
-    expect(completedCountQuery.sql).toContain('FROM analytics.snapshot_completed_task_rows');
-    expect(completedCountQuery.sql).not.toContain("state IN ('COMPLETED', 'TERMINATED')");
-    expect(completedCountQuery.sql).toContain('completed_date >=');
-    expect(completedCountQuery.sql).toContain('completed_date <=');
-    expect(completedCountQuery.sql).toContain('assignee IN');
   });
 
   test('returns outstanding critical task count from SQL result', async () => {
@@ -489,13 +481,6 @@ describe('taskThinRepository', () => {
     expect(completedRowsQuery.sql).toContain('FROM analytics.snapshot_completed_task_rows rows');
     expect(completedRowsQuery.sql).not.toContain('completed_date >=');
     expect(completedRowsQuery.sql).not.toContain('completed_date <=');
-
-    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 4 }]);
-    await taskThinRepository.fetchUserOverviewCompletedTaskCount(snapshotId, {});
-    const completedCountQuery = latestQuery();
-    expect(completedCountQuery.sql).toContain('FROM analytics.snapshot_completed_task_rows');
-    expect(completedCountQuery.sql).not.toContain('completed_date >=');
-    expect(completedCountQuery.sql).not.toContain('completed_date <=');
   });
 
   test('builds completed by date and task-name aggregate queries with filters', async () => {

@@ -211,6 +211,8 @@ Notes:
 - `handling_time_sum` uses `COALESCE(handling_time_days, 0)` so null handling times remain in the task denominator for the `/users` completed-by-task-name table.
 - `days_beyond_sum` uses the refresh-time `days_beyond_due` value derived from `due_date_to_completed_diff_time`, also with nulls treated as zero.
 - `days_beyond_count` preserves `COUNT(*)` semantics for the `/users` completed-by-task-name average.
+- On the combined `/users` completed overview AJAX path, the completed summary and completed-table pagination totals are derived from the completed-by-date aggregate over this table instead of a separate summary query.
+- On completed-only child refreshes (`user-overview-completed`), the dedicated completed summary aggregate is still used so completed-table sort and pagination do not trigger the completed-by-date aggregate.
 
 ### analytics.snapshot_outstanding_due_status_daily_facts
 Page-scoped due-status fact table for the `/outstanding` tasks-due workload.
