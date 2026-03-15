@@ -207,7 +207,6 @@ describe('taskFactsRepository', () => {
     expect(normalised).not.toContain('WITH option_rows AS');
     expect(normalised).not.toContain("SELECT 'assignee'::text AS option_type");
   });
-
   test('keeps the branch-specific fallback path for filtered user-overview filter options', async () => {
     await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId, {
       scope: 'userOverview',

@@ -141,7 +141,6 @@ export class TaskFactsRepository {
       !this.hasActiveOverviewFacetFilters(params.filters, params.includeUserFilter)
     );
   }
-
   private buildUnfilteredUserOverviewFilterOptionsQuery(
     snapshotId: number,
     queryOptions?: AnalyticsQueryOptions
@@ -264,7 +263,6 @@ export class TaskFactsRepository {
       ORDER BY grouped_options.option_type ASC, text ASC, grouped_options.value ASC
     `;
   }
-
   private mapOverviewFilterOptionRows(optionRows: OverviewFilterOptionRow[]): OverviewFilterOptionsRows {
     const services: FilterValueRow[] = [];
     const roleCategories: FilterValueRow[] = [];
