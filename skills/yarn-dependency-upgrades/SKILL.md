@@ -1,12 +1,14 @@
 ---
 name: yarn-dependency-upgrades
-description: "Upgrade dependencies and maintain resolution hygiene in a Yarn 4 Node.js project. Use when asked to upgrade one dependency, multiple dependencies, or all dependencies to latest versions, when asked to remediate CVEs from `yarn-audit-known-issues` produced by `yarn npm audit --recursive --environment production --json`, or when asked to check and remove unnecessary `package.json` `resolutions` after upstream dependency upgrades. Follow this precedence for CVE remediation: (1) upgrade the vulnerable package if it is in package.json `dependencies`, (2) otherwise upgrade a direct parent dependency that pulls in the vulnerable transitive package, (3) otherwise use `yarn set resolution` for the vulnerable descriptor."
+description: "Upgrade dependencies and maintain CVE-focused resolution hygiene in a Yarn 4 Node.js project. Use when asked to upgrade one dependency, multiple dependencies, or all dependencies to latest versions, when asked to remediate CVEs from `yarn-audit-known-issues` produced by `yarn npm audit --recursive --environment production --json`, or when asked to check and remove unnecessary `package.json` `resolutions` after upstream dependency upgrades. Follow this precedence for CVE remediation: (1) upgrade the vulnerable package if it is in package.json `dependencies`, (2) otherwise upgrade a direct parent dependency that pulls in the vulnerable transitive package, (3) otherwise use `yarn set resolution` for the vulnerable descriptor."
 ---
 
 # Yarn Dependency Upgrades
 
 ## Overview
 Use deterministic Yarn 4 commands that match `yarn up -i` outcomes while remaining scriptable and repeatable.
+
+Top-level `resolutions` are a CVE-remediation mechanism in this skill. Do not add, keep, or upgrade a `resolution` just to force a newer transitive version. If removing a `resolution` does not cause the production audit command `yarn npm audit --recursive --environment production --json` to report a vulnerability, remove it.
 
 ## Preflight
 - Run commands from the repository root.
@@ -40,7 +42,8 @@ Use deterministic Yarn 4 commands that match `yarn up -i` outcomes while remaini
 - Derive descriptors from `yarn why <package> --json` and use each `descriptor` with `yarn set resolution`.
 - Use latest version lookup when creating resolution commands:
   - `yarn npm info <package> --fields version --json`
-- Persist long-lived overrides by updating top-level `resolutions` in `package.json`.
+- Persist overrides in top-level `resolutions` only when the production audit shows they are required to prevent a CVE.
+- Do not retain or upgrade `resolutions` for freshness, compatibility, or general policy reasons unless the user explicitly asks for a different policy than this skill's default.
 
 ## Resolution Cleanup
 1. Create a baseline audit snapshot:
@@ -51,8 +54,8 @@ Use deterministic Yarn 4 commands that match `yarn up -i` outcomes while remaini
    - Re-resolve without the override: `yarn up -R '*' '@*/*'`
    - Re-run audit: `yarn npm audit --recursive --environment production --json > yarn-audit-after`
 3. Decide keep/remove for that entry:
-   - Keep removed when no regression is introduced in `yarn-audit-after`
-   - Restore the entry when CVEs reappear or issue count regresses
+   - Keep the entry removed when `yarn-audit-after` stays empty or otherwise does not introduce a vulnerability finding attributable to that package
+   - Restore the entry only when removing it causes a production CVE to reappear
 4. Repeat until each resolution entry has been tested, then run the CVE workflow again for any remaining findings.
 
 ## Verification
