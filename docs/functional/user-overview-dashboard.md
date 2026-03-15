@@ -102,7 +102,7 @@ flowchart TB
 - On initial page loads and filter submits, the completed summary and completed-by-date section are refreshed together. On that combined path, the completed summary and completed-table pagination totals are derived from the completed-by-date facts query over `analytics.snapshot_user_completed_facts`.
 - Completed-table sort and pagination still refresh only the completed section. On that narrower path, the completed summary and completed-table pagination totals continue to come from the dedicated completed-summary aggregate over `analytics.snapshot_user_completed_facts`.
 - Completed tasks by task name is facts-backed from `analytics.snapshot_user_completed_facts`, with refresh-time aggregates preserving the same average calculations as the previous row-level query.
-- The default assigned and completed table entry queries are backed by dedicated non-Judicial partial indexes on the snapshot row partitions for `created_date DESC NULLS LAST` and `completed_date DESC NULLS LAST`.
+- The default assigned and completed table entry queries are backed by dedicated non-Judicial partial indexes on the snapshot row partitions for descending `created_date` and descending `completed_date` semantics.
 - AJAX section refreshes still target only the requested child section, except for the combined `user-overview-completed-overview` initial/filter section, which intentionally refreshes both the completed and completed-by-date child sections together.
 - Sorting state and pagination are preserved through hidden form inputs.
 - The priority donut uses the GOV.UK palette mapping Urgent `#98285d` (purple), High `#16548a` (dark blue), Medium `#8eb8dc` (light blue), and Low `#cecece` (light grey).

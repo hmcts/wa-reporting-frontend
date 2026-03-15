@@ -138,7 +138,7 @@ Required columns:
 Notes:
 - The `/users` assigned table adds `state = 'ASSIGNED'` on top of this table.
 - Priority rank is still calculated at query-time from `major_priority`, `due_date`, and `CURRENT_DATE`.
-- Child partitions also create a User Overview-specific partial index for the default assigned-table query: non-Judicial `state = 'ASSIGNED'` rows ordered by `created_date DESC NULLS LAST`.
+- Child partitions also create a User Overview-specific partial index for the default assigned-table query: non-Judicial `state = 'ASSIGNED'` rows ordered by `created_date DESC` semantics.
 
 ### analytics.snapshot_completed_task_rows
 Thin row store for completed-task row views.
@@ -174,7 +174,10 @@ Required columns:
 - `within_due_sort_value`
 
 Notes:
-- Child partitions also create a User Overview-specific partial index for the default completed-table query: non-Judicial rows ordered by `completed_date DESC NULLS LAST`.
+- Runtime analytics queries no longer append `NULLS LAST` to completed-table sorts.
+- The pre-existing completed-row index set continues to cover the `completed_date`, `case_id`, and `within_due_sort_value` sorts used by User Overview.
+- Child partitions also create User Overview-specific non-Judicial partial indexes for the remaining completed-table sorts that were proven slow in production or local benchmarking. The extra coverage is one ascending partial index per sort key for `created_date`, `first_assigned_date`, `due_date`, `handling_time_days`, `assignee`, `task_name`, `location`, and total assignments (`COALESCE(number_of_reassignments, 0) + 1`).
+- Local planner tests showed that once `NULLS LAST` was removed from the runtime SQL, one ascending partial index per remaining completed sort key served both ascending and descending queries, so direction-specific duplicates are no longer required in `V009`.
 
 ### analytics.snapshot_user_completed_facts
 Assignee-aware completed-task facts for the User Overview page.
