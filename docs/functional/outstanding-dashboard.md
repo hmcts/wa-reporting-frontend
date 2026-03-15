@@ -132,7 +132,8 @@ flowchart TB
 - CSV export is available for each table section.
 - Filters are applied consistently across all sections.
 - Open-task aggregate sections (summary, by name, by region/location, priority by due date) are sourced from `analytics.snapshot_open_due_daily_facts`.
-- The created-by-assignment chart remains sourced from `analytics.snapshot_task_daily_facts` using the `created/open` slice.
+- The created-by-assignment chart is sourced from `analytics.snapshot_outstanding_created_assignment_daily_facts`.
+- The tasks-due chart and table are sourced from `analytics.snapshot_outstanding_due_status_daily_facts`.
 - The critical tasks table remains row-backed from `snapshot_open_task_rows`, but its total-result count is sourced from `snapshot_outstanding_filter_facts` so pagination does not need a full row-table count scan.
 - Priority charts (open tasks priority donut, open tasks priority by due date, open tasks by name) use a GOV.UK palette mapping of Urgent `#98285d` (purple), High `#16548a` (dark blue), Medium `#8eb8dc` (light blue), and Low `#cecece` (light grey).
 - Dates are displayed as `D Mon YYYY` in tables/charts, while date sorting and CSV export use ISO `YYYY-MM-DD` values.

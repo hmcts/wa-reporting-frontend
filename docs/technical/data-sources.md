@@ -78,6 +78,8 @@ Current refresh shape:
 - Creates a narrow temp staging table with only the columns and derived values needed by the app.
 - Builds detached per-snapshot tables for every snapshot parent before publish.
 - Loads thin row tables first, then facts, then page-scoped facet tables.
+- Populates `analytics.snapshot_outstanding_due_status_daily_facts` and `analytics.snapshot_outstanding_created_assignment_daily_facts` directly from `tmp_snapshot_fact_source` for the `/outstanding` aggregate workloads.
+- Populates `analytics.snapshot_completed_dashboard_facts` directly from `tmp_snapshot_fact_source` for the `/completed` aggregate workload.
 - Runs `ANALYZE` on every detached snapshot table before publish.
 - Commits the detached build tables before publish, then opens a short publish transaction that only attaches those tables as partitions and updates `analytics.snapshot_state`.
 - Keeps the previous published snapshot readable during the detached build phase because the live parent tables are not modified until the final attach step.
@@ -92,7 +94,7 @@ Refresh-time derived values materialised in staging:
 
 Refresh-time session settings:
 - Baseline refresh work: `work_mem = 256MB`, `maintenance_work_mem = 1GB`
-- Daily-facts aggregation temporarily uses `work_mem = 1GB`, `hash_mem_multiplier = 4`, `enable_sort = off`
+- Aggregate fact builds temporarily use `work_mem = 1GB`, `hash_mem_multiplier = 4`, `enable_sort = off`
 - Facet aggregation temporarily uses `work_mem = 1GB`, `hash_mem_multiplier = 4`, `enable_sort = off`
 
 Retention:
@@ -210,19 +212,47 @@ Notes:
 - `days_beyond_sum` uses the refresh-time `days_beyond_due` value derived from `due_date_to_completed_diff_time`, also with nulls treated as zero.
 - `days_beyond_count` preserves `COUNT(*)` semantics for the `/users` completed-by-task-name average.
 
-### analytics.snapshot_task_daily_facts
-Shared daily fact table for the remaining created/open and completed aggregate workloads.
+### analytics.snapshot_outstanding_due_status_daily_facts
+Page-scoped due-status fact table for the `/outstanding` tasks-due workload.
 
 Used by:
-- `/outstanding` open-tasks created by assignment
-- `/completed` completed summary
-- `/completed` completed timeline
-- `/completed` completed by name / region / location
-- `/completed` processing and handling time
+- `/outstanding` tasks due chart
+- `/outstanding` tasks due table
+
+Population rule:
+- Source rows where `due_date IS NOT NULL` and `task_status IN ('open', 'completed')`
+- Grouped by shared slicers plus `due_date`
+- Populated directly from `tmp_snapshot_fact_source` during refresh
 
 Required columns:
 - `snapshot_id`
-- `date_role`
+- `due_date`
+- `jurisdiction_label`
+- `role_category_label`
+- `region`
+- `location`
+- `task_name`
+- `work_type`
+- `open_task_count`
+- `completed_task_count`
+
+Notes:
+- This table intentionally stores only the open/completed counts needed by the tasks-due chart and table.
+
+### analytics.snapshot_outstanding_created_assignment_daily_facts
+Page-scoped created-date assignment fact table for the `/outstanding` open-tasks-by-created-date workload.
+
+Used by:
+- `/outstanding` open tasks by created date chart
+- `/outstanding` open tasks by created date table
+
+Population rule:
+- Source rows where `created_date IS NOT NULL` and `task_status = 'open'`
+- Grouped by shared slicers plus `reference_date = created_date` and `assignment_state`
+- Populated directly from `tmp_snapshot_fact_source` during refresh
+
+Required columns:
+- `snapshot_id`
 - `reference_date`
 - `jurisdiction_label`
 - `role_category_label`
@@ -230,31 +260,46 @@ Required columns:
 - `location`
 - `task_name`
 - `work_type`
-- `priority`
-- `task_status`
 - `assignment_state`
-- `sla_flag`
+- `task_count`
+
+Notes:
+- `assignment_state` is the refresh-time Assigned/Unassigned classification already used elsewhere on `/outstanding`.
+### analytics.snapshot_completed_dashboard_facts
+Page-scoped completed-task fact table for the `/completed` aggregate workload.
+
+Used by:
+- `/completed` completed summary
+- `/completed` completed timeline
+- `/completed` completed by name / region / location
+- `/completed` processing and handling time
+
+Population rule:
+- Source rows where `completed_date IS NOT NULL` and `LOWER(termination_reason) = 'completed'`
+- Grouped by shared slicers plus `reference_date = completed_date`
+- Populated directly from `tmp_snapshot_fact_source` during refresh
+
+Required columns:
+- `snapshot_id`
+- `reference_date`
+- `jurisdiction_label`
+- `role_category_label`
+- `region`
+- `location`
+- `task_name`
+- `work_type`
+- `total_task_count`
+- `within_task_count`
 - `handling_time_days_sum`
 - `handling_time_days_sum_squares`
 - `handling_time_days_count`
 - `processing_time_days_sum`
 - `processing_time_days_sum_squares`
 - `processing_time_days_count`
-- `task_count`
-
-Date-role semantics:
-- `due`: rows with `due_date IS NOT NULL` and either open-state tasks or completed tasks
-- `created`: rows with `created_date IS NOT NULL`
-- `completed`: completed tasks with `completed_date IS NOT NULL`
-- `cancelled`: deleted tasks with `completed_date IS NOT NULL`
-
-Open-task classification inside daily facts:
-- `open` when `state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`
-- `completed` when `LOWER(termination_reason) = 'completed'`
-- `other` otherwise
 
 Notes:
-- `/completed` processing and handling time no longer scans row data; it reconstructs averages and population standard deviations from `sum`, `sum_squares`, and `count`.
+- `/completed` processing and handling time reconstructs averages and population standard deviations from `sum`, `sum_squares`, and `count`.
+- The `/completed` region and region/location tables are served from one `GROUPING SETS ((location, region), (region))` aggregate over this table.
 
 ### analytics.snapshot_open_due_daily_facts
 Open-task fact table for the shared due/open aggregate workload.
@@ -392,6 +437,8 @@ Notes for all facet tables:
 - Blank strings are normalised to `NULL` at materialisation time.
 - Work type display labels are still resolved at read-time by joining `cft_task_db.work_types`.
 - User Overview still applies its query-time Judicial exclusion when reading row and fact queries.
+- Unfiltered non-user scopes (`/`, `/outstanding`, and `/completed`) read filter options with one `GROUPING SETS` query per page-scoped facet table.
+- Filtered states still use per-facet queries so each dropdown can exclude its own active filter while respecting the others.
 
 Flyway ownership note:
 - The current schema shape documented in this file is the target state produced by the repository-owned Flyway migrations under `db/migrations/tm/`.
@@ -438,7 +485,7 @@ Shared filter mappings:
 - User -> `assignee` (User Overview only)
 
 Date filter mappings:
-- `completedFrom` / `completedTo` -> `completed_date` in completed row / user-completed facts, or `reference_date` in completed daily facts
+- `completedFrom` / `completedTo` -> `completed_date` in completed row / user-completed facts, or `reference_date` in completed dashboard facts
 - `eventsFrom` / `eventsTo` -> `reference_date` in task-daily facts for created / completed / cancelled events
 
 Scoped exclusions:
@@ -486,7 +533,7 @@ The facts-backed metric stores those rows as `date_role = 'cancelled'` and `task
 Those fact columns are populated so null intervals still contribute zero to the numerator while remaining in the denominator.
 
 ### Completed processing and handling time
-`/completed` processing/handling time is derived from daily facts:
+`/completed` processing/handling time is derived from completed dashboard facts:
 
 - Average = `sum / count`
 - Population standard deviation = `sqrt((sum_squares / count) - power(sum / count, 2))`

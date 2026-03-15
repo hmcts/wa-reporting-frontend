@@ -1,10 +1,10 @@
-import { taskThinRepository } from '../../shared/repositories';
+import { taskFactsRepository } from '../../shared/repositories';
 import { AnalyticsFilters, DueByDatePoint } from '../../shared/types';
 import { toNumber } from '../../shared/utils';
 
 class TasksDueByDateChartService {
   async fetchTasksDueByDate(snapshotId: number, filters: AnalyticsFilters): Promise<DueByDatePoint[]> {
-    const rows = await taskThinRepository.fetchTasksDueByDateRows(snapshotId, filters);
+    const rows = await taskFactsRepository.fetchTasksDueByDateRows(snapshotId, filters);
 
     return rows.map(row => {
       const open = toNumber(row.open);

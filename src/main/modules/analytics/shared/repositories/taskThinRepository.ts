@@ -13,7 +13,6 @@ import {
   CompletedTaskAuditRow,
   FilterValueRow,
   OutstandingCriticalTaskRow,
-  TasksDueRow,
   UserOverviewCompletedByDateRow,
   UserOverviewCompletedByTaskNameRow,
   UserOverviewTaskRow,
@@ -412,9 +411,9 @@ export class TaskThinRepository {
         location,
         termination_process_label,
         outcome
-      FROM ${Prisma.raw(COMPLETED_TASK_ROWS_TABLE)}
+      FROM ${Prisma.raw(COMPLETED_TASK_ROWS_TABLE)} rows
       ${whereClause}
-      ORDER BY completed_date DESC NULLS LAST
+      ORDER BY rows.completed_date DESC NULLS LAST
     `);
   }
 
@@ -474,34 +473,6 @@ export class TaskThinRepository {
         END::double precision AS avg_wait_time_days,
         SUM(assigned_task_count)::int AS assigned_task_count
       FROM analytics.snapshot_wait_time_by_assigned_date
-      ${whereClause}
-      GROUP BY reference_date
-      ORDER BY reference_date
-    `);
-  }
-
-  async fetchTasksDueByDateRows(snapshotId: number, filters: AnalyticsFilters): Promise<TasksDueRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'due'`,
-    ]);
-
-    return tmPrisma.$queryRaw<TasksDueRow[]>(Prisma.sql`
-      SELECT
-        to_char(reference_date, 'YYYY-MM-DD') AS date_key,
-        SUM(
-          CASE
-            WHEN task_status = 'open' THEN task_count
-            ELSE 0
-          END
-        )::int AS open,
-        SUM(
-          CASE
-            WHEN task_status = 'completed' THEN task_count
-            ELSE 0
-          END
-        )::int AS completed
-      FROM analytics.snapshot_task_daily_facts
       ${whereClause}
       GROUP BY reference_date
       ORDER BY reference_date

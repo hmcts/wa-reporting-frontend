@@ -96,8 +96,6 @@ export async function buildCompletedPage(
   let summary = fallback.summary;
   let timeline = fallback.timeline;
   let completedByName = fallback.completedByName;
-  let completedByLocation = fallbackRegionLocation.byLocation;
-  let completedByRegion = fallbackRegionLocation.byRegion;
   const range = normaliseDateRange({ from: filters.completedFrom, to: filters.completedTo });
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -108,8 +106,7 @@ export async function buildCompletedPage(
     timelineResult,
     processingHandlingResult,
     completedByNameResult,
-    completedByLocationResult,
-    completedByRegionResult,
+    completedRegionLocationResult,
     taskAuditRowsResult,
     caseWorkerNamesResult,
     regionDescriptionsResult,
@@ -138,11 +135,8 @@ export async function buildCompletedPage(
       ? completedByNameChartService.fetchCompletedByName(snapshotContext.snapshotId, filters, range)
       : Promise.resolve([]),
     shouldFetchRegionLocation
-      ? completedRegionLocationTableService.fetchCompletedByLocation(snapshotContext.snapshotId, filters, range)
-      : Promise.resolve([]),
-    shouldFetchRegionLocation
-      ? completedRegionLocationTableService.fetchCompletedByRegion(snapshotContext.snapshotId, filters, range)
-      : Promise.resolve([]),
+      ? completedRegionLocationTableService.fetchCompletedRegionLocation(snapshotContext.snapshotId, filters, range)
+      : Promise.resolve(fallbackRegionLocation),
     shouldFetchTaskAuditData
       ? taskThinRepository.fetchCompletedTaskAuditRows(snapshotContext.snapshotId, filters, caseId!)
       : Promise.resolve([]),
@@ -185,16 +179,13 @@ export async function buildCompletedPage(
     'Failed to fetch completed by name from database',
     completedByName
   );
-  completedByLocation = settledArrayWithFallback(
-    completedByLocationResult,
-    'Failed to fetch completed by location from database',
-    completedByLocation
+  const completedRegionLocation = settledValueWithFallback(
+    completedRegionLocationResult,
+    'Failed to fetch completed region/location data from database',
+    fallbackRegionLocation
   );
-  completedByRegion = settledArrayWithFallback(
-    completedByRegionResult,
-    'Failed to fetch completed by region from database',
-    completedByRegion
-  );
+  const completedByLocation = completedRegionLocation.byLocation;
+  const completedByRegion = completedRegionLocation.byRegion;
   const taskAuditRows = settledArrayWithFallback(
     taskAuditRowsResult,
     'Failed to fetch completed task audit rows from database',
