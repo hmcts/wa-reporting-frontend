@@ -8,7 +8,8 @@
 - Smoke tests: Playwright (`src/test/smoke`).
 
 ## Key commands
-- `yarn test` (unit tests)
+- `yarn test:unit` (direct Jest unit-test suite)
+- `yarn test` (repository wrapper: runs `yarn test:unit` locally, currently exits early when `CI=true`)
 - `yarn test:coverage`
 - `yarn test:routes`
 - `yarn test:mutation`
@@ -18,6 +19,11 @@
 - `yarn test:smoke`
 - `yarn test:ui` (Playwright UI mode)
 - `yarn setup:edge` (install Edge for Playwright)
+
+## Current command semantics
+- Use `yarn test:unit` when you specifically need the unit-test suite.
+- Treat `yarn test` as a repository wrapper, not as proof that Jest executed in every environment.
+- `yarn build` is the frontend webpack build only; `yarn build:server` is the server TypeScript compile.
 
 ## Accessibility
 - Playwright a11y tests run with `AUTH_ENABLED=false` and perform Axe checks.
@@ -35,6 +41,7 @@
 
 ## Coverage targets
 - Project guidelines require at least 95% branch and line coverage on modified files.
+- The contributor guidance for non-documentation changes currently expects `yarn test:coverage` and `yarn test:routes` alongside the relevant build commands, but the checked-in CI scripts are narrower than that guidance.
 
 ## Unit test quality checklist
 - Name tests as clear behavior statements (condition and expected outcome).

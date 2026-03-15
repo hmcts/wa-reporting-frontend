@@ -24,8 +24,8 @@ Connection building:
 - Prisma clients are created with `PrismaPg({ connectionString })`.
 
 Performance review:
-- The post-redesign benchmark pass and current remaining opportunities live in [docs/technical/analytics-benchmark-report.md](/Users/danlysiak/development/hmcts/expressjs-speckit-powerbi/docs/technical/analytics-benchmark-report.md).
-- The redesign rationale and original review notes live in [docs/technical/analytics-query-performance-review.md](/Users/danlysiak/development/hmcts/expressjs-speckit-powerbi/docs/technical/analytics-query-performance-review.md).
+- No separate benchmark or performance-review technical documents are currently checked into this repository.
+- Treat this document, the Flyway migrations under `db/migrations/tm/`, and the current-state SQL under `db/current-state/tm-analytics-schema.sql` as the checked-in source of truth for the implemented analytics data model.
 - The current schema described below is the implemented post-redesign state.
 - The `analytics` schema is owned in this repository through Flyway migrations under `db/migrations/tm/`.
 
