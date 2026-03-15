@@ -2,6 +2,16 @@
 
 @Library("Infrastructure")
 
+static LinkedHashMap<String, Object> secret(String secretName, String envVar) {
+  [
+    $class: 'AzureKeyVaultSecret',
+    secretType: 'Secret',
+    name: secretName,
+    version: '',
+    envVariable: envVar
+  ]
+}
+
 def type = "nodejs"
 def product = "wa"
 def component = "reporting-frontend"
@@ -18,6 +28,42 @@ withPipeline(type, product, component) {
     )
   }
 
+  def withTmMigrationConnection = { String environmentName, Closure work ->
+    withAzureKeyvault(
+      azureKeyVaultSecrets: [
+        secret('cft-task-POSTGRES-USER-FLEXIBLE-REPLICA', 'TM_DB_MIGRATION_USER'),
+        secret('cft-task-POSTGRES-PASS-FLEXIBLE-REPLICA', 'TM_DB_MIGRATION_PASSWORD')
+      ],
+      keyVaultURLOverride: "https://wa-${environmentName}.vault.azure.net/"
+    ) {
+      env.TM_DB_REPLICA_HOST = "cft-task-postgres-db-flexible-replica-${environmentName}.postgres.database.azure.com"
+      work()
+    }
+  }
+
+  def runFlywayMigration = { String environmentName ->
+    withTmMigrationConnection(environmentName) {
+      dir("${env.WORKSPACE}/db/flyway") {
+        sh '''
+        set -eu
+        ./gradlew --no-daemon \
+          -Dflyway.url="jdbc:postgresql://${TM_DB_REPLICA_HOST}:5432/cft_task_db?ssl=true&sslmode=require" \
+          -Dflyway.user="${TM_DB_MIGRATION_USER}" \
+          -Dflyway.password="${TM_DB_MIGRATION_PASSWORD}" \
+          flywayMigrate
+        '''
+      }
+    }
+  }
+
+  def runTmSchemaPermissionsBootstrap = { String environmentName ->
+    withTmMigrationConnection(environmentName) {
+      dir("${env.WORKSPACE}") {
+        yarnBuilder.yarn('bootstrap:tm-schema-permissions')
+      }
+    }
+  }
+
   afterSuccess('build') {
     yarnBuilder.yarn('playwright install')
     yarnBuilder.yarn('rebuild puppeteer')
@@ -26,6 +72,28 @@ withPipeline(type, product, component) {
 
   afterSuccess('test') {
     yarnBuilder.yarn('test:routes')
+  }
+
+  afterSuccess('buildinfra:aat') {
+    runFlywayMigration('aat')
+  }
+
+  afterSuccess('buildinfra:demo') {
+    runFlywayMigration('demo')
+  }
+
+  afterSuccess('buildinfra:ithc') {
+    runFlywayMigration('ithc')
+  }
+
+  afterSuccess('buildinfra:perftest') {
+    runFlywayMigration('perftest')
+  }
+
+  afterSuccess('buildinfra:prod') {
+    runFlywayMigration('prod')
+    env.TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME="DTS JIT Access wa DB Reader SC"
+    runTmSchemaPermissionsBootstrap('prod')
   }
 
   afterAlways('test') {

@@ -1,0 +1,28 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath 'org.flywaydb:flyway-database-postgresql:12.1.0'
+    classpath 'org.postgresql:postgresql:42.7.10'
+  }
+}
+
+plugins {
+  id 'org.flywaydb.flyway' version '12.1.0'
+}
+
+repositories {
+  mavenCentral()
+}
+
+flyway {
+  locations = ["filesystem:${rootDir}/../migrations/tm"]
+  schemas = ['analytics']
+  defaultSchema = 'analytics'
+  table = 'flyway_schema_history'
+  baselineOnMigrate = true
+  baselineVersion = '001'
+  baselineDescription = 'init analytics schema'
+}

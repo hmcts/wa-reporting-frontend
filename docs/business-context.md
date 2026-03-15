@@ -32,7 +32,7 @@ Out of scope:
 
 ## Key business metrics
 - Open tasks by service, assignment state, and priority.
-- Task events by service (created and completed shown in UI; cancelled retained in backend for future use).
+- Task events by service (created, completed, and cancelled shown in the Overview UI).
 - Completion totals and compliance within due date.
 - Critical tasks ranked by due date and priority.
 - User-level assigned and completed workload.

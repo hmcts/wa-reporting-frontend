@@ -34,12 +34,12 @@ type CronBootstrapConfig = {
 const defaultBootstrapConfig: CronBootstrapConfig = {
   enabled: true,
   jobName: 'analytics_snapshot_refresh_batch',
-  schedule: '*/30 * * * *',
+  schedule: '15 * * * *',
   targetDatabase: 'cft_task_db',
   cronDatabase: 'postgres',
 };
 
-const loadModule = (bootstrapConfig: CronBootstrapConfig) => {
+const loadSnapshotRefreshCronBootstrapModule = (bootstrapConfig: CronBootstrapConfig) => {
   jest.doMock('config', () => ({
     get: (path: string) => {
       if (path === 'analytics.snapshotRefreshCronBootstrap') {
@@ -77,7 +77,7 @@ describe('snapshotRefreshCronBootstrap', () => {
   });
 
   test('skips startup registration when disabled', async () => {
-    const { bootstrapSnapshotRefreshCron } = loadModule({
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule({
       ...defaultBootstrapConfig,
       enabled: false,
     });
@@ -94,7 +94,7 @@ describe('snapshotRefreshCronBootstrap', () => {
   });
 
   test('registers snapshot refresh job through schedule_in_database', async () => {
-    const { bootstrapSnapshotRefreshCron } = loadModule(defaultBootstrapConfig);
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule(defaultBootstrapConfig);
 
     queryRawMock
       .mockResolvedValueOnce([{ acquired: true }])
@@ -116,7 +116,7 @@ describe('snapshotRefreshCronBootstrap', () => {
     expect(scheduleQuery.strings.join('')).toContain('cron.schedule_in_database');
     expect(scheduleQuery.values).toEqual([
       'analytics_snapshot_refresh_batch',
-      '*/30 * * * *',
+      '15 * * * *',
       'CALL analytics.run_snapshot_refresh_batch()',
       'cft_task_db',
     ]);
@@ -124,9 +124,9 @@ describe('snapshotRefreshCronBootstrap', () => {
     expect(loggerInfoMock).toHaveBeenCalledWith(
       'Registered snapshot refresh cron job at startup',
       expect.objectContaining({
-        jobId: 42,
+        jobId: '42',
         jobName: 'analytics_snapshot_refresh_batch',
-        schedule: '*/30 * * * *',
+        schedule: '15 * * * *',
         targetDatabase: 'cft_task_db',
         cronDatabase: 'postgres',
       })
@@ -135,7 +135,7 @@ describe('snapshotRefreshCronBootstrap', () => {
   });
 
   test('runs unschedule query before schedule query', async () => {
-    const { bootstrapSnapshotRefreshCron } = loadModule(defaultBootstrapConfig);
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule(defaultBootstrapConfig);
 
     queryRawMock
       .mockResolvedValueOnce([{ acquired: true }])
@@ -153,7 +153,7 @@ describe('snapshotRefreshCronBootstrap', () => {
   });
 
   test('skips scheduling when advisory lock cannot be acquired', async () => {
-    const { bootstrapSnapshotRefreshCron } = loadModule(defaultBootstrapConfig);
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule(defaultBootstrapConfig);
 
     queryRawMock.mockResolvedValueOnce([{ acquired: false }]);
 
@@ -172,7 +172,7 @@ describe('snapshotRefreshCronBootstrap', () => {
   });
 
   test('skips scheduling when advisory lock row is missing', async () => {
-    const { bootstrapSnapshotRefreshCron } = loadModule(defaultBootstrapConfig);
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule(defaultBootstrapConfig);
 
     queryRawMock.mockResolvedValueOnce([]);
 
@@ -183,7 +183,7 @@ describe('snapshotRefreshCronBootstrap', () => {
   });
 
   test('logs success with undefined job id when scheduler returns no rows', async () => {
-    const { bootstrapSnapshotRefreshCron } = loadModule(defaultBootstrapConfig);
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule(defaultBootstrapConfig);
 
     queryRawMock
       .mockResolvedValueOnce([{ acquired: true }])
@@ -202,8 +202,29 @@ describe('snapshotRefreshCronBootstrap', () => {
     );
   });
 
+  test('logs success with stringified job id when scheduler returns bigint', async () => {
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule(defaultBootstrapConfig);
+
+    queryRawMock
+      .mockResolvedValueOnce([{ acquired: true }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ jobid: BigInt(42) }])
+      .mockResolvedValueOnce([]);
+
+    await bootstrapSnapshotRefreshCron();
+
+    expect(loggerInfoMock).toHaveBeenCalledWith(
+      'Registered snapshot refresh cron job at startup',
+      expect.objectContaining({
+        jobId: '42',
+        jobName: 'analytics_snapshot_refresh_batch',
+      })
+    );
+    expect(loggerErrorMock).not.toHaveBeenCalled();
+  });
+
   test('logs and continues when schedule registration fails and still cleans up resources', async () => {
-    const { bootstrapSnapshotRefreshCron } = loadModule(defaultBootstrapConfig);
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule(defaultBootstrapConfig);
 
     queryRawMock
       .mockResolvedValueOnce([{ acquired: true }])
@@ -217,9 +238,12 @@ describe('snapshotRefreshCronBootstrap', () => {
       'Failed to bootstrap snapshot refresh cron registration',
       expect.objectContaining({
         jobName: 'analytics_snapshot_refresh_batch',
-        schedule: '*/30 * * * *',
+        schedule: '15 * * * *',
         targetDatabase: 'cft_task_db',
         cronDatabase: 'postgres',
+        errorName: 'Error',
+        errorMessage: 'schedule failed',
+        errorStack: expect.any(String),
       })
     );
     expect(queryRawMock).toHaveBeenCalledTimes(4);
@@ -228,8 +252,61 @@ describe('snapshotRefreshCronBootstrap', () => {
     expect(disconnectMock).toHaveBeenCalledTimes(1);
   });
 
+  test('logs rich error metadata when schedule registration throws a database-style error', async () => {
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule(defaultBootstrapConfig);
+    const scheduleError = Object.assign(new Error('schedule failed'), {
+      code: '42501',
+      detail: 'permission denied for schema cron',
+      hint: 'Grant usage on schema cron',
+      meta: { target: 'cft_task_db' },
+    });
+
+    queryRawMock
+      .mockResolvedValueOnce([{ acquired: true }])
+      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce(scheduleError)
+      .mockResolvedValueOnce([]);
+
+    await bootstrapSnapshotRefreshCron();
+
+    expect(loggerErrorMock).toHaveBeenCalledWith(
+      'Failed to bootstrap snapshot refresh cron registration',
+      expect.objectContaining({
+        jobName: 'analytics_snapshot_refresh_batch',
+        errorName: 'Error',
+        errorMessage: 'schedule failed',
+        errorCode: '42501',
+        errorDetail: 'permission denied for schema cron',
+        errorHint: 'Grant usage on schema cron',
+        errorMeta: { target: 'cft_task_db' },
+      })
+    );
+    expect(disconnectMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('logs a non-error thrown value in the error payload', async () => {
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule(defaultBootstrapConfig);
+
+    queryRawMock
+      .mockResolvedValueOnce([{ acquired: true }])
+      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce('schedule failed')
+      .mockResolvedValueOnce([]);
+
+    await bootstrapSnapshotRefreshCron();
+
+    expect(loggerErrorMock).toHaveBeenCalledWith(
+      'Failed to bootstrap snapshot refresh cron registration',
+      expect.objectContaining({
+        jobName: 'analytics_snapshot_refresh_batch',
+        error: 'schedule failed',
+      })
+    );
+    expect(disconnectMock).toHaveBeenCalledTimes(1);
+  });
+
   test('logs and returns when cron bootstrap URL cannot be built', async () => {
-    const { bootstrapSnapshotRefreshCron } = loadModule(defaultBootstrapConfig);
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule(defaultBootstrapConfig);
     buildDatabaseUrlFromConfigMock.mockReturnValue(undefined);
 
     await bootstrapSnapshotRefreshCron();
@@ -239,7 +316,7 @@ describe('snapshotRefreshCronBootstrap', () => {
   });
 
   test('logs warning when advisory unlock fails', async () => {
-    const { bootstrapSnapshotRefreshCron } = loadModule(defaultBootstrapConfig);
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule(defaultBootstrapConfig);
 
     queryRawMock
       .mockResolvedValueOnce([{ acquired: true }])
@@ -257,7 +334,7 @@ describe('snapshotRefreshCronBootstrap', () => {
   });
 
   test('logs warning when prisma client disconnect fails', async () => {
-    const { bootstrapSnapshotRefreshCron } = loadModule(defaultBootstrapConfig);
+    const { bootstrapSnapshotRefreshCron } = loadSnapshotRefreshCronBootstrapModule(defaultBootstrapConfig);
     disconnectMock.mockRejectedValueOnce(new Error('disconnect failed'));
 
     queryRawMock.mockResolvedValueOnce([{ acquired: false }]);

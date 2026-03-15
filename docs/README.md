@@ -30,8 +30,10 @@ This folder contains business, functional, and technical specifications for the 
 
 ## Source of truth
 The specifications are derived from the current codebase and configuration under:
+- db/flyway (Flyway wrapper project for analytics schema management)
+- db/migrations/tm (repository-owned TM analytics schema migrations)
+- scripts (operational bootstrap helpers and local tooling)
 - src/main (server, routes, modules, views, assets)
 - config (application configuration and environment mappings)
 - prisma (database client setup)
 - package.json (scripts and dependencies)
-

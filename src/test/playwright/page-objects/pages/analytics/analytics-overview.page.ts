@@ -15,4 +15,15 @@ export class AnalyticsOverviewPage {
       level: 1,
     });
   }
+
+  get taskEventsHeading(): Locator {
+    return this.page.getByRole('heading', {
+      name: 'Created, completed and cancelled tasks by service',
+      level: 2,
+    });
+  }
+
+  get taskEventsCancelledHeader(): Locator {
+    return this.page.locator('[data-section="overview-task-events"] th', { hasText: 'Cancelled' });
+  }
 }

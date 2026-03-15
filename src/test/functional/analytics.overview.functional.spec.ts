@@ -7,4 +7,6 @@ test('analytics overview page loads @functional', async ({ page }) => {
   await analyticsOverviewPage.goto();
 
   await expect(analyticsOverviewPage.heading).toBeVisible();
+  await expect(analyticsOverviewPage.taskEventsHeading).toBeVisible();
+  await expect(analyticsOverviewPage.taskEventsCancelledHeader).toBeVisible();
 });

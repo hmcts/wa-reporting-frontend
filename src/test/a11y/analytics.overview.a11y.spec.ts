@@ -10,6 +10,8 @@ test.describe('Analytics overview page accessibility', () => {
     await analyticsOverviewPage.goto();
 
     await expect(analyticsOverviewPage.heading).toBeVisible();
+    await expect(analyticsOverviewPage.taskEventsHeading).toBeVisible();
+    await expect(analyticsOverviewPage.taskEventsCancelledHeader).toBeVisible();
     await axeUtils.audit({ exclude: A11Y_EXCLUDED_SELECTORS });
   });
 });

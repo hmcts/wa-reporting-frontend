@@ -27,8 +27,8 @@ describe('Analytics overview route', () => {
       expect(workTypeIndex).toBeGreaterThan(-1);
       expect(taskNameIndex).toBeGreaterThan(-1);
       expect(workTypeIndex).toBeLessThan(taskNameIndex);
-      expect(response.text).toContain('Created and completed tasks by service');
-      expect(response.text).not.toContain('>Cancelled<');
+      expect(response.text).toContain('Created, completed and cancelled tasks by service');
+      expect(response.text).toMatch(/>\s*Cancelled\s*</);
       expect(response.text).toContain('data-module="moj-sortable-table"');
       expect(response.text).toContain('data-total-row="true"');
     });
@@ -41,6 +41,18 @@ describe('Analytics overview route', () => {
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('Open and assigned tasks by service');
+      expect(response.text).not.toContain('Service performance overview');
+    });
+
+    test('should render the task events partial for ajax requests', async () => {
+      const response = await request(server)
+        .get('/?ajaxSection=overview-task-events')
+        .set('X-Requested-With', 'fetch')
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('Created, completed and cancelled tasks by service');
+      expect(response.text).toMatch(/>\s*Cancelled\s*</);
       expect(response.text).not.toContain('Service performance overview');
     });
 
@@ -89,6 +101,24 @@ describe('Analytics overview route', () => {
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('Open and assigned tasks by service');
+      expect(response.text).not.toContain('Service performance overview');
+    });
+
+    test('should render the task events partial for ajax requests', async () => {
+      const agent = request.agent(server);
+      const tokenResponse = await agent.get('/').expect(200);
+      const token = extractCsrfToken(tokenResponse.text);
+
+      const response = await agent
+        .post('/')
+        .set('X-Requested-With', 'fetch')
+        .type('form')
+        .send({ _csrf: token, ajaxSection: 'overview-task-events' })
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('Created, completed and cancelled tasks by service');
+      expect(response.text).toMatch(/>\s*Cancelled\s*</);
       expect(response.text).not.toContain('Service performance overview');
     });
   });

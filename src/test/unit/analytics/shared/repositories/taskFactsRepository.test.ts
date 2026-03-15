@@ -32,6 +32,8 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchOpenTasksSummaryRows(snapshotId, {});
     await taskFactsRepository.fetchTasksDuePriorityRows(snapshotId, {});
     await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, {}, range);
+    await taskFactsRepository.fetchUserOverviewAssignedSummaryRows(snapshotId, {});
+    await taskFactsRepository.fetchUserOverviewCompletedSummaryRows(snapshotId, {});
     await taskFactsRepository.fetchUserOverviewCompletedTaskCount(snapshotId, {});
     await taskFactsRepository.fetchCompletedTimelineRows(snapshotId, {}, range);
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, range);
@@ -60,9 +62,12 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchTaskEventsByServiceRows(snapshotId, { service: ['A'] }, { from, to });
     const query = queryCall();
 
-    expect(query.sql).toContain('reference_date >=');
-    expect(query.sql).toContain('reference_date <=');
-    expect(query.sql).toContain("date_role IN ('created', 'completed', 'cancelled')");
+    expect(query.sql).toContain('event_date >=');
+    expect(query.sql).toContain('event_date <=');
+    expect(query.sql).toContain("event_type = 'completed'");
+    expect(query.sql).toContain("event_type = 'cancelled'");
+    expect(query.sql).toContain("event_type = 'created'");
+    expect(query.sql).toContain('FROM analytics.snapshot_task_event_daily_facts');
     expect(query.sql).toContain('snapshot_id =');
     expect(query.values).toEqual(expect.arrayContaining([snapshotId, from, to]));
   });
@@ -99,7 +104,7 @@ describe('taskFactsRepository', () => {
 
     expect(normalised).toContain('WITH option_rows AS');
     expect(normalised).toContain('deduped_options AS');
-    expect(normalised).toContain('FROM analytics.snapshot_filter_facet_facts');
+    expect(normalised).toContain('FROM analytics.snapshot_overview_filter_facts');
     expect(normalised).toContain('snapshot_id =');
     expect(normalised).toContain("SELECT 'service'::text AS option_type");
     expect(normalised).toContain("SELECT 'assignee'::text AS option_type");
@@ -135,6 +140,44 @@ describe('taskFactsRepository', () => {
     expect(options.assignees).toEqual([{ value: 'user-1' }]);
   });
 
+  test('supports all filter-fact scopes and falls back to overview for unknown scopes', async () => {
+    await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId, { scope: 'outstanding' });
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_outstanding_filter_facts');
+
+    await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId, { scope: 'completed' });
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_completed_filter_facts');
+
+    await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId, { scope: 'userOverview' });
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_user_filter_facts');
+
+    await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId, { scope: 'unexpected' as never });
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_overview_filter_facts');
+  });
+
+  test('adds assignee filtering to non-user facets and ignores unknown option types', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([
+      { option_type: 'service', value: 'Civil', text: 'Civil' },
+      { option_type: 'unexpected', value: 'ignored', text: 'ignored' },
+    ]);
+
+    const options = await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId, {
+      filters: { user: ['user-1'] },
+    });
+    const query = queryCall();
+
+    expect(query.sql).toContain('assignee IN');
+    expect(query.values).toContain('user-1');
+    expect(options).toEqual({
+      services: [{ value: 'Civil' }],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      assignees: [],
+    });
+  });
+
   test('applies role-category exclusion options to overview filter option queries', async () => {
     await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId, {
       excludeRoleCategories: ['Judicial'],
@@ -161,11 +204,10 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from, to });
     const query = queryCall();
 
-    expect(query.sql).toContain("LOWER(termination_reason) = 'completed'");
-    expect(query.sql).not.toContain("state IN ('COMPLETED', 'TERMINATED')");
-    expect(query.sql).toContain('completed_date IS NOT NULL');
-    expect(query.sql).toContain('completed_date >=');
-    expect(query.sql).toContain('completed_date <=');
+    expect(query.sql).toContain("date_role = 'completed'");
+    expect(query.sql).toContain("task_status = 'completed'");
+    expect(query.sql).toContain('reference_date >=');
+    expect(query.sql).toContain('reference_date <=');
     expect(query.values).toEqual(expect.arrayContaining([from, to]));
   });
 
@@ -183,6 +225,81 @@ describe('taskFactsRepository', () => {
     expect(query.sql).toContain('snapshot_id =');
     expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
     expect(query.values).toContain('JUDICIAL');
+  });
+
+  test('builds facts-backed user-overview completed summary query with filters and query options', async () => {
+    const completedFrom = new Date('2024-08-01');
+    const completedTo = new Date('2024-08-31');
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 42, within: 30 }]);
+
+    const rows = await taskFactsRepository.fetchUserOverviewCompletedSummaryRows(
+      snapshotId,
+      {
+        service: ['Service A'],
+        user: ['user-1'],
+        completedFrom,
+        completedTo,
+      },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+    const query = queryCall();
+
+    expect(rows).toEqual([{ total: 42, within: 30 }]);
+    expect(query.sql).toContain('SELECT');
+    expect(query.sql).toContain('COALESCE(SUM(tasks), 0)::int AS total');
+    expect(query.sql).toContain('COALESCE(SUM(within_due), 0)::int AS within');
+    expect(query.sql).toContain('FROM analytics.snapshot_user_completed_facts');
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('completed_date >=');
+    expect(query.sql).toContain('completed_date <=');
+    expect(query.sql).toContain('assignee IN');
+    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.values).toEqual(
+      expect.arrayContaining([snapshotId, completedFrom, completedTo, 'user-1', 'Service A', 'JUDICIAL'])
+    );
+  });
+
+  test('builds facts-backed user-overview assigned summary query when no user filter is active', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 42, urgent: 10, high: 11, medium: 12, low: 9 }]);
+
+    const rows = await taskFactsRepository.fetchUserOverviewAssignedSummaryRows(
+      snapshotId,
+      {
+        service: ['Service A'],
+      },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+    const query = queryCall();
+
+    expect(rows).toEqual([{ total: 42, urgent: 10, high: 11, medium: 12, low: 9 }]);
+    expect(query.sql).toContain('WITH bucketed AS');
+    expect(query.sql).toContain("assignment_state = 'Assigned'");
+    expect(query.sql).toContain('FROM analytics.snapshot_open_due_daily_facts');
+    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.sql).toContain('SUM(CASE WHEN priority_rank = 4 THEN task_count ELSE 0 END)');
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'Service A', 'JUDICIAL']));
+  });
+
+  test('builds row-aggregate user-overview assigned summary query when a user filter is active', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 7, urgent: 1, high: 2, medium: 3, low: 1 }]);
+
+    const rows = await taskFactsRepository.fetchUserOverviewAssignedSummaryRows(
+      snapshotId,
+      {
+        service: ['Service A'],
+        user: ['user-1'],
+      },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+    const query = queryCall();
+
+    expect(rows).toEqual([{ total: 7, urgent: 1, high: 2, medium: 3, low: 1 }]);
+    expect(query.sql).toContain("state = 'ASSIGNED'");
+    expect(query.sql).toContain('FROM analytics.snapshot_open_task_rows rows');
+    expect(query.sql).toContain('assignee IN');
+    expect(query.sql).toContain('major_priority');
+    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'user-1', 'Service A', 'JUDICIAL']));
   });
 
   test('builds facts-backed user-overview completed count query with filters and query options', async () => {
@@ -248,12 +365,11 @@ describe('taskFactsRepository', () => {
     const query = queryCall();
 
     expect(query.sql).toContain('snapshot_id =');
-    expect(query.sql).toContain("date_role = 'due'");
-    expect(query.sql).toContain("task_status = 'open'");
+    expect(query.sql).toContain('FROM analytics.snapshot_open_due_daily_facts');
     expect(query.sql).toContain('priority <= 2000');
-    expect(query.sql).toContain('priority = 5000 AND reference_date < CURRENT_DATE');
-    expect(query.sql).toContain('priority = 5000 AND reference_date = CURRENT_DATE');
-    expect(query.sql).toContain('GROUP BY reference_date');
+    expect(query.sql).toContain('priority = 5000 AND due_date < CURRENT_DATE');
+    expect(query.sql).toContain('priority = 5000 AND due_date = CURRENT_DATE');
+    expect(query.sql).toContain('GROUP BY due_date');
   });
 
   test('builds service overview query using bucketed CTE and assignment totals', async () => {
@@ -267,11 +383,10 @@ describe('taskFactsRepository', () => {
       "SUM(CASE WHEN assignment_state = 'Assigned' THEN task_count ELSE 0 END)::int AS assigned_tasks"
     );
     expect(query.sql).toContain('SUM(CASE WHEN priority_rank = 4 THEN task_count ELSE 0 END)::int AS urgent');
-    expect(query.sql).toContain("date_role = 'due'");
-    expect(query.sql).toContain("task_status = 'open'");
+    expect(query.sql).toContain('FROM analytics.snapshot_open_due_daily_facts');
     expect(query.sql).toContain('snapshot_id =');
     expect(query.sql).toContain('priority <= 2000');
-    expect(query.sql).toContain('priority = 5000 AND reference_date < CURRENT_DATE');
+    expect(query.sql).toContain('priority = 5000 AND due_date < CURRENT_DATE');
     expect(normalised).toContain('ORDER BY service ASC');
     expect(query.sql).toContain('GROUP BY jurisdiction_label');
   });
@@ -294,14 +409,13 @@ describe('taskFactsRepository', () => {
     const query = queryCall();
 
     expect(query.sql).toContain('snapshot_id =');
-    expect(query.sql).toContain("date_role = 'due'");
-    expect(query.sql).toContain("task_status = 'open'");
+    expect(query.sql).toContain('FROM analytics.snapshot_open_due_daily_facts');
     expect(query.sql).toContain('WITH bucketed AS');
     expect(query.sql).toContain('task_name');
     expect(query.sql).toContain('GROUP BY task_name');
     expect(query.sql).toContain('ORDER BY task_name ASC');
     expect(query.sql).toContain('priority <= 2000');
-    expect(query.sql).toContain('priority = 5000 AND reference_date < CURRENT_DATE');
+    expect(query.sql).toContain('priority = 5000 AND due_date < CURRENT_DATE');
   });
 
   test('builds facts-backed open-task by-region-location query', async () => {
@@ -309,15 +423,14 @@ describe('taskFactsRepository', () => {
     const query = queryCall();
 
     expect(query.sql).toContain('snapshot_id =');
-    expect(query.sql).toContain("date_role = 'due'");
-    expect(query.sql).toContain("task_status = 'open'");
+    expect(query.sql).toContain('FROM analytics.snapshot_open_due_daily_facts');
     expect(query.sql).toContain('WITH bucketed AS');
     expect(query.sql).toContain('GROUP BY region, location');
     expect(query.sql).toContain('ORDER BY location ASC, region ASC');
     expect(query.sql).toContain('SUM(task_count)::int AS open_tasks');
     expect(query.sql).toContain('priority <= 2000');
-    expect(query.sql).toContain('priority = 5000 AND reference_date < CURRENT_DATE');
-    expect(query.sql).toContain('priority = 5000 AND reference_date = CURRENT_DATE');
+    expect(query.sql).toContain('priority = 5000 AND due_date < CURRENT_DATE');
+    expect(query.sql).toContain('priority = 5000 AND due_date = CURRENT_DATE');
   });
 
   test('builds facts-backed open-task summary query', async () => {
@@ -325,8 +438,7 @@ describe('taskFactsRepository', () => {
     const query = queryCall();
 
     expect(query.sql).toContain('snapshot_id =');
-    expect(query.sql).toContain("date_role = 'due'");
-    expect(query.sql).toContain("task_status = 'open'");
+    expect(query.sql).toContain('FROM analytics.snapshot_open_due_daily_facts');
     expect(query.sql).toContain('WITH bucketed AS');
     expect(query.sql).toContain(
       "SUM(CASE WHEN assignment_state = 'Assigned' THEN task_count ELSE 0 END)::int AS assigned"
@@ -335,7 +447,7 @@ describe('taskFactsRepository', () => {
       "SUM(CASE WHEN assignment_state = 'Assigned' THEN 0 ELSE task_count END)::int AS unassigned"
     );
     expect(query.sql).toContain('priority <= 2000');
-    expect(query.sql).toContain('priority = 5000 AND reference_date = CURRENT_DATE');
+    expect(query.sql).toContain('priority = 5000 AND due_date = CURRENT_DATE');
   });
 
   test('builds timeline query with open-ended range combinations', async () => {
@@ -412,24 +524,24 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
     expect(fromQuery.sql).toContain('snapshot_id =');
-    expect(fromQuery.sql).toContain("LOWER(termination_reason) = 'completed'");
-    expect(fromQuery.sql).toContain('completed_date IS NOT NULL');
-    expect(fromQuery.sql).toContain("AVG(EXTRACT(EPOCH FROM handling_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'))");
-    expect(fromQuery.sql).toContain(
-      "STDDEV_POP(EXTRACT(EPOCH FROM processing_time) / EXTRACT(EPOCH FROM INTERVAL '1 day'))"
-    );
-    expect(fromQuery.sql).toContain('COUNT(processing_time)::int AS processing_count');
-    expect(fromQuery.sql).toContain('completed_date >=');
-    expect(fromQuery.sql).not.toContain('completed_date <=');
+    expect(fromQuery.sql).toContain("date_role = 'completed'");
+    expect(fromQuery.sql).toContain("task_status = 'completed'");
+    expect(fromQuery.sql).toContain('SUM(handling_time_days_sum)::double precision AS handling_sum');
+    expect(fromQuery.sql).toContain('SUM(handling_time_days_sum_squares)::double precision');
+    expect(fromQuery.sql).toContain('SUM(processing_time_days_sum)::double precision AS processing_sum');
+    expect(fromQuery.sql).toContain('SUM(processing_time_days_sum_squares)::double precision');
+    expect(fromQuery.sql).toContain('SUM(processing_time_days_count)::int AS processing_count');
+    expect(fromQuery.sql).toContain('reference_date >=');
+    expect(fromQuery.sql).not.toContain('reference_date <=');
     expect(fromQuery.values).toEqual(expect.arrayContaining([from]));
 
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { to });
     const toQuery = queryCall();
     expect(toQuery.sql).toContain('snapshot_id =');
-    expect(toQuery.sql).toContain("LOWER(termination_reason) = 'completed'");
-    expect(toQuery.sql).toContain('completed_date IS NOT NULL');
-    expect(toQuery.sql).toContain('completed_date <=');
-    expect(toQuery.sql).not.toContain('completed_date >=');
+    expect(toQuery.sql).toContain("date_role = 'completed'");
+    expect(toQuery.sql).toContain("task_status = 'completed'");
+    expect(toQuery.sql).toContain('reference_date <=');
+    expect(toQuery.sql).not.toContain('reference_date >=');
     expect(toQuery.values).toEqual(expect.arrayContaining([to]));
   });
 });

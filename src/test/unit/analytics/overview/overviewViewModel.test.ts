@@ -50,10 +50,11 @@ describe('buildOverviewViewModel', () => {
     expect(viewModel.totalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.eventsFromValue).toBe('05/01/2024');
     expect(viewModel.eventsToValue).toBe('10/01/2024');
-    expect(viewModel.taskEventsRows[0]).toHaveLength(3);
+    expect(viewModel.taskEventsRows[0]).toHaveLength(4);
     expect(viewModel.taskEventsRows[0][0].text).toBe('Service A');
     expect(viewModel.taskEventsRows[0][1].text).toBe('7');
     expect(viewModel.taskEventsRows[0][2].text).toBe('3');
+    expect(viewModel.taskEventsRows[0][3].text).toBe('1');
   });
 
   test('sorts rows alphabetically and builds totals rows', () => {
@@ -113,6 +114,7 @@ describe('buildOverviewViewModel', () => {
     expect(viewModel.totalsRow[0].text).toBe('Total');
     expect(viewModel.taskEventsTotalsRow[0].attributes?.['data-total-row']).toBe('true');
     expect(viewModel.taskEventsTotalsRow[0].text).toBe('Total');
-    expect(viewModel.taskEventsTotalsRow).toHaveLength(3);
+    expect(viewModel.taskEventsTotalsRow).toHaveLength(4);
+    expect(viewModel.taskEventsTotalsRow[3].text).toBe('0');
   });
 });

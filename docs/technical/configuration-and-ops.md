@@ -66,6 +66,16 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
   - `location-ref-api-POSTGRES-USER` -> `rd-location-ref-api-POSTGRES-USER`
   - `location-ref-api-POSTGRES-PASS` -> `rd-location-ref-api-POSTGRES-PASS`
 
+### Flyway analytics migrations
+- The analytics schema is managed by Flyway migrations under `db/migrations/tm/`.
+- `db/migrations/tm/V001__init_analytics_schema.sql` is a repository-local copy of the previously deployed HMCTS analytics baseline from `wa-task-management-api` `V1.0.44__init_analytics_schema.sql`.
+- Later repository-owned migrations, including `V002__redesign_analytics_snapshot_schema.sql`, evolve that baseline to the schema expected by this application branch.
+- `db/flyway/` contains a minimal Gradle wrapper project used only for Flyway commands (`flywayInfo`, `flywayBaseline`, `flywayValidate`, `flywayMigrate`).
+- The Flyway wrapper is configured with `baselineOnMigrate = true`, `baselineVersion = '001'`, and `baselineDescription = 'init analytics schema'`. On the first `flywayMigrate` against an existing environment with a non-empty `analytics` schema and no history table, Flyway records the local `V001` baseline automatically and then applies later migrations such as `V002`.
+- New empty environments still run `flywayMigrate` directly, but they must already contain the upstream TM source schema expected by `V001`; the analytics migration chain is not a full bootstrap for an otherwise blank Postgres database.
+- Flyway is wired in Jenkins to use the TM replica host and replica credential secrets. The runtime application still does not run schema migrations on startup.
+- In Jenkins, the Flyway step is wired as an explicit post-`buildinfra` action for `aat`, `demo`, `ithc`, `perftest`, and `prod`, with `TM_DB_MIGRATION_USER` / `TM_DB_MIGRATION_PASSWORD` loaded inside that step from WA Key Vault secrets `cft-task-POSTGRES-USER-FLEXIBLE-REPLICA` and `cft-task-POSTGRES-PASS-FLEXIBLE-REPLICA`. The Flyway JDBC URL mirrors the Jenkins library Gradle migration pattern and uses `?ssl=true&sslmode=require`. Jenkins runs `flywayMigrate` only; on the first run in an existing environment, Flyway auto-baselines to `001` before applying later migrations.
+
 ### Security and logging
 - `useCSRFProtection`.
 - `compression.enabled`: enables/disables HTTP compression middleware (default `false`).
@@ -100,6 +110,14 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `TM_DB_*`, `CRD_DB_*`, `LRD_DB_*`
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_KEY`
 - `SESSION_SECRET`, `SESSION_COOKIE_NAME`, `SESSION_APP_COOKIE_NAME`
+- `TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME`
+- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_URL`
+- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_HOST`
+- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_PORT`
+- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_DATABASE`
+- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_USER`
+- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_PASSWORD`
+- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_OPTIONS`
 
 ## Secrets via Properties Volume
 When not in development, `PropertiesVolume` loads Kubernetes secrets into the configuration under `secrets.wa.*`, including:
@@ -112,11 +130,18 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 
 ## Build and runtime
 
+### Package management
+- The repository uses the Yarn release declared by `package.json` `packageManager`.
+- `package.json` may include top-level `resolutions` for transitive packages when upstream dependency ranges do not yet converge on the required version.
+- Dependency upgrades should review each top-level resolution and remove any override that no longer changes the resolved dependency graph.
+
 ### Build
 - `yarn build` builds frontend assets via webpack.
 - `yarn build:watch` rebuilds frontend assets continuously via webpack watch mode.
 - `yarn build:server` compiles server TypeScript to `dist/`.
 - `yarn build:prod` builds assets and copies views/public into `dist/main`.
+- `db/flyway/gradlew` runs repository-owned Flyway commands for the TM analytics schema.
+- `yarn bootstrap:tm-schema-permissions` runs the rerunnable TM analytics schema grants bootstrap.
 
 ### Run
 - `yarn start` runs the compiled server from `dist/main/server.js`.
@@ -144,7 +169,24 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 - When `analytics.snapshotRefreshCronBootstrap.enabled=true`, app startup attempts to register the snapshot refresh schedule via `cron.schedule_in_database(...)`.
 - Registration uses TM connection credentials and host settings, with the database name overridden to `analytics.snapshotRefreshCronBootstrap.cronDatabase` (default `postgres`).
 - Registration is non-fatal: startup logs failures and continues serving requests.
+- Failure logs include structured error fields (`errorName`, `errorMessage`, optional `errorCode`/`errorDetail`/`errorHint`/`errorMeta`, and `errorStack`) to aid diagnosis in JSON logging mode.
 - Startup registration is idempotent: existing jobs matching `jobName` and `targetDatabase` are unscheduled before registering the configured definition.
+- This bootstrap does not initialize or advance Flyway schema history; Flyway remains a separate Jenkins-run concern.
 - Prerequisites:
   - `pg_cron` extension and `cron` schema/functions are available in `cronDatabase`.
   - The application DB role has permissions to read from `cron.job` and execute `cron.unschedule(...)` / `cron.schedule_in_database(...)`.
+- Runtime note:
+  - `analytics.run_snapshot_refresh_batch()` now builds detached snapshot tables first and only takes parent-table metadata locks during the short final attach/publish step.
+  - Post-publish retention cleanup uses a short `lock_timeout` while detaching obsolete partitions; if that cleanup cannot obtain the lock quickly it logs a warning and leaves the old snapshot for a later run.
+
+### TM schema permissions bootstrap
+- `yarn bootstrap:tm-schema-permissions` grants `USAGE` on schema `analytics` and `SELECT` on all tables in that schema to a configured reader role.
+- `TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME` defaults to `DTS JIT Access wa DB Reader SC`.
+- Connection resolution order is:
+  - `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_URL`
+  - `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_HOST` / `PORT` / `DATABASE` / `USER` / `PASSWORD` / `OPTIONS`
+  - fallback TM env vars used by Jenkins or local shells: `TM_DB_PRIMARY_HOST` or `TM_DB_REPLICA_HOST` or `TM_DB_HOST`, plus `TM_DB_MIGRATION_USER` or `TM_DB_USER`, `TM_DB_MIGRATION_PASSWORD` or `TM_DB_PASSWORD`, `TM_DB_NAME`, `TM_DB_PORT`, and `TM_DB_OPTIONS`
+- The bootstrap is safe to rerun because repeated `GRANT` statements are idempotent for the target role.
+- This bootstrap is intentionally external to application startup: the runtime service remains read-only and should continue to use its normal TM read connection.
+- In Jenkins, the Demo and Prod stages invoke the bootstrap directly after Flyway, so stage selection is the environment toggle.
+- The Demo bootstrap overrides `TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME` to `DTS CFT DB Access Reader`; the Prod bootstrap invocation does not set a stage-specific reader username.

@@ -14,18 +14,18 @@
     "filtersCookieName": "wa-reporting-analytics-filters",
     "filtersCookieMaxAgeDays": 365,
     "snapshotRefreshCronBootstrap": {
-      "enabled": true,
+      "enabled": false,
       "jobName": "analytics_snapshot_refresh_batch",
-      "schedule": "*/30 * * * *",
+      "schedule": "15,45 * * * *",
       "targetDatabase": "cft_task_db",
       "cronDatabase": "postgres"
     }
   },
   "logging": {
     "prismaQueryTimings": {
-      "enabled": false,
-      "minDurationMs": 0,
-      "slowQueryThresholdMs": 0,
+      "enabled": true,
+      "minDurationMs": 500,
+      "slowQueryThresholdMs": 500,
       "includeQueryPreview": false,
       "queryPreviewMaxLength": 240
     }
