@@ -1,8 +1,8 @@
 import { openTasksByNameChartService } from '../../../../../main/modules/analytics/outstanding/visuals/openTasksByNameChartService';
-import { taskFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
+import { snapshotOpenDueDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  taskFactsRepository: { fetchOpenTasksByNameRows: jest.fn() },
+  snapshotOpenDueDailyFactsRepository: { fetchOpenTasksByNameRows: jest.fn() },
 }));
 
 describe('openTasksByNameChartService', () => {
@@ -13,7 +13,7 @@ describe('openTasksByNameChartService', () => {
   });
 
   test('normalises labels, sorts by priority and produces totals', async () => {
-    (taskFactsRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([
+    (snapshotOpenDueDailyFactsRepository.fetchOpenTasksByNameRows as jest.Mock).mockResolvedValue([
       { task_name: null, urgent: 1, high: null, medium: 0, low: undefined },
       { task_name: 'Beta', urgent: 0, high: 2, medium: 1, low: 0 },
       { task_name: 'Alpha', urgent: 1, high: 0, medium: 0, low: 0 },
@@ -21,7 +21,7 @@ describe('openTasksByNameChartService', () => {
 
     const result = await openTasksByNameChartService.fetchOpenTasksByName(snapshotId, { service: ['Service A'] });
 
-    expect(taskFactsRepository.fetchOpenTasksByNameRows).toHaveBeenCalledWith(snapshotId, {
+    expect(snapshotOpenDueDailyFactsRepository.fetchOpenTasksByNameRows).toHaveBeenCalledWith(snapshotId, {
       service: ['Service A'],
     });
     expect(result.breakdown).toEqual([
@@ -41,9 +41,9 @@ describe('openTasksByNameChartService', () => {
   test('propagates repository errors', async () => {
     const filters = { service: ['Service A'] };
     const error = new Error('db error');
-    (taskFactsRepository.fetchOpenTasksByNameRows as jest.Mock).mockRejectedValue(error);
+    (snapshotOpenDueDailyFactsRepository.fetchOpenTasksByNameRows as jest.Mock).mockRejectedValue(error);
 
     await expect(openTasksByNameChartService.fetchOpenTasksByName(snapshotId, filters)).rejects.toBe(error);
-    expect(taskFactsRepository.fetchOpenTasksByNameRows).toHaveBeenCalledWith(snapshotId, filters);
+    expect(snapshotOpenDueDailyFactsRepository.fetchOpenTasksByNameRows).toHaveBeenCalledWith(snapshotId, filters);
   });
 });

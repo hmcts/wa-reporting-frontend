@@ -9,7 +9,13 @@ import {
 import { getCappedTotalPages, normalisePage } from '../shared/pagination';
 import { priorityLabelFromRank } from '../shared/priority/priorityRankSql';
 import type { AnalyticsQueryOptions } from '../shared/repositories';
-import { UserOverviewTaskRow, taskFactsRepository, taskThinRepository } from '../shared/repositories';
+import {
+  type UserOverviewTaskRow,
+  snapshotCompletedTaskRowsRepository,
+  snapshotOpenDueDailyFactsRepository,
+  snapshotOpenTaskRowsRepository,
+  snapshotUserCompletedFactsRepository,
+} from '../shared/repositories';
 import { caseWorkerProfileService, courtVenueService } from '../shared/services';
 import { PrioritySummary } from '../shared/types';
 import { AnalyticsFilters, Task, TaskStatus } from '../shared/types';
@@ -119,21 +125,27 @@ export async function buildUserOverviewPage(
   const shouldFetchCompletedByTaskName = shouldFetchSection(requestedSection, 'user-overview-completed-by-task-name');
   const [assignedSummaryResult, completedSummarySeedResult, completedByDateSeedResult] = await Promise.allSettled([
     shouldFetchAssigned
-      ? taskFactsRepository.fetchUserOverviewAssignedSummaryRows(
-          snapshotContext.snapshotId,
-          filters,
-          USER_OVERVIEW_QUERY_OPTIONS
-        )
+      ? filters.user && filters.user.length > 0
+        ? snapshotOpenTaskRowsRepository.fetchAssignedSummaryRows(
+            snapshotContext.snapshotId,
+            filters,
+            USER_OVERVIEW_QUERY_OPTIONS
+          )
+        : snapshotOpenDueDailyFactsRepository.fetchAssignedSummaryRows(
+            snapshotContext.snapshotId,
+            filters,
+            USER_OVERVIEW_QUERY_OPTIONS
+          )
       : Promise.resolve([]),
     shouldFetchCompleted && !shouldFetchCompletedOverview
-      ? taskFactsRepository.fetchUserOverviewCompletedSummaryRows(
+      ? snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedSummaryRows(
           snapshotContext.snapshotId,
           filters,
           USER_OVERVIEW_QUERY_OPTIONS
         )
       : Promise.resolve([]),
     shouldFetchCompletedByDate
-      ? taskThinRepository.fetchUserOverviewCompletedByDateRows(
+      ? snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedByDateRows(
           snapshotContext.snapshotId,
           filters,
           USER_OVERVIEW_QUERY_OPTIONS
@@ -183,7 +195,7 @@ export async function buildUserOverviewPage(
   );
   if (shouldFetchCompletedOverview && completedByDateSeedResult.status === 'rejected') {
     const completedSummaryFallbackResult = await Promise.allSettled([
-      taskFactsRepository.fetchUserOverviewCompletedSummaryRows(
+      snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedSummaryRows(
         snapshotContext.snapshotId,
         filters,
         USER_OVERVIEW_QUERY_OPTIONS
@@ -214,7 +226,7 @@ export async function buildUserOverviewPage(
     caseWorkerNamesResult,
   ] = await Promise.allSettled([
     shouldFetchAssigned
-      ? taskThinRepository.fetchUserOverviewAssignedTaskRows(
+      ? snapshotOpenTaskRowsRepository.fetchUserOverviewAssignedTaskRows(
           snapshotContext.snapshotId,
           filters,
           sort.assigned,
@@ -226,7 +238,7 @@ export async function buildUserOverviewPage(
         )
       : Promise.resolve([]),
     shouldFetchCompleted
-      ? taskThinRepository.fetchUserOverviewCompletedTaskRows(
+      ? snapshotCompletedTaskRowsRepository.fetchUserOverviewCompletedTaskRows(
           snapshotContext.snapshotId,
           filters,
           sort.completed,
@@ -238,7 +250,7 @@ export async function buildUserOverviewPage(
         )
       : Promise.resolve([]),
     shouldFetchCompletedByTaskName
-      ? taskThinRepository.fetchUserOverviewCompletedByTaskNameRows(
+      ? snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedByTaskNameRows(
           snapshotContext.snapshotId,
           filters,
           USER_OVERVIEW_QUERY_OPTIONS

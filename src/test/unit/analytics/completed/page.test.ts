@@ -10,7 +10,7 @@ import {
   fetchFacetedFilterStateWithFallback as fetchFilterOptionsWithFallback,
   fetchPublishedSnapshotContext,
 } from '../../../../main/modules/analytics/shared/pageUtils';
-import { taskThinRepository } from '../../../../main/modules/analytics/shared/repositories';
+import { snapshotCompletedTaskRowsRepository } from '../../../../main/modules/analytics/shared/repositories';
 import {
   caseWorkerProfileService,
   courtVenueService,
@@ -72,7 +72,7 @@ jest.mock('../../../../main/modules/analytics/shared/services', () => ({
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
-  taskThinRepository: { fetchCompletedTaskAuditRows: jest.fn() },
+  snapshotCompletedTaskRowsRepository: { fetchCompletedTaskAuditRows: jest.fn() },
 }));
 
 describe('buildCompletedPage', () => {
@@ -132,7 +132,7 @@ describe('buildCompletedPage', () => {
     expect(completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime).not.toHaveBeenCalled();
     expect(completedByNameChartService.fetchCompletedByName).not.toHaveBeenCalled();
     expect(completedRegionLocationTableService.fetchCompletedRegionLocation).not.toHaveBeenCalled();
-    expect(taskThinRepository.fetchCompletedTaskAuditRows).not.toHaveBeenCalled();
+    expect(snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows).not.toHaveBeenCalled();
     expect(regionService.fetchRegionDescriptions).not.toHaveBeenCalled();
     expect(courtVenueService.fetchCourtVenueDescriptions).not.toHaveBeenCalled();
     expect(caseWorkerProfileService.fetchCaseWorkerProfileNames).not.toHaveBeenCalled();
@@ -206,7 +206,7 @@ describe('buildCompletedPage', () => {
     expect(completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime).not.toHaveBeenCalled();
     expect(completedByNameChartService.fetchCompletedByName).not.toHaveBeenCalled();
     expect(completedRegionLocationTableService.fetchCompletedRegionLocation).not.toHaveBeenCalled();
-    expect(taskThinRepository.fetchCompletedTaskAuditRows).not.toHaveBeenCalled();
+    expect(snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows).not.toHaveBeenCalled();
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalled();
     expect(buildCompletedViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -390,7 +390,7 @@ describe('buildCompletedPage', () => {
     (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue(fallbackRegionLocation);
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ Leeds: 'Leeds Crown Court' });
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({ 'user-1': 'Agent One' });
-    (taskThinRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([
       {
         case_id: 'CASE-123',
         task_name: null,
@@ -446,7 +446,7 @@ describe('buildCompletedPage', () => {
     (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue({ byLocation: [], byRegion: [] });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
-    (taskThinRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([
       {
         case_id: 'CASE-EMPTY',
         task_name: null,
@@ -556,7 +556,7 @@ describe('buildCompletedPage', () => {
     );
     (completedByNameChartService.fetchCompletedByName as jest.Mock).mockRejectedValue(new Error('db'));
     (completedRegionLocationTableService.fetchCompletedRegionLocation as jest.Mock).mockRejectedValue(new Error('db'));
-    (taskThinRepository.fetchCompletedTaskAuditRows as jest.Mock).mockRejectedValue(new Error('db'));
+    (snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows as jest.Mock).mockRejectedValue(new Error('db'));
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockRejectedValue(new Error('db'));
     (regionService.fetchRegionDescriptions as jest.Mock).mockRejectedValue(new Error('db'));
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockRejectedValue(new Error('db'));

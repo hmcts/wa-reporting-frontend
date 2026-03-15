@@ -7,7 +7,12 @@ import {
   pickFacetFilters,
 } from '../filters';
 import type { AnalyticsFacetScope } from '../filters';
-import { taskFactsRepository } from '../repositories';
+import {
+  snapshotCompletedFilterFactsRepository,
+  snapshotOutstandingFilterFactsRepository,
+  snapshotOverviewFilterFactsRepository,
+  snapshotUserFilterFactsRepository,
+} from '../repositories';
 import type { CaseWorkerProfileRow } from '../repositories';
 import type { AnalyticsQueryOptions } from '../repositories/filters';
 import type { AnalyticsFilters } from '../types';
@@ -31,6 +36,20 @@ export type FacetedFilterState = {
 };
 
 const compareByText = (a: SelectOption, b: SelectOption) => a.text.localeCompare(b.text);
+
+function filterFactsRepositoryForScope(scope: AnalyticsFacetScope) {
+  switch (scope) {
+    case 'outstanding':
+      return snapshotOutstandingFilterFactsRepository;
+    case 'completed':
+      return snapshotCompletedFilterFactsRepository;
+    case 'userOverview':
+      return snapshotUserFilterFactsRepository;
+    case 'overview':
+    default:
+      return snapshotOverviewFilterFactsRepository;
+  }
+}
 
 function buildUserOptions(assigneeIds: string[], profiles: CaseWorkerProfileRow[]): SelectOption[] {
   const normalisedAssignees = new Set(assigneeIds);
@@ -195,8 +214,7 @@ class FilterService {
     }
 
     const [rawOptions, regionRecords, courtVenues, profiles] = await Promise.all([
-      taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId, {
-        scope,
+      filterFactsRepositoryForScope(scope).fetchFilterOptionsRows(snapshotId, {
         filters,
         queryOptions,
         includeUserFilter,

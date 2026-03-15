@@ -1,8 +1,8 @@
 import { openTasksByRegionLocationTableService } from '../../../../../main/modules/analytics/outstanding/visuals/openTasksByRegionLocationTableService';
-import { taskFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
+import { snapshotOpenDueDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  taskFactsRepository: { fetchOpenTasksByRegionLocationRows: jest.fn() },
+  snapshotOpenDueDailyFactsRepository: { fetchOpenTasksByRegionLocationRows: jest.fn() },
 }));
 
 describe('openTasksByRegionLocationTableService', () => {
@@ -13,7 +13,7 @@ describe('openTasksByRegionLocationTableService', () => {
   });
 
   test('normalises values and aggregates region totals', async () => {
-    (taskFactsRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
+    (snapshotOpenDueDailyFactsRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
       {
         region: 'North',
         location: 'Leeds',
@@ -58,7 +58,7 @@ describe('openTasksByRegionLocationTableService', () => {
   });
 
   test('defaults nullish numeric fields to zero', async () => {
-    (taskFactsRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
+    (snapshotOpenDueDailyFactsRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
       {
         region: 'North',
         location: 'Leeds',
@@ -79,7 +79,7 @@ describe('openTasksByRegionLocationTableService', () => {
   });
 
   test('sorts location rows by location then region', async () => {
-    (taskFactsRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
+    (snapshotOpenDueDailyFactsRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
       {
         region: 'South',
         location: 'Leeds',
@@ -119,7 +119,7 @@ describe('openTasksByRegionLocationTableService', () => {
   });
 
   test('sorts region totals alphabetically regardless of insertion order', async () => {
-    (taskFactsRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
+    (snapshotOpenDueDailyFactsRepository.fetchOpenTasksByRegionLocationRows as jest.Mock).mockResolvedValue([
       {
         region: 'South',
         location: 'Leeds',

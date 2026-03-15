@@ -8,7 +8,7 @@ import {
   settledValueWithError,
   settledValueWithFallback,
 } from '../shared/pageUtils';
-import { CompletedTaskAuditRow, taskThinRepository } from '../shared/repositories';
+import { CompletedTaskAuditRow, snapshotCompletedTaskRowsRepository } from '../shared/repositories';
 import { caseWorkerProfileService, courtVenueService, regionService } from '../shared/services';
 import { AnalyticsFilters, CompletedMetric, CompletedResponse, Task } from '../shared/types';
 import { formatAnalyticsDateDisplay } from '../shared/formatting';
@@ -145,7 +145,7 @@ export async function buildCompletedPage(
       ? completedRegionLocationTableService.fetchCompletedRegionLocation(snapshotContext.snapshotId, filters, range)
       : Promise.resolve(fallbackRegionLocation),
     shouldFetchTaskAuditData
-      ? taskThinRepository.fetchCompletedTaskAuditRows(snapshotContext.snapshotId, filters, caseId!)
+      ? snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows(snapshotContext.snapshotId, filters, caseId!)
       : Promise.resolve([]),
     shouldFetchTaskAuditData ? caseWorkerProfileService.fetchCaseWorkerProfileNames() : Promise.resolve({}),
     shouldFetchRegionLocation ? regionService.fetchRegionDescriptions() : Promise.resolve({}),

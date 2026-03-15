@@ -1,4 +1,4 @@
-import { taskFactsRepository } from '../../shared/repositories';
+import { snapshotOutstandingCreatedAssignmentDailyFactsRepository } from '../../shared/repositories';
 import { emptyAssignmentSeriesPoint } from '../../shared/series';
 import { AnalyticsFilters, AssignmentSeriesPoint } from '../../shared/types';
 import { calculatePercent, groupByDateKey, toNumber } from '../../shared/utils';
@@ -15,7 +15,10 @@ class OpenTasksCreatedByAssignmentChartService {
     snapshotId: number,
     filters: AnalyticsFilters
   ): Promise<AssignmentSeriesPoint[]> {
-    const rows = await taskFactsRepository.fetchOpenTasksCreatedByAssignmentRows(snapshotId, filters);
+    const rows = await snapshotOutstandingCreatedAssignmentDailyFactsRepository.fetchOpenTasksCreatedByAssignmentRows(
+      snapshotId,
+      filters
+    );
     return groupByDateKey(
       rows,
       row => row.date_key,
