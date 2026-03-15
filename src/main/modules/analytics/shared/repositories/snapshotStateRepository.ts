@@ -11,9 +11,9 @@ type SnapshotStateRow = {
   published_at: Date | string | null;
 };
 
-const logger = Logger.getLogger('snapshot-state-table-repository');
+const logger = Logger.getLogger('snapshot-state-repository');
 
-export class SnapshotStateTableRepository {
+export class SnapshotStateRepository {
   async fetchPublishedSnapshot(): Promise<PublishedSnapshot | null> {
     try {
       const rows = await tmPrisma.$queryRaw<SnapshotStateRow[]>(Prisma.sql`
@@ -41,4 +41,4 @@ export class SnapshotStateTableRepository {
   }
 }
 
-export const snapshotStateTableRepository = new SnapshotStateTableRepository();
+export const snapshotStateRepository = new SnapshotStateRepository();

@@ -66,7 +66,7 @@ Each analytics repository file owns one table or view:
 - `analytics.snapshot_outstanding_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOutstandingFilterFactsRepository.ts`
 - `analytics.snapshot_completed_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotCompletedFilterFactsRepository.ts`
 - `analytics.snapshot_user_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotUserFilterFactsRepository.ts`
-- `analytics.snapshot_state` -> `src/main/modules/analytics/shared/repositories/snapshotStateTableRepository.ts`
+- `analytics.snapshot_state` -> `src/main/modules/analytics/shared/repositories/snapshotStateRepository.ts`
 - `analytics.snapshot_batches` -> `src/main/modules/analytics/shared/repositories/snapshotBatchesRepository.ts`
 
 Shared helpers such as `filterFactsQueryHelpers.ts`, `rowRepositoryHelpers.ts`, and `snapshotMetadataHelpers.ts` may build SQL fragments for multiple repositories, but they do not own table reads themselves.

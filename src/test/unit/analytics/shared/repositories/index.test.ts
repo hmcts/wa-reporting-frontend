@@ -7,7 +7,7 @@ import { snapshotCompletedDashboardFactsRepository } from '../../../../../main/m
 import { snapshotCompletedTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedTaskRowsRepository';
 import { snapshotOpenDueDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOpenDueDailyFactsRepository';
 import { snapshotOpenTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOpenTaskRowsRepository';
-import { snapshotStateTableRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotStateTableRepository';
+import { snapshotStateRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotStateRepository';
 import { snapshotUserCompletedFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserCompletedFactsRepository';
 
 describe('repositories index', () => {
@@ -20,7 +20,7 @@ describe('repositories index', () => {
     expect(repositories.snapshotCompletedTaskRowsRepository).toBe(snapshotCompletedTaskRowsRepository);
     expect(repositories.snapshotOpenDueDailyFactsRepository).toBe(snapshotOpenDueDailyFactsRepository);
     expect(repositories.snapshotOpenTaskRowsRepository).toBe(snapshotOpenTaskRowsRepository);
-    expect(repositories.snapshotStateTableRepository).toBe(snapshotStateTableRepository);
+    expect(repositories.snapshotStateRepository).toBe(snapshotStateRepository);
     expect(repositories.snapshotUserCompletedFactsRepository).toBe(snapshotUserCompletedFactsRepository);
   });
 });

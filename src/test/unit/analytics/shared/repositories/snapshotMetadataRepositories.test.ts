@@ -4,7 +4,7 @@ import {
   parseSnapshotId,
 } from '../../../../../main/modules/analytics/shared/repositories/snapshotMetadataHelpers';
 import { snapshotBatchesRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotBatchesRepository';
-import { snapshotStateTableRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotStateTableRepository';
+import { snapshotStateRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotStateRepository';
 
 jest.mock('../../../../../main/modules/analytics/shared/data/prisma', () => ({
   tmPrisma: { $queryRaw: jest.fn() },
@@ -31,7 +31,7 @@ describe('snapshot metadata repositories', () => {
   test('fetchPublishedSnapshot returns null when no snapshot is published', async () => {
     (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([]);
 
-    await expect(snapshotStateTableRepository.fetchPublishedSnapshot()).resolves.toBeNull();
+    await expect(snapshotStateRepository.fetchPublishedSnapshot()).resolves.toBeNull();
   });
 
   test('fetchPublishedSnapshot returns parsed state values when published metadata exists', async () => {
@@ -39,7 +39,7 @@ describe('snapshot metadata repositories', () => {
       { published_snapshot_id: '12', published_at: '2026-02-17T10:15:00.000Z' },
     ]);
 
-    await expect(snapshotStateTableRepository.fetchPublishedSnapshot()).resolves.toEqual({
+    await expect(snapshotStateRepository.fetchPublishedSnapshot()).resolves.toEqual({
       snapshotId: 12,
       publishedAt: new Date('2026-02-17T10:15:00.000Z'),
     });
@@ -51,15 +51,15 @@ describe('snapshot metadata repositories', () => {
       .mockResolvedValueOnce([{ published_snapshot_id: '12', published_at: 'not-a-date' }])
       .mockRejectedValueOnce(new Error('relation does not exist'));
 
-    await expect(snapshotStateTableRepository.fetchPublishedSnapshot()).resolves.toBeNull();
-    await expect(snapshotStateTableRepository.fetchPublishedSnapshot()).resolves.toBeNull();
-    await expect(snapshotStateTableRepository.fetchPublishedSnapshot()).resolves.toBeNull();
+    await expect(snapshotStateRepository.fetchPublishedSnapshot()).resolves.toBeNull();
+    await expect(snapshotStateRepository.fetchPublishedSnapshot()).resolves.toBeNull();
+    await expect(snapshotStateRepository.fetchPublishedSnapshot()).resolves.toBeNull();
   });
 
   test('fetchPublishedSnapshot returns undefined publishedAt when the timestamp is missing', async () => {
     (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ published_snapshot_id: '12', published_at: null }]);
 
-    await expect(snapshotStateTableRepository.fetchPublishedSnapshot()).resolves.toEqual({
+    await expect(snapshotStateRepository.fetchPublishedSnapshot()).resolves.toEqual({
       snapshotId: 12,
       publishedAt: undefined,
     });

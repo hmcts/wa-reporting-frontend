@@ -12,7 +12,7 @@ export * from './snapshotOutstandingCreatedAssignmentDailyFactsRepository';
 export * from './snapshotOutstandingDueStatusDailyFactsRepository';
 export * from './snapshotOutstandingFilterFactsRepository';
 export * from './snapshotOverviewFilterFactsRepository';
-export * from './snapshotStateTableRepository';
+export * from './snapshotStateRepository';
 export * from './snapshotTaskEventDailyFactsRepository';
 export * from './snapshotUserCompletedFactsRepository';
 export * from './snapshotUserFilterFactsRepository';

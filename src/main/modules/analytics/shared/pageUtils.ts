@@ -11,7 +11,7 @@ import type { AnalyticsFacetScope, FacetFilterKey } from './filters';
 import { buildFreshnessInsetText } from './formatting';
 import type { PublishedSnapshot } from './repositories';
 import type { AnalyticsQueryOptions } from './repositories/filters';
-import { snapshotBatchesRepository, snapshotStateTableRepository } from './repositories';
+import { snapshotBatchesRepository, snapshotStateRepository } from './repositories';
 import type { AnalyticsFilters } from './types';
 import { type FilterOptions, filterService } from './services';
 import { logDbError, settledValue } from './utils';
@@ -66,7 +66,7 @@ async function fetchCurrentPublishedSnapshot(cachedSnapshot?: PublishedSnapshot)
     return cachedSnapshot;
   }
 
-  const snapshot = await snapshotStateTableRepository.fetchPublishedSnapshot();
+  const snapshot = await snapshotStateRepository.fetchPublishedSnapshot();
   if (snapshot) {
     setPublishedSnapshotCache(PublishedSnapshotCacheKeys.currentPublishedSnapshot, snapshot);
   }
