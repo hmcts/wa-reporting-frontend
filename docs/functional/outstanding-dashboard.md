@@ -135,5 +135,6 @@ flowchart TB
 - The created-by-assignment chart is sourced from `analytics.snapshot_outstanding_created_assignment_daily_facts`.
 - The tasks-due chart and table are sourced from `analytics.snapshot_outstanding_due_status_daily_facts`.
 - The critical tasks table remains row-backed from `snapshot_open_task_rows`, but its total-result count is sourced from `snapshot_outstanding_filter_facts` so pagination does not need a full row-table count scan.
+- Critical-task sort queries no longer append `NULLS LAST`. That lets the existing `caseId` and `dueDate` indexes satisfy the matching critical-task sorts, but the other critical-task sort options are still row-table sorts unless they receive separate index work later.
 - Priority charts (open tasks priority donut, open tasks priority by due date, open tasks by name) use a GOV.UK palette mapping of Urgent `#98285d` (purple), High `#16548a` (dark blue), Medium `#8eb8dc` (light blue), and Low `#cecece` (light grey).
 - Dates are displayed as `D Mon YYYY` in tables/charts, while date sorting and CSV export use ISO `YYYY-MM-DD` values.

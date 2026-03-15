@@ -185,7 +185,7 @@ function buildAssignedOrderBy(sort: SortState<AssignedSortBy>): Prisma.Sql {
     }
   })();
 
-  return Prisma.sql`${column} ${directionSql(sort.dir)} NULLS LAST`;
+  return Prisma.sql`${column} ${directionSql(sort.dir)}`;
 }
 
 function buildCompletedOrderBy(sort: SortState<CompletedSortBy>): Prisma.Sql {
@@ -218,7 +218,7 @@ function buildCompletedOrderBy(sort: SortState<CompletedSortBy>): Prisma.Sql {
     }
   })();
 
-  return Prisma.sql`${column} ${directionSql(sort.dir)} NULLS LAST`;
+  return Prisma.sql`${column} ${directionSql(sort.dir)}`;
 }
 
 function buildCriticalTasksOrderBy(sort: SortState<CriticalTasksSortBy>): Prisma.Sql {
@@ -248,7 +248,7 @@ function buildCriticalTasksOrderBy(sort: SortState<CriticalTasksSortBy>): Prisma
     }
   })();
 
-  return Prisma.sql`${column} ${directionSql(sort.dir)} NULLS LAST`;
+  return Prisma.sql`${column} ${directionSql(sort.dir)}`;
 }
 
 function buildUserOverviewWhere(
@@ -329,21 +329,6 @@ export class TaskThinRepository {
     return rows[0]?.total ?? 0;
   }
 
-  async fetchUserOverviewCompletedTaskCount(
-    snapshotId: number,
-    filters: AnalyticsFilters,
-    queryOptions?: AnalyticsQueryOptions
-  ): Promise<number> {
-    const conditions = buildCompletedRowConditions(filters);
-    const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions, queryOptions);
-    const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
-      SELECT COUNT(*)::int AS total
-      FROM ${Prisma.raw(COMPLETED_TASK_ROWS_TABLE)}
-      ${whereClause}
-    `);
-    return rows[0]?.total ?? 0;
-  }
-
   async fetchUserOverviewCompletedByDateRows(
     snapshotId: number,
     filters: AnalyticsFilters,
@@ -389,7 +374,7 @@ export class TaskThinRepository {
       FROM analytics.snapshot_user_completed_facts
       ${whereClause}
       GROUP BY task_name
-      ORDER BY tasks DESC NULLS LAST, task_name ASC
+      ORDER BY tasks DESC, task_name ASC
     `);
   }
 
@@ -413,7 +398,7 @@ export class TaskThinRepository {
         outcome
       FROM ${Prisma.raw(COMPLETED_TASK_ROWS_TABLE)} rows
       ${whereClause}
-      ORDER BY rows.completed_date DESC NULLS LAST
+      ORDER BY rows.completed_date DESC
     `);
   }
 

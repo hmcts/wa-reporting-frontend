@@ -99,10 +99,11 @@ flowchart TB
 - User Overview excludes records where `role_category_label` is Judicial (case-insensitive), so Judicial role category data is not shown in tables, charts, summaries, or role-category filter options on this page.
 - Assigned total and priority summary are aggregate-backed. With no `User` filter selected, they read `analytics.snapshot_open_due_daily_facts`; when a `User` filter is selected, they fall back to a server-side aggregate on `analytics.snapshot_open_task_rows` so the summary still reflects the assignee exactly without loading all assigned rows into the app.
 - The assigned table itself remains row-backed from `analytics.snapshot_open_task_rows`.
-- Completed total and completed summary are facts-backed from `analytics.snapshot_user_completed_facts` (`SUM(tasks)` and `SUM(within_due)` within the active filters).
+- On initial page loads and filter submits, the completed summary and completed-by-date section are refreshed together. On that combined path, the completed summary and completed-table pagination totals are derived from the completed-by-date facts query over `analytics.snapshot_user_completed_facts`.
+- Completed-table sort and pagination still refresh only the completed section. On that narrower path, the completed summary and completed-table pagination totals continue to come from the dedicated completed-summary aggregate over `analytics.snapshot_user_completed_facts`.
 - Completed tasks by task name is facts-backed from `analytics.snapshot_user_completed_facts`, with refresh-time aggregates preserving the same average calculations as the previous row-level query.
-- The default assigned and completed table entry queries are backed by dedicated non-Judicial partial indexes on the snapshot row partitions for `created_date DESC NULLS LAST` and `completed_date DESC NULLS LAST`.
-- AJAX section refreshes only load the requested section's data path (for example, completed-by-date data is fetched only for the completed-by-date section).
+- The default assigned and completed table entry queries are backed by dedicated non-Judicial partial indexes on the snapshot row partitions for descending `created_date` and descending `completed_date` semantics.
+- AJAX section refreshes still target only the requested child section, except for the combined `user-overview-completed-overview` initial/filter section, which intentionally refreshes both the completed and completed-by-date child sections together.
 - Sorting state and pagination are preserved through hidden form inputs.
 - The priority donut uses the GOV.UK palette mapping Urgent `#98285d` (purple), High `#16548a` (dark blue), Medium `#8eb8dc` (light blue), and Low `#cecece` (light grey).
 - Dates are displayed as `D Mon YYYY` in the UI, while date sorting and CSV export continue to use ISO `YYYY-MM-DD` values.

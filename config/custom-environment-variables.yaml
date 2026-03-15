@@ -20,6 +20,11 @@ compression:
   enabled:
     __name: COMPRESSION_ENABLED
     __format: boolean
+requestBody:
+  urlencodedLimit: REQUEST_BODY_URLENCODED_LIMIT
+  urlencodedParameterLimit:
+    __name: REQUEST_BODY_URLENCODED_PARAMETER_LIMIT
+    __format: number
 logging:
   prismaQueryTimings:
     enabled:

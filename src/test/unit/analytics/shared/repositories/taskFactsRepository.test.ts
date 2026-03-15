@@ -35,7 +35,6 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, {}, range);
     await taskFactsRepository.fetchUserOverviewAssignedSummaryRows(snapshotId, {});
     await taskFactsRepository.fetchUserOverviewCompletedSummaryRows(snapshotId, {});
-    await taskFactsRepository.fetchUserOverviewCompletedTaskCount(snapshotId, {});
     await taskFactsRepository.fetchCompletedTimelineRows(snapshotId, {}, range);
     await taskFactsRepository.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, range);
     await taskFactsRepository.fetchCompletedByNameRows(snapshotId, {}, range);
@@ -370,64 +369,6 @@ describe('taskFactsRepository', () => {
     expect(query.sql).toContain('major_priority');
     expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
     expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'user-1', 'Service A', 'JUDICIAL']));
-  });
-
-  test('builds facts-backed user-overview completed count query with filters and query options', async () => {
-    const completedFrom = new Date('2024-08-01');
-    const completedTo = new Date('2024-08-31');
-    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 42 }]);
-
-    const total = await taskFactsRepository.fetchUserOverviewCompletedTaskCount(
-      snapshotId,
-      {
-        service: ['Service A'],
-        user: ['user-1'],
-        completedFrom,
-        completedTo,
-      },
-      { excludeRoleCategories: ['Judicial'] }
-    );
-    const query = queryCall();
-
-    expect(total).toBe(42);
-    expect(query.sql).toContain('SELECT COALESCE(SUM(tasks), 0)::int AS total');
-    expect(query.sql).toContain('FROM analytics.snapshot_user_completed_facts');
-    expect(query.sql).toContain('snapshot_id =');
-    expect(query.sql).toContain('completed_date >=');
-    expect(query.sql).toContain('completed_date <=');
-    expect(query.sql).toContain('assignee IN');
-    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
-    expect(query.values).toEqual(
-      expect.arrayContaining([snapshotId, completedFrom, completedTo, 'user-1', 'Service A', 'JUDICIAL'])
-    );
-  });
-
-  test('returns zero for facts-backed user-overview completed count when query has no rows', async () => {
-    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([]);
-
-    const total = await taskFactsRepository.fetchUserOverviewCompletedTaskCount(snapshotId, {});
-    const query = queryCall();
-
-    expect(total).toBe(0);
-    expect(query.sql).toContain('SELECT COALESCE(SUM(tasks), 0)::int AS total');
-    expect(query.sql).toContain('FROM analytics.snapshot_user_completed_facts');
-    expect(query.sql).toContain('snapshot_id =');
-    expect(query.sql).not.toContain('completed_date >=');
-    expect(query.sql).not.toContain('completed_date <=');
-    expect(query.sql).not.toContain('assignee IN');
-  });
-
-  test('omits optional completed-count predicates when filters are empty or users list is empty', async () => {
-    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 3 }]);
-
-    const total = await taskFactsRepository.fetchUserOverviewCompletedTaskCount(snapshotId, { user: [] });
-    const query = queryCall();
-
-    expect(total).toBe(3);
-    expect(query.sql).toContain('snapshot_id =');
-    expect(query.sql).not.toContain('completed_date >=');
-    expect(query.sql).not.toContain('completed_date <=');
-    expect(query.sql).not.toContain('assignee IN');
   });
 
   test('applies due/open filters and numeric priority rank in due-priority query', async () => {
