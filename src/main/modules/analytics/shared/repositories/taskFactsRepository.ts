@@ -23,6 +23,7 @@ import {
   SummaryTotalsRow,
   TaskEventsByServiceDbRow,
   TasksDuePriorityRow,
+  TasksDueRow,
   UserOverviewAssignedSummaryRow,
 } from './types';
 
@@ -589,21 +590,32 @@ export class TaskFactsRepository {
   }
 
   async fetchOpenTasksCreatedByAssignmentRows(snapshotId: number, filters: AnalyticsFilters): Promise<AssignmentRow[]> {
-    const whereClause = buildAnalyticsWhere(filters, [
-      asOfSnapshotCondition(snapshotId),
-      Prisma.sql`date_role = 'created'`,
-      Prisma.sql`task_status = 'open'`,
-    ]);
+    const whereClause = buildAnalyticsWhere(filters, [asOfSnapshotCondition(snapshotId)]);
 
     return tmPrisma.$queryRaw<AssignmentRow[]>(Prisma.sql`
       SELECT
         to_char(reference_date, 'YYYY-MM-DD') AS date_key,
         assignment_state,
         SUM(task_count)::int AS total
-      FROM analytics.snapshot_task_daily_facts
+      FROM analytics.snapshot_outstanding_created_assignment_daily_facts
       ${whereClause}
       GROUP BY reference_date, assignment_state
       ORDER BY reference_date
+    `);
+  }
+
+  async fetchTasksDueByDateRows(snapshotId: number, filters: AnalyticsFilters): Promise<TasksDueRow[]> {
+    const whereClause = buildAnalyticsWhere(filters, [asOfSnapshotCondition(snapshotId)]);
+
+    return tmPrisma.$queryRaw<TasksDueRow[]>(Prisma.sql`
+      SELECT
+        to_char(due_date, 'YYYY-MM-DD') AS date_key,
+        SUM(open_task_count)::int AS open,
+        SUM(completed_task_count)::int AS completed
+      FROM analytics.snapshot_outstanding_due_status_daily_facts
+      ${whereClause}
+      GROUP BY due_date
+      ORDER BY due_date
     `);
   }
 

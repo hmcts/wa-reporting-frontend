@@ -79,6 +79,7 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
         assignees: [],
       }),
       fetchOpenTasksCreatedByAssignmentRows: jest.fn().mockResolvedValue([]),
+      fetchTasksDueByDateRows: jest.fn().mockResolvedValue([]),
       fetchOpenTasksByNameRows: jest.fn().mockResolvedValue([]),
       fetchOpenTasksByRegionLocationRows: jest.fn().mockResolvedValue([]),
       fetchOpenTasksSummaryRows: jest.fn().mockResolvedValue([]),
@@ -106,7 +107,6 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
       fetchOutstandingCriticalTaskRows: jest.fn().mockResolvedValue(outstandingCriticalTaskRows),
       fetchOutstandingCriticalTaskCount: jest.fn().mockResolvedValue(outstandingCriticalTaskCount),
       fetchWaitTimeByAssignedDateRows: jest.fn().mockResolvedValue([]),
-      fetchTasksDueByDateRows: jest.fn().mockResolvedValue([]),
       fetchAssigneeIds: jest.fn().mockResolvedValue([]),
     },
   }));

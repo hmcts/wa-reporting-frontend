@@ -54,7 +54,6 @@ describe('taskThinRepository', () => {
     });
     await taskThinRepository.fetchOutstandingCriticalTaskCount(snapshotId, {});
     await taskThinRepository.fetchWaitTimeByAssignedDateRows(snapshotId, {});
-    await taskThinRepository.fetchTasksDueByDateRows(snapshotId, {});
 
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();
   });
@@ -530,7 +529,7 @@ describe('taskThinRepository', () => {
     expect(completedByTaskNameQuery.values).toEqual(expect.arrayContaining([completedFrom, completedTo, 'user-1']));
   });
 
-  test('builds wait-time and due-by-date queries', async () => {
+  test('builds wait-time query', async () => {
     const filters = { region: ['North'], location: ['Leeds'] };
 
     await taskThinRepository.fetchWaitTimeByAssignedDateRows(snapshotId, filters);
@@ -540,14 +539,6 @@ describe('taskThinRepository', () => {
     expect(waitTimeQuery.sql).toContain('SUM(total_wait_time_days_sum)::double precision');
     expect(waitTimeQuery.sql).toContain('/ SUM(assigned_task_count)::double precision');
     expect(waitTimeQuery.sql).toContain('GROUP BY reference_date');
-
-    await taskThinRepository.fetchTasksDueByDateRows(snapshotId, filters);
-    const tasksDueQuery = latestQuery();
-    expect(tasksDueQuery.sql).toContain('snapshot_id =');
-    expect(tasksDueQuery.sql).toContain("date_role = 'due'");
-    expect(tasksDueQuery.sql).toContain("WHEN task_status = 'open' THEN task_count");
-    expect(tasksDueQuery.sql).toContain("WHEN task_status = 'completed' THEN task_count");
-    expect(tasksDueQuery.sql).toContain('ORDER BY reference_date');
   });
 
   test('buildUserOverviewWhere appends user filters to base clauses', () => {

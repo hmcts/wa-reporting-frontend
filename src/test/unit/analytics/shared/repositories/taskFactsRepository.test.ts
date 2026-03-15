@@ -27,6 +27,7 @@ describe('taskFactsRepository', () => {
     await taskFactsRepository.fetchTaskEventsByServiceRows(snapshotId, {}, range);
     await taskFactsRepository.fetchOverviewFilterOptionsRows(snapshotId);
     await taskFactsRepository.fetchOpenTasksCreatedByAssignmentRows(snapshotId, {});
+    await taskFactsRepository.fetchTasksDueByDateRows(snapshotId, {});
     await taskFactsRepository.fetchOpenTasksByNameRows(snapshotId, {});
     await taskFactsRepository.fetchOpenTasksByRegionLocationRows(snapshotId, {});
     await taskFactsRepository.fetchOpenTasksSummaryRows(snapshotId, {});
@@ -466,12 +467,24 @@ describe('taskFactsRepository', () => {
     const query = queryCall();
 
     expect(query.sql).toContain('snapshot_id =');
-    expect(query.sql).toContain("date_role = 'created'");
-    expect(query.sql).toContain("task_status = 'open'");
+    expect(query.sql).toContain('FROM analytics.snapshot_outstanding_created_assignment_daily_facts');
     expect(query.sql).toContain("to_char(reference_date, 'YYYY-MM-DD') AS date_key");
     expect(query.sql).toContain('assignment_state');
     expect(query.sql).toContain('GROUP BY reference_date, assignment_state');
     expect(query.sql).toContain('ORDER BY reference_date');
+  });
+
+  test('builds outstanding due-status query grouped by due date', async () => {
+    await taskFactsRepository.fetchTasksDueByDateRows(snapshotId, { region: ['North'] });
+    const query = queryCall();
+
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('FROM analytics.snapshot_outstanding_due_status_daily_facts');
+    expect(query.sql).toContain("to_char(due_date, 'YYYY-MM-DD') AS date_key");
+    expect(query.sql).toContain('SUM(open_task_count)::int AS open');
+    expect(query.sql).toContain('SUM(completed_task_count)::int AS completed');
+    expect(query.sql).toContain('GROUP BY due_date');
+    expect(query.sql).toContain('ORDER BY due_date');
   });
 
   test('builds facts-backed open-task by-name query', async () => {
