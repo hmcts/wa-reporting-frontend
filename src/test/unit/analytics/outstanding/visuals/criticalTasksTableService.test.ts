@@ -1,11 +1,16 @@
 import { criticalTasksTableService } from '../../../../../main/modules/analytics/outstanding/visuals/criticalTasksTableService';
-import { taskThinRepository } from '../../../../../main/modules/analytics/shared/repositories';
+import {
+  snapshotOpenTaskRowsRepository,
+  snapshotOutstandingFilterFactsRepository,
+} from '../../../../../main/modules/analytics/shared/repositories';
 import { caseWorkerProfileService } from '../../../../../main/modules/analytics/shared/services';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  taskThinRepository: {
+  snapshotOpenTaskRowsRepository: {
     fetchOutstandingCriticalTaskRows: jest.fn(),
-    fetchOutstandingCriticalTaskCount: jest.fn(),
+  },
+  snapshotOutstandingFilterFactsRepository: {
+    fetchCriticalTaskCount: jest.fn(),
   },
 }));
 
@@ -21,8 +26,8 @@ describe('criticalTasksTableService', () => {
   });
 
   test('maps rows into critical task view models', async () => {
-    (taskThinRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(3);
-    (taskThinRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([
+    (snapshotOutstandingFilterFactsRepository.fetchCriticalTaskCount as jest.Mock).mockResolvedValue(3);
+    (snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([
       {
         case_id: '123',
         task_id: 't1',
@@ -108,7 +113,7 @@ describe('criticalTasksTableService', () => {
       totalResults: 3,
       page: 1,
     });
-    expect(taskThinRepository.fetchOutstandingCriticalTaskRows).toHaveBeenCalledWith(
+    expect(snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskRows).toHaveBeenCalledWith(
       snapshotId,
       {},
       { by: 'dueDate', dir: 'asc' },
@@ -120,8 +125,8 @@ describe('criticalTasksTableService', () => {
   });
 
   test('uses Judge when mapped profile name is blank', async () => {
-    (taskThinRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(1);
-    (taskThinRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([
+    (snapshotOutstandingFilterFactsRepository.fetchCriticalTaskCount as jest.Mock).mockResolvedValue(1);
+    (snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([
       {
         case_id: '126',
         task_id: 't4',
@@ -151,8 +156,8 @@ describe('criticalTasksTableService', () => {
   });
 
   test('clamps oversized critical task page requests to the 500-result window', async () => {
-    (taskThinRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(15000);
-    (taskThinRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([]);
+    (snapshotOutstandingFilterFactsRepository.fetchCriticalTaskCount as jest.Mock).mockResolvedValue(15000);
+    (snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([]);
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
 
     const result = await criticalTasksTableService.fetchCriticalTasksPage(
@@ -162,7 +167,7 @@ describe('criticalTasksTableService', () => {
       999
     );
 
-    expect(taskThinRepository.fetchOutstandingCriticalTaskRows).toHaveBeenCalledWith(
+    expect(snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskRows).toHaveBeenCalledWith(
       snapshotId,
       {},
       { by: 'dueDate', dir: 'asc' },
@@ -175,7 +180,7 @@ describe('criticalTasksTableService', () => {
   });
 
   test('returns early with empty rows when no critical tasks exist', async () => {
-    (taskThinRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(0);
+    (snapshotOutstandingFilterFactsRepository.fetchCriticalTaskCount as jest.Mock).mockResolvedValue(0);
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
 
     const result = await criticalTasksTableService.fetchCriticalTasksPage(
@@ -185,7 +190,7 @@ describe('criticalTasksTableService', () => {
       99
     );
 
-    expect(taskThinRepository.fetchOutstandingCriticalTaskRows).not.toHaveBeenCalled();
+    expect(snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskRows).not.toHaveBeenCalled();
     expect(result).toEqual({
       rows: [],
       totalResults: 0,

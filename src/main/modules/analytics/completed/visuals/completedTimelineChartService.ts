@@ -1,4 +1,4 @@
-import { taskFactsRepository } from '../../shared/repositories';
+import { snapshotCompletedDashboardFactsRepository } from '../../shared/repositories';
 import { AnalyticsFilters, CompletedPoint } from '../../shared/types';
 import { toNumber } from '../../shared/utils';
 
@@ -8,7 +8,7 @@ class CompletedTimelineChartService {
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedPoint[]> {
-    const rows = await taskFactsRepository.fetchCompletedTimelineRows(snapshotId, filters, range);
+    const rows = await snapshotCompletedDashboardFactsRepository.fetchCompletedTimelineRows(snapshotId, filters, range);
 
     return rows.map(row => {
       const completed = toNumber(row.total);

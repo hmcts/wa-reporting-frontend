@@ -31,7 +31,7 @@ Performance review:
 
 ```mermaid
 flowchart TB
-  App["Analytics module"] --> TMRepo["Task facts + thin repositories"]
+  App["Analytics module"] --> TMRepo["Table-scoped analytics repositories"]
   App --> RefSvc["Reference data services"]
   TMRepo --> TM["TM analytics DB"]
   RefSvc --> CRD["CRD DB (caseworkers)"]
@@ -49,6 +49,27 @@ Published snapshots are immutable. The app reads one selected snapshot at a time
 The application reads these tables only; it does not apply Flyway migrations at startup.
 
 The app keeps a separate in-process NodeCache entry for the current published snapshot metadata using `analytics.publishedSnapshotCacheTtlSeconds`. That fast path is only used when a request has no `snapshotToken` or when the signed `snapshotToken` matches the cached current published snapshot id. Requests for older snapshot ids still validate against `analytics.snapshot_batches` so retention cleanup cannot leave a stale historical snapshot marked as valid.
+
+### Repository ownership
+Each analytics repository file owns one table or view:
+
+- `analytics.snapshot_open_due_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOpenDueDailyFactsRepository.ts`
+- `analytics.snapshot_task_event_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotTaskEventDailyFactsRepository.ts`
+- `analytics.snapshot_outstanding_created_assignment_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOutstandingCreatedAssignmentDailyFactsRepository.ts`
+- `analytics.snapshot_outstanding_due_status_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOutstandingDueStatusDailyFactsRepository.ts`
+- `analytics.snapshot_completed_dashboard_facts` -> `src/main/modules/analytics/shared/repositories/snapshotCompletedDashboardFactsRepository.ts`
+- `analytics.snapshot_open_task_rows` -> `src/main/modules/analytics/shared/repositories/snapshotOpenTaskRowsRepository.ts`
+- `analytics.snapshot_completed_task_rows` -> `src/main/modules/analytics/shared/repositories/snapshotCompletedTaskRowsRepository.ts`
+- `analytics.snapshot_user_completed_facts` -> `src/main/modules/analytics/shared/repositories/snapshotUserCompletedFactsRepository.ts`
+- `analytics.snapshot_wait_time_by_assigned_date` -> `src/main/modules/analytics/shared/repositories/snapshotWaitTimeByAssignedDateRepository.ts`
+- `analytics.snapshot_overview_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOverviewFilterFactsRepository.ts`
+- `analytics.snapshot_outstanding_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOutstandingFilterFactsRepository.ts`
+- `analytics.snapshot_completed_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotCompletedFilterFactsRepository.ts`
+- `analytics.snapshot_user_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotUserFilterFactsRepository.ts`
+- `analytics.snapshot_state` -> `src/main/modules/analytics/shared/repositories/snapshotStateRepository.ts`
+- `analytics.snapshot_batches` -> `src/main/modules/analytics/shared/repositories/snapshotBatchesRepository.ts`
+
+Shared helpers such as `filterFactsQueryHelpers.ts`, `rowRepositoryHelpers.ts`, and `snapshotMetadataHelpers.ts` may build SQL fragments for multiple repositories, but they do not own table reads themselves.
 
 ### Snapshot metadata
 

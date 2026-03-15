@@ -1,10 +1,10 @@
-import { taskThinRepository } from '../../shared/repositories';
+import { snapshotWaitTimeByAssignedDateRepository } from '../../shared/repositories';
 import { AnalyticsFilters, WaitTimePoint } from '../../shared/types';
 import { toNumber } from '../../shared/utils';
 
 class WaitTimeByAssignedDateChartService {
   async fetchWaitTimeByAssignedDate(snapshotId: number, filters: AnalyticsFilters): Promise<WaitTimePoint[]> {
-    const rows = await taskThinRepository.fetchWaitTimeByAssignedDateRows(snapshotId, filters);
+    const rows = await snapshotWaitTimeByAssignedDateRepository.fetchWaitTimeByAssignedDateRows(snapshotId, filters);
 
     return rows.map(row => {
       const assignedCount = toNumber(row.assigned_task_count);

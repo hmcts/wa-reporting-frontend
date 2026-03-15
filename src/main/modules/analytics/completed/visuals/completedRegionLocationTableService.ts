@@ -1,4 +1,4 @@
-import { taskFactsRepository } from '../../shared/repositories';
+import { snapshotCompletedDashboardFactsRepository } from '../../shared/repositories';
 import { CompletedRegionLocationAggregateRow } from '../../shared/repositories/types';
 import { AnalyticsFilters, CompletedByLocationRow, CompletedByRegionRow } from '../../shared/types';
 import { normaliseLabel, toNumber, toNumberOrNull } from '../../shared/utils';
@@ -54,7 +54,11 @@ class CompletedRegionLocationTableService {
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<{ byLocation: CompletedByLocationRow[]; byRegion: CompletedByRegionRow[] }> {
-    const rows = await taskFactsRepository.fetchCompletedRegionLocationRows(snapshotId, filters, range);
+    const rows = await snapshotCompletedDashboardFactsRepository.fetchCompletedRegionLocationRows(
+      snapshotId,
+      filters,
+      range
+    );
 
     return rows.reduce<{ byLocation: CompletedByLocationRow[]; byRegion: CompletedByRegionRow[] }>(
       (result, row) => {
