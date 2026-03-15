@@ -31,6 +31,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 
 ### Analytics
 - `analytics.cacheTtlSeconds`: NodeCache TTL for filter options and reference data.
+- `analytics.publishedSnapshotCacheTtlSeconds`: NodeCache TTL for current published snapshot metadata.
 - `analytics.manageCaseBaseUrl`: base URL used for case links.
 - `analytics.filtersCookieName`: name for filter persistence cookie.
 - `analytics.filtersCookieMaxAgeDays`: cookie lifetime in days.

@@ -48,6 +48,8 @@ All analytics reads are snapshot-scoped:
 Published snapshots are immutable. The app reads one selected snapshot at a time.
 The application reads these tables only; it does not apply Flyway migrations at startup.
 
+The app keeps a separate in-process NodeCache entry for the current published snapshot metadata using `analytics.publishedSnapshotCacheTtlSeconds`. That fast path is only used when a request has no `snapshotToken` or when the signed `snapshotToken` matches the cached current published snapshot id. Requests for older snapshot ids still validate against `analytics.snapshot_batches` so retention cleanup cannot leave a stale historical snapshot marked as valid.
+
 ### Snapshot metadata
 
 #### analytics.snapshot_batches
@@ -498,4 +500,6 @@ NodeCache caches:
 - Regions and region descriptions
 - Court venues and location descriptions
 
-Cache TTL is configurable via `analytics.cacheTtlSeconds`.
+These caches use the configurable `analytics.cacheTtlSeconds` TTL.
+
+The app also keeps a dedicated NodeCache entry for the current published snapshot metadata using `analytics.publishedSnapshotCacheTtlSeconds`. That cache is intentionally separate from `analytics.cacheTtlSeconds` so current snapshot routing can use a much shorter TTL than filter and reference caches.
