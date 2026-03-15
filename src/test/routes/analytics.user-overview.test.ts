@@ -7,6 +7,13 @@ import { buildRouteTestServer, extractCsrfToken } from './routeTestUtils';
 let server: Server;
 let closeServer: () => Promise<void>;
 
+function buildLargeUserSelections(count = 3000): string[] {
+  return Array.from(
+    { length: count },
+    (_, index) => `case-worker-${index.toString().padStart(5, '0')}-${'x'.repeat(24)}`
+  );
+}
+
 const assignedHighPriorityRow = {
   case_id: 'C-123',
   task_id: 'T-123',
@@ -152,6 +159,48 @@ describe('Analytics user overview route', () => {
       const token = extractCsrfToken(tokenResponse.text);
 
       const response = await agent.post('/users').type('form').send({ _csrf: token, user: '123' }).expect(200);
+
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('User overview');
+    });
+
+    test('should accept large shared-filter ajax requests with many selected users', async () => {
+      const agent = request.agent(server);
+      const tokenResponse = await agent.get('/users').expect(200);
+      const token = extractCsrfToken(tokenResponse.text);
+
+      const response = await agent
+        .post('/users')
+        .set('X-Requested-With', 'fetch')
+        .type('form')
+        .send({
+          _csrf: token,
+          user: buildLargeUserSelections(),
+          ajaxSection: 'shared-filters',
+          changedFilter: 'user',
+          facetRefresh: '1',
+        })
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/html');
+      expect(response.text).toContain('Select filters to apply to dashboard');
+      expect(response.text).not.toContain('User overview');
+    });
+
+    test('should accept large full-submit requests with many selected users', async () => {
+      const agent = request.agent(server);
+      const tokenResponse = await agent.get('/users').expect(200);
+      const token = extractCsrfToken(tokenResponse.text);
+
+      const response = await agent
+        .post('/users')
+        .type('form')
+        .send({
+          _csrf: token,
+          user: buildLargeUserSelections(),
+          applyFilters: '1',
+        })
+        .expect(200);
 
       expect(response.headers['content-type']).toContain('text/html');
       expect(response.text).toContain('User overview');

@@ -37,6 +37,10 @@
   "compression": {
     "enabled": false
   },
+  "requestBody": {
+    "urlencodedLimit": "512kb",
+    "urlencodedParameterLimit": 10000
+  },
   "services": {
     "idam": {
       "clientID": "wa_reporting_frontend",

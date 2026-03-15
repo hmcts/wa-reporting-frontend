@@ -36,6 +36,12 @@ Two session mechanisms are used:
 - Token is expected in `_csrf` form fields or `x-csrf-token` header.
 - A CSRF token is added to `res.locals.csrfToken` for all analytics routes.
 
+## Request body parsing
+- URL-encoded request bodies are parsed by Express/body-parser using app configuration:
+  - `requestBody.urlencodedLimit`
+  - `requestBody.urlencodedParameterLimit`
+- Requests that exceed either configured limit are rejected before route handlers run.
+
 ## Security headers (Helmet)
 - Helmet is enabled with a strict Content Security Policy.
 - Allowed sources:

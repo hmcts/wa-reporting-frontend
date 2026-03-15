@@ -80,6 +80,8 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 ### Security and logging
 - `useCSRFProtection`.
 - `compression.enabled`: enables/disables HTTP compression middleware (default `false`).
+- `requestBody.urlencodedLimit`: app-wide `application/x-www-form-urlencoded` body size limit used by Express/body-parser.
+- `requestBody.urlencodedParameterLimit`: app-wide maximum number of URL-encoded form parameters accepted by Express/body-parser.
 - `security.referrerPolicy` and HSTS settings.
 - `logging.prismaQueryTimings`: Prisma query timing log settings.
   - `enabled`: turns Prisma query timing logs on/off.
@@ -92,6 +94,8 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 ## Environment variables (selected)
 - `AUTH_ENABLED`
 - `COMPRESSION_ENABLED`
+- `REQUEST_BODY_URLENCODED_LIMIT`
+- `REQUEST_BODY_URLENCODED_PARAMETER_LIMIT`
 - `ANALYTICS_CACHE_TTL_SECONDS`
 - `ANALYTICS_CACHE_WARMUP_ENABLED`
 - `ANALYTICS_CACHE_WARMUP_CRON_EXPRESSION`
