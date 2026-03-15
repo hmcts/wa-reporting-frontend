@@ -3,6 +3,7 @@
 This folder contains business, functional, and technical specifications for the Task Management Report (wa-reporting-frontend) application. The documents are written to be detailed enough to rebuild the application from scratch.
 
 ## How to use this documentation
+- Start at the repository root `README.md` for local setup and command semantics, then use `AGENTS.md` for contributor expectations and verification guidance.
 - Start with the business context and glossary to understand the domain language.
 - Read the functional specs for each dashboard to understand user-facing behavior.
 - Use the technical specs for architecture, data sources, UI behavior, security, config, and operations.

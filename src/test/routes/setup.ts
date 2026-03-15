@@ -30,10 +30,6 @@ const defaultValues: RouteTestConfigValues = {
     includeQueryPreview: false,
     queryPreviewMaxLength: 240,
   },
-  security: {
-    referrerPolicy: 'same-origin',
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-  },
 };
 
 globalState.__routeTestConfigValues = { ...defaultValues };

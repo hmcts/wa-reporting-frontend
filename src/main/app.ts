@@ -54,7 +54,7 @@ export const bootstrap = async (): Promise<void> => {
   }
   new Nunjucks(developmentMode).enableFor(app);
   // secure the application by adding various HTTP headers to its responses
-  new Helmet(config.get('security')).enableFor(app);
+  new Helmet(developmentMode).enableFor(app);
 
   const assetsDirectory = path.join(__dirname, 'public', 'assets');
   const faviconPath = path.join(assetsDirectory, 'images/favicon.ico');

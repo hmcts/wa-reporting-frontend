@@ -36,6 +36,7 @@ const buildAppModule = async (options: {
   const bootstrapSnapshotRefreshCron = jest.fn();
   const compressionMiddleware = jest.fn((_req: unknown, _res: unknown, next: () => void) => next());
   const compressionFactory = jest.fn(() => compressionMiddleware);
+  const helmetConstructor = jest.fn().mockImplementation(() => ({ enableFor }));
 
   if (snapshotRefreshCronBootstrapError) {
     bootstrapSnapshotRefreshCron.mockRejectedValue(snapshotRefreshCronBootstrapError);
@@ -49,9 +50,6 @@ const buildAppModule = async (options: {
     }
     if (key === 'compression.enabled') {
       return compressionEnabled;
-    }
-    if (key === 'security') {
-      return { enabled: true };
     }
     if (key === 'analytics.snapshotRefreshCronBootstrap.enabled') {
       return snapshotRefreshCronBootstrapEnabled;
@@ -83,7 +81,7 @@ const buildAppModule = async (options: {
   }));
 
   jest.doMock('../../../main/modules/helmet', () => ({
-    Helmet: jest.fn().mockImplementation(() => ({ enableFor })),
+    Helmet: helmetConstructor,
   }));
 
   jest.doMock('../../../main/modules/nunjucks', () => ({
@@ -147,6 +145,7 @@ const buildAppModule = async (options: {
     configGet,
     compressionFactory,
     bootstrapSnapshotRefreshCron,
+    helmetConstructor,
   };
 };
 
@@ -213,9 +212,11 @@ describe('app bootstrap', () => {
       healthRoute,
       infoRoute,
       bootstrapSnapshotRefreshCron,
+      helmetConstructor,
     } = await buildAppModule({ env: 'development', snapshotRefreshCronBootstrapEnabled: true });
 
     expect(app.locals.ENV).toBe('development');
+    expect(helmetConstructor).toHaveBeenCalledWith(true);
     expect(enableFor).toHaveBeenCalled();
     expect(appSessionEnableFor).toHaveBeenCalledWith(app);
     expect(oidcEnableFor).toHaveBeenCalledWith(app);
@@ -250,11 +251,12 @@ describe('app bootstrap', () => {
   });
 
   it('uses production mode setup when NODE_ENV is not development', async () => {
-    const { app, setupDev, appSessionEnableFor, oidcEnableFor } = await buildAppModule({
+    const { app, setupDev, appSessionEnableFor, oidcEnableFor, helmetConstructor } = await buildAppModule({
       env: 'production',
     });
 
     expect(app.locals.ENV).toBe('production');
+    expect(helmetConstructor).toHaveBeenCalledWith(false);
     expect(appSessionEnableFor).toHaveBeenCalledWith(app);
     expect(oidcEnableFor).toHaveBeenCalledWith(app);
     expect(setupDev).toHaveBeenCalledWith(app, false);
