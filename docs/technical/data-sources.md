@@ -159,6 +159,7 @@ Required columns:
 
 Notes:
 - The `/users` assigned table adds `state = 'ASSIGNED'` on top of this table.
+- The `/outstanding` critical tasks query adds `state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')` and `created_date IS NOT NULL` on top of this table so it matches the open-tasks-by-created-date workload exactly.
 - Priority rank is still calculated at query-time from `major_priority`, `due_date`, and `CURRENT_DATE`.
 - Child partitions also create a User Overview-specific partial index for the default assigned-table query: non-Judicial `state = 'ASSIGNED'` rows ordered by `created_date DESC` semantics.
 
@@ -443,7 +444,6 @@ Population rule:
 
 Used by:
 - `/outstanding` shared filter options
-- `/outstanding` critical tasks total count
 
 #### analytics.snapshot_completed_filter_facts
 Facet source for `/completed`.

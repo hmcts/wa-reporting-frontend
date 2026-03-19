@@ -1,7 +1,7 @@
 import { OutstandingSort } from '../../shared/outstandingSort';
 import { getCappedTotalPages, normalisePage } from '../../shared/pagination';
 import { priorityLabelFromRank } from '../../shared/priority/priorityRankSql';
-import { snapshotOpenTaskRowsRepository, snapshotOutstandingFilterFactsRepository } from '../../shared/repositories';
+import { snapshotOpenTaskRowsRepository } from '../../shared/repositories';
 import { caseWorkerProfileService } from '../../shared/services';
 import { AnalyticsFilters, CriticalTask } from '../../shared/types';
 import { normaliseLabel } from '../../shared/utils';
@@ -37,7 +37,7 @@ class CriticalTasksTableService {
     pageSize = CRITICAL_TASKS_PAGE_SIZE
   ): Promise<CriticalTasksPage> {
     const [totalResults, caseWorkerNames] = await Promise.all([
-      snapshotOutstandingFilterFactsRepository.fetchCriticalTaskCount(snapshotId, filters),
+      snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskCount(snapshotId, filters),
       caseWorkerProfileService.fetchCaseWorkerProfileNames(),
     ]);
     const totalPages = getCappedTotalPages(totalResults, pageSize);

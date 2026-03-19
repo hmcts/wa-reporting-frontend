@@ -83,7 +83,8 @@ export class SnapshotOpenTaskRowsRepository {
     const priorityRank = buildOpenTaskPriorityRank();
     const whereClause = buildAnalyticsWhere(filters, [
       asOfSnapshotCondition(snapshotId),
-      Prisma.sql`state NOT IN ('COMPLETED', 'TERMINATED')`,
+      Prisma.sql`state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`,
+      Prisma.sql`created_date IS NOT NULL`,
     ]);
     const orderBy = buildCriticalTasksOrderBy(sort);
     const { limitClause, offsetClause } = buildPaginationClauses(pagination);
@@ -106,6 +107,20 @@ export class SnapshotOpenTaskRowsRepository {
       ${limitClause}
       ${offsetClause}
     `);
+  }
+
+  async fetchOutstandingCriticalTaskCount(snapshotId: number, filters: AnalyticsFilters): Promise<number> {
+    const whereClause = buildAnalyticsWhere(filters, [
+      asOfSnapshotCondition(snapshotId),
+      Prisma.sql`state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`,
+      Prisma.sql`created_date IS NOT NULL`,
+    ]);
+    const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
+      SELECT COUNT(*)::int AS total
+      FROM ${Prisma.raw(TABLE_NAME)} rows
+      ${whereClause}
+    `);
+    return rows[0]?.total ?? 0;
   }
 }
 

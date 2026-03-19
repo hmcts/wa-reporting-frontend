@@ -55,7 +55,6 @@ describe('buildOutstanding', () => {
     expect(metrics.summary.high).toBe(1);
     expect(metrics.summary.low).toBe(0);
     expect(metrics.openByName).toHaveLength(1);
-    expect(metrics.criticalTasks.length).toBeGreaterThan(0);
   });
 
   test('handles empty and malformed dates without throwing', () => {
@@ -339,7 +338,7 @@ describe('buildOutstanding', () => {
 
     const metrics = outstandingService.buildOutstanding(tasks);
     expect(metrics.timelines.waitTimeByAssigned).toHaveLength(1);
-    expect(metrics.criticalTasks[0].priority).toBe('Urgent');
+    expect(metrics.summary.urgent).toBe(1);
   });
 
   test('counts priorities and sorts locations by region', () => {
@@ -510,32 +509,10 @@ describe('buildOutstanding', () => {
 
     const metrics = outstandingService.buildOutstanding(tasks);
 
-    expect(metrics.criticalTasks.map(task => task.caseId)).toEqual(['CASE-201', 'CASE-200']);
-    expect(metrics.criticalTasks.map(task => task.priority)).toEqual(['High', 'Urgent']);
-    expect(metrics.criticalTasks[0].agentName).toBe('Taylor');
-    expect(metrics.criticalTasks[1].agentName).toBe('');
-  });
-
-  test('caps critical tasks to 10 rows', () => {
-    const tasks: Task[] = Array.from({ length: 12 }, (_, index) => ({
-      caseId: `CASE-${index + 1}`,
-      taskId: `TASK-${index + 1}`,
-      service: 'Service A',
-      roleCategory: 'Ops',
-      region: 'North',
-      location: 'Leeds',
-      taskName: 'Review',
-      status: 'open',
-      priority: index % 2 === 0 ? 'Urgent' : 'High',
-      createdDate: '2024-01-01',
-      dueDate: `2024-01-${String(index + 1).padStart(2, '0')}`,
-    }));
-
-    const metrics = outstandingService.buildOutstanding(tasks);
-
-    expect(metrics.criticalTasks).toHaveLength(10);
-    expect(metrics.criticalTasks[0].caseId).toBe('CASE-1');
-    expect(metrics.criticalTasks[9].caseId).toBe('CASE-10');
+    expect(metrics.summary.open).toBe(3);
+    expect(metrics.summary.urgent).toBe(1);
+    expect(metrics.summary.high).toBe(1);
+    expect(metrics.summary.low).toBe(1);
   });
 
   test('computes wait-time totals with negative date differences clamped to zero', () => {

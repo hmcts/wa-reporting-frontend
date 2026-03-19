@@ -117,7 +117,6 @@ describe('buildOutstandingPage', () => {
       tasksDueByPriority: [],
     },
     openByName: [],
-    criticalTasks: [],
     outstandingByLocation: [],
     outstandingByRegion: [],
     ...overrides,
