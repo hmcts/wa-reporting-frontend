@@ -9,7 +9,7 @@ import {
   settledValueWithFallback,
 } from '../shared/pageUtils';
 import { courtVenueService, regionService } from '../shared/services';
-import { AnalyticsFilters, PriorityBreakdown, Task } from '../shared/types';
+import { AnalyticsFilters, CriticalTask, PriorityBreakdown, Task } from '../shared/types';
 import {
   type AnalyticsSectionErrors,
   FILTERS_UNAVAILABLE_MESSAGE,
@@ -89,7 +89,7 @@ export async function buildOutstandingPage(
   let priorityByDueDate = outstanding.timelines.tasksDueByPriority;
   let outstandingByLocation = outstanding.outstandingByLocation;
   let outstandingByRegion = outstanding.outstandingByRegion;
-  let criticalTasks = outstanding.criticalTasks;
+  let criticalTasks: CriticalTask[] = [];
   const [
     openByNameResult,
     openResult,

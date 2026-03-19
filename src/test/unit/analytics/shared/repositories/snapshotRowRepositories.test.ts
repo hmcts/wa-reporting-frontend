@@ -14,7 +14,6 @@ import {
 } from '../../../../../main/modules/analytics/shared/repositories/rowRepositoryHelpers';
 import { snapshotCompletedTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedTaskRowsRepository';
 import { snapshotOpenTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOpenTaskRowsRepository';
-import { snapshotOutstandingFilterFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOutstandingFilterFactsRepository';
 import { snapshotUserCompletedFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserCompletedFactsRepository';
 import { snapshotWaitTimeByAssignedDateRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotWaitTimeByAssignedDateRepository';
 import {
@@ -47,9 +46,8 @@ const rowRepositoriesHarness = {
   ),
   fetchOutstandingCriticalTaskRows:
     snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskRows.bind(snapshotOpenTaskRowsRepository),
-  fetchOutstandingCriticalTaskCount: snapshotOutstandingFilterFactsRepository.fetchCriticalTaskCount.bind(
-    snapshotOutstandingFilterFactsRepository
-  ),
+  fetchOutstandingCriticalTaskCount:
+    snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskCount.bind(snapshotOpenTaskRowsRepository),
   fetchWaitTimeByAssignedDateRows: snapshotWaitTimeByAssignedDateRepository.fetchWaitTimeByAssignedDateRows.bind(
     snapshotWaitTimeByAssignedDateRepository
   ),
@@ -378,7 +376,9 @@ describe('rowRepositoriesHarness', () => {
       expect(normalised).toContain(expectedSqlBySort[key]);
       expect(normalised).not.toContain('NULLS LAST');
       expect(query.sql).toContain('FROM analytics.snapshot_open_task_rows rows');
-      expect(query.sql).toContain("state NOT IN ('COMPLETED', 'TERMINATED')");
+      expect(query.sql).toContain("state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')");
+      expect(query.sql).toContain('created_date IS NOT NULL');
+      expect(query.sql).not.toContain("state NOT IN ('COMPLETED', 'TERMINATED')");
       expect(query.sql).toContain('snapshot_id =');
       expect(query.values).toContain(snapshotId);
     }
@@ -495,9 +495,11 @@ describe('rowRepositoriesHarness', () => {
     const query = latestQuery();
 
     expect(total).toBe(9);
-    expect(query.sql).toContain('COALESCE(SUM(row_count), 0)::int AS total');
+    expect(query.sql).toContain('COUNT(*)::int AS total');
     expect(query.sql).toContain('snapshot_id =');
-    expect(query.sql).toContain('FROM analytics.snapshot_outstanding_filter_facts');
+    expect(query.sql).toContain('FROM analytics.snapshot_open_task_rows rows');
+    expect(query.sql).toContain("state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')");
+    expect(query.sql).toContain('created_date IS NOT NULL');
     expect(query.sql).not.toContain("state NOT IN ('COMPLETED', 'TERMINATED')");
     expect(query.values).toContain(snapshotId);
     expect(query.values).toContain('North');
@@ -513,8 +515,8 @@ describe('rowRepositoriesHarness', () => {
     const query = latestQuery();
 
     expect(total).toBe(0);
-    expect(query.sql).toContain('FROM analytics.snapshot_outstanding_filter_facts');
-    expect(query.sql).toContain('COALESCE(SUM(row_count), 0)::int AS total');
+    expect(query.sql).toContain('FROM analytics.snapshot_open_task_rows rows');
+    expect(query.sql).toContain('COUNT(*)::int AS total');
     expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'Private Law', 'Review the appeal']));
   });
 

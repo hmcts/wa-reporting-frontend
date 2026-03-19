@@ -197,7 +197,6 @@ export interface OutstandingResponse {
     tasksDueByPriority: PrioritySeriesPoint[];
   };
   openByName: PriorityBreakdown[];
-  criticalTasks: CriticalTask[];
   outstandingByLocation: OutstandingByLocationRow[];
   outstandingByRegion: OutstandingByRegionRow[];
 }

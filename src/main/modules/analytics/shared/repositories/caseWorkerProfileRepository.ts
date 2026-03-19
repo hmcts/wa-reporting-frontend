@@ -13,7 +13,7 @@ export class CaseWorkerProfileRepository {
         last_name,
         email_id,
         region_id
-      FROM vw_case_worker_profile
+      FROM case_worker_profile
     `);
   }
 
@@ -25,7 +25,7 @@ export class CaseWorkerProfileRepository {
         last_name,
         email_id,
         region_id
-      FROM vw_case_worker_profile
+      FROM case_worker_profile
       WHERE case_worker_id = ${caseWorkerId}
     `);
 

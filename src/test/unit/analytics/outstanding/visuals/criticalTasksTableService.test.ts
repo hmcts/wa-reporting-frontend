@@ -1,16 +1,11 @@
 import { criticalTasksTableService } from '../../../../../main/modules/analytics/outstanding/visuals/criticalTasksTableService';
-import {
-  snapshotOpenTaskRowsRepository,
-  snapshotOutstandingFilterFactsRepository,
-} from '../../../../../main/modules/analytics/shared/repositories';
+import { snapshotOpenTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories';
 import { caseWorkerProfileService } from '../../../../../main/modules/analytics/shared/services';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
   snapshotOpenTaskRowsRepository: {
     fetchOutstandingCriticalTaskRows: jest.fn(),
-  },
-  snapshotOutstandingFilterFactsRepository: {
-    fetchCriticalTaskCount: jest.fn(),
+    fetchOutstandingCriticalTaskCount: jest.fn(),
   },
 }));
 
@@ -26,7 +21,7 @@ describe('criticalTasksTableService', () => {
   });
 
   test('maps rows into critical task view models', async () => {
-    (snapshotOutstandingFilterFactsRepository.fetchCriticalTaskCount as jest.Mock).mockResolvedValue(3);
+    (snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(3);
     (snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([
       {
         case_id: '123',
@@ -125,7 +120,7 @@ describe('criticalTasksTableService', () => {
   });
 
   test('uses Judge when mapped profile name is blank', async () => {
-    (snapshotOutstandingFilterFactsRepository.fetchCriticalTaskCount as jest.Mock).mockResolvedValue(1);
+    (snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(1);
     (snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([
       {
         case_id: '126',
@@ -156,7 +151,7 @@ describe('criticalTasksTableService', () => {
   });
 
   test('clamps oversized critical task page requests to the 500-result window', async () => {
-    (snapshotOutstandingFilterFactsRepository.fetchCriticalTaskCount as jest.Mock).mockResolvedValue(15000);
+    (snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(15000);
     (snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskRows as jest.Mock).mockResolvedValue([]);
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
 
@@ -180,7 +175,7 @@ describe('criticalTasksTableService', () => {
   });
 
   test('returns early with empty rows when no critical tasks exist', async () => {
-    (snapshotOutstandingFilterFactsRepository.fetchCriticalTaskCount as jest.Mock).mockResolvedValue(0);
+    (snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskCount as jest.Mock).mockResolvedValue(0);
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
 
     const result = await criticalTasksTableService.fetchCriticalTasksPage(

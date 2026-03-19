@@ -76,6 +76,7 @@ flowchart TB
 - Agent name displays `Judge` when an assignee ID is present but has no matching Staff Ref Data profile.
 - Priority sorting uses severity ranking (Urgent > High > Medium > Low), with first-click descending on the Priority header.
 - Priority cells carry numeric sort metadata so client-side enhancements keep the same severity ordering.
+- The table uses the same open-task population contract as the open-tasks-by-created-date workload: only rows in the open-state set (`ASSIGNED`, `UNASSIGNED`, `PENDING AUTO ASSIGN`, `UNCONFIGURED`) and with a non-null `created_date` are included.
 - Sort order defaults to due date ascending.
 - Pagination page size: 50.
 - Long `Location` and `Task name` values wrap across multiple lines in table body rows.
@@ -134,7 +135,7 @@ flowchart TB
 - Open-task aggregate sections (summary, by name, by region/location, priority by due date) are sourced from `analytics.snapshot_open_due_daily_facts`.
 - The created-by-assignment chart is sourced from `analytics.snapshot_outstanding_created_assignment_daily_facts`.
 - The tasks-due chart and table are sourced from `analytics.snapshot_outstanding_due_status_daily_facts`.
-- The critical tasks table remains row-backed from `snapshot_open_task_rows`, but its total-result count is sourced from `snapshot_outstanding_filter_facts` so pagination does not need a full row-table count scan.
+- The critical tasks table remains row-backed from `snapshot_open_task_rows`, and both its visible rows and total-result count apply the same strict open-task contract (open-state rows only, with non-null `created_date`) so created-date pagination stays aligned with the open-tasks-by-created-date workload.
 - Critical-task sort queries no longer append `NULLS LAST`. That lets the existing `caseId` and `dueDate` indexes satisfy the matching critical-task sorts, but the other critical-task sort options are still row-table sorts unless they receive separate index work later.
 - Priority charts (open tasks priority donut, open tasks priority by due date, open tasks by name) use a GOV.UK palette mapping of Urgent `#98285d` (purple), High `#16548a` (dark blue), Medium `#8eb8dc` (light blue), and Low `#cecece` (light grey).
 - Dates are displayed as `D Mon YYYY` in tables/charts, while date sorting and CSV export use ISO `YYYY-MM-DD` values.

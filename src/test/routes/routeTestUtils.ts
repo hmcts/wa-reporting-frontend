@@ -93,6 +93,7 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
       fetchUserOverviewAssignedTaskCount: jest.fn().mockResolvedValue(userOverviewAssignedTaskCount),
       fetchAssignedSummaryRows: jest.fn().mockResolvedValue(userOverviewAssignedSummaryRows),
       fetchOutstandingCriticalTaskRows: jest.fn().mockResolvedValue(outstandingCriticalTaskRows),
+      fetchOutstandingCriticalTaskCount: jest.fn().mockResolvedValue(outstandingCriticalTaskCount),
     },
     snapshotCompletedTaskRowsRepository: {
       fetchUserOverviewCompletedTaskRows: jest.fn().mockResolvedValue(userOverviewCompletedTaskRows),
@@ -127,7 +128,6 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
         workTypes: [],
         assignees: [],
       }),
-      fetchCriticalTaskCount: jest.fn().mockResolvedValue(outstandingCriticalTaskCount),
     },
     snapshotCompletedFilterFactsRepository: {
       fetchFilterOptionsRows: jest.fn().mockResolvedValue({
