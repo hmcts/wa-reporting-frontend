@@ -18,7 +18,6 @@
     "build:server": "tsc -p tsconfig.json",
     "test": "npx if-env CI=true && exit 0 || yarn test:unit",
     "test:unit": "jest",
-    "test:coverage": "jest --coverage",
     "test:routes": "jest -c jest.routes.config.js",
     "test:mutation": "stryker run",
     "test:mutation:ci": "stryker run --reporters clear-text,progress --fileLogLevel warn",
