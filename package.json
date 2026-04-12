@@ -45,7 +45,7 @@
     "@opentelemetry/instrumentation-winston": "^0.57.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
-    "axios": "^1.13.6",
+    "axios": "^1.15.0",
     "body-parser": "^2.2.2",
     "compression": "^1.8.1",
     "config": "^4.4.1",
