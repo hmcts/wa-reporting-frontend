@@ -147,7 +147,7 @@
   },
   "resolutions": {
     "@hono/node-server": "^1.19.11",
-    "hono": "^4.12.8",
+    "hono": "^4.12.14",
     "lodash": "^4.17.23"
   },
   "husky": {
