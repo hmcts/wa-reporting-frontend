@@ -25,7 +25,6 @@
 - Use `yarn test:unit` when you specifically need the unit-test suite.
 - Treat `yarn test` as a repository wrapper, not as proof that Jest executed in every environment.
 - `yarn build` is the frontend webpack build only; `yarn build:server` is the server TypeScript compile.
-- The shared TypeScript baseline now uses `module`/`moduleResolution` set to `nodenext`; `tsconfig.test.json` overrides that for Jest transforms, and deprecated `baseUrl`-style alias resolution is not part of the repository setup.
 
 ## Accessibility
 - Playwright a11y tests run with `AUTH_ENABLED=false` and perform Axe checks.
