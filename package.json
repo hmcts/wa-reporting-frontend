@@ -43,9 +43,9 @@
     "@opentelemetry/instrumentation": "^0.215.0",
     "@opentelemetry/instrumentation-express": "^0.63.0",
     "@opentelemetry/instrumentation-winston": "^0.59.0",
-    "@prisma/adapter-pg": "^7.7.0",
-    "@prisma/client": "^7.7.0",
-    "axios": "^1.15.1",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "axios": "^1.15.2",
     "body-parser": "^2.2.2",
     "compression": "^1.8.1",
     "config": "^4.4.1",
@@ -55,7 +55,7 @@
     "express": "^5.2.1",
     "express-nunjucks": "^3.1.2",
     "express-openid-connect": "^2.20.2",
-    "express-rate-limit": "^8.3.2",
+    "express-rate-limit": "^8.4.0",
     "express-session": "^1.19.0",
     "glob": "^13.0.6",
     "govuk-frontend": "^6.1.0",
@@ -105,6 +105,7 @@
     "@typescript-eslint/eslint-plugin": "^8.59.0",
     "@typescript-eslint/parser": "^8.59.0",
     "axios-debug-log": "^1.0.0",
+    "babel-jest": "^30.3.0",
     "babel-loader": "^10.1.1",
     "chokidar": "^5.0.0",
     "copy-webpack-plugin": "^14.0.0",
@@ -127,11 +128,11 @@
     "playwright-core": "^1.59.1",
     "postcss": "^8.5.10",
     "prettier": "^3.8.3",
-    "prisma": "^7.7.0",
+    "prisma": "^7.8.0",
     "sass": "^1.99.0",
     "sass-loader": "^16.0.7",
     "style-loader": "^4.0.0",
-    "stylelint": "^17.8.0",
+    "stylelint": "^17.9.0",
     "stylelint-config-standard": "^40.0.0",
     "stylelint-config-standard-scss": "^17.0.0",
     "supertest": "^7.2.2",
@@ -146,7 +147,8 @@
     "webpack-node-externals": "^3.0.0"
   },
   "resolutions": {
-    "@hono/node-server": "2.0.0"
+    "@hono/node-server": "2.0.0",
+    "uuid": "npm:14.0.0"
   },
   "husky": {
     "hooks": {
