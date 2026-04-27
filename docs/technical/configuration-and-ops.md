@@ -147,7 +147,6 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 - The application chart consumes the HMCTS `hmcts-redis` chart from `oci://hmctsprod.azurecr.io/helm` instead of the Docker Hub Bitnami Redis chart.
 - The dependency remains disabled in shared/default values because persistent environments use Redis connection details from Key Vault.
 - Preview enables the dependency with `architecture: standalone`, `auth.enabled: false`, disabled persistence, disabled Sentinel, and disabled metrics so session storage is local to the preview release.
-- The chart uses the HMCTS ACR Redis image `hmctsprod.azurecr.io/imported/redis:8.2.1`.
 
 ## Build and runtime
 
