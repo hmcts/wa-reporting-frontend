@@ -3,7 +3,7 @@
 ## Configuration files
 - `config/default.json` defines defaults for all runtime configuration (including local development defaults).
 - `config/custom-environment-variables.yaml` maps config keys to environment variables for overrides.
-- `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` define Key Vault secret names that are injected into the app in non-local environments.
+- `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` define Key Vault secret names that are injected into the app in non-local environments and the optional in-cluster Redis chart used by preview.
 
 ## Configuration flow and precedence
 1. `config/default.json` provides the baseline values (used directly for local development).
@@ -54,6 +54,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `session.cookie.name`: cookie for OIDC session.
 - `session.appCookie.name`: cookie for app session.
 - `secrets.wa.wa-reporting-redis-host`, `wa-reporting-redis-port`, `wa-reporting-redis-access-key`: Redis connection for session storage.
+- Preview deploys the `hmcts-redis` Helm dependency as standalone, unauthenticated Redis and sets `REDIS_HOST` to `${SERVICE_NAME}-hmcts-redis-master`.
 
 ### Database
 - `database.tm`, `database.crd`, `database.lrd`: PostgreSQL connection details.
@@ -141,6 +142,12 @@ When not in development, `PropertiesVolume` loads Kubernetes secrets into the co
 - Database credentials
 
 Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` aligned with the secrets consumed by the app. Any new secret must be added in all three places.
+
+## Helm Redis dependency
+- The application chart consumes the HMCTS `hmcts-redis` chart from `oci://hmctsprod.azurecr.io/helm` instead of the Docker Hub Bitnami Redis chart.
+- The dependency remains disabled in shared/default values because persistent environments use Redis connection details from Key Vault.
+- Preview enables the dependency with `architecture: standalone`, `auth.enabled: false`, disabled persistence, disabled Sentinel, and disabled metrics so session storage is local to the preview release.
+- The chart uses the HMCTS ACR Redis image `hmctsprod.azurecr.io/imported/redis:8.2.1`.
 
 ## Build and runtime
 
