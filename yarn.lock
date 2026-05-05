@@ -13420,9 +13420,9 @@ __metadata:
   linkType: hard
 
 "plotly.js-basic-dist-min@npm:^3.5.0":
-  version: 3.5.0
-  resolution: "plotly.js-basic-dist-min@npm:3.5.0"
-  checksum: 10/5d584465b9edc02b03870f77fddd09b731a31fff2e90e404f7151f1649187a669ead174ddb122bdbde8c28418b194b0a07fa1bc3a7550999b4b65e5a929aae5b
+  version: 3.5.1
+  resolution: "plotly.js-basic-dist-min@npm:3.5.1"
+  checksum: 10/bcebd2c417e8ed90908444b83a89800a7e024a24a94cc20a68c05738cb44491c15217805e102a8f677ec9f6268177a90d671359fb2148bc0bf3afbda97444dd1
   languageName: node
   linkType: hard
 
