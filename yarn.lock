@@ -5482,7 +5482,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:>=13.7.0, @types/node@npm:^25.7.0":
+"@types/node@npm:*, @types/node@npm:^25.7.0":
   version: 25.7.0
   resolution: "@types/node@npm:25.7.0"
   dependencies:
@@ -13548,13 +13548,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"protobufjs@npm:8.2.1":
-  version: 8.2.1
-  resolution: "protobufjs@npm:8.2.1"
+"protobufjs@npm:protobufjs@8.3.0":
+  version: 8.3.0
+  resolution: "protobufjs@npm:8.3.0"
   dependencies:
-    "@types/node": "npm:>=13.7.0"
     long: "npm:^5.0.0"
-  checksum: 10/a15dcc0e46a5d60e2294b04d6ea871307b88da0cfdd440494594909d07123838adc6040e980361fd264019f122c6d4a14fef7b4945f985684b8820496d58b352
+  checksum: 10/22ab9f6c8d4ba95f129a569a857c3916940b128cc712916a31b3589eb62d8e23e01bb98b4d75f86617b05c0682d2aa68fd442972b8d95d2f3c88b3c15ae660b0
   languageName: node
   linkType: hard
 
