@@ -9049,13 +9049,13 @@ __metadata:
   linkType: hard
 
 "express-rate-limit@npm:^8.5.1":
-  version: 8.5.1
-  resolution: "express-rate-limit@npm:8.5.1"
+  version: 8.5.2
+  resolution: "express-rate-limit@npm:8.5.2"
   dependencies:
     ip-address: "npm:^10.2.0"
   peerDependencies:
     express: ">= 4.11"
-  checksum: 10/95bcdbb75a69ad14126229859b7d56c7e7ca6ad10b225c9be3f7e7315fb38f78b6a919266a20b7ab1519c9752604b71c92cba82034b73c8c7041146c3bd10bbc
+  checksum: 10/de2aa4582d3b1b1d242fdb8dba7b3b1c64e3a58dfa7a40d370681c175a61321fb550c6b190d755f47cefdf28f35eaad6c99ea196f99caec8caaffc2462fea1ae
   languageName: node
   linkType: hard
 
