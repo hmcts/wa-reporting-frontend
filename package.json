@@ -147,7 +147,7 @@
     "webpack-node-externals": "^3.0.0"
   },
   "resolutions": {
-    "@hono/node-server": "npm:2.0.2",
+    "@hono/node-server": "npm:@hono/node-server@2.0.3",
     "protobufjs": "npm:protobufjs@8.3.0"
   },
   "husky": {
