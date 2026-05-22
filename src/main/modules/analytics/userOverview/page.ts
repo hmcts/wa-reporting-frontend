@@ -14,7 +14,7 @@ import {
   snapshotCompletedTaskRowsRepository,
   snapshotOpenDueDailyFactsRepository,
   snapshotOpenTaskRowsRepository,
-  snapshotUserCompletedFactsRepository,
+  snapshotUserCompletedRepository,
 } from '../shared/repositories';
 import { caseWorkerProfileService, courtVenueService } from '../shared/services';
 import { PrioritySummary } from '../shared/types';
@@ -138,14 +138,14 @@ export async function buildUserOverviewPage(
           )
       : Promise.resolve([]),
     shouldFetchCompleted && !shouldFetchCompletedOverview
-      ? snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedSummaryRows(
+      ? snapshotUserCompletedRepository.fetchUserOverviewCompletedSummaryRows(
           snapshotContext.snapshotId,
           filters,
           USER_OVERVIEW_QUERY_OPTIONS
         )
       : Promise.resolve([]),
     shouldFetchCompletedByDate
-      ? snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedByDateRows(
+      ? snapshotUserCompletedRepository.fetchUserOverviewCompletedByDateRows(
           snapshotContext.snapshotId,
           filters,
           USER_OVERVIEW_QUERY_OPTIONS
@@ -195,7 +195,7 @@ export async function buildUserOverviewPage(
   );
   if (shouldFetchCompletedOverview && completedByDateSeedResult.status === 'rejected') {
     const completedSummaryFallbackResult = await Promise.allSettled([
-      snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedSummaryRows(
+      snapshotUserCompletedRepository.fetchUserOverviewCompletedSummaryRows(
         snapshotContext.snapshotId,
         filters,
         USER_OVERVIEW_QUERY_OPTIONS
@@ -250,7 +250,7 @@ export async function buildUserOverviewPage(
         )
       : Promise.resolve([]),
     shouldFetchCompletedByTaskName
-      ? snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedByTaskNameRows(
+      ? snapshotUserCompletedRepository.fetchUserOverviewCompletedByTaskNameRows(
           snapshotContext.snapshotId,
           filters,
           USER_OVERVIEW_QUERY_OPTIONS

@@ -1,8 +1,8 @@
 import { completedByNameChartService } from '../../../../../main/modules/analytics/completed/visuals/completedByNameChartService';
-import { snapshotCompletedDashboardFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
+import { snapshotCompletedDashboardRepository } from '../../../../../main/modules/analytics/shared/repositories';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  snapshotCompletedDashboardFactsRepository: { fetchCompletedByNameRows: jest.fn() },
+  snapshotCompletedDashboardRepository: { fetchCompletedByNameRows: jest.fn() },
 }));
 
 describe('completedByNameChartService', () => {
@@ -13,7 +13,7 @@ describe('completedByNameChartService', () => {
   });
 
   test('maps rows into completed-by-name values and sorts by task count', async () => {
-    (snapshotCompletedDashboardFactsRepository.fetchCompletedByNameRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedDashboardRepository.fetchCompletedByNameRows as jest.Mock).mockResolvedValue([
       { task_name: 'Task B', total: 2, within: 1 },
       { task_name: null, total: 2, within: 2 },
       { task_name: 'Task A', total: 3, within: 2 },
@@ -21,7 +21,7 @@ describe('completedByNameChartService', () => {
 
     const result = await completedByNameChartService.fetchCompletedByName(snapshotId, {});
 
-    expect(snapshotCompletedDashboardFactsRepository.fetchCompletedByNameRows).toHaveBeenCalledWith(
+    expect(snapshotCompletedDashboardRepository.fetchCompletedByNameRows).toHaveBeenCalledWith(
       snapshotId,
       {},
       undefined
@@ -34,7 +34,7 @@ describe('completedByNameChartService', () => {
   });
 
   test('sorts by name when task totals are equal', async () => {
-    (snapshotCompletedDashboardFactsRepository.fetchCompletedByNameRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedDashboardRepository.fetchCompletedByNameRows as jest.Mock).mockResolvedValue([
       { task_name: 'Beta', total: 1, within: 1 },
       { task_name: 'Alpha', total: 1, within: 0 },
     ]);
@@ -45,7 +45,7 @@ describe('completedByNameChartService', () => {
   });
 
   test('defaults missing totals to zero', async () => {
-    (snapshotCompletedDashboardFactsRepository.fetchCompletedByNameRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedDashboardRepository.fetchCompletedByNameRows as jest.Mock).mockResolvedValue([
       { task_name: 'Task C', total: null, within: null },
     ]);
 
