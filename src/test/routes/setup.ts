@@ -21,16 +21,14 @@ const defaultValues: RouteTestConfigValues = {
   'analytics.filtersCookieMaxAgeDays': 365,
   'analytics.manageCaseBaseUrl': 'https://manage-case.aat.platform.hmcts.net',
   'analytics.cacheTtlSeconds': 900,
+  'requestBody.urlencodedLimit': '512kb',
+  'requestBody.urlencodedParameterLimit': 10000,
   'logging.prismaQueryTimings': {
     enabled: false,
     minDurationMs: 0,
     slowQueryThresholdMs: 0,
     includeQueryPreview: false,
     queryPreviewMaxLength: 240,
-  },
-  security: {
-    referrerPolicy: 'same-origin',
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   },
 };
 

@@ -1,8 +1,8 @@
 import { serviceOverviewTableService } from '../../../../../main/modules/analytics/overview/visuals/serviceOverviewTableService';
-import { taskFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
+import { snapshotOpenDueDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  taskFactsRepository: { fetchServiceOverviewRows: jest.fn() },
+  snapshotOpenDueDailyFactsRepository: { fetchServiceOverviewRows: jest.fn() },
 }));
 
 describe('serviceOverviewTableService', () => {
@@ -13,7 +13,7 @@ describe('serviceOverviewTableService', () => {
   });
 
   test('maps rows and calculates totals with percentages', async () => {
-    (taskFactsRepository.fetchServiceOverviewRows as jest.Mock).mockResolvedValue([
+    (snapshotOpenDueDailyFactsRepository.fetchServiceOverviewRows as jest.Mock).mockResolvedValue([
       {
         service: 'Service A',
         open_tasks: 10,

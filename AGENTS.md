@@ -53,8 +53,9 @@ Use subagents to parallelise work that can be done independently, then consolida
 
 For verification after code changes, use subagents by default and run independent checks in parallel:
 
-- Spawn one subagent each for `yarn lint`, `yarn test:coverage`, `yarn test:routes`, and `yarn build`.
+- Spawn one subagent each for `yarn lint`, `yarn test:coverage`, `yarn test:routes`, `yarn build`, and `yarn build:server`.
 - Run these checks in parallel unless a concrete dependency requires sequencing.
+- Treat `yarn build` as the frontend asset build only. Use `yarn build:server` for the server TypeScript compile. If the change affects packaged runtime output or `yarn start`, also run `yarn build:prod`.
 
 ## Project Structure
 
@@ -84,12 +85,15 @@ scripts/
 
 ## Key commands
 
-- `yarn test`
+- `yarn test:unit`
+- `yarn test` (repository wrapper; locally delegates to `yarn test:unit`, currently exits early when `CI=true`)
 - `yarn test:coverage`
 - `yarn test:routes`
 - `yarn test:mutation`
 - `yarn lint`
-- `yarn build`
+- `yarn build` (frontend assets)
+- `yarn build:server` (server TypeScript)
+- `yarn build:prod` (production assets + static copy)
 - Add dependencies with `yarn add` (or `yarn add -D` for dev deps) to ensure the latest versions are pulled in.
 
 ## Implementation Guidance
@@ -100,14 +104,17 @@ scripts/
 - Where Nunjucks macros exist, they should be preferred over pure HTML.
 - Shared analytics helpers belong in `src/main/modules/analytics/shared/` (filters, services, viewModels, charts, cache, repositories); reuse before adding new helpers.
 - Before researching or planning a change, review the relevant `docs/` specifications and use them as the starting point for understanding current behavior, data flows, and constraints.
-- When changing code or behavior, update the corresponding `docs/` files to keep the specifications in sync with the implementation.
+- When changing code or behavior, update the corresponding `docs/` files to keep the specifications in sync with the implementation. Dependency-only upgrades must not add or change `docs/`.
 - Documentation updates for implementation changes must keep `docs/` as the latest specification of the application. Carry forward only durable, important context needed for future work (for example final behavior, rules/constraints, dependencies, and operational considerations such as migrations/backfills/rollback).
-- Do not consider implementation work complete until this documentation handoff is committed in `docs/` (or, if no existing page fits, in a new linked document under `docs/` and indexed from `docs/README.md`). Do not require changelog-style detail such as exhaustive file-change listings.
+- Avoid duplicating exact versions, image tags, chart versions, package versions, or generated values in documentation when they are already declared in source or configuration files, unless the version itself is an operational constraint future maintainers must understand.
+- Do not consider implementation work complete until this documentation handoff is committed in `docs/` (or, if no existing page fits, in a new linked document under `docs/` and indexed from `docs/README.md`). This requirement does not apply to dependency-only upgrades. Do not require changelog-style detail such as exhaustive file-change listings.
+- When changing the analytics SQL end state through Flyway migrations, keep `db/current-state/tm-analytics-schema.sql` synchronised with the same final schema, helper, and stored procedure definitions so the repository has one consistent current-state bootstrap script.
 - For AJAX section refreshes (e.g., user overview sorting), follow the established pattern: add a `data-section` wrapper around the section partial, submit `ajaxSection` with `X-Requested-With: fetch`, render the specific partial in the controller when the header/section is present, and send URL-encoded form data (including `_csrf`) so `csurf` can validate it.
 - Add or update tests under `src/test/` following existing unit/functional/a11y/smoke patterns for the change. Branch and line coverage per file should be at least 95%.
 - For changes in mutation-sensitive analytics logic (for example `shared/` helpers, analytics aggregations, repository filter/query composition, and view-model calculations), run focused mutation testing during development using `yarn test:mutation --mutate <source-file>` and, when helpful, `--testFiles <matching-test-file>` to validate the changed unit tests kill mutants in that area.
-- Mandatory for non-documentation changes: the final step after any code/config/runtime SQL change is to run `yarn lint`, `yarn test:coverage`, `yarn test:routes` and `yarn build`; do not consider work complete unless all four pass and coverage for files modified as part of the task is above the mandated 95%.
-- Documentation-only exception: when all changed files are documentation files (for example `*.md` under repo root or `docs/`) and no executable code, configuration, SQL, assets, or tests are changed, the four mandatory verification commands are not required.
+- Mandatory for non-documentation changes: the final step after any code/config/runtime SQL change is to run `yarn lint`, `yarn test:coverage`, `yarn test:routes`, `yarn build`, and `yarn build:server`; do not consider work complete unless all five pass and coverage for files modified as part of the task is above the mandated 95%. If the change affects packaged runtime output or `yarn start`, also run `yarn build:prod`.
+- `yarn build:prod` rewrites `src/main/views/webpack/{css.njk,js.njk,analytics-js.njk}` as generated verification artifacts; those file changes must not be committed unless the asset-manifest generation itself is being intentionally changed.
+- Documentation-only exception: when all changed files are documentation files (for example `*.md` under repo root or `docs/`) and no executable code, configuration, SQL, assets, or tests are changed, the mandatory verification commands are not required.
 - Any changes which impact these Development Guidelines should be accompanied with changes to the Development Guidelines.
 
 # ExecPlans

@@ -1,8 +1,8 @@
 import { completedTimelineChartService } from '../../../../../main/modules/analytics/completed/visuals/completedTimelineChartService';
-import { taskFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
+import { snapshotCompletedDashboardFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  taskFactsRepository: { fetchCompletedTimelineRows: jest.fn() },
+  snapshotCompletedDashboardFactsRepository: { fetchCompletedTimelineRows: jest.fn() },
 }));
 
 describe('completedTimelineChartService', () => {
@@ -13,7 +13,7 @@ describe('completedTimelineChartService', () => {
   });
 
   test('maps timeline rows into completed points', async () => {
-    (taskFactsRepository.fetchCompletedTimelineRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedDashboardFactsRepository.fetchCompletedTimelineRows as jest.Mock).mockResolvedValue([
       { date_key: '2024-01-01', total: 4, within: 3 },
       { date_key: '2024-01-02', total: null, within: undefined },
     ]);

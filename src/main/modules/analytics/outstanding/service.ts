@@ -1,6 +1,5 @@
 import {
   AssignmentSeriesPoint,
-  CriticalTask,
   DueByDatePoint,
   OutstandingByLocationRow,
   OutstandingByRegionRow,
@@ -208,27 +207,6 @@ function tallyOutstandingByRegion(rows: OutstandingByLocationRow[]): Outstanding
   return Array.from(map.values()).sort((a, b) => a.region.localeCompare(b.region));
 }
 
-function buildCriticalTasks(tasks: Task[]): CriticalTask[] {
-  const urgent = tasks.filter(task => task.priority === TaskPriority.Urgent || task.priority === TaskPriority.High);
-  return urgent
-    .sort((a, b) => {
-      const aDue = a.dueDate ?? '';
-      const bDue = b.dueDate ?? '';
-      return aDue.localeCompare(bDue);
-    })
-    .slice(0, 10)
-    .map(task => ({
-      caseId: task.caseId,
-      caseType: task.service,
-      location: task.location,
-      taskName: task.taskName,
-      createdDate: task.createdDate,
-      dueDate: task.dueDate,
-      priority: task.priority,
-      agentName: task.assigneeName ?? '',
-    }));
-}
-
 function tallyDueByDate(tasks: Task[]): DueByDatePoint[] {
   const rows = tasks.flatMap(task => {
     const key = dateKey(task.dueDate);
@@ -278,7 +256,6 @@ class OutstandingService {
         tasksDueByPriority: tallyPrioritySeries(outstanding),
       },
       openByName: tallyOpenByName(outstanding),
-      criticalTasks: buildCriticalTasks(outstanding),
       outstandingByLocation,
       outstandingByRegion,
     };

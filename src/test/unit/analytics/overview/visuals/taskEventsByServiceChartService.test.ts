@@ -1,8 +1,8 @@
 import { taskEventsByServiceChartService } from '../../../../../main/modules/analytics/overview/visuals/taskEventsByServiceChartService';
-import { taskFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
+import { snapshotTaskEventDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  taskFactsRepository: { fetchTaskEventsByServiceRows: jest.fn() },
+  snapshotTaskEventDailyFactsRepository: { fetchTaskEventsByServiceRows: jest.fn() },
 }));
 
 describe('taskEventsByServiceChartService', () => {
@@ -13,7 +13,7 @@ describe('taskEventsByServiceChartService', () => {
   });
 
   test('maps rows and builds totals', async () => {
-    (taskFactsRepository.fetchTaskEventsByServiceRows as jest.Mock).mockResolvedValue([
+    (snapshotTaskEventDailyFactsRepository.fetchTaskEventsByServiceRows as jest.Mock).mockResolvedValue([
       { service: 'Service A', completed: 3, cancelled: 2, created: 4 },
       { service: 'Service B', completed: 1, cancelled: 0, created: 2 },
       { service: 'Service C', completed: null, cancelled: undefined, created: undefined },
@@ -37,7 +37,7 @@ describe('taskEventsByServiceChartService', () => {
   });
 
   test('returns zero totals when no rows are returned', async () => {
-    (taskFactsRepository.fetchTaskEventsByServiceRows as jest.Mock).mockResolvedValue([]);
+    (snapshotTaskEventDailyFactsRepository.fetchTaskEventsByServiceRows as jest.Mock).mockResolvedValue([]);
 
     const result = await taskEventsByServiceChartService.fetchTaskEventsByService(
       snapshotId,

@@ -18,6 +18,8 @@
 4. Apply commands from the plan in precedence order.
 5. Re-run audit and verify no remaining CVEs.
 
+Top-level `resolutions` are a CVE-only fallback in this workflow. Do not keep or upgrade a `resolution` merely to preserve a newer transitive version.
+
 ## Direct parent discovery (manual fallback)
 - Inspect dependency chain for vulnerable package:
   - `yarn why <package> --json`
@@ -30,7 +32,7 @@
   - `yarn npm info <package> --fields version --json`
 - Apply per descriptor:
   - `yarn set resolution <descriptor> npm:<latest-version>`
-- Persist overrides in `package.json` `resolutions` when needed.
+- Persist overrides in `package.json` `resolutions` only when they are required to prevent a production audit finding.
 
 ## Resolution cleanup flow
 1. Capture baseline:
@@ -40,8 +42,8 @@
    - Temporarily remove the resolution entry from `package.json`
    - Re-resolve lockfile without override: `yarn up -R '*' '@*/*'`
    - Re-audit: `yarn npm audit --recursive --environment production --json > yarn-audit-after`
-3. Keep the entry removed only when no regression is introduced.
-4. Restore the entry if CVEs reappear, then continue to the next resolution.
+3. Keep the entry removed unless the re-audit shows that removing it reintroduces a production CVE.
+4. Restore the entry only when CVEs reappear, then continue to the next resolution.
 
 ## Post-upgrade checks
 - `yarn lint`

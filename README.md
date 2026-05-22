@@ -1,32 +1,40 @@
 # wa-reporting-frontend
 
-## Getting Started
+Task Management Report is a TypeScript/Express application that renders GOV.UK-style analytics dashboards over snapshot-backed task-management data.
 
-### Prerequisites
+Start with [docs/README.md](docs/README.md) for the checked-in functional and technical specifications, and read [AGENTS.md](AGENTS.md) for the repository’s contributor guidance and quality expectations.
 
-Running the application requires the following tools to be installed in your environment:
+## Prerequisites
 
 - [Node.js](https://nodejs.org/) v20.19.0 or later
-- [yarn](https://yarnpkg.com/) v4
-- [Docker](https://www.docker.com)
+- [Yarn](https://yarnpkg.com/) v4
+- [Docker](https://www.docker.com) for local container workflows
 
-### Running the application
-
-Install dependencies by executing the following command:
+## Install
 
 ```bash
 yarn install
 ```
 
-Run in development mode:
+## Run Locally
+
+For the standard local workflow, disable OIDC and start the development server:
 
 ```bash
 AUTH_ENABLED=false yarn start:dev
 ```
 
-The analytics landing page will be available at http://localhost:3100/
+The application will be available at [http://localhost:3100](http://localhost:3100).
 
-To run the compiled app with `yarn start`, build server and production assets first:
+## Build and Run the Compiled App
+
+The repository splits build responsibilities across separate scripts:
+
+- `yarn build`: builds frontend webpack assets only
+- `yarn build:server`: compiles server TypeScript into `dist/`
+- `yarn build:prod`: builds production frontend assets and copies static/views into `dist/main`
+
+To run the compiled application with `yarn start`, build both the server and production assets first:
 
 ```bash
 yarn build:server
@@ -34,63 +42,69 @@ yarn build:prod
 AUTH_ENABLED=false yarn start
 ```
 
-The running application is available at http://localhost:3100/
+`yarn start` runs the compiled server from `dist/main/server.js`.
 
-### Running with Docker
+## Docker
 
-Create docker image:
+Build and run the local Docker setup with:
 
 ```bash
 docker-compose build
-```
-
-Run the application by executing the following command:
-
-```bash
 docker-compose up
 ```
 
-This will start the frontend container and a Redis container for session storage,
-exposing the application's port (set to `3100` in this template app).
+This starts the frontend container and a Redis container for session storage, exposing port `3100`.
 
-In order to test if the application is up, you can visit http://localhost:3100 in your browser.
-You should get the analytics landing page.
+## Quality Checks
 
-## Developing
+Common repository commands:
 
-### Code style
+- `yarn lint`
+- `yarn test:unit`
+- `yarn test`
+- `yarn test:coverage`
+- `yarn test:routes`
+- `yarn test:a11y`
+- `yarn test:smoke`
+- `yarn test:functional`
+- `yarn test:mutation`
+- `yarn build`
+- `yarn build:server`
+- `yarn build:prod`
 
-We use [ESLint](https://github.com/typescript-eslint/typescript-eslint)
-alongside [Stylelint](https://stylelint.io/) and [Prettier](https://prettier.io/)
+Important command semantics:
 
-Running the linting with auto fix:
+- `yarn test:unit` is the direct Jest unit-test command.
+- `yarn test` is a repository wrapper. Outside CI it delegates to `yarn test:unit`; when `CI=true` it currently exits early instead of running Jest.
+- `yarn build` does not compile the server. Use `yarn build:server` for the server TypeScript compile.
+
+If you want automatic lint fixes:
 
 ```bash
 yarn lint:fix
 ```
 
-### Running the tests
+## Browser-Based Tests
 
-This template app uses [Jest](https://jestjs.io//) as the test engine. You can run unit tests by executing
-the following command:
-
-```bash
-yarn test
-```
-
-Route tests:
-
-```bash
-yarn test:routes
-```
-
-Smoke tests (Playwright, requires the app running at http://localhost:3100):
+Smoke tests require the application to be running:
 
 ```bash
 TEST_URL=http://localhost:3100 yarn test:smoke
 ```
 
-If auth is enabled, provide IDAM credentials so Playwright can log in and cache the session:
+Functional tests:
+
+```bash
+TEST_URL=http://localhost:3100 yarn test:functional
+```
+
+Accessibility tests:
+
+```bash
+AUTH_ENABLED=false TEST_URL=http://localhost:3100 yarn test:a11y
+```
+
+If authentication is enabled, provide IDAM credentials so Playwright can log in and cache the session:
 
 ```bash
 TEST_URL=http://localhost:3100 \
@@ -99,29 +113,16 @@ TEST_IDAM_PASSWORD=*** \
 yarn test:smoke
 ```
 
-The first authenticated run performs a full IDAM login and stores cookies in
-`src/test/playwright/.sessions/idam-session.json`. Delete that file to force a
-fresh login. If the session cookie name differs, set `AUTH_SESSION_COOKIE_NAME`.
-
-Functional tests (Playwright, requires the app running at http://localhost:3100):
+If Edge is enabled in Playwright projects, install it first:
 
 ```bash
-TEST_URL=http://localhost:3100 yarn test:functional
+yarn setup:edge
 ```
 
-If auth is enabled, provide the same IDAM credentials as for smoke tests.
-If Edge is enabled in Playwright projects, install it first with `yarn setup:edge`.
+## Healthcheck
 
-Running accessibility tests (Playwright, starts the app automatically if needed):
-
-```bash
-AUTH_ENABLED=false TEST_URL=http://localhost:3100 yarn test:a11y
-```
-
-### Healthcheck
-
-The application exposes a health endpoint at http://localhost:3100/health
+The application exposes a health endpoint at [http://localhost:3100/health](http://localhost:3100/health).
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the MIT License. See [LICENSE](LICENSE).

@@ -1,0 +1,658 @@
+import { tmPrisma } from '../../../../../main/modules/analytics/shared/data/prisma';
+import { snapshotCompletedDashboardFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedDashboardFactsRepository';
+import { snapshotCompletedFilterFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedFilterFactsRepository';
+import { snapshotOpenDueDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOpenDueDailyFactsRepository';
+import { snapshotOpenTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOpenTaskRowsRepository';
+import { snapshotOutstandingCreatedAssignmentDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOutstandingCreatedAssignmentDailyFactsRepository';
+import { snapshotOutstandingDueStatusDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOutstandingDueStatusDailyFactsRepository';
+import { snapshotOutstandingFilterFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOutstandingFilterFactsRepository';
+import { snapshotOverviewFilterFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOverviewFilterFactsRepository';
+import { snapshotTaskEventDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotTaskEventDailyFactsRepository';
+import { snapshotUserCompletedFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserCompletedFactsRepository';
+import { snapshotUserFilterFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserFilterFactsRepository';
+
+jest.mock('../../../../../main/modules/analytics/shared/data/prisma', () => ({
+  tmPrisma: { $queryRaw: jest.fn() },
+}));
+
+const factsRepositoriesHarness = {
+  fetchServiceOverviewRows: snapshotOpenDueDailyFactsRepository.fetchServiceOverviewRows.bind(
+    snapshotOpenDueDailyFactsRepository
+  ),
+  fetchTaskEventsByServiceRows: snapshotTaskEventDailyFactsRepository.fetchTaskEventsByServiceRows.bind(
+    snapshotTaskEventDailyFactsRepository
+  ),
+  async fetchOverviewFilterOptionsRows(
+    snapshotId: number,
+    params?: {
+      scope?: 'overview' | 'outstanding' | 'completed' | 'userOverview';
+      filters?: Record<string, unknown>;
+      excludeRoleCategories?: string[];
+      queryOptions?: { excludeRoleCategories?: string[] };
+      includeUserFilter?: boolean;
+    }
+  ) {
+    const scope = params?.scope ?? 'overview';
+    const repo =
+      scope === 'outstanding'
+        ? snapshotOutstandingFilterFactsRepository
+        : scope === 'completed'
+          ? snapshotCompletedFilterFactsRepository
+          : scope === 'userOverview'
+            ? snapshotUserFilterFactsRepository
+            : snapshotOverviewFilterFactsRepository;
+    return repo.fetchFilterOptionsRows(snapshotId, {
+      filters: params?.filters as never,
+      queryOptions:
+        params?.queryOptions ??
+        (params?.excludeRoleCategories ? { excludeRoleCategories: params.excludeRoleCategories } : undefined),
+      includeUserFilter: params?.includeUserFilter,
+    });
+  },
+  fetchOpenTasksCreatedByAssignmentRows:
+    snapshotOutstandingCreatedAssignmentDailyFactsRepository.fetchOpenTasksCreatedByAssignmentRows.bind(
+      snapshotOutstandingCreatedAssignmentDailyFactsRepository
+    ),
+  fetchTasksDueByDateRows: snapshotOutstandingDueStatusDailyFactsRepository.fetchTasksDueByDateRows.bind(
+    snapshotOutstandingDueStatusDailyFactsRepository
+  ),
+  fetchOpenTasksByNameRows: snapshotOpenDueDailyFactsRepository.fetchOpenTasksByNameRows.bind(
+    snapshotOpenDueDailyFactsRepository
+  ),
+  fetchOpenTasksByRegionLocationRows: snapshotOpenDueDailyFactsRepository.fetchOpenTasksByRegionLocationRows.bind(
+    snapshotOpenDueDailyFactsRepository
+  ),
+  fetchOpenTasksSummaryRows: snapshotOpenDueDailyFactsRepository.fetchOpenTasksSummaryRows.bind(
+    snapshotOpenDueDailyFactsRepository
+  ),
+  fetchTasksDuePriorityRows: snapshotOpenDueDailyFactsRepository.fetchTasksDuePriorityRows.bind(
+    snapshotOpenDueDailyFactsRepository
+  ),
+  fetchCompletedSummaryRows: snapshotCompletedDashboardFactsRepository.fetchCompletedSummaryRows.bind(
+    snapshotCompletedDashboardFactsRepository
+  ),
+  async fetchUserOverviewAssignedSummaryRows(
+    snapshotId: number,
+    filters: Record<string, unknown> & { user?: string[] },
+    queryOptions?: { excludeRoleCategories?: string[] }
+  ) {
+    return filters.user && filters.user.length > 0
+      ? snapshotOpenTaskRowsRepository.fetchAssignedSummaryRows(snapshotId, filters, queryOptions)
+      : snapshotOpenDueDailyFactsRepository.fetchAssignedSummaryRows(snapshotId, filters, queryOptions);
+  },
+  fetchUserOverviewCompletedSummaryRows:
+    snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedSummaryRows.bind(
+      snapshotUserCompletedFactsRepository
+    ),
+  fetchCompletedTimelineRows: snapshotCompletedDashboardFactsRepository.fetchCompletedTimelineRows.bind(
+    snapshotCompletedDashboardFactsRepository
+  ),
+  fetchCompletedProcessingHandlingTimeRows:
+    snapshotCompletedDashboardFactsRepository.fetchCompletedProcessingHandlingTimeRows.bind(
+      snapshotCompletedDashboardFactsRepository
+    ),
+  fetchCompletedByNameRows: snapshotCompletedDashboardFactsRepository.fetchCompletedByNameRows.bind(
+    snapshotCompletedDashboardFactsRepository
+  ),
+  fetchCompletedRegionLocationRows: snapshotCompletedDashboardFactsRepository.fetchCompletedRegionLocationRows.bind(
+    snapshotCompletedDashboardFactsRepository
+  ),
+};
+
+describe('factsRepositoriesHarness', () => {
+  const snapshotId = 501;
+
+  const queryCall = (indexFromEnd = 0): { sql: string; values: unknown[] } => {
+    const calls = (tmPrisma.$queryRaw as jest.Mock).mock.calls;
+    return calls[calls.length - 1 - indexFromEnd][0];
+  };
+
+  const normaliseSql = (sql: string): string => sql.replace(/\s+/g, ' ').trim();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValue([]);
+  });
+
+  test('executes repository queries with date ranges', async () => {
+    const range = { from: new Date('2024-01-01'), to: new Date('2024-01-31') };
+
+    await factsRepositoriesHarness.fetchServiceOverviewRows(snapshotId, {});
+    await factsRepositoriesHarness.fetchTaskEventsByServiceRows(snapshotId, {}, range);
+    await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId);
+    await factsRepositoriesHarness.fetchOpenTasksCreatedByAssignmentRows(snapshotId, {});
+    await factsRepositoriesHarness.fetchTasksDueByDateRows(snapshotId, {});
+    await factsRepositoriesHarness.fetchOpenTasksByNameRows(snapshotId, {});
+    await factsRepositoriesHarness.fetchOpenTasksByRegionLocationRows(snapshotId, {});
+    await factsRepositoriesHarness.fetchOpenTasksSummaryRows(snapshotId, {});
+    await factsRepositoriesHarness.fetchTasksDuePriorityRows(snapshotId, {});
+    await factsRepositoriesHarness.fetchCompletedSummaryRows(snapshotId, {}, range);
+    await factsRepositoriesHarness.fetchUserOverviewAssignedSummaryRows(snapshotId, {});
+    await factsRepositoriesHarness.fetchUserOverviewCompletedSummaryRows(snapshotId, {});
+    await factsRepositoriesHarness.fetchCompletedTimelineRows(snapshotId, {}, range);
+    await factsRepositoriesHarness.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, range);
+    await factsRepositoriesHarness.fetchCompletedByNameRows(snapshotId, {}, range);
+    await factsRepositoriesHarness.fetchCompletedRegionLocationRows(snapshotId, {}, range);
+
+    expect(tmPrisma.$queryRaw).toHaveBeenCalled();
+  });
+
+  test('handles optional ranges when none are provided', async () => {
+    await factsRepositoriesHarness.fetchCompletedSummaryRows(snapshotId, {}, undefined);
+    await factsRepositoriesHarness.fetchCompletedTimelineRows(snapshotId, {}, undefined);
+    await factsRepositoriesHarness.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, undefined);
+    await factsRepositoriesHarness.fetchCompletedByNameRows(snapshotId, {}, undefined);
+    await factsRepositoriesHarness.fetchCompletedRegionLocationRows(snapshotId, {}, undefined);
+
+    expect(tmPrisma.$queryRaw).toHaveBeenCalledTimes(5);
+  });
+
+  test('builds task events query with explicit date range filters', async () => {
+    const from = new Date('2024-01-01');
+    const to = new Date('2024-01-31');
+
+    await factsRepositoriesHarness.fetchTaskEventsByServiceRows(snapshotId, { service: ['A'] }, { from, to });
+    const query = queryCall();
+
+    expect(query.sql).toContain('event_date >=');
+    expect(query.sql).toContain('event_date <=');
+    expect(query.sql).toContain("event_type = 'completed'");
+    expect(query.sql).toContain("event_type = 'cancelled'");
+    expect(query.sql).toContain("event_type = 'created'");
+    expect(query.sql).toContain('FROM analytics.snapshot_task_event_daily_facts');
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, from, to]));
+  });
+
+  test('builds completed summary query for open-ended ranges', async () => {
+    const from = new Date('2024-02-01');
+    const to = new Date('2024-02-15');
+
+    await factsRepositoriesHarness.fetchCompletedSummaryRows(snapshotId, {}, { from });
+    const fromQuery = queryCall();
+    expect(fromQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(fromQuery.sql).toContain('SUM(total_task_count)::int AS total');
+    expect(fromQuery.sql).toContain('SUM(within_task_count)::int AS within');
+    expect(fromQuery.sql).toContain('snapshot_id =');
+    expect(fromQuery.sql).toContain('reference_date >=');
+    expect(fromQuery.sql).not.toContain('reference_date <=');
+    expect(fromQuery.values).toEqual(expect.arrayContaining([snapshotId, from]));
+
+    await factsRepositoriesHarness.fetchCompletedSummaryRows(snapshotId, {}, { to });
+    const toQuery = queryCall();
+    expect(toQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(toQuery.sql).toContain('snapshot_id =');
+    expect(toQuery.sql).toContain('reference_date <=');
+    expect(toQuery.sql).not.toContain('reference_date >=');
+    expect(toQuery.values).toEqual(expect.arrayContaining([snapshotId, to]));
+  });
+
+  test('fetchOverviewFilterOptionsRows uses the overview grouping-sets fast path when no facets are selected', async () => {
+    await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId);
+
+    expect(tmPrisma.$queryRaw).toHaveBeenCalledTimes(1);
+    const query = queryCall();
+    const normalised = normaliseSql(query.sql);
+
+    expect(normalised).toContain('WITH grouped_options AS');
+    expect(normalised).toContain('FROM analytics.snapshot_overview_filter_facts');
+    expect(normalised).toContain('snapshot_id =');
+    expect(normalised).toContain('GROUP BY GROUPING SETS');
+    expect(normalised).toContain('LEFT JOIN cft_task_db.work_types');
+    expect(normalised).toContain("grouped_options.option_type = 'workType'");
+    expect(normalised).toContain(
+      "CASE WHEN grouped_options.option_type = 'workType' THEN COALESCE(work_types.label, grouped_options.value)"
+    );
+    expect(normalised).toContain('ORDER BY grouped_options.option_type ASC, text ASC, grouped_options.value ASC');
+    expect(normalised).not.toContain('FROM analytics.snapshot_filter_option_values');
+  });
+
+  test('maps filter option rows into typed option arrays', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([
+      { option_type: 'service', value: 'Civil', text: 'Civil' },
+      { option_type: 'roleCategory', value: 'Ops', text: 'Ops' },
+      { option_type: 'region', value: 'North', text: 'North' },
+      { option_type: 'location', value: 'Leeds', text: 'Leeds' },
+      { option_type: 'taskName', value: 'Review', text: 'Review' },
+      { option_type: 'workType', value: 'hearing', text: 'Hearing' },
+      { option_type: 'assignee', value: 'user-1', text: 'user-1' },
+    ]);
+
+    const options = await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId);
+
+    expect(options.services).toEqual([{ value: 'Civil' }]);
+    expect(options.roleCategories).toEqual([{ value: 'Ops' }]);
+    expect(options.regions).toEqual([{ value: 'North' }]);
+    expect(options.locations).toEqual([{ value: 'Leeds' }]);
+    expect(options.taskNames).toEqual([{ value: 'Review' }]);
+    expect(options.workTypes).toEqual([{ value: 'hearing', text: 'Hearing' }]);
+    expect(options.assignees).toEqual([{ value: 'user-1' }]);
+  });
+
+  test('supports all filter-fact scopes and falls back to overview for unknown scopes', async () => {
+    await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId, { scope: 'outstanding' });
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_outstanding_filter_facts');
+
+    await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId, { scope: 'completed' });
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_completed_filter_facts');
+
+    await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId, { scope: 'userOverview' });
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_user_filter_facts');
+
+    await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId, { scope: 'unexpected' as never });
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_overview_filter_facts');
+  });
+
+  test('uses the grouping-sets fast path for unfiltered user-overview filter options', async () => {
+    await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId, {
+      scope: 'userOverview',
+      filters: {},
+      queryOptions: { excludeRoleCategories: ['Judicial'] },
+      includeUserFilter: true,
+    });
+
+    const query = queryCall();
+    const normalised = normaliseSql(query.sql);
+
+    expect(normalised).toContain('FROM analytics.snapshot_user_filter_facts');
+    expect(normalised).toContain('GROUP BY GROUPING SETS');
+    expect(normalised).toContain('LEFT JOIN cft_task_db.work_types');
+    expect(normalised).not.toContain('WITH option_rows AS');
+    expect(normalised).not.toContain("SELECT 'service'::text AS option_type");
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'JUDICIAL']));
+  });
+
+  test('uses the grouping-sets fast path for unfiltered completed filter options', async () => {
+    await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId, {
+      scope: 'completed',
+      filters: {},
+      queryOptions: { excludeRoleCategories: ['Judicial'] },
+      includeUserFilter: false,
+    });
+
+    const query = queryCall();
+    const normalised = normaliseSql(query.sql);
+
+    expect(normalised).toContain('FROM analytics.snapshot_completed_filter_facts');
+    expect(normalised).toContain('GROUP BY GROUPING SETS');
+    expect(normalised).toContain('LEFT JOIN cft_task_db.work_types');
+    expect(normalised).not.toContain('WITH option_rows AS');
+    expect(normalised).not.toContain("SELECT 'service'::text AS option_type");
+    expect(normalised).not.toContain("SELECT 'assignee'::text AS option_type");
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'JUDICIAL']));
+  });
+
+  test('uses the grouping-sets fast path for unfiltered outstanding filter options', async () => {
+    await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId, {
+      scope: 'outstanding',
+      filters: {},
+      includeUserFilter: false,
+    });
+
+    const query = queryCall();
+    const normalised = normaliseSql(query.sql);
+
+    expect(normalised).toContain('FROM analytics.snapshot_outstanding_filter_facts');
+    expect(normalised).toContain('GROUP BY GROUPING SETS');
+    expect(normalised).not.toContain('WITH option_rows AS');
+    expect(normalised).not.toContain("SELECT 'assignee'::text AS option_type");
+  });
+  test('keeps the branch-specific fallback path for filtered user-overview filter options', async () => {
+    await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId, {
+      scope: 'userOverview',
+      filters: { service: ['Service A'] },
+      queryOptions: { excludeRoleCategories: ['Judicial'] },
+      includeUserFilter: true,
+    });
+
+    const query = queryCall();
+    const normalised = normaliseSql(query.sql);
+
+    expect(normalised).toContain('WITH option_rows AS');
+    expect(normalised).toContain('FROM analytics.snapshot_user_filter_facts');
+    expect(normalised).toContain("SELECT 'service'::text AS option_type");
+    expect(normalised).toContain("SELECT 'assignee'::text AS option_type");
+    expect(normalised).not.toContain('GROUP BY GROUPING SETS');
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'Service A', 'JUDICIAL']));
+  });
+
+  test('adds assignee filtering to non-user facets and ignores unknown option types', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([
+      { option_type: 'service', value: 'Civil', text: 'Civil' },
+      { option_type: 'unexpected', value: 'ignored', text: 'ignored' },
+    ]);
+
+    const options = await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId, {
+      scope: 'userOverview',
+      filters: { user: ['user-1'] },
+    });
+    const query = queryCall();
+
+    expect(query.sql).toContain('assignee IN');
+    expect(query.values).toContain('user-1');
+    expect(options).toEqual({
+      services: [{ value: 'Civil' }],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      assignees: [],
+    });
+  });
+
+  test('applies role-category exclusion options to overview filter option queries', async () => {
+    await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId, {
+      excludeRoleCategories: ['Judicial'],
+    });
+
+    const query = queryCall();
+    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.values).toContain('JUDICIAL');
+  });
+
+  test('omits assignee branch when user filter facet is disabled', async () => {
+    await factsRepositoriesHarness.fetchOverviewFilterOptionsRows(snapshotId, {
+      includeUserFilter: false,
+    });
+
+    const query = queryCall();
+    expect(query.sql).not.toContain("SELECT 'assignee'::text AS option_type");
+  });
+
+  test('uses completed-date filtering for processing and handling time', async () => {
+    const from = new Date('2024-03-01');
+    const to = new Date('2024-03-10');
+
+    await factsRepositoriesHarness.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from, to });
+    const query = queryCall();
+
+    expect(query.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(query.sql).toContain('reference_date >=');
+    expect(query.sql).toContain('reference_date <=');
+    expect(query.values).toEqual(expect.arrayContaining([from, to]));
+  });
+
+  test('applies role-category exclusion options to completed summary queries', async () => {
+    await factsRepositoriesHarness.fetchCompletedSummaryRows(
+      snapshotId,
+      { service: ['Service A'] },
+      { from: new Date('2024-07-01'), to: new Date('2024-07-31') },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+    const query = queryCall();
+
+    expect(query.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.values).toContain('JUDICIAL');
+  });
+
+  test('builds facts-backed user-overview completed summary query with filters and query options', async () => {
+    const completedFrom = new Date('2024-08-01');
+    const completedTo = new Date('2024-08-31');
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 42, within: 30 }]);
+
+    const rows = await factsRepositoriesHarness.fetchUserOverviewCompletedSummaryRows(
+      snapshotId,
+      {
+        service: ['Service A'],
+        user: ['user-1'],
+        completedFrom,
+        completedTo,
+      },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+    const query = queryCall();
+
+    expect(rows).toEqual([{ total: 42, within: 30 }]);
+    expect(query.sql).toContain('SELECT');
+    expect(query.sql).toContain('COALESCE(SUM(tasks), 0)::int AS total');
+    expect(query.sql).toContain('COALESCE(SUM(within_due), 0)::int AS within');
+    expect(query.sql).toContain('FROM analytics.snapshot_user_completed_facts');
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('completed_date >=');
+    expect(query.sql).toContain('completed_date <=');
+    expect(query.sql).toContain('assignee IN');
+    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.values).toEqual(
+      expect.arrayContaining([snapshotId, completedFrom, completedTo, 'user-1', 'Service A', 'JUDICIAL'])
+    );
+  });
+
+  test('builds facts-backed user-overview assigned summary query when no user filter is active', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 42, urgent: 10, high: 11, medium: 12, low: 9 }]);
+
+    const rows = await factsRepositoriesHarness.fetchUserOverviewAssignedSummaryRows(
+      snapshotId,
+      {
+        service: ['Service A'],
+      },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+    const query = queryCall();
+
+    expect(rows).toEqual([{ total: 42, urgent: 10, high: 11, medium: 12, low: 9 }]);
+    expect(query.sql).toContain('WITH bucketed AS');
+    expect(query.sql).toContain("assignment_state = 'Assigned'");
+    expect(query.sql).toContain('FROM analytics.snapshot_open_due_daily_facts');
+    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.sql).toContain('SUM(CASE WHEN priority_rank = 4 THEN task_count ELSE 0 END)');
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'Service A', 'JUDICIAL']));
+  });
+
+  test('builds row-aggregate user-overview assigned summary query when a user filter is active', async () => {
+    (tmPrisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ total: 7, urgent: 1, high: 2, medium: 3, low: 1 }]);
+
+    const rows = await factsRepositoriesHarness.fetchUserOverviewAssignedSummaryRows(
+      snapshotId,
+      {
+        service: ['Service A'],
+        user: ['user-1'],
+      },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+    const query = queryCall();
+
+    expect(rows).toEqual([{ total: 7, urgent: 1, high: 2, medium: 3, low: 1 }]);
+    expect(query.sql).toContain("state = 'ASSIGNED'");
+    expect(query.sql).toContain('FROM analytics.snapshot_open_task_rows rows');
+    expect(query.sql).toContain('assignee IN');
+    expect(query.sql).toContain('major_priority');
+    expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'user-1', 'Service A', 'JUDICIAL']));
+  });
+
+  test('applies due/open filters and numeric priority rank in due-priority query', async () => {
+    await factsRepositoriesHarness.fetchTasksDuePriorityRows(snapshotId, { region: ['North'] });
+    const query = queryCall();
+
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('FROM analytics.snapshot_open_due_daily_facts');
+    expect(query.sql).toContain('priority <= 2000');
+    expect(query.sql).toContain('priority = 5000 AND due_date < CURRENT_DATE');
+    expect(query.sql).toContain('priority = 5000 AND due_date = CURRENT_DATE');
+    expect(query.sql).toContain('GROUP BY due_date');
+  });
+
+  test('builds service overview query using bucketed CTE and assignment totals', async () => {
+    await factsRepositoriesHarness.fetchServiceOverviewRows(snapshotId, {
+      service: ['Service A'],
+      roleCategory: ['Ops'],
+    });
+    const query = queryCall();
+    const normalised = normaliseSql(query.sql);
+
+    expect(query.sql).toContain('WITH bucketed AS');
+    expect(query.sql).toContain('jurisdiction_label AS service');
+    expect(query.sql).toContain(
+      "SUM(CASE WHEN assignment_state = 'Assigned' THEN task_count ELSE 0 END)::int AS assigned_tasks"
+    );
+    expect(query.sql).toContain('SUM(CASE WHEN priority_rank = 4 THEN task_count ELSE 0 END)::int AS urgent');
+    expect(query.sql).toContain('FROM analytics.snapshot_open_due_daily_facts');
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('priority <= 2000');
+    expect(query.sql).toContain('priority = 5000 AND due_date < CURRENT_DATE');
+    expect(normalised).toContain('ORDER BY service ASC');
+    expect(query.sql).toContain('GROUP BY jurisdiction_label');
+  });
+
+  test('builds created-by-assignment query with grouping by date and assignment state', async () => {
+    await factsRepositoriesHarness.fetchOpenTasksCreatedByAssignmentRows(snapshotId, { region: ['North'] });
+    const query = queryCall();
+
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('FROM analytics.snapshot_outstanding_created_assignment_daily_facts');
+    expect(query.sql).toContain("to_char(reference_date, 'YYYY-MM-DD') AS date_key");
+    expect(query.sql).toContain('assignment_state');
+    expect(query.sql).toContain('GROUP BY reference_date, assignment_state');
+    expect(query.sql).toContain('ORDER BY reference_date');
+  });
+
+  test('builds outstanding due-status query grouped by due date', async () => {
+    await factsRepositoriesHarness.fetchTasksDueByDateRows(snapshotId, { region: ['North'] });
+    const query = queryCall();
+
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('FROM analytics.snapshot_outstanding_due_status_daily_facts');
+    expect(query.sql).toContain("to_char(due_date, 'YYYY-MM-DD') AS date_key");
+    expect(query.sql).toContain('SUM(open_task_count)::int AS open');
+    expect(query.sql).toContain('SUM(completed_task_count)::int AS completed');
+    expect(query.sql).toContain('GROUP BY due_date');
+    expect(query.sql).toContain('ORDER BY due_date');
+  });
+
+  test('builds facts-backed open-task by-name query', async () => {
+    await factsRepositoriesHarness.fetchOpenTasksByNameRows(snapshotId, { region: ['North'] });
+    const query = queryCall();
+
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('FROM analytics.snapshot_open_due_daily_facts');
+    expect(query.sql).toContain('WITH bucketed AS');
+    expect(query.sql).toContain('task_name');
+    expect(query.sql).toContain('GROUP BY task_name');
+    expect(query.sql).toContain('ORDER BY task_name ASC');
+    expect(query.sql).toContain('priority <= 2000');
+    expect(query.sql).toContain('priority = 5000 AND due_date < CURRENT_DATE');
+  });
+
+  test('builds facts-backed open-task by-region-location query', async () => {
+    await factsRepositoriesHarness.fetchOpenTasksByRegionLocationRows(snapshotId, { location: ['Leeds'] });
+    const query = queryCall();
+
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('FROM analytics.snapshot_open_due_daily_facts');
+    expect(query.sql).toContain('WITH bucketed AS');
+    expect(query.sql).toContain('GROUP BY region, location');
+    expect(query.sql).toContain('ORDER BY location ASC, region ASC');
+    expect(query.sql).toContain('SUM(task_count)::int AS open_tasks');
+    expect(query.sql).toContain('priority <= 2000');
+    expect(query.sql).toContain('priority = 5000 AND due_date < CURRENT_DATE');
+    expect(query.sql).toContain('priority = 5000 AND due_date = CURRENT_DATE');
+  });
+
+  test('builds facts-backed open-task summary query', async () => {
+    await factsRepositoriesHarness.fetchOpenTasksSummaryRows(snapshotId, { service: ['Service A'] });
+    const query = queryCall();
+
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('FROM analytics.snapshot_open_due_daily_facts');
+    expect(query.sql).toContain('WITH bucketed AS');
+    expect(query.sql).toContain(
+      "SUM(CASE WHEN assignment_state = 'Assigned' THEN task_count ELSE 0 END)::int AS assigned"
+    );
+    expect(query.sql).toContain(
+      "SUM(CASE WHEN assignment_state = 'Assigned' THEN 0 ELSE task_count END)::int AS unassigned"
+    );
+    expect(query.sql).toContain('priority <= 2000');
+    expect(query.sql).toContain('priority = 5000 AND due_date = CURRENT_DATE');
+  });
+
+  test('builds timeline query with open-ended range combinations', async () => {
+    const from = new Date('2024-04-01');
+    const to = new Date('2024-04-15');
+
+    await factsRepositoriesHarness.fetchCompletedTimelineRows(snapshotId, {}, { from });
+    const fromQuery = queryCall();
+    expect(fromQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(fromQuery.sql).toContain('SUM(total_task_count)::int AS total');
+    expect(fromQuery.sql).toContain('SUM(within_task_count)::int AS within');
+    expect(fromQuery.sql).toContain('snapshot_id =');
+    expect(fromQuery.sql).toContain('reference_date >=');
+    expect(fromQuery.sql).not.toContain('reference_date <=');
+    expect(fromQuery.sql).toContain('GROUP BY reference_date');
+    expect(fromQuery.sql).toContain('ORDER BY reference_date');
+    expect(fromQuery.values).toEqual(expect.arrayContaining([from]));
+
+    await factsRepositoriesHarness.fetchCompletedTimelineRows(snapshotId, {}, { to });
+    const toQuery = queryCall();
+    expect(toQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(toQuery.sql).toContain('snapshot_id =');
+    expect(toQuery.sql).toContain('reference_date <=');
+    expect(toQuery.sql).not.toContain('reference_date >=');
+    expect(toQuery.values).toEqual(expect.arrayContaining([to]));
+  });
+
+  test('builds completed by name query and range filters', async () => {
+    const from = new Date('2024-05-01');
+    const to = new Date('2024-05-31');
+
+    await factsRepositoriesHarness.fetchCompletedByNameRows(snapshotId, { service: ['Service A'] }, { from, to });
+    const byNameQuery = queryCall();
+    expect(byNameQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(byNameQuery.sql).toContain('snapshot_id =');
+    expect(byNameQuery.sql).toContain('task_name');
+    expect(byNameQuery.sql).toContain('SUM(total_task_count)::int AS total');
+    expect(byNameQuery.sql).toContain('SUM(within_task_count)::int AS within');
+    expect(byNameQuery.sql).toContain('GROUP BY task_name');
+    expect(byNameQuery.sql).toContain('ORDER BY total DESC');
+    expect(byNameQuery.values).toEqual(expect.arrayContaining([from, to]));
+  });
+
+  test('builds combined completed region/location query and range filters', async () => {
+    const from = new Date('2024-05-01');
+    const to = new Date('2024-05-31');
+
+    await factsRepositoriesHarness.fetchCompletedRegionLocationRows(snapshotId, { region: ['North'] }, { from, to });
+    const query = queryCall();
+    const normalised = normaliseSql(query.sql);
+
+    expect(normalised).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(normalised).toContain('snapshot_id =');
+    expect(normalised).toContain("CASE WHEN GROUPING(location) = 0 THEN 'location' ELSE 'region' END AS grouping_type");
+    expect(normalised).toContain('SUM(total_task_count)::int AS total');
+    expect(normalised).toContain('SUM(within_task_count)::int AS within');
+    expect(normalised).toContain('SUM(handling_time_days_sum)::double precision AS handling_time_days_sum');
+    expect(normalised).toContain('SUM(processing_time_days_count)::int AS processing_time_days_count');
+    expect(normalised).toContain('GROUP BY GROUPING SETS ((location, region), (region))');
+    expect(normalised).toContain('ORDER BY CASE WHEN GROUPING(location) = 0 THEN 1 ELSE 0 END ASC');
+    expect(query.values).toEqual(expect.arrayContaining([from, to]));
+  });
+
+  test('builds processing/handling query with aggregate columns and optional range bounds', async () => {
+    const from = new Date('2024-06-01');
+    const to = new Date('2024-06-20');
+
+    await factsRepositoriesHarness.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from });
+    const fromQuery = queryCall();
+    expect(fromQuery.sql).toContain('snapshot_id =');
+    expect(fromQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(fromQuery.sql).toContain('SUM(total_task_count)::int AS task_count');
+    expect(fromQuery.sql).toContain('SUM(handling_time_days_sum)::double precision AS handling_sum');
+    expect(fromQuery.sql).toContain('SUM(handling_time_days_sum_squares)::double precision');
+    expect(fromQuery.sql).toContain('SUM(processing_time_days_sum)::double precision AS processing_sum');
+    expect(fromQuery.sql).toContain('SUM(processing_time_days_sum_squares)::double precision');
+    expect(fromQuery.sql).toContain('SUM(processing_time_days_count)::int AS processing_count');
+    expect(fromQuery.sql).toContain('reference_date >=');
+    expect(fromQuery.sql).not.toContain('reference_date <=');
+    expect(fromQuery.values).toEqual(expect.arrayContaining([from]));
+
+    await factsRepositoriesHarness.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { to });
+    const toQuery = queryCall();
+    expect(toQuery.sql).toContain('snapshot_id =');
+    expect(toQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(toQuery.sql).toContain('reference_date <=');
+    expect(toQuery.sql).not.toContain('reference_date >=');
+    expect(toQuery.values).toEqual(expect.arrayContaining([to]));
+  });
+});

@@ -4,7 +4,12 @@ import {
   getCache,
   setCache,
 } from '../../../../../main/modules/analytics/shared/cache/cache';
-import { taskFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
+import {
+  snapshotCompletedFilterFactsRepository,
+  snapshotOutstandingFilterFactsRepository,
+  snapshotOverviewFilterFactsRepository,
+  snapshotUserFilterFactsRepository,
+} from '../../../../../main/modules/analytics/shared/repositories';
 import {
   caseWorkerProfileService,
   courtVenueService,
@@ -22,7 +27,10 @@ jest.mock('../../../../../main/modules/analytics/shared/cache/cache', () => ({
 }));
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  taskFactsRepository: { fetchOverviewFilterOptionsRows: jest.fn() },
+  snapshotOverviewFilterFactsRepository: { fetchFilterOptionsRows: jest.fn() },
+  snapshotOutstandingFilterFactsRepository: { fetchFilterOptionsRows: jest.fn() },
+  snapshotCompletedFilterFactsRepository: { fetchFilterOptionsRows: jest.fn() },
+  snapshotUserFilterFactsRepository: { fetchFilterOptionsRows: jest.fn() },
 }));
 
 jest.mock('../../../../../main/modules/analytics/shared/services/index', () => ({
@@ -57,12 +65,12 @@ describe('filterService', () => {
       snapshotId,
       'scope=overview|includeUser=1|filters=none|query=default'
     );
-    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).not.toHaveBeenCalled();
+    expect(snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows).not.toHaveBeenCalled();
   });
 
   test('builds filter options and stores them in cache', async () => {
     (getCache as jest.Mock).mockReturnValue(undefined);
-    (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock).mockResolvedValue({
+    (snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows as jest.Mock).mockResolvedValue({
       services: [{ value: 'Service A' }],
       roleCategories: [{ value: 'Ops' }],
       regions: [{ value: '1' }, { value: '' }, { value: '99' }],
@@ -99,8 +107,7 @@ describe('filterService', () => {
     expect(result.users[0]).toEqual({ value: '', text: 'All users' });
     expect(result.users[1].value).toBe('user-1');
     expect(result.users.find(option => option.value === 'user-2')).toBeUndefined();
-    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledWith(snapshotId, {
-      scope: 'overview',
+    expect(snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows).toHaveBeenCalledWith(snapshotId, {
       filters: {},
       queryOptions: undefined,
       includeUserFilter: true,
@@ -113,7 +120,7 @@ describe('filterService', () => {
 
   test('uses options-aware cache key signatures and passes query options to the repository', async () => {
     (getCache as jest.Mock).mockReturnValue(undefined);
-    (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock).mockResolvedValue({
+    (snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows as jest.Mock).mockResolvedValue({
       services: [],
       roleCategories: [],
       regions: [],
@@ -135,8 +142,7 @@ describe('filterService', () => {
       snapshotId,
       'scope=overview|includeUser=1|filters=none|query=excludeRoleCategories=JUDICIAL'
     );
-    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledWith(snapshotId, {
-      scope: 'overview',
+    expect(snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows).toHaveBeenCalledWith(snapshotId, {
       filters: {},
       queryOptions: { excludeRoleCategories: ['Judicial'] },
       includeUserFilter: true,
@@ -145,7 +151,7 @@ describe('filterService', () => {
 
   test('normalises excludeRoleCategories signature and falls back to default when values are blank', async () => {
     (getCache as jest.Mock).mockReturnValue(undefined);
-    (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock).mockResolvedValue({
+    (snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows as jest.Mock).mockResolvedValue({
       services: [],
       roleCategories: [],
       regions: [],
@@ -178,9 +184,106 @@ describe('filterService', () => {
     );
   });
 
+  test('passes through user-overview scope while preserving user-option mapping behaviour', async () => {
+    (getCache as jest.Mock).mockReturnValue(undefined);
+    (snapshotUserFilterFactsRepository.fetchFilterOptionsRows as jest.Mock).mockResolvedValue({
+      services: [{ value: 'Service A' }],
+      roleCategories: [{ value: 'Ops' }],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      assignees: [{ value: 'user-1' }, { value: 'user-2' }],
+    });
+    (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
+    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
+    (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([
+      { case_worker_id: 'user-2', first_name: 'Alex', last_name: 'P', email_id: 'alex@example.com', region_id: 2 },
+      { case_worker_id: 'user-1', first_name: 'Sam', last_name: 'Lee', email_id: 'sam@example.com', region_id: 1 },
+    ]);
+
+    const result = await filterService.fetchFilterOptions(
+      snapshotId,
+      { excludeRoleCategories: ['Judicial'] },
+      'userOverview'
+    );
+
+    expect(snapshotUserFilterFactsRepository.fetchFilterOptionsRows).toHaveBeenCalledWith(snapshotId, {
+      filters: {},
+      queryOptions: { excludeRoleCategories: ['Judicial'] },
+      includeUserFilter: true,
+    });
+    expect(snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows).not.toHaveBeenCalled();
+    expect(result.users).toEqual([
+      { value: '', text: 'All users' },
+      { value: 'user-2', text: 'Alex P (alex@example.com)' },
+      { value: 'user-1', text: 'Sam Lee (sam@example.com)' },
+    ]);
+    expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(
+      CacheKeys.filterOptions,
+      snapshotId,
+      'scope=userOverview|includeUser=1|filters=none|query=excludeRoleCategories=JUDICIAL'
+    );
+  });
+
+  test('routes completed-scope requests to the completed filter repository', async () => {
+    (getCache as jest.Mock).mockReturnValue(undefined);
+    (snapshotCompletedFilterFactsRepository.fetchFilterOptionsRows as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      assignees: [],
+    });
+    (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
+    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
+    (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([]);
+
+    await filterService.fetchFilterOptions(snapshotId, undefined, 'completed');
+
+    expect(snapshotCompletedFilterFactsRepository.fetchFilterOptionsRows).toHaveBeenCalledWith(snapshotId, {
+      filters: {},
+      queryOptions: undefined,
+      includeUserFilter: true,
+    });
+    expect(snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows).not.toHaveBeenCalled();
+  });
+
+  test('routes outstanding faceted requests to the outstanding filter repository', async () => {
+    (getCache as jest.Mock).mockReturnValue(undefined);
+    (snapshotOutstandingFilterFactsRepository.fetchFilterOptionsRows as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      assignees: [],
+    });
+    (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
+    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
+
+    await filterService.fetchFacetedFilterState(
+      snapshotId,
+      { region: ['North'] },
+      {
+        scope: 'outstanding',
+        includeUserFilter: false,
+      }
+    );
+
+    expect(snapshotOutstandingFilterFactsRepository.fetchFilterOptionsRows).toHaveBeenCalledWith(snapshotId, {
+      filters: { region: ['North'] },
+      queryOptions: undefined,
+      includeUserFilter: false,
+    });
+  });
+
   test('prunes conflicting non-changed selections and refetches options for canonical filters', async () => {
     (getCache as jest.Mock).mockReturnValue(undefined);
-    (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock)
+    (snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows as jest.Mock)
       .mockResolvedValueOnce({
         services: [{ value: 'Civil' }],
         roleCategories: [{ value: 'Ops' }],
@@ -214,14 +317,12 @@ describe('filterService', () => {
       }
     );
 
-    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenNthCalledWith(1, snapshotId, {
-      scope: 'overview',
+    expect(snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows).toHaveBeenNthCalledWith(1, snapshotId, {
       filters: { service: ['Civil'], region: ['South'] },
       queryOptions: undefined,
       includeUserFilter: false,
     });
-    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenNthCalledWith(2, snapshotId, {
-      scope: 'overview',
+    expect(snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows).toHaveBeenNthCalledWith(2, snapshotId, {
       filters: { service: ['Civil'] },
       queryOptions: undefined,
       includeUserFilter: false,
@@ -233,7 +334,7 @@ describe('filterService', () => {
 
   test('retains compatible values for non-changed filters and keeps original filters when changed filter is missing', async () => {
     (getCache as jest.Mock).mockReturnValue(undefined);
-    (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock).mockResolvedValue({
+    (snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows as jest.Mock).mockResolvedValue({
       services: [{ value: 'Civil' }],
       roleCategories: [{ value: 'Ops' }],
       regions: [{ value: 'North' }],
@@ -265,9 +366,9 @@ describe('filterService', () => {
       roleCategory: ['Ops'],
       user: ['111'],
     });
-    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledTimes(2);
+    expect(snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows).toHaveBeenCalledTimes(2);
 
-    (taskFactsRepository.fetchOverviewFilterOptionsRows as jest.Mock).mockClear();
+    (snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows as jest.Mock).mockClear();
     (buildSnapshotScopedCacheKey as jest.Mock).mockClear();
 
     const unchanged = await filterService.fetchFacetedFilterState(
@@ -284,7 +385,7 @@ describe('filterService', () => {
       service: ['Civil'],
       roleCategory: ['Ops'],
     });
-    expect(taskFactsRepository.fetchOverviewFilterOptionsRows).toHaveBeenCalledTimes(1);
+    expect(snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows).toHaveBeenCalledTimes(1);
     expect(buildSnapshotScopedCacheKey).toHaveBeenCalledWith(
       CacheKeys.filterOptions,
       snapshotId,

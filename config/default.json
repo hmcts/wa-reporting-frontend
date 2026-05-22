@@ -1,15 +1,8 @@
 {
   "useCSRFProtection": true,
-  "security": {
-    "referrerPolicy": "same-origin",
-    "hsts": {
-      "maxAge": 31536000,
-      "includeSubDomains": true,
-      "preload": true
-    }
-  },
   "analytics": {
     "cacheTtlSeconds": 900,
+    "publishedSnapshotCacheTtlSeconds": 15,
     "manageCaseBaseUrl": "https://manage-case.aat.platform.hmcts.net",
     "filtersCookieName": "wa-reporting-analytics-filters",
     "filtersCookieMaxAgeDays": 365,
@@ -35,6 +28,10 @@
   },
   "compression": {
     "enabled": false
+  },
+  "requestBody": {
+    "urlencodedLimit": "512kb",
+    "urlencodedParameterLimit": 10000
   },
   "services": {
     "idam": {

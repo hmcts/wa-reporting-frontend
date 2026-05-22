@@ -24,14 +24,14 @@ Connection building:
 - Prisma clients are created with `PrismaPg({ connectionString })`.
 
 Performance review:
-- The post-redesign benchmark pass and current remaining opportunities live in [docs/technical/analytics-benchmark-report.md](/Users/danlysiak/development/hmcts/expressjs-speckit-powerbi/docs/technical/analytics-benchmark-report.md).
-- The redesign rationale and original review notes live in [docs/technical/analytics-query-performance-review.md](/Users/danlysiak/development/hmcts/expressjs-speckit-powerbi/docs/technical/analytics-query-performance-review.md).
+- No separate benchmark or performance-review technical documents are currently checked into this repository.
+- Treat this document, the Flyway migrations under `db/migrations/tm/`, and the current-state SQL under `db/current-state/tm-analytics-schema.sql` as the checked-in source of truth for the implemented analytics data model.
 - The current schema described below is the implemented post-redesign state.
 - The `analytics` schema is owned in this repository through Flyway migrations under `db/migrations/tm/`.
 
 ```mermaid
 flowchart TB
-  App["Analytics module"] --> TMRepo["Task facts + thin repositories"]
+  App["Analytics module"] --> TMRepo["Table-scoped analytics repositories"]
   App --> RefSvc["Reference data services"]
   TMRepo --> TM["TM analytics DB"]
   RefSvc --> CRD["CRD DB (caseworkers)"]
@@ -47,6 +47,29 @@ All analytics reads are snapshot-scoped:
 
 Published snapshots are immutable. The app reads one selected snapshot at a time.
 The application reads these tables only; it does not apply Flyway migrations at startup.
+
+The app keeps a separate in-process NodeCache entry for the current published snapshot metadata using `analytics.publishedSnapshotCacheTtlSeconds`. That fast path is only used when a request has no `snapshotToken` or when the signed `snapshotToken` matches the cached current published snapshot id. Requests for older snapshot ids still validate against `analytics.snapshot_batches` so retention cleanup cannot leave a stale historical snapshot marked as valid.
+
+### Repository ownership
+Each analytics repository file owns one table or view:
+
+- `analytics.snapshot_open_due_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOpenDueDailyFactsRepository.ts`
+- `analytics.snapshot_task_event_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotTaskEventDailyFactsRepository.ts`
+- `analytics.snapshot_outstanding_created_assignment_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOutstandingCreatedAssignmentDailyFactsRepository.ts`
+- `analytics.snapshot_outstanding_due_status_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOutstandingDueStatusDailyFactsRepository.ts`
+- `analytics.snapshot_completed_dashboard_facts` -> `src/main/modules/analytics/shared/repositories/snapshotCompletedDashboardFactsRepository.ts`
+- `analytics.snapshot_open_task_rows` -> `src/main/modules/analytics/shared/repositories/snapshotOpenTaskRowsRepository.ts`
+- `analytics.snapshot_completed_task_rows` -> `src/main/modules/analytics/shared/repositories/snapshotCompletedTaskRowsRepository.ts`
+- `analytics.snapshot_user_completed_facts` -> `src/main/modules/analytics/shared/repositories/snapshotUserCompletedFactsRepository.ts`
+- `analytics.snapshot_wait_time_by_assigned_date` -> `src/main/modules/analytics/shared/repositories/snapshotWaitTimeByAssignedDateRepository.ts`
+- `analytics.snapshot_overview_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOverviewFilterFactsRepository.ts`
+- `analytics.snapshot_outstanding_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOutstandingFilterFactsRepository.ts`
+- `analytics.snapshot_completed_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotCompletedFilterFactsRepository.ts`
+- `analytics.snapshot_user_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotUserFilterFactsRepository.ts`
+- `analytics.snapshot_state` -> `src/main/modules/analytics/shared/repositories/snapshotStateRepository.ts`
+- `analytics.snapshot_batches` -> `src/main/modules/analytics/shared/repositories/snapshotBatchesRepository.ts`
+
+Shared helpers such as `filterFactsQueryHelpers.ts`, `rowRepositoryHelpers.ts`, and `snapshotMetadataHelpers.ts` may build SQL fragments for multiple repositories, but they do not own table reads themselves.
 
 ### Snapshot metadata
 
@@ -73,9 +96,12 @@ Snapshots are built and published by `analytics.run_snapshot_refresh_batch()`.
 
 Current refresh shape:
 - Full rebuild from `cft_task_db.reportable_task`.
+- `analytics.run_snapshot_refresh_batch()` now acts as a coordinator over internal helpers for temp-table staging, detached partition creation, detached data population, core index creation, filter-fact materialisation, and filter-index creation.
 - Creates a narrow temp staging table with only the columns and derived values needed by the app.
 - Builds detached per-snapshot tables for every snapshot parent before publish.
 - Loads thin row tables first, then facts, then page-scoped facet tables.
+- Populates `analytics.snapshot_outstanding_due_status_daily_facts` and `analytics.snapshot_outstanding_created_assignment_daily_facts` directly from `tmp_snapshot_fact_source` for the `/outstanding` aggregate workloads.
+- Populates `analytics.snapshot_completed_dashboard_facts` directly from `tmp_snapshot_fact_source` for the `/completed` aggregate workload.
 - Runs `ANALYZE` on every detached snapshot table before publish.
 - Commits the detached build tables before publish, then opens a short publish transaction that only attaches those tables as partitions and updates `analytics.snapshot_state`.
 - Keeps the previous published snapshot readable during the detached build phase because the live parent tables are not modified until the final attach step.
@@ -90,7 +116,7 @@ Refresh-time derived values materialised in staging:
 
 Refresh-time session settings:
 - Baseline refresh work: `work_mem = 256MB`, `maintenance_work_mem = 1GB`
-- Daily-facts aggregation temporarily uses `work_mem = 1GB`, `hash_mem_multiplier = 4`, `enable_sort = off`
+- Aggregate fact builds temporarily use `work_mem = 1GB`, `hash_mem_multiplier = 4`, `enable_sort = off`
 - Facet aggregation temporarily uses `work_mem = 1GB`, `hash_mem_multiplier = 4`, `enable_sort = off`
 
 Retention:
@@ -133,8 +159,9 @@ Required columns:
 
 Notes:
 - The `/users` assigned table adds `state = 'ASSIGNED'` on top of this table.
+- The `/outstanding` critical tasks query adds `state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')` and `created_date IS NOT NULL` on top of this table so it matches the open-tasks-by-created-date workload exactly.
 - Priority rank is still calculated at query-time from `major_priority`, `due_date`, and `CURRENT_DATE`.
-- Child partitions also create a User Overview-specific partial index for the default assigned-table query: non-Judicial `state = 'ASSIGNED'` rows ordered by `created_date DESC NULLS LAST`.
+- Child partitions also create a User Overview-specific partial index for the default assigned-table query: non-Judicial `state = 'ASSIGNED'` rows ordered by `created_date DESC` semantics.
 
 ### analytics.snapshot_completed_task_rows
 Thin row store for completed-task row views.
@@ -170,7 +197,10 @@ Required columns:
 - `within_due_sort_value`
 
 Notes:
-- Child partitions also create a User Overview-specific partial index for the default completed-table query: non-Judicial rows ordered by `completed_date DESC NULLS LAST`.
+- Runtime analytics queries no longer append `NULLS LAST` to completed-table sorts.
+- The pre-existing completed-row index set continues to cover the `completed_date`, `case_id`, and `within_due_sort_value` sorts used by User Overview.
+- Child partitions also create User Overview-specific non-Judicial partial indexes for the remaining completed-table sorts that were proven slow in production or local benchmarking. The extra coverage is one ascending partial index per sort key for `created_date`, `first_assigned_date`, `due_date`, `handling_time_days`, `assignee`, `task_name`, `location`, and total assignments (`COALESCE(number_of_reassignments, 0) + 1`).
+- Local planner tests showed that once `NULLS LAST` was removed from the runtime SQL, one ascending partial index per remaining completed sort key served both ascending and descending queries, so direction-specific duplicates are no longer required in `V009`.
 
 ### analytics.snapshot_user_completed_facts
 Assignee-aware completed-task facts for the User Overview page.
@@ -207,20 +237,50 @@ Notes:
 - `handling_time_sum` uses `COALESCE(handling_time_days, 0)` so null handling times remain in the task denominator for the `/users` completed-by-task-name table.
 - `days_beyond_sum` uses the refresh-time `days_beyond_due` value derived from `due_date_to_completed_diff_time`, also with nulls treated as zero.
 - `days_beyond_count` preserves `COUNT(*)` semantics for the `/users` completed-by-task-name average.
+- On the combined `/users` completed overview AJAX path, the completed summary and completed-table pagination totals are derived from the completed-by-date aggregate over this table instead of a separate summary query.
+- On completed-only child refreshes (`user-overview-completed`), the dedicated completed summary aggregate is still used so completed-table sort and pagination do not trigger the completed-by-date aggregate.
 
-### analytics.snapshot_task_daily_facts
-Shared daily fact table for the remaining created/open and completed aggregate workloads.
+### analytics.snapshot_outstanding_due_status_daily_facts
+Page-scoped due-status fact table for the `/outstanding` tasks-due workload.
 
 Used by:
-- `/outstanding` open-tasks created by assignment
-- `/completed` completed summary
-- `/completed` completed timeline
-- `/completed` completed by name / region / location
-- `/completed` processing and handling time
+- `/outstanding` tasks due chart
+- `/outstanding` tasks due table
+
+Population rule:
+- Source rows where `due_date IS NOT NULL` and `task_status IN ('open', 'completed')`
+- Grouped by shared slicers plus `due_date`
+- Populated directly from `tmp_snapshot_fact_source` during refresh
 
 Required columns:
 - `snapshot_id`
-- `date_role`
+- `due_date`
+- `jurisdiction_label`
+- `role_category_label`
+- `region`
+- `location`
+- `task_name`
+- `work_type`
+- `open_task_count`
+- `completed_task_count`
+
+Notes:
+- This table intentionally stores only the open/completed counts needed by the tasks-due chart and table.
+
+### analytics.snapshot_outstanding_created_assignment_daily_facts
+Page-scoped created-date assignment fact table for the `/outstanding` open-tasks-by-created-date workload.
+
+Used by:
+- `/outstanding` open tasks by created date chart
+- `/outstanding` open tasks by created date table
+
+Population rule:
+- Source rows where `created_date IS NOT NULL` and `task_status = 'open'`
+- Grouped by shared slicers plus `reference_date = created_date` and `assignment_state`
+- Populated directly from `tmp_snapshot_fact_source` during refresh
+
+Required columns:
+- `snapshot_id`
 - `reference_date`
 - `jurisdiction_label`
 - `role_category_label`
@@ -228,31 +288,46 @@ Required columns:
 - `location`
 - `task_name`
 - `work_type`
-- `priority`
-- `task_status`
 - `assignment_state`
-- `sla_flag`
+- `task_count`
+
+Notes:
+- `assignment_state` is the refresh-time Assigned/Unassigned classification already used elsewhere on `/outstanding`.
+### analytics.snapshot_completed_dashboard_facts
+Page-scoped completed-task fact table for the `/completed` aggregate workload.
+
+Used by:
+- `/completed` completed summary
+- `/completed` completed timeline
+- `/completed` completed by name / region / location
+- `/completed` processing and handling time
+
+Population rule:
+- Source rows where `completed_date IS NOT NULL` and `LOWER(termination_reason) = 'completed'`
+- Grouped by shared slicers plus `reference_date = completed_date`
+- Populated directly from `tmp_snapshot_fact_source` during refresh
+
+Required columns:
+- `snapshot_id`
+- `reference_date`
+- `jurisdiction_label`
+- `role_category_label`
+- `region`
+- `location`
+- `task_name`
+- `work_type`
+- `total_task_count`
+- `within_task_count`
 - `handling_time_days_sum`
 - `handling_time_days_sum_squares`
 - `handling_time_days_count`
 - `processing_time_days_sum`
 - `processing_time_days_sum_squares`
 - `processing_time_days_count`
-- `task_count`
-
-Date-role semantics:
-- `due`: rows with `due_date IS NOT NULL` and either open-state tasks or completed tasks
-- `created`: rows with `created_date IS NOT NULL`
-- `completed`: completed tasks with `completed_date IS NOT NULL`
-- `cancelled`: deleted tasks with `completed_date IS NOT NULL`
-
-Open-task classification inside daily facts:
-- `open` when `state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')`
-- `completed` when `LOWER(termination_reason) = 'completed'`
-- `other` otherwise
 
 Notes:
-- `/completed` processing and handling time no longer scans row data; it reconstructs averages and population standard deviations from `sum`, `sum_squares`, and `count`.
+- `/completed` processing and handling time reconstructs averages and population standard deviations from `sum`, `sum_squares`, and `count`.
+- The `/completed` region and region/location tables are served from one `GROUPING SETS ((location, region), (region))` aggregate over this table.
 
 ### analytics.snapshot_open_due_daily_facts
 Open-task fact table for the shared due/open aggregate workload.
@@ -369,7 +444,6 @@ Population rule:
 
 Used by:
 - `/outstanding` shared filter options
-- `/outstanding` critical tasks total count
 
 #### analytics.snapshot_completed_filter_facts
 Facet source for `/completed`.
@@ -390,9 +464,12 @@ Notes for all facet tables:
 - Blank strings are normalised to `NULL` at materialisation time.
 - Work type display labels are still resolved at read-time by joining `cft_task_db.work_types`.
 - User Overview still applies its query-time Judicial exclusion when reading row and fact queries.
+- Unfiltered non-user scopes (`/`, `/outstanding`, and `/completed`) read filter options with one `GROUPING SETS` query per page-scoped facet table.
+- Filtered states still use per-facet queries so each dropdown can exclude its own active filter while respecting the others.
 
 Flyway ownership note:
 - The current schema shape documented in this file is the target state produced by the repository-owned Flyway migrations under `db/migrations/tm/`.
+- `db/current-state/tm-analytics-schema.sql` is the rerunnable current-state mirror of that end state for local and disposable rebuild workflows; it is maintained alongside the migrations but is not migration history.
 - Upstream dependencies remain external: Flyway does not create `cft_task_db.reportable_task` or `cft_task_db.work_types`.
 
 ## Reference data
@@ -436,7 +513,7 @@ Shared filter mappings:
 - User -> `assignee` (User Overview only)
 
 Date filter mappings:
-- `completedFrom` / `completedTo` -> `completed_date` in completed row / user-completed facts, or `reference_date` in completed daily facts
+- `completedFrom` / `completedTo` -> `completed_date` in completed row / user-completed facts, or `reference_date` in completed dashboard facts
 - `eventsFrom` / `eventsTo` -> `reference_date` in task-daily facts for created / completed / cancelled events
 
 Scoped exclusions:
@@ -484,7 +561,7 @@ The facts-backed metric stores those rows as `date_role = 'cancelled'` and `task
 Those fact columns are populated so null intervals still contribute zero to the numerator while remaining in the denominator.
 
 ### Completed processing and handling time
-`/completed` processing/handling time is derived from daily facts:
+`/completed` processing/handling time is derived from completed dashboard facts:
 
 - Average = `sum / count`
 - Population standard deviation = `sqrt((sum_squares / count) - power(sum / count, 2))`
@@ -498,4 +575,6 @@ NodeCache caches:
 - Regions and region descriptions
 - Court venues and location descriptions
 
-Cache TTL is configurable via `analytics.cacheTtlSeconds`.
+These caches use the configurable `analytics.cacheTtlSeconds` TTL.
+
+The app also keeps a dedicated NodeCache entry for the current published snapshot metadata using `analytics.publishedSnapshotCacheTtlSeconds`. That cache is intentionally separate from `analytics.cacheTtlSeconds` so current snapshot routing can use a much shorter TTL than filter and reference caches.

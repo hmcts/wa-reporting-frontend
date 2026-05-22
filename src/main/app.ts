@@ -10,6 +10,8 @@ const env = process.env.NODE_ENV || 'development';
 const developmentMode = env === 'development';
 const authEnabled: boolean = config.get('auth.enabled') ?? true;
 const compressionEnabled: boolean = config.get('compression.enabled') ?? false;
+const urlencodedLimit: string = config.get('requestBody.urlencodedLimit');
+const urlencodedParameterLimit: number = config.get('requestBody.urlencodedParameterLimit');
 
 const bodyParser = require('body-parser');
 const compression = require('compression');
@@ -52,7 +54,7 @@ export const bootstrap = async (): Promise<void> => {
   }
   new Nunjucks(developmentMode).enableFor(app);
   // secure the application by adding various HTTP headers to its responses
-  new Helmet(config.get('security')).enableFor(app);
+  new Helmet(developmentMode).enableFor(app);
 
   const assetsDirectory = path.join(__dirname, 'public', 'assets');
   const faviconPath = path.join(assetsDirectory, 'images/favicon.ico');
@@ -62,7 +64,7 @@ export const bootstrap = async (): Promise<void> => {
   });
 
   app.use(bodyParser.json());
-  app.use(bodyParser.urlencoded({ extended: false }));
+  app.use(bodyParser.urlencoded({ extended: false, limit: urlencodedLimit, parameterLimit: urlencodedParameterLimit }));
   app.use(cookieParser(config.get('secrets.wa.wa-reporting-frontend-session-secret')));
   if (compressionEnabled) {
     app.use(compression());

@@ -12,12 +12,35 @@ import {
 import { filterService } from '../../../../main/modules/analytics/shared/services';
 import { logDbError } from '../../../../main/modules/analytics/shared/utils';
 
+const mockPublishedSnapshotCacheStore = new Map<string, unknown>();
+function mockGetPublishedSnapshotCache(key: string): unknown {
+  return mockPublishedSnapshotCacheStore.get(key);
+}
+
+function mockSetPublishedSnapshotCache(key: string, value: unknown): void {
+  mockPublishedSnapshotCacheStore.set(key, value);
+}
+const currentPublishedSnapshotCacheKey = 'current-published-snapshot';
+
+function cacheCurrentPublishedSnapshot(snapshot: { snapshotId: number; publishedAt?: Date }): void {
+  mockPublishedSnapshotCacheStore.set(currentPublishedSnapshotCacheKey, snapshot);
+}
+
+jest.mock('../../../../main/modules/analytics/shared/cache/publishedSnapshotCache', () => ({
+  CacheKeys: {
+    currentPublishedSnapshot: 'current-published-snapshot',
+  },
+  getCache: mockGetPublishedSnapshotCache,
+  setCache: mockSetPublishedSnapshotCache,
+}));
+
 jest.mock('../../../../main/modules/analytics/shared/services', () => ({
   filterService: { fetchFilterOptions: jest.fn(), fetchFacetedFilterState: jest.fn() },
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
-  snapshotStateRepository: { fetchPublishedSnapshot: jest.fn(), fetchSnapshotById: jest.fn() },
+  snapshotStateRepository: { fetchPublishedSnapshot: jest.fn() },
+  snapshotBatchesRepository: { fetchSucceededSnapshotById: jest.fn() },
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/utils', () => ({
@@ -28,9 +51,11 @@ jest.mock('../../../../main/modules/analytics/shared/utils', () => ({
 describe('pageUtils', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPublishedSnapshotCacheStore.clear();
   });
 
   afterEach(() => {
+    mockPublishedSnapshotCacheStore.clear();
     jest.useRealTimers();
   });
 
@@ -89,9 +114,28 @@ describe('pageUtils', () => {
     );
   });
 
+  test('fetchFilterOptionsWithFallback passes explicit scope and query options through to filter service', async () => {
+    (filterService.fetchFilterOptions as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      users: [],
+    });
+
+    await fetchFilterOptionsWithFallback('Failed', 7, 'completed', { excludeRoleCategories: ['Legal Ops'] });
+
+    expect(filterService.fetchFilterOptions).toHaveBeenCalledWith(
+      7,
+      { excludeRoleCategories: ['Legal Ops'] },
+      'completed'
+    );
+  });
+
   test('fetchPublishedSnapshotContext maps snapshot metadata and freshness text', async () => {
     const { snapshotStateRepository } = jest.requireMock('../../../../main/modules/analytics/shared/repositories');
-    (snapshotStateRepository.fetchSnapshotById as jest.Mock).mockResolvedValue(null);
     (snapshotStateRepository.fetchPublishedSnapshot as jest.Mock).mockResolvedValue({
       snapshotId: 11,
       publishedAt: new Date('2026-02-17T10:15:00Z'),
@@ -105,9 +149,33 @@ describe('pageUtils', () => {
     expect(result.freshnessInsetText).toContain('Data last refreshed:');
   });
 
+  test('fetchPublishedSnapshotContext caches the current published snapshot for requests without a token', async () => {
+    const { snapshotStateRepository } = jest.requireMock('../../../../main/modules/analytics/shared/repositories');
+    (snapshotStateRepository.fetchPublishedSnapshot as jest.Mock).mockResolvedValue({
+      snapshotId: 13,
+      publishedAt: new Date('2026-02-17T10:20:00Z'),
+    });
+
+    await expect(fetchPublishedSnapshotContext()).resolves.toEqual({
+      snapshotId: 13,
+      snapshotToken: createSnapshotToken(13),
+      publishedAt: new Date('2026-02-17T10:20:00Z'),
+      freshnessInsetText: expect.stringContaining('Data last refreshed:'),
+    });
+
+    jest.clearAllMocks();
+
+    await expect(fetchPublishedSnapshotContext()).resolves.toEqual({
+      snapshotId: 13,
+      snapshotToken: createSnapshotToken(13),
+      publishedAt: new Date('2026-02-17T10:20:00Z'),
+      freshnessInsetText: expect.stringContaining('Data last refreshed:'),
+    });
+    expect(snapshotStateRepository.fetchPublishedSnapshot).not.toHaveBeenCalled();
+  });
+
   test('fetchPublishedSnapshotContext returns empty context when no snapshot is published', async () => {
     const { snapshotStateRepository } = jest.requireMock('../../../../main/modules/analytics/shared/repositories');
-    (snapshotStateRepository.fetchSnapshotById as jest.Mock).mockResolvedValue(null);
     (snapshotStateRepository.fetchPublishedSnapshot as jest.Mock).mockResolvedValue(null);
 
     const result = await fetchPublishedSnapshotContext();
@@ -118,25 +186,84 @@ describe('pageUtils', () => {
     expect(result.freshnessInsetText).toBe('');
   });
 
-  test('fetchPublishedSnapshotContext uses requested snapshot when available', async () => {
-    const { snapshotStateRepository } = jest.requireMock('../../../../main/modules/analytics/shared/repositories');
-    (snapshotStateRepository.fetchSnapshotById as jest.Mock).mockResolvedValue({
+  test('fetchPublishedSnapshotContext uses requested snapshot when it is the current published snapshot', async () => {
+    const { snapshotStateRepository, snapshotBatchesRepository } = jest.requireMock(
+      '../../../../main/modules/analytics/shared/repositories'
+    );
+    (snapshotBatchesRepository.fetchSucceededSnapshotById as jest.Mock).mockResolvedValue({
+      snapshotId: 15,
+    });
+    (snapshotStateRepository.fetchPublishedSnapshot as jest.Mock).mockResolvedValue({
       snapshotId: 15,
       publishedAt: new Date('2026-02-17T10:30:00Z'),
     });
 
     const result = await fetchPublishedSnapshotContext(15);
 
-    expect(snapshotStateRepository.fetchSnapshotById).toHaveBeenCalledWith(15);
-    expect(snapshotStateRepository.fetchPublishedSnapshot).not.toHaveBeenCalled();
+    expect(snapshotBatchesRepository.fetchSucceededSnapshotById).toHaveBeenCalledWith(15);
+    expect(snapshotStateRepository.fetchPublishedSnapshot).toHaveBeenCalledTimes(1);
     expect(result.snapshotId).toBe(15);
     expect(result.snapshotToken).toBe(createSnapshotToken(15));
     expect(result.publishedAt).toEqual(new Date('2026-02-17T10:30:00Z'));
   });
 
+  test('fetchPublishedSnapshotContext skips repository reads when the requested id matches the cached current snapshot', async () => {
+    const { snapshotStateRepository, snapshotBatchesRepository } = jest.requireMock(
+      '../../../../main/modules/analytics/shared/repositories'
+    );
+    const cachedSnapshot = {
+      snapshotId: 17,
+      publishedAt: new Date('2026-02-17T10:40:00Z'),
+    };
+    cacheCurrentPublishedSnapshot(cachedSnapshot);
+
+    const result = await fetchPublishedSnapshotContext(17);
+
+    expect(snapshotBatchesRepository.fetchSucceededSnapshotById).not.toHaveBeenCalled();
+    expect(snapshotStateRepository.fetchPublishedSnapshot).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      snapshotId: 17,
+      snapshotToken: createSnapshotToken(17),
+      publishedAt: new Date('2026-02-17T10:40:00Z'),
+      freshnessInsetText: expect.stringContaining('Data last refreshed:'),
+    });
+  });
+
+  test('fetchPublishedSnapshotContext warms the current snapshot cache when the requested snapshot is current', async () => {
+    const { snapshotStateRepository, snapshotBatchesRepository } = jest.requireMock(
+      '../../../../main/modules/analytics/shared/repositories'
+    );
+    const currentSnapshot = {
+      snapshotId: 18,
+      publishedAt: new Date('2026-02-17T10:50:00Z'),
+    };
+    (snapshotBatchesRepository.fetchSucceededSnapshotById as jest.Mock).mockResolvedValue({ snapshotId: 18 });
+    (snapshotStateRepository.fetchPublishedSnapshot as jest.Mock).mockResolvedValue(currentSnapshot);
+
+    await expect(fetchPublishedSnapshotContext(18)).resolves.toEqual({
+      snapshotId: 18,
+      snapshotToken: createSnapshotToken(18),
+      publishedAt: new Date('2026-02-17T10:50:00Z'),
+      freshnessInsetText: expect.stringContaining('Data last refreshed:'),
+    });
+
+    jest.clearAllMocks();
+
+    await expect(fetchPublishedSnapshotContext(18)).resolves.toEqual({
+      snapshotId: 18,
+      snapshotToken: createSnapshotToken(18),
+      publishedAt: new Date('2026-02-17T10:50:00Z'),
+      freshnessInsetText: expect.stringContaining('Data last refreshed:'),
+    });
+    expect(snapshotBatchesRepository.fetchSucceededSnapshotById).not.toHaveBeenCalled();
+    expect(snapshotStateRepository.fetchPublishedSnapshot).not.toHaveBeenCalled();
+  });
+
   test('fetchPublishedSnapshotContext falls back to current published snapshot when requested id is unavailable', async () => {
-    const { snapshotStateRepository } = jest.requireMock('../../../../main/modules/analytics/shared/repositories');
-    (snapshotStateRepository.fetchSnapshotById as jest.Mock).mockResolvedValue(null);
+    const { snapshotStateRepository, snapshotBatchesRepository } = jest.requireMock(
+      '../../../../main/modules/analytics/shared/repositories'
+    );
+    (snapshotBatchesRepository.fetchSucceededSnapshotById as jest.Mock).mockResolvedValue(null);
     (snapshotStateRepository.fetchPublishedSnapshot as jest.Mock).mockResolvedValue({
       snapshotId: 16,
       publishedAt: new Date('2026-02-17T10:45:00Z'),
@@ -144,17 +271,70 @@ describe('pageUtils', () => {
 
     const result = await fetchPublishedSnapshotContext(999);
 
-    expect(snapshotStateRepository.fetchSnapshotById).toHaveBeenCalledWith(999);
-    expect(snapshotStateRepository.fetchPublishedSnapshot).toHaveBeenCalled();
+    expect(snapshotBatchesRepository.fetchSucceededSnapshotById).toHaveBeenCalledWith(999);
+    expect(snapshotStateRepository.fetchPublishedSnapshot).toHaveBeenCalledTimes(1);
     expect(result.snapshotId).toBe(16);
     expect(result.snapshotToken).toBe(createSnapshotToken(16));
     expect(result.publishedAt).toEqual(new Date('2026-02-17T10:45:00Z'));
+  });
+
+  test('fetchPublishedSnapshotContext does not overwrite the cached current snapshot when an older snapshot is requested', async () => {
+    const { snapshotStateRepository, snapshotBatchesRepository } = jest.requireMock(
+      '../../../../main/modules/analytics/shared/repositories'
+    );
+    cacheCurrentPublishedSnapshot({
+      snapshotId: 19,
+      publishedAt: new Date('2026-02-17T11:00:00Z'),
+    });
+    (snapshotBatchesRepository.fetchSucceededSnapshotById as jest.Mock).mockResolvedValue({ snapshotId: 14 });
+
+    await expect(fetchPublishedSnapshotContext(14)).resolves.toEqual({
+      snapshotId: 14,
+      snapshotToken: createSnapshotToken(14),
+      publishedAt: undefined,
+      freshnessInsetText: 'Data freshness unavailable.',
+    });
+
+    jest.clearAllMocks();
+
+    await expect(fetchPublishedSnapshotContext(19)).resolves.toEqual({
+      snapshotId: 19,
+      snapshotToken: createSnapshotToken(19),
+      publishedAt: new Date('2026-02-17T11:00:00Z'),
+      freshnessInsetText: expect.stringContaining('Data last refreshed:'),
+    });
+    expect(snapshotBatchesRepository.fetchSucceededSnapshotById).not.toHaveBeenCalled();
+    expect(snapshotStateRepository.fetchPublishedSnapshot).not.toHaveBeenCalled();
+  });
+
+  test('fetchPublishedSnapshotContext does not cache the unpublished state', async () => {
+    const { snapshotStateRepository } = jest.requireMock('../../../../main/modules/analytics/shared/repositories');
+    (snapshotStateRepository.fetchPublishedSnapshot as jest.Mock).mockResolvedValueOnce(null).mockResolvedValueOnce({
+      snapshotId: 20,
+      publishedAt: new Date('2026-02-17T11:15:00Z'),
+    });
+
+    await expect(fetchPublishedSnapshotContext()).resolves.toEqual({
+      snapshotId: 0,
+      snapshotToken: '',
+      publishedAt: undefined,
+      freshnessInsetText: '',
+    });
+
+    await expect(fetchPublishedSnapshotContext()).resolves.toEqual({
+      snapshotId: 20,
+      snapshotToken: createSnapshotToken(20),
+      publishedAt: new Date('2026-02-17T11:15:00Z'),
+      freshnessInsetText: expect.stringContaining('Data last refreshed:'),
+    });
+    expect(snapshotStateRepository.fetchPublishedSnapshot).toHaveBeenCalledTimes(2);
   });
 
   test('parseSnapshotTokenInput parses valid signed tokens', () => {
     const token = createSnapshotToken(12);
     expect(parseSnapshotTokenInput(token)).toBe(12);
     expect(parseSnapshotTokenInput([token])).toBe(12);
+    expect(parseSnapshotTokenInput(` ${token} `)).toBe(12);
   });
 
   test('parseSnapshotTokenInput rejects invalid or tampered tokens', () => {
@@ -164,13 +344,16 @@ describe('pageUtils', () => {
     expect(parseSnapshotTokenInput('')).toBeUndefined();
     expect(parseSnapshotTokenInput('abc')).toBeUndefined();
     expect(parseSnapshotTokenInput('12')).toBeUndefined();
-    expect(parseSnapshotTokenInput('12.abc.extra')).toBeUndefined();
+    expect(parseSnapshotTokenInput(`${validToken}.extra`)).toBeUndefined();
     expect(parseSnapshotTokenInput(tamperedToken)).toBeUndefined();
     expect(parseSnapshotTokenInput(undefined)).toBeUndefined();
   });
 
   test('parseSnapshotTokenInput rejects invalid snapshot id parts', () => {
     expect(parseSnapshotTokenInput('abc.signature')).toBeUndefined();
+    const validSignatureForTwelve = createSnapshotToken(12).split('.')[1];
+    expect(parseSnapshotTokenInput(`12abc12.${validSignatureForTwelve}`)).toBeUndefined();
+    expect(parseSnapshotTokenInput(createSnapshotToken(0))).toBeUndefined();
     expect(parseSnapshotTokenInput('9007199254740993.signature')).toBeUndefined();
   });
 
@@ -297,6 +480,7 @@ describe('pageUtils', () => {
     );
     expect(result.filters).toEqual({ service: ['Civil'] });
     expect(result.filterOptions.services).toEqual(['Civil']);
+    expect(result.hadError).toBe(false);
   });
 
   test('fetchFacetedFilterStateWithFallback returns safe defaults on error', async () => {
@@ -319,6 +503,7 @@ describe('pageUtils', () => {
         workTypes: [],
         users: [],
       },
+      hadError: true,
     });
     expect(logDbError).toHaveBeenCalledWith('Faceted failed', expect.any(Error));
   });

@@ -1,4 +1,4 @@
-import { taskFactsRepository } from '../../shared/repositories';
+import { snapshotCompletedDashboardFactsRepository } from '../../shared/repositories';
 import { AnalyticsFilters } from '../../shared/types';
 import { toNumber } from '../../shared/utils';
 import type { AnalyticsQueryOptions } from '../../shared/repositories/filters';
@@ -15,7 +15,12 @@ class CompletedComplianceSummaryService {
     range?: { from?: Date; to?: Date },
     queryOptions?: AnalyticsQueryOptions
   ): Promise<CompletedSummary | null> {
-    const rows = await taskFactsRepository.fetchCompletedSummaryRows(snapshotId, filters, range, queryOptions);
+    const rows = await snapshotCompletedDashboardFactsRepository.fetchCompletedSummaryRows(
+      snapshotId,
+      filters,
+      range,
+      queryOptions
+    );
     if (rows.length === 0) {
       return null;
     }

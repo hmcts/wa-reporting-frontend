@@ -1,11 +1,17 @@
 import config from 'config';
 import { createHmac, timingSafeEqual } from 'crypto';
 
+import {
+  CacheKeys as PublishedSnapshotCacheKeys,
+  getCache as getPublishedSnapshotCache,
+  setCache as setPublishedSnapshotCache,
+} from './cache/publishedSnapshotCache';
 import { emptyOverviewFilterOptions } from './filters';
 import type { AnalyticsFacetScope, FacetFilterKey } from './filters';
 import { buildFreshnessInsetText } from './formatting';
+import type { PublishedSnapshot } from './repositories';
 import type { AnalyticsQueryOptions } from './repositories/filters';
-import { snapshotStateRepository } from './repositories';
+import { snapshotBatchesRepository, snapshotStateRepository } from './repositories';
 import type { AnalyticsFilters } from './types';
 import { type FilterOptions, filterService } from './services';
 import { logDbError, settledValue } from './utils';
@@ -55,15 +61,40 @@ function toUnpublishedSnapshotContext(): PublishedSnapshotContext {
   };
 }
 
+async function fetchCurrentPublishedSnapshot(cachedSnapshot?: PublishedSnapshot): Promise<PublishedSnapshot | null> {
+  if (cachedSnapshot) {
+    return cachedSnapshot;
+  }
+
+  const snapshot = await snapshotStateRepository.fetchPublishedSnapshot();
+  if (snapshot) {
+    setPublishedSnapshotCache(PublishedSnapshotCacheKeys.currentPublishedSnapshot, snapshot);
+  }
+
+  return snapshot;
+}
+
 export async function fetchPublishedSnapshotContext(requestedSnapshotId?: number): Promise<PublishedSnapshotContext> {
+  const cachedCurrentSnapshot = getPublishedSnapshotCache<PublishedSnapshot>(
+    PublishedSnapshotCacheKeys.currentPublishedSnapshot
+  );
+
   if (requestedSnapshotId !== undefined) {
-    const requested = await snapshotStateRepository.fetchSnapshotById(requestedSnapshotId);
+    if (cachedCurrentSnapshot?.snapshotId === requestedSnapshotId) {
+      return toPublishedSnapshotContext(cachedCurrentSnapshot);
+    }
+
+    const requested = await snapshotBatchesRepository.fetchSucceededSnapshotById(requestedSnapshotId);
     if (requested) {
+      const currentSnapshot = await fetchCurrentPublishedSnapshot(cachedCurrentSnapshot);
+      if (currentSnapshot?.snapshotId === requestedSnapshotId) {
+        return toPublishedSnapshotContext(currentSnapshot);
+      }
       return toPublishedSnapshotContext(requested);
     }
   }
 
-  const snapshot = await snapshotStateRepository.fetchPublishedSnapshot();
+  const snapshot = await fetchCurrentPublishedSnapshot(cachedCurrentSnapshot);
   if (!snapshot) {
     return toUnpublishedSnapshotContext();
   }
@@ -136,7 +167,7 @@ export async function fetchFacetedFilterStateWithFallback(params: {
   queryOptions?: AnalyticsQueryOptions;
   changedFilter?: FacetFilterKey;
   includeUserFilter?: boolean;
-}): Promise<{ filters: AnalyticsFilters; filterOptions: FilterOptions }> {
+}): Promise<{ filters: AnalyticsFilters; filterOptions: FilterOptions; hadError: boolean }> {
   const {
     errorMessage,
     snapshotId,
@@ -148,6 +179,7 @@ export async function fetchFacetedFilterStateWithFallback(params: {
   } = params;
   let resolvedFilters = filters;
   let filterOptions = emptyOverviewFilterOptions();
+  let hadError = false;
 
   try {
     const resolved = await filterService.fetchFacetedFilterState(snapshotId, filters, {
@@ -159,10 +191,11 @@ export async function fetchFacetedFilterStateWithFallback(params: {
     resolvedFilters = resolved.filters;
     filterOptions = resolved.filterOptions;
   } catch (error) {
+    hadError = true;
     logDbError(errorMessage, error);
   }
 
-  return { filters: resolvedFilters, filterOptions };
+  return { filters: resolvedFilters, filterOptions, hadError };
 }
 
 export function normaliseDateRange(range?: { from?: Date; to?: Date }): { from?: Date; to?: Date } | undefined {

@@ -9,6 +9,13 @@ module.exports = {
   testEnvironment: 'node',
   testTimeout: 30000,
   transform: {
-    '^.+\\.ts?$': 'ts-jest',
+    '^.+\\.ts?$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.test.json' }],
+    '^.+\\.m?js$': [
+      'babel-jest',
+      {
+        presets: [['@babel/preset-env', { modules: 'commonjs', targets: { node: 'current' } }]],
+      },
+    ],
   },
+  transformIgnorePatterns: ['/node_modules/(?!uuid/)'],
 };

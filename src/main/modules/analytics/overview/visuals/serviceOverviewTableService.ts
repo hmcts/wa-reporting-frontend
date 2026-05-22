@@ -1,4 +1,4 @@
-import { taskFactsRepository } from '../../shared/repositories';
+import { snapshotOpenDueDailyFactsRepository } from '../../shared/repositories';
 import { emptyServiceOverviewRow } from '../../shared/series';
 import { AnalyticsFilters, OverviewResponse, ServiceOverviewRow } from '../../shared/types';
 import { calculatePercent, toNumber } from '../../shared/utils';
@@ -10,7 +10,7 @@ function withAssignedPct(row: ServiceOverviewRow): ServiceOverviewRow {
 
 class ServiceOverviewTableService {
   async fetchServiceOverview(snapshotId: number, filters: AnalyticsFilters): Promise<OverviewResponse> {
-    const rows = await taskFactsRepository.fetchServiceOverviewRows(snapshotId, filters);
+    const rows = await snapshotOpenDueDailyFactsRepository.fetchServiceOverviewRows(snapshotId, filters);
 
     const serviceRows = rows.map(row => {
       const mapped: ServiceOverviewRow = {

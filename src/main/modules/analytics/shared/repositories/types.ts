@@ -177,6 +177,18 @@ export type CompletedByRegionRow = {
   processing_time_days_count: number | null;
 };
 
+export type CompletedRegionLocationAggregateRow = {
+  grouping_type: 'location' | 'region';
+  location: string | null;
+  region: string | null;
+  total: number;
+  within: number;
+  handling_time_days_sum: number | null;
+  handling_time_days_count: number | null;
+  processing_time_days_sum: number | null;
+  processing_time_days_count: number | null;
+};
+
 export type CompletedTaskAuditRow = {
   case_id: string;
   task_name: string | null;

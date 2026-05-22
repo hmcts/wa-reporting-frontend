@@ -3,7 +3,7 @@
 ## Configuration files
 - `config/default.json` defines defaults for all runtime configuration (including local development defaults).
 - `config/custom-environment-variables.yaml` maps config keys to environment variables for overrides.
-- `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` define Key Vault secret names that are injected into the app in non-local environments.
+- `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` define Key Vault secret names that are injected into the app in non-local environments and the optional in-cluster Redis chart used by preview.
 
 ## Configuration flow and precedence
 1. `config/default.json` provides the baseline values (used directly for local development).
@@ -31,6 +31,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 
 ### Analytics
 - `analytics.cacheTtlSeconds`: NodeCache TTL for filter options and reference data.
+- `analytics.publishedSnapshotCacheTtlSeconds`: NodeCache TTL for current published snapshot metadata.
 - `analytics.manageCaseBaseUrl`: base URL used for case links.
 - `analytics.filtersCookieName`: name for filter persistence cookie.
 - `analytics.filtersCookieMaxAgeDays`: cookie lifetime in days.
@@ -53,10 +54,13 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `session.cookie.name`: cookie for OIDC session.
 - `session.appCookie.name`: cookie for app session.
 - `secrets.wa.wa-reporting-redis-host`, `wa-reporting-redis-port`, `wa-reporting-redis-access-key`: Redis connection for session storage.
+- Preview deploys the `hmcts-redis` Helm dependency as standalone, unauthenticated Redis and sets `REDIS_HOST` to `${SERVICE_NAME}-hmcts-redis-master`.
 
 ### Database
 - `database.tm`, `database.crd`, `database.lrd`: PostgreSQL connection details.
-- Supports `url` overrides and `schema` for search_path.
+- The runtime helper supports `database.<prefix>.url` when that config value is present.
+- The checked-in environment-variable mapping exposes `TM_DB_URL` for TM only; CRD and LRD currently use host/port/db/schema/options plus username/password mappings.
+- `schema` is appended to the PostgreSQL `search_path` when the helper builds a URL from host/port/user/password/db details.
 - `secrets.wa.tm-db-user`/`secrets.wa.tm-db-password`: TM database credentials.
 - `secrets.wa.crd-db-user`/`secrets.wa.crd-db-password`: CRD database credentials.
 - `secrets.wa.lrd-db-user`/`secrets.wa.lrd-db-password`: LRD database credentials.
@@ -70,6 +74,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - The analytics schema is managed by Flyway migrations under `db/migrations/tm/`.
 - `db/migrations/tm/V001__init_analytics_schema.sql` is a repository-local copy of the previously deployed HMCTS analytics baseline from `wa-task-management-api` `V1.0.44__init_analytics_schema.sql`.
 - Later repository-owned migrations, including `V002__redesign_analytics_snapshot_schema.sql`, evolve that baseline to the schema expected by this application branch.
+- `db/current-state/tm-analytics-schema.sql` is the rerunnable current-state bootstrap mirror of the TM analytics schema. It is used for local/disposable rebuilds and SQL design review, but it is not the canonical migration history and must stay aligned with the latest Flyway end state.
 - `db/flyway/` contains a minimal Gradle wrapper project used only for Flyway commands (`flywayInfo`, `flywayBaseline`, `flywayValidate`, `flywayMigrate`).
 - The Flyway wrapper is configured with `baselineOnMigrate = true`, `baselineVersion = '001'`, and `baselineDescription = 'init analytics schema'`. On the first `flywayMigrate` against an existing environment with a non-empty `analytics` schema and no history table, Flyway records the local `V001` baseline automatically and then applies later migrations such as `V002`.
 - New empty environments still run `flywayMigrate` directly, but they must already contain the upstream TM source schema expected by `V001`; the analytics migration chain is not a full bootstrap for an otherwise blank Postgres database.
@@ -79,7 +84,10 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 ### Security and logging
 - `useCSRFProtection`.
 - `compression.enabled`: enables/disables HTTP compression middleware (default `false`).
-- `security.referrerPolicy` and HSTS settings.
+- `requestBody.urlencodedLimit`: app-wide `application/x-www-form-urlencoded` body size limit used by Express/body-parser.
+- `requestBody.urlencodedParameterLimit`: app-wide maximum number of URL-encoded form parameters accepted by Express/body-parser.
+- Helmet security-header behavior is defined in `src/main/modules/helmet/index.ts`, not in `config/default.json`.
+- The current wrapper hard-codes `referrerPolicy: origin`, adds `'unsafe-eval'` only in development, and otherwise uses Helmet defaults for HSTS.
 - `logging.prismaQueryTimings`: Prisma query timing log settings.
   - `enabled`: turns Prisma query timing logs on/off.
   - `minDurationMs`: logs only queries with duration at or above this value.
@@ -91,9 +99,13 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 ## Environment variables (selected)
 - `AUTH_ENABLED`
 - `COMPRESSION_ENABLED`
+- `REQUEST_BODY_URLENCODED_LIMIT`
+- `REQUEST_BODY_URLENCODED_PARAMETER_LIMIT`
 - `ANALYTICS_CACHE_TTL_SECONDS`
-- `ANALYTICS_CACHE_WARMUP_ENABLED`
-- `ANALYTICS_CACHE_WARMUP_CRON_EXPRESSION`
+- `ANALYTICS_PUBLISHED_SNAPSHOT_CACHE_TTL_SECONDS`
+- `MANAGE_CASE_BASE_URL`
+- `ANALYTICS_FILTERS_COOKIE_NAME`
+- `ANALYTICS_FILTERS_COOKIE_MAX_AGE_DAYS`
 - `SNAPSHOT_REFRESH_CRON_BOOTSTRAP_ENABLED`
 - `SNAPSHOT_REFRESH_CRON_JOB_NAME`
 - `SNAPSHOT_REFRESH_CRON_SCHEDULE`
@@ -107,7 +119,10 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `APPLICATIONINSIGHTS_CONNECTION_STRING`
 - `IDAM_CLIENT_ID`, `WA_REPORTING_FRONTEND_CLIENT_SECRET`, `IDAM_CLIENT_SCOPE`
 - `IDAM_PUBLIC_URL`, `WA_BASE_URL`
-- `TM_DB_*`, `CRD_DB_*`, `LRD_DB_*`
+- `RBAC_ACCESS`
+- `TM_DB_HOST`, `TM_DB_PORT`, `TM_DB_NAME`, `TM_DB_SCHEMA`, `TM_DB_OPTIONS`, `TM_DB_URL`, `TM_DB_USER`, `TM_DB_PASSWORD`
+- `CRD_DB_HOST`, `CRD_DB_PORT`, `CRD_DB_NAME`, `CRD_DB_SCHEMA`, `CRD_DB_OPTIONS`, `CRD_DB_USER`, `CRD_DB_PASSWORD`
+- `LRD_DB_HOST`, `LRD_DB_PORT`, `LRD_DB_NAME`, `LRD_DB_SCHEMA`, `LRD_DB_OPTIONS`, `LRD_DB_USER`, `LRD_DB_PASSWORD`
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_KEY`
 - `SESSION_SECRET`, `SESSION_COOKIE_NAME`, `SESSION_APP_COOKIE_NAME`
 - `TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME`
@@ -128,27 +143,45 @@ When not in development, `PropertiesVolume` loads Kubernetes secrets into the co
 
 Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` aligned with the secrets consumed by the app. Any new secret must be added in all three places.
 
+## Helm Redis dependency
+- The application chart consumes the HMCTS `hmcts-redis` chart from `oci://hmctsprod.azurecr.io/helm` instead of the Docker Hub Bitnami Redis chart.
+- The dependency remains disabled in shared/default values because persistent environments use Redis connection details from Key Vault.
+- Preview enables the dependency with `architecture: standalone`, `auth.enabled: false`, disabled persistence, disabled Sentinel, and disabled metrics so session storage is local to the preview release.
+
 ## Build and runtime
 
 ### Package management
 - The repository uses the Yarn release declared by `package.json` `packageManager`.
 - `package.json` may include top-level `resolutions` for transitive packages when upstream dependency ranges do not yet converge on the required version.
-- Dependency upgrades should review each top-level resolution and remove any override that no longer changes the resolved dependency graph.
+- Dependency upgrades should review each top-level resolution and remove any override that no longer changes the resolved dependency graph or production audit outcome.
 
 ### Build
-- `yarn build` builds frontend assets via webpack.
+- `yarn build` builds frontend assets via webpack only. It does not compile the server TypeScript entrypoint.
 - `yarn build:watch` rebuilds frontend assets continuously via webpack watch mode.
 - `yarn build:server` compiles server TypeScript to `dist/`.
-- `yarn build:prod` builds assets and copies views/public into `dist/main`.
+- `yarn build:prod` builds production frontend assets and copies views/public into `dist/main`. It does not compile the server by itself.
 - `db/flyway/gradlew` runs repository-owned Flyway commands for the TM analytics schema.
 - `yarn bootstrap:tm-schema-permissions` runs the rerunnable TM analytics schema grants bootstrap.
 
 ### Run
-- `yarn start` runs the compiled server from `dist/main/server.js`.
+- `yarn start` runs the compiled server from `dist/main/server.js` and requires both `yarn build:server` and `yarn build:prod` to have been run first.
 - `yarn start:dev` runs via nodemon with webpack dev middleware.
-- For local frontend iteration, run `yarn build:watch` and `yarn start:dev` in separate terminals to keep on-disk bundles current while developing.
+- For local frontend iteration, `yarn start:dev` is enough to serve the in-memory webpack bundles. Run `yarn build:watch` as well only if you need the on-disk bundles refreshed continuously.
 - Default port is 3100 (configurable via `PORT`).
 - Express trusts one proxy hop (`trust proxy = 1`) to support AKS/ingress `X-Forwarded-For` headers.
+
+### CI and verification
+- `package.json` `cichecks` currently runs:
+  - `yarn install`
+  - `yarn build`
+  - `yarn rebuild puppeteer`
+  - `yarn lint`
+  - `yarn test`
+  - `yarn test:routes`
+  - `yarn test:a11y`
+- In the current scripts, `yarn test` is a wrapper: outside CI it delegates to `yarn test:unit`, and when `CI=true` it exits early instead of running Jest.
+- The checked-in Jenkins pipeline currently runs `playwright install`, `rebuild puppeteer`, and `build` in the build stage, then `test:routes` in a later post-test step.
+- Neither `cichecks` nor the checked-in Jenkins build stage currently runs `yarn build:server`.
 
 ### Health and info endpoints
 - `/health` returns liveness and readiness checks.

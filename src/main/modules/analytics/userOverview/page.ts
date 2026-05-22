@@ -9,11 +9,22 @@ import {
 import { getCappedTotalPages, normalisePage } from '../shared/pagination';
 import { priorityLabelFromRank } from '../shared/priority/priorityRankSql';
 import type { AnalyticsQueryOptions } from '../shared/repositories';
-import { UserOverviewTaskRow, taskFactsRepository, taskThinRepository } from '../shared/repositories';
+import {
+  type UserOverviewTaskRow,
+  snapshotCompletedTaskRowsRepository,
+  snapshotOpenDueDailyFactsRepository,
+  snapshotOpenTaskRowsRepository,
+  snapshotUserCompletedFactsRepository,
+} from '../shared/repositories';
 import { caseWorkerProfileService, courtVenueService } from '../shared/services';
 import { PrioritySummary } from '../shared/types';
 import { AnalyticsFilters, Task, TaskStatus } from '../shared/types';
 import { UserOverviewSort } from '../shared/userOverviewSort';
+import {
+  type AnalyticsSectionErrors,
+  FILTERS_UNAVAILABLE_MESSAGE,
+  SECTION_DATA_UNAVAILABLE_MESSAGE,
+} from '../shared/viewModels/sectionErrors';
 
 import { USER_OVERVIEW_PAGE_SIZE } from './pagination';
 import { CompletedByDatePoint, UserOverviewMetrics } from './service';
@@ -24,6 +35,7 @@ type UserOverviewPageViewModel = ReturnType<typeof buildUserOverviewViewModel>;
 
 const userOverviewSections = [
   'user-overview-assigned',
+  'user-overview-completed-overview',
   'user-overview-completed',
   'user-overview-completed-by-date',
   'user-overview-completed-by-task-name',
@@ -32,9 +44,11 @@ const userOverviewSections = [
 ] as const;
 
 type UserOverviewAjaxSection = (typeof userOverviewSections)[number];
+type UserOverviewSectionKey = UserOverviewAjaxSection | 'shared-filters';
 
 const deferredSections = new Set<UserOverviewAjaxSection>([
   'user-overview-assigned',
+  'user-overview-completed-overview',
   'user-overview-completed',
   'user-overview-completed-by-date',
   'user-overview-completed-by-task-name',
@@ -101,38 +115,105 @@ export async function buildUserOverviewPage(
 ): Promise<UserOverviewPageViewModel> {
   const snapshotContext = await fetchPublishedSnapshotContext(requestedSnapshotId);
   const requestedSection = resolveUserOverviewSection(ajaxSection);
+  const sectionErrors: AnalyticsSectionErrors<UserOverviewSectionKey> = {};
   const shouldFetchAssigned = shouldFetchSection(requestedSection, 'user-overview-assigned');
-  const shouldFetchCompleted = shouldFetchSection(requestedSection, 'user-overview-completed');
-  const shouldFetchCompletedByDate = shouldFetchSection(requestedSection, 'user-overview-completed-by-date');
+  const shouldFetchCompletedOverview = shouldFetchSection(requestedSection, 'user-overview-completed-overview');
+  const shouldFetchCompleted =
+    shouldFetchCompletedOverview || shouldFetchSection(requestedSection, 'user-overview-completed');
+  const shouldFetchCompletedByDate =
+    shouldFetchCompletedOverview || shouldFetchSection(requestedSection, 'user-overview-completed-by-date');
   const shouldFetchCompletedByTaskName = shouldFetchSection(requestedSection, 'user-overview-completed-by-task-name');
-  const [assignedSummaryResult, completedCountResult] = await Promise.allSettled([
+  const [assignedSummaryResult, completedSummarySeedResult, completedByDateSeedResult] = await Promise.allSettled([
     shouldFetchAssigned
-      ? taskFactsRepository.fetchUserOverviewAssignedSummaryRows(
+      ? filters.user && filters.user.length > 0
+        ? snapshotOpenTaskRowsRepository.fetchAssignedSummaryRows(
+            snapshotContext.snapshotId,
+            filters,
+            USER_OVERVIEW_QUERY_OPTIONS
+          )
+        : snapshotOpenDueDailyFactsRepository.fetchAssignedSummaryRows(
+            snapshotContext.snapshotId,
+            filters,
+            USER_OVERVIEW_QUERY_OPTIONS
+          )
+      : Promise.resolve([]),
+    shouldFetchCompleted && !shouldFetchCompletedOverview
+      ? snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedSummaryRows(
           snapshotContext.snapshotId,
           filters,
           USER_OVERVIEW_QUERY_OPTIONS
         )
       : Promise.resolve([]),
-    shouldFetchCompleted
-      ? taskFactsRepository.fetchUserOverviewCompletedTaskCount(
+    shouldFetchCompletedByDate
+      ? snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedByDateRows(
           snapshotContext.snapshotId,
           filters,
           USER_OVERVIEW_QUERY_OPTIONS
         )
-      : Promise.resolve(0),
+      : Promise.resolve([]),
   ]);
   const assignedSummaryRows = settledValueWithFallback(
     assignedSummaryResult,
     'Failed to fetch user overview assigned summary from database',
     []
   );
+  if (assignedSummaryResult.status === 'rejected') {
+    sectionErrors['user-overview-assigned'] = { message: SECTION_DATA_UNAVAILABLE_MESSAGE };
+  }
   const assignedSummary = assignedSummaryRows[0];
   const assignedTotalResults = assignedSummary?.total ?? 0;
-  const completedTotalResults = settledValueWithFallback(
-    completedCountResult,
-    'Failed to fetch user overview completed tasks count from database',
-    0
+  let completedSummaryRows = settledValueWithFallback(
+    completedSummarySeedResult,
+    'Failed to fetch user overview completed summary from database',
+    []
   );
+  if (completedSummarySeedResult.status === 'rejected') {
+    sectionErrors['user-overview-completed'] = { message: SECTION_DATA_UNAVAILABLE_MESSAGE };
+  }
+  const completedByDateRows = settledArrayWithFallback(
+    completedByDateSeedResult,
+    'Failed to fetch user overview completed by date rows from database',
+    []
+  );
+  if (completedByDateSeedResult.status === 'rejected') {
+    sectionErrors['user-overview-completed-by-date'] = { message: SECTION_DATA_UNAVAILABLE_MESSAGE };
+  }
+  const completedByDate: CompletedByDatePoint[] = completedByDateRows.map(row => ({
+    date: row.date_key,
+    tasks: row.tasks,
+    withinDue: row.within_due,
+    beyondDue: row.beyond_due,
+    handlingTimeSum: row.handling_time_sum ?? 0,
+    handlingTimeCount: row.handling_time_count,
+  }));
+  const completedByDateTotals = completedByDate.reduce(
+    (acc, row) => ({
+      tasks: acc.tasks + row.tasks,
+      withinDue: acc.withinDue + row.withinDue,
+    }),
+    { tasks: 0, withinDue: 0 }
+  );
+  if (shouldFetchCompletedOverview && completedByDateSeedResult.status === 'rejected') {
+    const completedSummaryFallbackResult = await Promise.allSettled([
+      snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedSummaryRows(
+        snapshotContext.snapshotId,
+        filters,
+        USER_OVERVIEW_QUERY_OPTIONS
+      ),
+    ]);
+    completedSummaryRows = settledValueWithFallback(
+      completedSummaryFallbackResult[0],
+      'Failed to fetch user overview completed summary from database',
+      []
+    );
+    if (completedSummaryFallbackResult[0].status === 'rejected') {
+      sectionErrors['user-overview-completed'] = { message: SECTION_DATA_UNAVAILABLE_MESSAGE };
+    }
+  }
+  const completedSummary = completedSummaryRows[0];
+  const completedTotalResults = shouldFetchCompletedOverview
+    ? (completedSummary?.total ?? completedByDateTotals.tasks)
+    : (completedSummary?.total ?? 0);
   const assignedTotalPages = getCappedTotalPages(assignedTotalResults, USER_OVERVIEW_PAGE_SIZE);
   const completedTotalPages = getCappedTotalPages(completedTotalResults, USER_OVERVIEW_PAGE_SIZE);
   const resolvedAssignedPage = normalisePage(assignedPage, assignedTotalPages);
@@ -140,14 +221,12 @@ export async function buildUserOverviewPage(
   const [
     assignedResult,
     completedResult,
-    completedByDateResult,
     completedByTaskNameResult,
-    completedComplianceResult,
     locationDescriptionsResult,
     caseWorkerNamesResult,
   ] = await Promise.allSettled([
     shouldFetchAssigned
-      ? taskThinRepository.fetchUserOverviewAssignedTaskRows(
+      ? snapshotOpenTaskRowsRepository.fetchUserOverviewAssignedTaskRows(
           snapshotContext.snapshotId,
           filters,
           sort.assigned,
@@ -159,7 +238,7 @@ export async function buildUserOverviewPage(
         )
       : Promise.resolve([]),
     shouldFetchCompleted
-      ? taskThinRepository.fetchUserOverviewCompletedTaskRows(
+      ? snapshotCompletedTaskRowsRepository.fetchUserOverviewCompletedTaskRows(
           snapshotContext.snapshotId,
           filters,
           sort.completed,
@@ -170,22 +249,8 @@ export async function buildUserOverviewPage(
           USER_OVERVIEW_QUERY_OPTIONS
         )
       : Promise.resolve([]),
-    shouldFetchCompletedByDate
-      ? taskThinRepository.fetchUserOverviewCompletedByDateRows(
-          snapshotContext.snapshotId,
-          filters,
-          USER_OVERVIEW_QUERY_OPTIONS
-        )
-      : Promise.resolve([]),
     shouldFetchCompletedByTaskName
-      ? taskThinRepository.fetchUserOverviewCompletedByTaskNameRows(
-          snapshotContext.snapshotId,
-          filters,
-          USER_OVERVIEW_QUERY_OPTIONS
-        )
-      : Promise.resolve([]),
-    shouldFetchCompleted
-      ? taskFactsRepository.fetchUserOverviewCompletedSummaryRows(
+      ? snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedByTaskNameRows(
           snapshotContext.snapshotId,
           filters,
           USER_OVERVIEW_QUERY_OPTIONS
@@ -201,26 +266,25 @@ export async function buildUserOverviewPage(
     'Failed to fetch user overview assigned tasks from database',
     []
   );
+  if (assignedResult.status === 'rejected') {
+    sectionErrors['user-overview-assigned'] = { message: SECTION_DATA_UNAVAILABLE_MESSAGE };
+  }
   const completedRows = settledArrayWithFallback(
     completedResult,
     'Failed to fetch user overview completed tasks from database',
     []
   );
-  const completedByDateRows = settledArrayWithFallback(
-    completedByDateResult,
-    'Failed to fetch user overview completed by date rows from database',
-    []
-  );
+  if (completedResult.status === 'rejected') {
+    sectionErrors['user-overview-completed'] = { message: SECTION_DATA_UNAVAILABLE_MESSAGE };
+  }
   const completedByTaskNameRows = settledArrayWithFallback(
     completedByTaskNameResult,
     'Failed to fetch user overview completed by task name rows from database',
     []
   );
-  const completedSummaryRows = settledValueWithFallback(
-    completedComplianceResult,
-    'Failed to fetch user overview completed summary from database',
-    []
-  );
+  if (completedByTaskNameResult.status === 'rejected') {
+    sectionErrors['user-overview-completed-by-task-name'] = { message: SECTION_DATA_UNAVAILABLE_MESSAGE };
+  }
   const locationDescriptions = settledValueWithFallback(
     locationDescriptionsResult,
     'Failed to fetch court venue descriptions from database',
@@ -241,7 +305,7 @@ export async function buildUserOverviewPage(
   }));
   const allTasks = shouldFetchAssigned ? [...assignedTasks, ...completedTasks] : completedTasks;
   const facetedFilterState = requestedSection
-    ? { filters, filterOptions: emptyOverviewFilterOptions() }
+    ? { filters, filterOptions: emptyOverviewFilterOptions(), hadError: false }
     : await fetchFacetedFilterStateWithFallback({
         errorMessage: 'Failed to fetch user overview filter options from database',
         snapshotId: snapshotContext.snapshotId,
@@ -251,17 +315,11 @@ export async function buildUserOverviewPage(
         changedFilter,
         includeUserFilter: true,
       });
+  if (facetedFilterState.hadError) {
+    sectionErrors['shared-filters'] = { message: FILTERS_UNAVAILABLE_MESSAGE };
+  }
   const resolvedFilters = facetedFilterState.filters;
   const filterOptions = facetedFilterState.filterOptions;
-
-  const completedByDate: CompletedByDatePoint[] = completedByDateRows.map(row => ({
-    date: row.date_key,
-    tasks: row.tasks,
-    withinDue: row.within_due,
-    beyondDue: row.beyond_due,
-    handlingTimeSum: row.handling_time_sum ?? 0,
-    handlingTimeCount: row.handling_time_count,
-  }));
   const completedByTaskName: CompletedByTaskNameAggregate[] = completedByTaskNameRows.map(row => ({
     taskName: row.task_name ?? 'Unknown',
     tasks: row.tasks,
@@ -270,14 +328,6 @@ export async function buildUserOverviewPage(
     daysBeyondSum: row.days_beyond_sum ?? 0,
     daysBeyondCount: row.days_beyond_count,
   }));
-  const completedByDateTotals = completedByDate.reduce(
-    (acc, row) => ({
-      tasks: acc.tasks + row.tasks,
-      withinDue: acc.withinDue + row.withinDue,
-    }),
-    { tasks: 0, withinDue: 0 }
-  );
-  const completedSummary = completedSummaryRows[0];
   const completedComplianceSummary = {
     total: completedSummary?.total ?? completedByDateTotals.tasks,
     withinDueYes: completedSummary?.within ?? completedByDateTotals.withinDue,
@@ -347,5 +397,6 @@ export async function buildUserOverviewPage(
     assignedPage: resolvedAssignedPage,
     completedPage: resolvedCompletedPage,
     freshnessInsetText: snapshotContext.freshnessInsetText,
+    sectionErrors,
   });
 }

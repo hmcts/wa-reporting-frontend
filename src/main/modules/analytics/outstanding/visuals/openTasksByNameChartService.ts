@@ -1,4 +1,4 @@
-import { OpenTasksByNameRow, taskFactsRepository } from '../../shared/repositories';
+import { OpenTasksByNameRow, snapshotOpenDueDailyFactsRepository } from '../../shared/repositories';
 import { sortPriorityBreakdowns } from '../../shared/sorting';
 import { AnalyticsFilters, PriorityBreakdown } from '../../shared/types';
 import { normaliseLabel, toNumber } from '../../shared/utils';
@@ -23,7 +23,10 @@ export interface OpenTasksByNameResult {
 
 class OpenTasksByNameChartService {
   async fetchOpenTasksByName(snapshotId: number, filters: AnalyticsFilters): Promise<OpenTasksByNameResult> {
-    const rows: OpenTasksByNameRow[] = await taskFactsRepository.fetchOpenTasksByNameRows(snapshotId, filters);
+    const rows: OpenTasksByNameRow[] = await snapshotOpenDueDailyFactsRepository.fetchOpenTasksByNameRows(
+      snapshotId,
+      filters
+    );
     const breakdown = sortPriorityBreakdowns(
       rows.map(row => ({
         name: normaliseLabel(row.task_name, 'Unknown task'),

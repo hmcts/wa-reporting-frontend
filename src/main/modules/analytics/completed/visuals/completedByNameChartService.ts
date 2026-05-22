@@ -1,4 +1,4 @@
-import { taskFactsRepository } from '../../shared/repositories';
+import { snapshotCompletedDashboardFactsRepository } from '../../shared/repositories';
 import { sortByTotalThenName } from '../../shared/sorting';
 import { AnalyticsFilters, CompletedByName } from '../../shared/types';
 import { normaliseLabel, toNumber } from '../../shared/utils';
@@ -9,7 +9,7 @@ class CompletedByNameChartService {
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedByName[]> {
-    const rows = await taskFactsRepository.fetchCompletedByNameRows(snapshotId, filters, range);
+    const rows = await snapshotCompletedDashboardFactsRepository.fetchCompletedByNameRows(snapshotId, filters, range);
 
     const mapped = rows.map(row => {
       const tasks = toNumber(row.total);

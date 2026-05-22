@@ -1,167 +1,4 @@
-CREATE SCHEMA IF NOT EXISTS analytics;
-
--- ============================================================================
--- Multi-snapshot full-rebuild analytics model with immutable snapshot reads.
--- This script is intentionally rerunnable from scratch via explicit drops.
--- ============================================================================
-
-DROP PROCEDURE IF EXISTS analytics.run_snapshot_refresh_batch(BOOLEAN);
-DROP PROCEDURE IF EXISTS analytics.run_snapshot_refresh_batch();
-DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facts(BIGINT);
-DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facts_from_tables(
-  BIGINT,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS
-);
-DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facts_from_tables(
-  BIGINT,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS,
-  REGCLASS
-);
-DROP PROCEDURE IF EXISTS analytics.cleanup_snapshot_partitions(BIGINT);
-DROP PROCEDURE IF EXISTS analytics.cleanup_snapshot_retention();
-DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facet_facts(BIGINT);
-
--- Snapshot tables
-DROP TABLE IF EXISTS analytics.snapshot_task_rows CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_filter_facet_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_user_filter_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_completed_filter_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_outstanding_filter_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_overview_filter_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_wait_time_by_assigned_date CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_task_event_daily_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_open_due_daily_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_task_daily_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_user_completed_facts CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_completed_task_rows CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_open_task_rows CASCADE;
-
--- Metadata/state
-DROP TABLE IF EXISTS analytics.snapshot_state CASCADE;
-DROP TABLE IF EXISTS analytics.snapshot_batches CASCADE;
-DROP SEQUENCE IF EXISTS analytics.snapshot_id_seq;
-
--- Snapshot metadata
-CREATE SEQUENCE analytics.snapshot_id_seq;
-
-CREATE TABLE analytics.snapshot_batches (
-  snapshot_id BIGINT PRIMARY KEY,
-  started_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
-  completed_at TIMESTAMPTZ,
-  status TEXT NOT NULL CHECK (status IN ('running', 'succeeded', 'failed')),
-  error_message TEXT
-);
-
-CREATE TABLE analytics.snapshot_state (
-  -- Single-row control table: tracks current publish pointer.
-  singleton_id BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (singleton_id),
-  published_snapshot_id BIGINT REFERENCES analytics.snapshot_batches(snapshot_id),
-  published_at TIMESTAMPTZ,
-  in_progress_snapshot_id BIGINT REFERENCES analytics.snapshot_batches(snapshot_id)
-);
-
-INSERT INTO analytics.snapshot_state (singleton_id) VALUES (TRUE);
-
--- Snapshot data tables (immutable rows keyed by snapshot_id).
-CREATE TABLE analytics.snapshot_open_task_rows (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  task_id TEXT NOT NULL,
-  case_id TEXT,
-  task_name TEXT,
-  case_type_label TEXT,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  work_type TEXT,
-  state TEXT NOT NULL,
-  created_date DATE,
-  first_assigned_date DATE,
-  due_date DATE,
-  major_priority INTEGER,
-  assignee TEXT,
-  number_of_reassignments INTEGER NOT NULL DEFAULT 0
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_completed_task_rows (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  task_id TEXT NOT NULL,
-  case_id TEXT,
-  task_name TEXT,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  work_type TEXT,
-  created_date DATE,
-  first_assigned_date DATE,
-  due_date DATE,
-  completed_date DATE,
-  handling_time_days DOUBLE PRECISION,
-  is_within_sla TEXT,
-  termination_process_label TEXT,
-  outcome TEXT,
-  major_priority INTEGER,
-  assignee TEXT,
-  number_of_reassignments INTEGER NOT NULL DEFAULT 0,
-  within_due_sort_value SMALLINT
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_user_completed_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  assignee TEXT,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  completed_date DATE,
-  tasks INTEGER NOT NULL,
-  within_due INTEGER NOT NULL,
-  beyond_due INTEGER NOT NULL,
-  handling_time_sum NUMERIC NOT NULL,
-  handling_time_count INTEGER NOT NULL,
-  days_beyond_sum NUMERIC NOT NULL,
-  days_beyond_count INTEGER NOT NULL
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_task_daily_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  date_role TEXT NOT NULL,
-  reference_date DATE,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  priority BIGINT,
-  task_status TEXT NOT NULL,
-  assignment_state TEXT,
-  sla_flag BOOLEAN,
-  handling_time_days_sum NUMERIC NOT NULL,
-  handling_time_days_sum_squares NUMERIC NOT NULL,
-  handling_time_days_count BIGINT NOT NULL,
-  processing_time_days_sum NUMERIC NOT NULL,
-  processing_time_days_sum_squares NUMERIC NOT NULL,
-  processing_time_days_count BIGINT NOT NULL,
-  task_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_open_due_daily_facts (
+CREATE TABLE IF NOT EXISTS analytics.snapshot_outstanding_due_status_daily_facts (
   snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
   due_date DATE NOT NULL,
   jurisdiction_label TEXT,
@@ -170,87 +7,79 @@ CREATE TABLE analytics.snapshot_open_due_daily_facts (
   location TEXT,
   task_name TEXT,
   work_type TEXT,
-  priority BIGINT NOT NULL,
-  assignment_state TEXT NOT NULL,
+  open_task_count BIGINT NOT NULL,
+  completed_task_count BIGINT NOT NULL
+) PARTITION BY LIST (snapshot_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_snapshot_outstanding_due_status_facts_key
+  ON ONLY analytics.snapshot_outstanding_due_status_daily_facts(
+    snapshot_id,
+    due_date,
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    work_type
+  );
+
+CREATE INDEX IF NOT EXISTS ix_snapshot_outstanding_due_status_facts_due_date
+  ON ONLY analytics.snapshot_outstanding_due_status_daily_facts(snapshot_id, due_date)
+  INCLUDE (open_task_count, completed_task_count);
+
+CREATE INDEX IF NOT EXISTS ix_snapshot_outstanding_due_status_facts_slicers
+  ON ONLY analytics.snapshot_outstanding_due_status_daily_facts(
+    snapshot_id,
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    work_type
+  );
+
+CREATE TABLE IF NOT EXISTS analytics.snapshot_outstanding_created_assignment_daily_facts (
+  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
+  reference_date DATE NOT NULL,
+  jurisdiction_label TEXT,
+  role_category_label TEXT,
+  region TEXT,
+  location TEXT,
+  task_name TEXT,
+  work_type TEXT,
+  assignment_state TEXT,
   task_count BIGINT NOT NULL
 ) PARTITION BY LIST (snapshot_id);
 
-CREATE TABLE analytics.snapshot_task_event_daily_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  event_date DATE NOT NULL,
-  event_type TEXT NOT NULL CHECK (event_type IN ('created', 'completed', 'cancelled')),
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  task_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_snapshot_outstanding_created_assignment_facts_key
+  ON ONLY analytics.snapshot_outstanding_created_assignment_daily_facts(
+    snapshot_id,
+    reference_date,
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    work_type,
+    assignment_state
+  );
 
-CREATE TABLE analytics.snapshot_wait_time_by_assigned_date (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  reference_date DATE,
-  total_wait_time_days_sum NUMERIC NOT NULL,
-  assigned_task_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
+CREATE INDEX IF NOT EXISTS ix_snapshot_outstanding_created_assignment_facts_ref_date
+  ON ONLY analytics.snapshot_outstanding_created_assignment_daily_facts(snapshot_id, reference_date);
 
-CREATE TABLE analytics.snapshot_overview_filter_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  row_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
+CREATE INDEX IF NOT EXISTS ix_snapshot_outstanding_created_assignment_facts_slicers
+  ON ONLY analytics.snapshot_outstanding_created_assignment_daily_facts(
+    snapshot_id,
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    work_type,
+    assignment_state
+  );
 
-CREATE TABLE analytics.snapshot_outstanding_filter_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  row_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_completed_filter_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  row_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
-
-CREATE TABLE analytics.snapshot_user_filter_facts (
-  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
-  jurisdiction_label TEXT,
-  role_category_label TEXT,
-  region TEXT,
-  location TEXT,
-  task_name TEXT,
-  work_type TEXT,
-  assignee TEXT,
-  row_count BIGINT NOT NULL
-) PARTITION BY LIST (snapshot_id);
-
--- Build analytics snapshots in detached tables, then publish in a short
--- attach transaction so parent-table reads continue during refresh.
-
-DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facts(BIGINT);
-DROP FUNCTION IF EXISTS analytics.snapshot_partition_catalog(BIGINT);
+DROP TABLE IF EXISTS analytics.snapshot_task_daily_facts CASCADE;
 
 CREATE OR REPLACE FUNCTION analytics.snapshot_partition_catalog(p_snapshot_id BIGINT)
 RETURNS TABLE (
@@ -268,7 +97,9 @@ AS $$
       'snapshot_open_task_rows',
       'snapshot_completed_task_rows',
       'snapshot_user_completed_facts',
-      'snapshot_task_daily_facts',
+      'snapshot_completed_dashboard_facts',
+      'snapshot_outstanding_due_status_daily_facts',
+      'snapshot_outstanding_created_assignment_daily_facts',
       'snapshot_open_due_daily_facts',
       'snapshot_task_event_daily_facts',
       'snapshot_wait_time_by_assigned_date',
@@ -281,333 +112,9 @@ AS $$
   ORDER BY ord;
 $$;
 
--- Internal helper for run_snapshot_refresh_batch(); the target tables are
--- newly created detached tables, so this procedure only inserts rows.
-CREATE OR REPLACE PROCEDURE analytics.refresh_snapshot_filter_facts_from_tables(
-  p_snapshot_id BIGINT,
-  p_open_due_table REGCLASS,
-  p_task_event_table REGCLASS,
-  p_open_task_rows_table REGCLASS,
-  p_completed_task_rows_table REGCLASS,
-  p_overview_filter_table REGCLASS,
-  p_outstanding_filter_table REGCLASS,
-  p_completed_filter_table REGCLASS,
-  p_user_filter_table REGCLASS
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  EXECUTE format(
-    $overview_filter$
-    INSERT INTO %s (
-      snapshot_id,
-      jurisdiction_label,
-      role_category_label,
-      region,
-      location,
-      task_name,
-      work_type,
-      row_count
-    )
-    SELECT
-      $1,
-      NULLIF(BTRIM(jurisdiction_label), '') AS jurisdiction_label,
-      NULLIF(BTRIM(role_category_label), '') AS role_category_label,
-      NULLIF(BTRIM(region), '') AS region,
-      NULLIF(BTRIM(location), '') AS location,
-      NULLIF(BTRIM(task_name), '') AS task_name,
-      NULLIF(BTRIM(work_type), '') AS work_type,
-      SUM(task_count)::BIGINT AS row_count
-    FROM (
-      SELECT
-        jurisdiction_label,
-        role_category_label,
-        region,
-        location,
-        task_name,
-        work_type,
-        task_count
-      FROM %s
-      WHERE snapshot_id = $1
-
-      UNION ALL
-
-      SELECT
-        jurisdiction_label,
-        role_category_label,
-        region,
-        location,
-        task_name,
-        work_type,
-        task_count
-      FROM %s
-      WHERE snapshot_id = $1
-    ) overview_scope
-    GROUP BY
-      NULLIF(BTRIM(jurisdiction_label), ''),
-      NULLIF(BTRIM(role_category_label), ''),
-      NULLIF(BTRIM(region), ''),
-      NULLIF(BTRIM(location), ''),
-      NULLIF(BTRIM(task_name), ''),
-      NULLIF(BTRIM(work_type), '')
-    $overview_filter$,
-    p_overview_filter_table,
-    p_open_due_table,
-    p_task_event_table
-  )
-  USING p_snapshot_id;
-
-  EXECUTE format(
-    $outstanding_filter$
-    INSERT INTO %s (
-      snapshot_id,
-      jurisdiction_label,
-      role_category_label,
-      region,
-      location,
-      task_name,
-      work_type,
-      row_count
-    )
-    SELECT
-      $1,
-      NULLIF(BTRIM(jurisdiction_label), '') AS jurisdiction_label,
-      NULLIF(BTRIM(role_category_label), '') AS role_category_label,
-      NULLIF(BTRIM(region), '') AS region,
-      NULLIF(BTRIM(location), '') AS location,
-      NULLIF(BTRIM(task_name), '') AS task_name,
-      NULLIF(BTRIM(work_type), '') AS work_type,
-      COUNT(*)::BIGINT AS row_count
-    FROM %s
-    WHERE snapshot_id = $1
-    GROUP BY
-      NULLIF(BTRIM(jurisdiction_label), ''),
-      NULLIF(BTRIM(role_category_label), ''),
-      NULLIF(BTRIM(region), ''),
-      NULLIF(BTRIM(location), ''),
-      NULLIF(BTRIM(task_name), ''),
-      NULLIF(BTRIM(work_type), '')
-    $outstanding_filter$,
-    p_outstanding_filter_table,
-    p_open_task_rows_table
-  )
-  USING p_snapshot_id;
-
-  EXECUTE format(
-    $completed_filter$
-    INSERT INTO %s (
-      snapshot_id,
-      jurisdiction_label,
-      role_category_label,
-      region,
-      location,
-      task_name,
-      work_type,
-      row_count
-    )
-    SELECT
-      $1,
-      NULLIF(BTRIM(jurisdiction_label), '') AS jurisdiction_label,
-      NULLIF(BTRIM(role_category_label), '') AS role_category_label,
-      NULLIF(BTRIM(region), '') AS region,
-      NULLIF(BTRIM(location), '') AS location,
-      NULLIF(BTRIM(task_name), '') AS task_name,
-      NULLIF(BTRIM(work_type), '') AS work_type,
-      COUNT(*)::BIGINT AS row_count
-    FROM %s
-    WHERE snapshot_id = $1
-    GROUP BY
-      NULLIF(BTRIM(jurisdiction_label), ''),
-      NULLIF(BTRIM(role_category_label), ''),
-      NULLIF(BTRIM(region), ''),
-      NULLIF(BTRIM(location), ''),
-      NULLIF(BTRIM(task_name), ''),
-      NULLIF(BTRIM(work_type), '')
-    $completed_filter$,
-    p_completed_filter_table,
-    p_completed_task_rows_table
-  )
-  USING p_snapshot_id;
-
-  EXECUTE format(
-    $user_filter$
-    INSERT INTO %s (
-      snapshot_id,
-      jurisdiction_label,
-      role_category_label,
-      region,
-      location,
-      task_name,
-      work_type,
-      assignee,
-      row_count
-    )
-    SELECT
-      $1,
-      NULLIF(BTRIM(jurisdiction_label), '') AS jurisdiction_label,
-      NULLIF(BTRIM(role_category_label), '') AS role_category_label,
-      NULLIF(BTRIM(region), '') AS region,
-      NULLIF(BTRIM(location), '') AS location,
-      NULLIF(BTRIM(task_name), '') AS task_name,
-      NULLIF(BTRIM(work_type), '') AS work_type,
-      NULLIF(BTRIM(assignee), '') AS assignee,
-      COUNT(*)::BIGINT AS row_count
-    FROM (
-      SELECT
-        jurisdiction_label,
-        role_category_label,
-        region,
-        location,
-        task_name,
-        work_type,
-        assignee
-      FROM %s
-      WHERE snapshot_id = $1
-        AND state = 'ASSIGNED'
-        AND (role_category_label IS NULL OR UPPER(role_category_label) <> 'JUDICIAL')
-
-      UNION ALL
-
-      SELECT
-        jurisdiction_label,
-        role_category_label,
-        region,
-        location,
-        task_name,
-        work_type,
-        assignee
-      FROM %s
-      WHERE snapshot_id = $1
-        AND (role_category_label IS NULL OR UPPER(role_category_label) <> 'JUDICIAL')
-    ) user_scope
-    GROUP BY
-      NULLIF(BTRIM(jurisdiction_label), ''),
-      NULLIF(BTRIM(role_category_label), ''),
-      NULLIF(BTRIM(region), ''),
-      NULLIF(BTRIM(location), ''),
-      NULLIF(BTRIM(task_name), ''),
-      NULLIF(BTRIM(work_type), ''),
-      NULLIF(BTRIM(assignee), '')
-    $user_filter$,
-    p_user_filter_table,
-    p_open_task_rows_table,
-    p_completed_task_rows_table
-  )
-  USING p_snapshot_id;
-END;
-$$;
-
-CREATE OR REPLACE PROCEDURE analytics.cleanup_snapshot_partitions(p_snapshot_id BIGINT)
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  v_partition RECORD;
-  v_child_table REGCLASS;
-BEGIN
-  BEGIN
-    PERFORM set_config('lock_timeout', '500ms', TRUE);
-
-    FOR v_partition IN
-      SELECT *
-      FROM analytics.snapshot_partition_catalog(p_snapshot_id)
-    LOOP
-      v_child_table := to_regclass(format('analytics.%I', v_partition.partition_name));
-
-      IF v_child_table IS NOT NULL
-         AND EXISTS (
-           SELECT 1
-           FROM pg_inherits
-           WHERE inhparent = v_partition.parent_table
-             AND inhrelid = v_child_table
-         ) THEN
-        EXECUTE format(
-          'ALTER TABLE %s DETACH PARTITION %s',
-          v_partition.parent_table,
-          v_child_table
-        );
-      END IF;
-    END LOOP;
-  EXCEPTION
-    WHEN OTHERS THEN
-      RAISE WARNING 'Snapshot retention detach skipped for %: %', p_snapshot_id, SQLERRM;
-      COMMIT;
-      RETURN;
-  END;
-
-  COMMIT;
-
-  BEGIN
-    FOR v_partition IN
-      SELECT *
-      FROM analytics.snapshot_partition_catalog(p_snapshot_id)
-    LOOP
-      EXECUTE format('DROP TABLE IF EXISTS analytics.%I', v_partition.partition_name);
-    END LOOP;
-
-    DELETE FROM analytics.snapshot_batches
-    WHERE snapshot_id = p_snapshot_id;
-  EXCEPTION
-    WHEN OTHERS THEN
-      RAISE WARNING 'Snapshot retention drop skipped for %: %', p_snapshot_id, SQLERRM;
-  END;
-
-  COMMIT;
-END;
-$$;
-
-CREATE OR REPLACE PROCEDURE analytics.cleanup_snapshot_retention()
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  v_drop_snapshot_id BIGINT;
-BEGIN
-  FOR v_drop_snapshot_id IN
-    WITH pinned AS (
-      SELECT published_snapshot_id AS snapshot_id
-      FROM analytics.snapshot_state
-      WHERE singleton_id = TRUE
-      UNION
-      SELECT in_progress_snapshot_id AS snapshot_id
-      FROM analytics.snapshot_state
-      WHERE singleton_id = TRUE
-    ),
-    keep_succeeded AS (
-      SELECT snapshot_id
-      FROM analytics.snapshot_batches
-      WHERE status = 'succeeded'
-      ORDER BY snapshot_id DESC
-      LIMIT 3
-    )
-    SELECT batches.snapshot_id
-    FROM analytics.snapshot_batches batches
-    WHERE batches.status = 'succeeded'
-      AND batches.snapshot_id NOT IN (SELECT snapshot_id FROM keep_succeeded)
-      AND batches.snapshot_id NOT IN (SELECT snapshot_id FROM pinned WHERE snapshot_id IS NOT NULL)
-  LOOP
-    CALL analytics.cleanup_snapshot_partitions(v_drop_snapshot_id);
-  END LOOP;
-
-  FOR v_drop_snapshot_id IN
-    WITH keep_failed AS (
-      SELECT snapshot_id
-      FROM analytics.snapshot_batches
-      WHERE status = 'failed'
-      ORDER BY snapshot_id DESC
-      LIMIT 100
-    )
-    SELECT batches.snapshot_id
-    FROM analytics.snapshot_batches batches
-    WHERE batches.status = 'failed'
-      AND batches.snapshot_id NOT IN (SELECT snapshot_id FROM keep_failed)
-  LOOP
-    CALL analytics.cleanup_snapshot_partitions(v_drop_snapshot_id);
-  END LOOP;
-END;
-$$;
-
 CREATE OR REPLACE PROCEDURE analytics.run_snapshot_refresh_batch()
-LANGUAGE plpgsql
-AS $$
+ LANGUAGE plpgsql
+AS $procedure$
 DECLARE
   v_snapshot_id BIGINT;
   v_lock_key BIGINT := hashtext('analytics_run_snapshot_refresh_batch_lock');
@@ -616,7 +123,9 @@ DECLARE
   v_open_rows_partition_name TEXT;
   v_completed_rows_partition_name TEXT;
   v_user_completed_facts_partition_name TEXT;
-  v_task_daily_partition_name TEXT;
+  v_completed_dashboard_facts_partition_name TEXT;
+  v_outstanding_due_status_partition_name TEXT;
+  v_outstanding_created_assignment_partition_name TEXT;
   v_open_due_daily_partition_name TEXT;
   v_task_event_daily_partition_name TEXT;
   v_wait_time_partition_name TEXT;
@@ -750,7 +259,12 @@ BEGIN
     v_open_rows_partition_name := format('snapshot_open_task_rows_p_%s', v_snapshot_id);
     v_completed_rows_partition_name := format('snapshot_completed_task_rows_p_%s', v_snapshot_id);
     v_user_completed_facts_partition_name := format('snapshot_user_completed_facts_p_%s', v_snapshot_id);
-    v_task_daily_partition_name := format('snapshot_task_daily_facts_p_%s', v_snapshot_id);
+    v_completed_dashboard_facts_partition_name := format('snapshot_completed_dashboard_facts_p_%s', v_snapshot_id);
+    v_outstanding_due_status_partition_name := format('snapshot_outstanding_due_status_daily_facts_p_%s', v_snapshot_id);
+    v_outstanding_created_assignment_partition_name := format(
+      'snapshot_outstanding_created_assignment_daily_facts_p_%s',
+      v_snapshot_id
+    );
     v_open_due_daily_partition_name := format('snapshot_open_due_daily_facts_p_%s', v_snapshot_id);
     v_task_event_daily_partition_name := format('snapshot_task_event_daily_facts_p_%s', v_snapshot_id);
     v_wait_time_partition_name := format('snapshot_wait_time_by_assigned_date_p_%s', v_snapshot_id);
@@ -939,56 +453,36 @@ BEGIN
       v_prev_hash_mem_multiplier,
       v_prev_enable_sort;
 
-    -- Bias daily facts aggregation toward in-memory hash aggregate.
+    -- Bias aggregate fact builds toward in-memory hash aggregate.
     PERFORM set_config('work_mem', '1GB', TRUE);
     PERFORM set_config('hash_mem_multiplier', '4', TRUE);
     PERFORM set_config('enable_sort', 'off', TRUE);
 
     EXECUTE format(
-      $task_daily_insert$
+      $outstanding_due_status_insert$
       INSERT INTO analytics.%I (
         snapshot_id,
-        date_role,
-        reference_date,
+        due_date,
         jurisdiction_label,
         role_category_label,
         region,
         location,
         task_name,
         work_type,
-        priority,
-        task_status,
-        assignment_state,
-        sla_flag,
-        handling_time_days_sum,
-        handling_time_days_sum_squares,
-        handling_time_days_count,
-        processing_time_days_sum,
-        processing_time_days_sum_squares,
-        processing_time_days_count,
-        task_count
+        open_task_count,
+        completed_task_count
       )
       SELECT
         $1,
-        'due'::text AS date_role,
-        due_date AS reference_date,
+        due_date,
         jurisdiction_label,
         role_category_label,
         region,
         location,
         task_name,
         work_type,
-        priority,
-        task_status,
-        assignment_state,
-        sla_flag,
-        0::numeric AS handling_time_days_sum,
-        0::numeric AS handling_time_days_sum_squares,
-        0::bigint AS handling_time_days_count,
-        0::numeric AS processing_time_days_sum,
-        0::numeric AS processing_time_days_sum_squares,
-        0::bigint AS processing_time_days_count,
-        COUNT(*)::bigint AS task_count
+        SUM(CASE WHEN task_status = 'open' THEN 1 ELSE 0 END)::bigint AS open_task_count,
+        SUM(CASE WHEN task_status = 'completed' THEN 1 ELSE 0 END)::bigint AS completed_task_count
       FROM tmp_snapshot_fact_source
       WHERE due_date IS NOT NULL
         AND task_status IN ('open', 'completed')
@@ -999,17 +493,28 @@ BEGIN
         region,
         location,
         task_name,
+        work_type
+      $outstanding_due_status_insert$,
+      v_outstanding_due_status_partition_name
+    )
+    USING v_snapshot_id;
+
+    EXECUTE format(
+      $outstanding_created_assignment_insert$
+      INSERT INTO analytics.%I (
+        snapshot_id,
+        reference_date,
+        jurisdiction_label,
+        role_category_label,
+        region,
+        location,
+        task_name,
         work_type,
-        priority,
-        task_status,
         assignment_state,
-        sla_flag
-
-      UNION ALL
-
+        task_count
+      )
       SELECT
         $1,
-        'created'::text AS date_role,
         created_date AS reference_date,
         jurisdiction_label,
         role_category_label,
@@ -1017,19 +522,11 @@ BEGIN
         location,
         task_name,
         work_type,
-        priority,
-        task_status,
         assignment_state,
-        NULL::boolean AS sla_flag,
-        0::numeric AS handling_time_days_sum,
-        0::numeric AS handling_time_days_sum_squares,
-        0::bigint AS handling_time_days_count,
-        0::numeric AS processing_time_days_sum,
-        0::numeric AS processing_time_days_sum_squares,
-        0::bigint AS processing_time_days_count,
         COUNT(*)::bigint AS task_count
       FROM tmp_snapshot_fact_source
       WHERE created_date IS NOT NULL
+        AND task_status = 'open'
       GROUP BY
         created_date,
         jurisdiction_label,
@@ -1038,15 +535,34 @@ BEGIN
         location,
         task_name,
         work_type,
-        priority,
-        task_status,
         assignment_state
+      $outstanding_created_assignment_insert$,
+      v_outstanding_created_assignment_partition_name
+    )
+    USING v_snapshot_id;
 
-      UNION ALL
-
+    EXECUTE format(
+      $completed_dashboard_insert$
+      INSERT INTO analytics.%I (
+        snapshot_id,
+        reference_date,
+        jurisdiction_label,
+        role_category_label,
+        region,
+        location,
+        task_name,
+        work_type,
+        total_task_count,
+        within_task_count,
+        handling_time_days_sum,
+        handling_time_days_sum_squares,
+        handling_time_days_count,
+        processing_time_days_sum,
+        processing_time_days_sum_squares,
+        processing_time_days_count
+      )
       SELECT
         $1,
-        'completed'::text AS date_role,
         completed_date AS reference_date,
         jurisdiction_label,
         role_category_label,
@@ -1054,10 +570,8 @@ BEGIN
         location,
         task_name,
         work_type,
-        priority,
-        'completed'::text AS task_status,
-        NULL::text AS assignment_state,
-        sla_flag,
+        COUNT(*)::bigint AS total_task_count,
+        SUM(CASE WHEN sla_flag IS TRUE THEN 1 ELSE 0 END)::bigint AS within_task_count,
         COALESCE(SUM(COALESCE(handling_time_days, 0)), 0)::numeric AS handling_time_days_sum,
         COALESCE(
           SUM(COALESCE(handling_time_days, 0)::numeric * COALESCE(handling_time_days, 0)::numeric),
@@ -1069,8 +583,7 @@ BEGIN
           SUM(COALESCE(processing_time_days, 0)::numeric * COALESCE(processing_time_days, 0)::numeric),
           0
         )::numeric AS processing_time_days_sum_squares,
-        COUNT(processing_time_days)::bigint AS processing_time_days_count,
-        COUNT(*)::bigint AS task_count
+        COUNT(processing_time_days)::bigint AS processing_time_days_count
       FROM tmp_snapshot_fact_source
       WHERE completed_date IS NOT NULL
         AND termination_reason_lower = 'completed'
@@ -1081,47 +594,9 @@ BEGIN
         region,
         location,
         task_name,
-        work_type,
-        priority,
-        sla_flag
-
-      UNION ALL
-
-      SELECT
-        $1,
-        'cancelled'::text AS date_role,
-        completed_date AS reference_date,
-        jurisdiction_label,
-        role_category_label,
-        region,
-        location,
-        task_name,
-        work_type,
-        priority,
-        'cancelled'::text AS task_status,
-        NULL::text AS assignment_state,
-        NULL::boolean AS sla_flag,
-        0::numeric AS handling_time_days_sum,
-        0::numeric AS handling_time_days_sum_squares,
-        0::bigint AS handling_time_days_count,
-        0::numeric AS processing_time_days_sum,
-        0::numeric AS processing_time_days_sum_squares,
-        0::bigint AS processing_time_days_count,
-        COUNT(*)::bigint AS task_count
-      FROM tmp_snapshot_fact_source
-      WHERE completed_date IS NOT NULL
-        AND termination_reason_lower = 'deleted'
-      GROUP BY
-        completed_date,
-        jurisdiction_label,
-        role_category_label,
-        region,
-        location,
-        task_name,
-        work_type,
-        priority
-      $task_daily_insert$,
-      v_task_daily_partition_name
+        work_type
+      $completed_dashboard_insert$,
+      v_completed_dashboard_facts_partition_name
     )
     USING v_snapshot_id;
 
@@ -1410,49 +885,51 @@ BEGIN
     );
 
     EXECUTE format(
-      'CREATE UNIQUE INDEX %I ON analytics.%I(date_role, reference_date, jurisdiction_label, role_category_label, region, location, task_name, work_type, priority, task_status, assignment_state, sla_flag)',
-      format('ux_stdf_p_%s_key', v_snapshot_id),
-      v_task_daily_partition_name
+      'CREATE UNIQUE INDEX %I ON analytics.%I(reference_date, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+      format('ux_scdf_p_%s_key', v_snapshot_id),
+      v_completed_dashboard_facts_partition_name
     );
     EXECUTE format(
-      'CREATE INDEX %I ON analytics.%I(date_role, task_status, reference_date)',
-      format('ix_stdf_p_%s_date_role_status_date', v_snapshot_id),
-      v_task_daily_partition_name
-    );
-    EXECUTE format(
-      'CREATE INDEX %I ON analytics.%I(reference_date) WHERE date_role = ''due'' AND task_status = ''open''',
-      format('ix_stdf_p_%s_due_open_date', v_snapshot_id),
-      v_task_daily_partition_name
-    );
-    EXECUTE format(
-      'CREATE INDEX %I ON analytics.%I(reference_date, assignment_state) WHERE date_role = ''created'' AND task_status = ''open''',
-      format('ix_stdf_p_%s_created_open_date_assignment', v_snapshot_id),
-      v_task_daily_partition_name
+      'CREATE INDEX %I ON analytics.%I(reference_date)',
+      format('ix_scdf_p_%s_reference_date', v_snapshot_id),
+      v_completed_dashboard_facts_partition_name
     );
     EXECUTE format(
       'CREATE INDEX %I ON analytics.%I(jurisdiction_label, role_category_label, region, location, task_name, work_type)',
-      format('ix_stdf_p_%s_slicers', v_snapshot_id),
-      v_task_daily_partition_name
+      format('ix_scdf_p_%s_slicers', v_snapshot_id),
+      v_completed_dashboard_facts_partition_name
+    );
+
+    EXECUTE format(
+      'CREATE UNIQUE INDEX %I ON analytics.%I(due_date, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+      format('ux_sodsf_p_%s_key', v_snapshot_id),
+      v_outstanding_due_status_partition_name
     );
     EXECUTE format(
-      'CREATE INDEX %I ON analytics.%I(priority)',
-      format('ix_stdf_p_%s_priority', v_snapshot_id),
-      v_task_daily_partition_name
+      'CREATE INDEX %I ON analytics.%I(due_date) INCLUDE (open_task_count, completed_task_count)',
+      format('ix_sodsf_p_%s_due_date', v_snapshot_id),
+      v_outstanding_due_status_partition_name
     );
     EXECUTE format(
-      'CREATE INDEX %I ON analytics.%I(assignment_state)',
-      format('ix_stdf_p_%s_assignment_state', v_snapshot_id),
-      v_task_daily_partition_name
+      'CREATE INDEX %I ON analytics.%I(jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+      format('ix_sodsf_p_%s_slicers', v_snapshot_id),
+      v_outstanding_due_status_partition_name
+    );
+
+    EXECUTE format(
+      'CREATE UNIQUE INDEX %I ON analytics.%I(reference_date, jurisdiction_label, role_category_label, region, location, task_name, work_type, assignment_state)',
+      format('ux_socaf_p_%s_key', v_snapshot_id),
+      v_outstanding_created_assignment_partition_name
     );
     EXECUTE format(
-      'CREATE INDEX %I ON analytics.%I(sla_flag)',
-      format('ix_stdf_p_%s_sla_flag', v_snapshot_id),
-      v_task_daily_partition_name
+      'CREATE INDEX %I ON analytics.%I(reference_date)',
+      format('ix_socaf_p_%s_ref_date', v_snapshot_id),
+      v_outstanding_created_assignment_partition_name
     );
     EXECUTE format(
-      'CREATE INDEX %I ON analytics.%I(UPPER(role_category_label))',
-      format('ix_stdf_p_%s_upper_role_category', v_snapshot_id),
-      v_task_daily_partition_name
+      'CREATE INDEX %I ON analytics.%I(jurisdiction_label, role_category_label, region, location, task_name, work_type, assignment_state)',
+      format('ix_socaf_p_%s_slicers', v_snapshot_id),
+      v_outstanding_created_assignment_partition_name
     );
 
     EXECUTE format(
@@ -1782,8 +1259,4 @@ BEGIN
 
   PERFORM pg_advisory_unlock(v_lock_key);
 END;
-$$;
--- Snapshot refresh scheduling is registered by application startup when
--- analytics.snapshotRefreshCronBootstrap.enabled=true. Startup registration
--- uses cron.schedule_in_database(...) from the configured cron metadata
--- database (default postgres) targeting this analytics database.
+$procedure$;

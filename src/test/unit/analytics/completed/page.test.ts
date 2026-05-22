@@ -10,13 +10,17 @@ import {
   fetchFacetedFilterStateWithFallback as fetchFilterOptionsWithFallback,
   fetchPublishedSnapshotContext,
 } from '../../../../main/modules/analytics/shared/pageUtils';
-import { taskThinRepository } from '../../../../main/modules/analytics/shared/repositories';
+import { snapshotCompletedTaskRowsRepository } from '../../../../main/modules/analytics/shared/repositories';
 import {
   caseWorkerProfileService,
   courtVenueService,
   regionService,
 } from '../../../../main/modules/analytics/shared/services';
 import { AnalyticsFilters } from '../../../../main/modules/analytics/shared/types';
+import {
+  FILTERS_UNAVAILABLE_MESSAGE,
+  SECTION_DATA_UNAVAILABLE_MESSAGE,
+} from '../../../../main/modules/analytics/shared/viewModels/sectionErrors';
 
 jest.mock('../../../../main/modules/analytics/completed/service', () => ({
   completedService: {
@@ -42,7 +46,7 @@ jest.mock('../../../../main/modules/analytics/completed/visuals/completedProcess
 }));
 
 jest.mock('../../../../main/modules/analytics/completed/visuals/completedRegionLocationTableService', () => ({
-  completedRegionLocationTableService: { fetchCompletedByLocation: jest.fn(), fetchCompletedByRegion: jest.fn() },
+  completedRegionLocationTableService: { fetchCompletedRegionLocation: jest.fn() },
 }));
 
 jest.mock('../../../../main/modules/analytics/completed/visuals/completedTimelineChartService', () => ({
@@ -68,7 +72,7 @@ jest.mock('../../../../main/modules/analytics/shared/services', () => ({
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
-  taskThinRepository: { fetchCompletedTaskAuditRows: jest.fn() },
+  snapshotCompletedTaskRowsRepository: { fetchCompletedTaskAuditRows: jest.fn() },
 }));
 
 describe('buildCompletedPage', () => {
@@ -127,9 +131,8 @@ describe('buildCompletedPage', () => {
     expect(completedTimelineChartService.fetchCompletedTimeline).not.toHaveBeenCalled();
     expect(completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime).not.toHaveBeenCalled();
     expect(completedByNameChartService.fetchCompletedByName).not.toHaveBeenCalled();
-    expect(completedRegionLocationTableService.fetchCompletedByLocation).not.toHaveBeenCalled();
-    expect(completedRegionLocationTableService.fetchCompletedByRegion).not.toHaveBeenCalled();
-    expect(taskThinRepository.fetchCompletedTaskAuditRows).not.toHaveBeenCalled();
+    expect(completedRegionLocationTableService.fetchCompletedRegionLocation).not.toHaveBeenCalled();
+    expect(snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows).not.toHaveBeenCalled();
     expect(regionService.fetchRegionDescriptions).not.toHaveBeenCalled();
     expect(courtVenueService.fetchCourtVenueDescriptions).not.toHaveBeenCalled();
     expect(caseWorkerProfileService.fetchCaseWorkerProfileNames).not.toHaveBeenCalled();
@@ -202,9 +205,8 @@ describe('buildCompletedPage', () => {
     expect(completedTimelineChartService.fetchCompletedTimeline).not.toHaveBeenCalled();
     expect(completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime).not.toHaveBeenCalled();
     expect(completedByNameChartService.fetchCompletedByName).not.toHaveBeenCalled();
-    expect(completedRegionLocationTableService.fetchCompletedByLocation).not.toHaveBeenCalled();
-    expect(completedRegionLocationTableService.fetchCompletedByRegion).not.toHaveBeenCalled();
-    expect(taskThinRepository.fetchCompletedTaskAuditRows).not.toHaveBeenCalled();
+    expect(completedRegionLocationTableService.fetchCompletedRegionLocation).not.toHaveBeenCalled();
+    expect(snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows).not.toHaveBeenCalled();
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalled();
     expect(buildCompletedViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -277,12 +279,10 @@ describe('buildCompletedPage', () => {
 
     (completedService.buildCompleted as jest.Mock).mockReturnValue(fallback);
     (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue(fallbackRegionLocation);
-    (completedRegionLocationTableService.fetchCompletedByLocation as jest.Mock).mockResolvedValue([
-      { location: 'Leeds', region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 },
-    ]);
-    (completedRegionLocationTableService.fetchCompletedByRegion as jest.Mock).mockResolvedValue([
-      { region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 },
-    ]);
+    (completedRegionLocationTableService.fetchCompletedRegionLocation as jest.Mock).mockResolvedValue({
+      byLocation: [{ location: 'Leeds', region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 }],
+      byRegion: [{ region: 'North', tasks: 2, withinDue: 1, beyondDue: 1 }],
+    });
     (regionService.fetchRegionDescriptions as jest.Mock).mockResolvedValue({ North: 'North East' });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ Leeds: 'Leeds Crown Court' });
     (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-region-location' });
@@ -344,7 +344,7 @@ describe('buildCompletedPage', () => {
     expect(completedComplianceSummaryService.fetchCompletedSummary).not.toHaveBeenCalled();
     expect(completedTimelineChartService.fetchCompletedTimeline).not.toHaveBeenCalled();
     expect(completedByNameChartService.fetchCompletedByName).not.toHaveBeenCalled();
-    expect(completedRegionLocationTableService.fetchCompletedByLocation).not.toHaveBeenCalled();
+    expect(completedRegionLocationTableService.fetchCompletedRegionLocation).not.toHaveBeenCalled();
     expect(fetchFilterOptionsWithFallback).not.toHaveBeenCalled();
     expect(buildCompletedViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -390,7 +390,7 @@ describe('buildCompletedPage', () => {
     (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue(fallbackRegionLocation);
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ Leeds: 'Leeds Crown Court' });
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({ 'user-1': 'Agent One' });
-    (taskThinRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([
       {
         case_id: 'CASE-123',
         task_name: null,
@@ -446,7 +446,7 @@ describe('buildCompletedPage', () => {
     (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue({ byLocation: [], byRegion: [] });
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
-    (taskThinRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows as jest.Mock).mockResolvedValue([
       {
         case_id: 'CASE-EMPTY',
         task_name: null,
@@ -480,7 +480,7 @@ describe('buildCompletedPage', () => {
     );
   });
 
-  test('uses exact completed filter-options fallback message on full page load', async () => {
+  test('marks shared filters unavailable when completed filter options fall back', async () => {
     const fallback = {
       summary: {
         completedToday: 0,
@@ -499,7 +499,7 @@ describe('buildCompletedPage', () => {
     (completedService.buildCompleted as jest.Mock).mockReturnValue(fallback);
     (completedService.buildCompletedByRegionLocation as jest.Mock).mockReturnValue({ byLocation: [], byRegion: [] });
     (fetchFilterOptionsWithFallback as jest.Mock).mockResolvedValue({
-      filters: {},
+      filters: { region: ['North'] },
       filterOptions: {
         services: [],
         roleCategories: [],
@@ -509,6 +509,7 @@ describe('buildCompletedPage', () => {
         workTypes: [],
         users: [],
       },
+      hadError: true,
     });
     (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-filter-options' });
 
@@ -518,6 +519,14 @@ describe('buildCompletedPage', () => {
       expect.objectContaining({
         errorMessage: 'Failed to fetch completed filter options from database',
         snapshotId,
+      })
+    );
+    expect(buildCompletedViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: { region: ['North'] },
+        sectionErrors: {
+          'shared-filters': { message: FILTERS_UNAVAILABLE_MESSAGE },
+        },
       })
     );
   });
@@ -546,9 +555,8 @@ describe('buildCompletedPage', () => {
       new Error('db')
     );
     (completedByNameChartService.fetchCompletedByName as jest.Mock).mockRejectedValue(new Error('db'));
-    (completedRegionLocationTableService.fetchCompletedByLocation as jest.Mock).mockRejectedValue(new Error('db'));
-    (completedRegionLocationTableService.fetchCompletedByRegion as jest.Mock).mockRejectedValue(new Error('db'));
-    (taskThinRepository.fetchCompletedTaskAuditRows as jest.Mock).mockRejectedValue(new Error('db'));
+    (completedRegionLocationTableService.fetchCompletedRegionLocation as jest.Mock).mockRejectedValue(new Error('db'));
+    (snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows as jest.Mock).mockRejectedValue(new Error('db'));
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockRejectedValue(new Error('db'));
     (regionService.fetchRegionDescriptions as jest.Mock).mockRejectedValue(new Error('db'));
     (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockRejectedValue(new Error('db'));
@@ -573,11 +581,7 @@ describe('buildCompletedPage', () => {
     );
     expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to fetch completed by name from database', expect.any(Error));
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Failed to fetch completed by location from database',
-      expect.any(Error)
-    );
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Failed to fetch completed by region from database',
+      'Failed to fetch completed region/location data from database',
       expect.any(Error)
     );
     expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -595,6 +599,48 @@ describe('buildCompletedPage', () => {
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to fetch court venue descriptions from database',
       expect.any(Error)
+    );
+    expect(buildCompletedViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sectionErrors: {
+          'completed-task-audit': { message: SECTION_DATA_UNAVAILABLE_MESSAGE },
+        },
+      })
+    );
+    expect(buildCompletedViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sectionErrors: {
+          'completed-summary': { message: SECTION_DATA_UNAVAILABLE_MESSAGE },
+        },
+      })
+    );
+    expect(buildCompletedViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sectionErrors: {
+          'completed-timeline': { message: SECTION_DATA_UNAVAILABLE_MESSAGE },
+        },
+      })
+    );
+    expect(buildCompletedViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sectionErrors: {
+          'completed-processing-handling-time': { message: SECTION_DATA_UNAVAILABLE_MESSAGE },
+        },
+      })
+    );
+    expect(buildCompletedViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sectionErrors: {
+          'completed-by-name': { message: SECTION_DATA_UNAVAILABLE_MESSAGE },
+        },
+      })
+    );
+    expect(buildCompletedViewModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sectionErrors: {
+          'completed-by-region-location': { message: SECTION_DATA_UNAVAILABLE_MESSAGE },
+        },
+      })
     );
   });
 });
