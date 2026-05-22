@@ -1,8 +1,8 @@
 import { completedProcessingHandlingTimeService } from '../../../../../main/modules/analytics/completed/visuals/completedProcessingHandlingTimeService';
-import { snapshotCompletedDashboardFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
+import { snapshotCompletedDashboardRepository } from '../../../../../main/modules/analytics/shared/repositories';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  snapshotCompletedDashboardFactsRepository: { fetchCompletedProcessingHandlingTimeRows: jest.fn() },
+  snapshotCompletedDashboardRepository: { fetchCompletedProcessingHandlingTimeRows: jest.fn() },
 }));
 
 describe('completedProcessingHandlingTimeService', () => {
@@ -13,22 +13,20 @@ describe('completedProcessingHandlingTimeService', () => {
   });
 
   test('maps repository rows into processing/handling points', async () => {
-    (snapshotCompletedDashboardFactsRepository.fetchCompletedProcessingHandlingTimeRows as jest.Mock).mockResolvedValue(
-      [
-        {
-          date_key: '2024-02-01',
-          task_count: '4',
-          handling_avg: '1.5',
-          handling_stddev: '0.5',
-          handling_sum: '6',
-          handling_count: '4',
-          processing_avg: '2.5',
-          processing_stddev: '1.0',
-          processing_sum: '10',
-          processing_count: '4',
-        },
-      ]
-    );
+    (snapshotCompletedDashboardRepository.fetchCompletedProcessingHandlingTimeRows as jest.Mock).mockResolvedValue([
+      {
+        date_key: '2024-02-01',
+        task_count: '4',
+        handling_avg: '1.5',
+        handling_stddev: '0.5',
+        handling_sum: '6',
+        handling_count: '4',
+        processing_avg: '2.5',
+        processing_stddev: '1.0',
+        processing_sum: '10',
+        processing_count: '4',
+      },
+    ]);
 
     const result = await completedProcessingHandlingTimeService.fetchCompletedProcessingHandlingTime(
       snapshotId,
@@ -36,7 +34,7 @@ describe('completedProcessingHandlingTimeService', () => {
       { from: new Date('2024-02-01'), to: new Date('2024-02-10') }
     );
 
-    expect(snapshotCompletedDashboardFactsRepository.fetchCompletedProcessingHandlingTimeRows).toHaveBeenCalledWith(
+    expect(snapshotCompletedDashboardRepository.fetchCompletedProcessingHandlingTimeRows).toHaveBeenCalledWith(
       snapshotId,
       {},
       expect.objectContaining({ from: new Date('2024-02-01'), to: new Date('2024-02-10') })

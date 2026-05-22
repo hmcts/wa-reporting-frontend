@@ -1,5 +1,5 @@
 import { tmPrisma } from '../../../../../main/modules/analytics/shared/data/prisma';
-import { snapshotCompletedDashboardFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedDashboardFactsRepository';
+import { snapshotCompletedDashboardRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedDashboardRepository';
 import { snapshotCompletedFilterFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedFilterFactsRepository';
 import { snapshotOpenDueDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOpenDueDailyFactsRepository';
 import { snapshotOpenTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOpenTaskRowsRepository';
@@ -8,7 +8,7 @@ import { snapshotOutstandingDueStatusDailyFactsRepository } from '../../../../..
 import { snapshotOutstandingFilterFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOutstandingFilterFactsRepository';
 import { snapshotOverviewFilterFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOverviewFilterFactsRepository';
 import { snapshotTaskEventDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotTaskEventDailyFactsRepository';
-import { snapshotUserCompletedFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserCompletedFactsRepository';
+import { snapshotUserCompletedRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserCompletedRepository';
 import { snapshotUserFilterFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserFilterFactsRepository';
 
 jest.mock('../../../../../main/modules/analytics/shared/data/prisma', () => ({
@@ -68,8 +68,8 @@ const factsRepositoriesHarness = {
   fetchTasksDuePriorityRows: snapshotOpenDueDailyFactsRepository.fetchTasksDuePriorityRows.bind(
     snapshotOpenDueDailyFactsRepository
   ),
-  fetchCompletedSummaryRows: snapshotCompletedDashboardFactsRepository.fetchCompletedSummaryRows.bind(
-    snapshotCompletedDashboardFactsRepository
+  fetchCompletedSummaryRows: snapshotCompletedDashboardRepository.fetchCompletedSummaryRows.bind(
+    snapshotCompletedDashboardRepository
   ),
   async fetchUserOverviewAssignedSummaryRows(
     snapshotId: number,
@@ -80,22 +80,21 @@ const factsRepositoriesHarness = {
       ? snapshotOpenTaskRowsRepository.fetchAssignedSummaryRows(snapshotId, filters, queryOptions)
       : snapshotOpenDueDailyFactsRepository.fetchAssignedSummaryRows(snapshotId, filters, queryOptions);
   },
-  fetchUserOverviewCompletedSummaryRows:
-    snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedSummaryRows.bind(
-      snapshotUserCompletedFactsRepository
-    ),
-  fetchCompletedTimelineRows: snapshotCompletedDashboardFactsRepository.fetchCompletedTimelineRows.bind(
-    snapshotCompletedDashboardFactsRepository
+  fetchUserOverviewCompletedSummaryRows: snapshotUserCompletedRepository.fetchUserOverviewCompletedSummaryRows.bind(
+    snapshotUserCompletedRepository
+  ),
+  fetchCompletedTimelineRows: snapshotCompletedDashboardRepository.fetchCompletedTimelineRows.bind(
+    snapshotCompletedDashboardRepository
   ),
   fetchCompletedProcessingHandlingTimeRows:
-    snapshotCompletedDashboardFactsRepository.fetchCompletedProcessingHandlingTimeRows.bind(
-      snapshotCompletedDashboardFactsRepository
+    snapshotCompletedDashboardRepository.fetchCompletedProcessingHandlingTimeRows.bind(
+      snapshotCompletedDashboardRepository
     ),
-  fetchCompletedByNameRows: snapshotCompletedDashboardFactsRepository.fetchCompletedByNameRows.bind(
-    snapshotCompletedDashboardFactsRepository
+  fetchCompletedByNameRows: snapshotCompletedDashboardRepository.fetchCompletedByNameRows.bind(
+    snapshotCompletedDashboardRepository
   ),
-  fetchCompletedRegionLocationRows: snapshotCompletedDashboardFactsRepository.fetchCompletedRegionLocationRows.bind(
-    snapshotCompletedDashboardFactsRepository
+  fetchCompletedRegionLocationRows: snapshotCompletedDashboardRepository.fetchCompletedRegionLocationRows.bind(
+    snapshotCompletedDashboardRepository
   ),
 };
 
@@ -170,7 +169,9 @@ describe('factsRepositoriesHarness', () => {
 
     await factsRepositoriesHarness.fetchCompletedSummaryRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
-    expect(fromQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    const fromNormalised = normaliseSql(fromQuery.sql);
+    expect(fromQuery.sql).toContain('FROM analytics.snapshot_completed_daily_metrics_facts');
+    expect(fromNormalised).toContain('WHERE snapshot_id = ? AND reference_date >= ?');
     expect(fromQuery.sql).toContain('SUM(total_task_count)::int AS total');
     expect(fromQuery.sql).toContain('SUM(within_task_count)::int AS within');
     expect(fromQuery.sql).toContain('snapshot_id =');
@@ -180,7 +181,9 @@ describe('factsRepositoriesHarness', () => {
 
     await factsRepositoriesHarness.fetchCompletedSummaryRows(snapshotId, {}, { to });
     const toQuery = queryCall();
-    expect(toQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    const toNormalised = normaliseSql(toQuery.sql);
+    expect(toQuery.sql).toContain('FROM analytics.snapshot_completed_daily_metrics_facts');
+    expect(toNormalised).toContain('WHERE snapshot_id = ? AND reference_date <= ?');
     expect(toQuery.sql).toContain('snapshot_id =');
     expect(toQuery.sql).toContain('reference_date <=');
     expect(toQuery.sql).not.toContain('reference_date >=');
@@ -367,7 +370,7 @@ describe('factsRepositoriesHarness', () => {
     await factsRepositoriesHarness.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from, to });
     const query = queryCall();
 
-    expect(query.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(query.sql).toContain('FROM analytics.snapshot_completed_daily_metrics_facts');
     expect(query.sql).toContain('reference_date >=');
     expect(query.sql).toContain('reference_date <=');
     expect(query.values).toEqual(expect.arrayContaining([from, to]));
@@ -386,6 +389,31 @@ describe('factsRepositoriesHarness', () => {
     expect(query.sql).toContain('snapshot_id =');
     expect(query.sql).toContain('UPPER(role_category_label) NOT IN');
     expect(query.values).toContain('JUDICIAL');
+  });
+
+  test('routes completed summary by active query options when no shared filters are selected', async () => {
+    await factsRepositoriesHarness.fetchCompletedSummaryRows(snapshotId, {}, undefined, {
+      excludeRoleCategories: [' ', 'Judicial'],
+    });
+    const activeQuery = queryCall();
+    expect(activeQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(activeQuery.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(activeQuery.values).toContain('JUDICIAL');
+
+    await factsRepositoriesHarness.fetchCompletedSummaryRows(snapshotId, {}, undefined, {
+      excludeRoleCategories: [' '],
+    });
+    const blankQuery = queryCall();
+    expect(blankQuery.sql).toContain('FROM analytics.snapshot_completed_daily_metrics_facts');
+    expect(blankQuery.sql).not.toContain('UPPER(role_category_label) NOT IN');
+  });
+
+  test('treats empty shared filter arrays as unselected for completed rollups', async () => {
+    await factsRepositoriesHarness.fetchCompletedSummaryRows(snapshotId, { service: [] });
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_completed_daily_metrics_facts');
+
+    await factsRepositoriesHarness.fetchCompletedRegionLocationRows(snapshotId, { service: [] });
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_completed_region_location_facts');
   });
 
   test('builds facts-backed user-overview completed summary query with filters and query options', async () => {
@@ -418,6 +446,89 @@ describe('factsRepositoriesHarness', () => {
     expect(query.values).toEqual(
       expect.arrayContaining([snapshotId, completedFrom, completedTo, 'user-1', 'Service A', 'JUDICIAL'])
     );
+  });
+
+  test('routes user-overview completed summary to rollups for non-user Judicial-excluded paths', async () => {
+    const completedFrom = new Date('2024-09-01');
+    const queryOptions = { excludeRoleCategories: ['Judicial'] };
+
+    await factsRepositoriesHarness.fetchUserOverviewCompletedSummaryRows(
+      snapshotId,
+      {
+        completedFrom,
+      },
+      queryOptions
+    );
+    const defaultQuery = queryCall();
+    expect(defaultQuery.sql).toContain('FROM analytics.snapshot_user_completed_daily_totals');
+    expect(defaultQuery.sql).toContain('completed_date >=');
+    expect(defaultQuery.sql).not.toContain('UPPER(role_category_label) NOT IN');
+    expect(defaultQuery.sql).not.toContain('jurisdiction_label IN');
+    expect(defaultQuery.values).toEqual(expect.arrayContaining([snapshotId, completedFrom]));
+
+    await factsRepositoriesHarness.fetchUserOverviewCompletedSummaryRows(
+      snapshotId,
+      {
+        service: ['Service A'],
+      },
+      queryOptions
+    );
+    const filteredQuery = queryCall();
+    expect(filteredQuery.sql).toContain('FROM analytics.snapshot_user_completed_slicer_daily_facts');
+    expect(filteredQuery.sql).toContain('jurisdiction_label IN');
+    expect(filteredQuery.sql).not.toContain('UPPER(role_category_label) NOT IN');
+    expect(filteredQuery.values).toEqual(expect.arrayContaining([snapshotId, 'Service A']));
+  });
+
+  test('keeps user-overview completed summary on full facts when user filter or query options are not rollup-safe', async () => {
+    await factsRepositoriesHarness.fetchUserOverviewCompletedSummaryRows(snapshotId, {}, undefined);
+    const missingRoleExclusionQuery = queryCall();
+    expect(missingRoleExclusionQuery.sql).toContain('FROM analytics.snapshot_user_completed_facts');
+    expect(missingRoleExclusionQuery.sql).not.toContain('UPPER(role_category_label) NOT IN');
+
+    await factsRepositoriesHarness.fetchUserOverviewCompletedSummaryRows(
+      snapshotId,
+      {},
+      { excludeRoleCategories: ['Admin'] }
+    );
+    const customRoleExclusionQuery = queryCall();
+    expect(customRoleExclusionQuery.sql).toContain('FROM analytics.snapshot_user_completed_facts');
+    expect(customRoleExclusionQuery.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(customRoleExclusionQuery.values).toContain('ADMIN');
+
+    await factsRepositoriesHarness.fetchUserOverviewCompletedSummaryRows(
+      snapshotId,
+      { user: ['user-1'] },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+    const userFilteredQuery = queryCall();
+    expect(userFilteredQuery.sql).toContain('FROM analytics.snapshot_user_completed_facts');
+    expect(userFilteredQuery.sql).toContain('assignee IN');
+    expect(userFilteredQuery.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(userFilteredQuery.values).toEqual(expect.arrayContaining(['user-1', 'JUDICIAL']));
+
+    await factsRepositoriesHarness.fetchUserOverviewCompletedSummaryRows(
+      snapshotId,
+      {},
+      { excludeRoleCategories: ['Judicial', 'Admin'] }
+    );
+    const multipleRoleExclusionsQuery = queryCall();
+    expect(multipleRoleExclusionsQuery.sql).toContain('FROM analytics.snapshot_user_completed_facts');
+    expect(multipleRoleExclusionsQuery.sql).toContain('UPPER(role_category_label) NOT IN');
+    expect(multipleRoleExclusionsQuery.values).toEqual(expect.arrayContaining(['JUDICIAL', 'ADMIN']));
+  });
+
+  test('normalises the default user-overview role exclusion before routing to rollups', async () => {
+    await factsRepositoriesHarness.fetchUserOverviewCompletedSummaryRows(
+      snapshotId,
+      {},
+      { excludeRoleCategories: [' Judicial '] }
+    );
+    const query = queryCall();
+
+    expect(query.sql).toContain('FROM analytics.snapshot_user_completed_daily_totals');
+    expect(query.sql).not.toContain('UPPER(role_category_label) NOT IN');
+    expect(query.values).toEqual([snapshotId]);
   });
 
   test('builds facts-backed user-overview assigned summary query when no user filter is active', async () => {
@@ -574,7 +685,7 @@ describe('factsRepositoriesHarness', () => {
 
     await factsRepositoriesHarness.fetchCompletedTimelineRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
-    expect(fromQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(fromQuery.sql).toContain('FROM analytics.snapshot_completed_daily_metrics_facts');
     expect(fromQuery.sql).toContain('SUM(total_task_count)::int AS total');
     expect(fromQuery.sql).toContain('SUM(within_task_count)::int AS within');
     expect(fromQuery.sql).toContain('snapshot_id =');
@@ -586,7 +697,7 @@ describe('factsRepositoriesHarness', () => {
 
     await factsRepositoriesHarness.fetchCompletedTimelineRows(snapshotId, {}, { to });
     const toQuery = queryCall();
-    expect(toQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(toQuery.sql).toContain('FROM analytics.snapshot_completed_daily_metrics_facts');
     expect(toQuery.sql).toContain('snapshot_id =');
     expect(toQuery.sql).toContain('reference_date <=');
     expect(toQuery.sql).not.toContain('reference_date >=');
@@ -609,16 +720,26 @@ describe('factsRepositoriesHarness', () => {
     expect(byNameQuery.values).toEqual(expect.arrayContaining([from, to]));
   });
 
-  test('builds combined completed region/location query and range filters', async () => {
+  test('builds completed region/location query from the rollup for date, region, and location filters', async () => {
     const from = new Date('2024-05-01');
     const to = new Date('2024-05-31');
 
-    await factsRepositoriesHarness.fetchCompletedRegionLocationRows(snapshotId, { region: ['North'] }, { from, to });
+    await factsRepositoriesHarness.fetchCompletedRegionLocationRows(
+      snapshotId,
+      { region: ['North'], location: ['Leeds'] },
+      { from, to }
+    );
     const query = queryCall();
     const normalised = normaliseSql(query.sql);
 
-    expect(normalised).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(normalised).toContain('FROM analytics.snapshot_completed_region_location_facts');
+    expect(normalised).not.toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(normalised).toContain('WHERE snapshot_id = ? AND reference_date >= ? AND reference_date <= ? AND region IN');
     expect(normalised).toContain('snapshot_id =');
+    expect(normalised).toContain('reference_date >=');
+    expect(normalised).toContain('reference_date <=');
+    expect(normalised).toContain('region IN');
+    expect(normalised).toContain('location IN');
     expect(normalised).toContain("CASE WHEN GROUPING(location) = 0 THEN 'location' ELSE 'region' END AS grouping_type");
     expect(normalised).toContain('SUM(total_task_count)::int AS total');
     expect(normalised).toContain('SUM(within_task_count)::int AS within');
@@ -626,7 +747,22 @@ describe('factsRepositoriesHarness', () => {
     expect(normalised).toContain('SUM(processing_time_days_count)::int AS processing_time_days_count');
     expect(normalised).toContain('GROUP BY GROUPING SETS ((location, region), (region))');
     expect(normalised).toContain('ORDER BY CASE WHEN GROUPING(location) = 0 THEN 1 ELSE 0 END ASC');
-    expect(query.values).toEqual(expect.arrayContaining([from, to]));
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, from, to, 'North', 'Leeds']));
+  });
+
+  test.each([
+    ['service', { service: ['Civil'] }],
+    ['role category', { roleCategory: ['Legal Ops'] }],
+    ['task name', { taskName: ['Review case'] }],
+    ['work type', { workType: ['hearing_work'] }],
+  ])('keeps completed region/location on full facts when %s filters are active', async (_label, filters) => {
+    await factsRepositoriesHarness.fetchCompletedRegionLocationRows(snapshotId, filters);
+    const query = queryCall();
+    const normalised = normaliseSql(query.sql);
+
+    expect(normalised).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(normalised).not.toContain('FROM analytics.snapshot_completed_region_location_facts');
+    expect(normalised).toContain('GROUP BY GROUPING SETS ((location, region), (region))');
   });
 
   test('builds processing/handling query with aggregate columns and optional range bounds', async () => {
@@ -636,7 +772,7 @@ describe('factsRepositoriesHarness', () => {
     await factsRepositoriesHarness.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { from });
     const fromQuery = queryCall();
     expect(fromQuery.sql).toContain('snapshot_id =');
-    expect(fromQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(fromQuery.sql).toContain('FROM analytics.snapshot_completed_daily_metrics_facts');
     expect(fromQuery.sql).toContain('SUM(total_task_count)::int AS task_count');
     expect(fromQuery.sql).toContain('SUM(handling_time_days_sum)::double precision AS handling_sum');
     expect(fromQuery.sql).toContain('SUM(handling_time_days_sum_squares)::double precision');
@@ -650,9 +786,32 @@ describe('factsRepositoriesHarness', () => {
     await factsRepositoriesHarness.fetchCompletedProcessingHandlingTimeRows(snapshotId, {}, { to });
     const toQuery = queryCall();
     expect(toQuery.sql).toContain('snapshot_id =');
-    expect(toQuery.sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+    expect(toQuery.sql).toContain('FROM analytics.snapshot_completed_daily_metrics_facts');
     expect(toQuery.sql).toContain('reference_date <=');
     expect(toQuery.sql).not.toContain('reference_date >=');
     expect(toQuery.values).toEqual(expect.arrayContaining([to]));
+  });
+
+  test.each([
+    ['service filter', { filters: { service: ['Civil'] }, queryOptions: undefined }],
+    ['role category filter', { filters: { roleCategory: ['Legal Ops'] }, queryOptions: undefined }],
+    ['region filter', { filters: { region: ['North'] }, queryOptions: undefined }],
+    ['location filter', { filters: { location: ['Leeds'] }, queryOptions: undefined }],
+    ['task name filter', { filters: { taskName: ['Review case'] }, queryOptions: undefined }],
+    ['work type filter', { filters: { workType: ['hearing_work'] }, queryOptions: undefined }],
+  ])('keeps completed date metrics on full facts when %s is active', async (_label, params) => {
+    await factsRepositoriesHarness.fetchCompletedSummaryRows(
+      snapshotId,
+      params.filters,
+      undefined,
+      params.queryOptions
+    );
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+
+    await factsRepositoriesHarness.fetchCompletedTimelineRows(snapshotId, params.filters);
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
+
+    await factsRepositoriesHarness.fetchCompletedProcessingHandlingTimeRows(snapshotId, params.filters);
+    expect(queryCall().sql).toContain('FROM analytics.snapshot_completed_dashboard_facts');
   });
 });

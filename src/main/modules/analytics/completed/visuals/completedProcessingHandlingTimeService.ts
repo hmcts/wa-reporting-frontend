@@ -1,4 +1,4 @@
-import { snapshotCompletedDashboardFactsRepository } from '../../shared/repositories';
+import { snapshotCompletedDashboardRepository } from '../../shared/repositories';
 import { AnalyticsFilters, CompletedProcessingHandlingPoint } from '../../shared/types';
 import { toNumber } from '../../shared/utils';
 
@@ -8,7 +8,7 @@ class CompletedProcessingHandlingTimeService {
     filters: AnalyticsFilters,
     range?: { from?: Date; to?: Date }
   ): Promise<CompletedProcessingHandlingPoint[]> {
-    const rows = await snapshotCompletedDashboardFactsRepository.fetchCompletedProcessingHandlingTimeRows(
+    const rows = await snapshotCompletedDashboardRepository.fetchCompletedProcessingHandlingTimeRows(
       snapshotId,
       filters,
       range
