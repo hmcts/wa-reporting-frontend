@@ -55,6 +55,7 @@ Each analytics repository file owns one table or view:
 
 - `analytics.snapshot_open_due_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOpenDueDailyFactsRepository.ts`
 - `analytics.snapshot_task_event_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotTaskEventDailyFactsRepository.ts`
+- `analytics.snapshot_task_event_service_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotTaskEventServiceDailyFactsRepository.ts`
 - `analytics.snapshot_outstanding_created_assignment_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOutstandingCreatedAssignmentDailyFactsRepository.ts`
 - `analytics.snapshot_outstanding_due_status_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOutstandingDueStatusDailyFactsRepository.ts`
 - `analytics.snapshot_completed_dashboard_facts` -> `src/main/modules/analytics/shared/repositories/snapshotCompletedDashboardFactsRepository.ts`
@@ -75,7 +76,7 @@ Each analytics repository file owns one table or view:
 
 Shared helpers such as `filterFactsQueryHelpers.ts`, `rowRepositoryHelpers.ts`, and `snapshotMetadataHelpers.ts` may build SQL fragments for multiple repositories, but they do not own table reads themselves.
 
-Dashboard-facing coordinators such as `snapshotCompletedDashboardRepository.ts` and `snapshotUserCompletedRepository.ts` choose between table-specific repositories for safe fast paths and full-facts fallbacks. They do not contain table SQL.
+Dashboard-facing coordinators such as `snapshotCompletedDashboardRepository.ts`, `snapshotUserCompletedRepository.ts`, and `snapshotTaskEventsRepository.ts` choose between table-specific repositories for safe fast paths and full-facts fallbacks. They do not contain table SQL.
 
 ### Snapshot metadata
 
@@ -110,6 +111,7 @@ Current refresh shape:
 - Populates `analytics.snapshot_completed_dashboard_facts` directly from `tmp_snapshot_fact_source` for the `/completed` aggregate workload.
 - Populates `analytics.snapshot_completed_daily_metrics_facts` from the completed dashboard facts partition for default `/completed` date-metric workloads.
 - Populates `analytics.snapshot_completed_region_location_facts` from the completed dashboard facts partition for the `/completed` region/location workload.
+- Populates `analytics.snapshot_task_event_service_daily_facts` from the task event facts partition for default and service-filter-only `/` task-event workloads.
 - Runs `ANALYZE` on every detached snapshot table before publish.
 - Commits the detached build tables before publish, then opens a short publish transaction that only attaches those tables as partitions and updates `analytics.snapshot_state`.
 - Keeps the previous published snapshot readable during the detached build phase because the live parent tables are not modified until the final attach step.
@@ -493,7 +495,7 @@ Notes:
 Overview event fact table for created, completed, and cancelled counts by date and shared slicers.
 
 Used by:
-- `/` task events by service
+- `/` task events by service when role category, region, location, task name, or work type filters are selected
 
 Population rule:
 - Created rows where `created_date IS NOT NULL`
@@ -516,6 +518,26 @@ Required columns:
 Notes:
 - This table intentionally omits `priority` and `task_status`.
 - The refresh aggregates across those fields so Overview event counts cannot be duplicated by dimensions that the UI never groups on.
+
+### analytics.snapshot_task_event_service_daily_facts
+Narrow Overview event rollup for created, completed, and cancelled counts by service and date.
+
+Used by:
+- `/` task events by service when only the event date range and optional service filters are selected
+
+Population rule:
+- Aggregated from `analytics.snapshot_task_event_daily_facts`
+- Grouped by `event_date`, `event_type`, and `jurisdiction_label`
+
+Required columns:
+- `snapshot_id`
+- `event_date`
+- `event_type`
+- `jurisdiction_label`
+- `task_count`
+
+Notes:
+- Role category, region, location, task name, and work type filters use `analytics.snapshot_task_event_daily_facts` because this rollup intentionally drops those dimensions.
 
 ### analytics.snapshot_wait_time_by_assigned_date
 Assigned-task wait-time facts.

@@ -72,7 +72,7 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
       fetchTasksDuePriorityRows: jest.fn().mockResolvedValue([]),
       fetchAssignedSummaryRows: jest.fn().mockResolvedValue(userOverviewAssignedSummaryRows),
     },
-    snapshotTaskEventDailyFactsRepository: {
+    snapshotTaskEventsRepository: {
       fetchTaskEventsByServiceRows: jest.fn().mockResolvedValue([]),
     },
     snapshotOutstandingCreatedAssignmentDailyFactsRepository: {

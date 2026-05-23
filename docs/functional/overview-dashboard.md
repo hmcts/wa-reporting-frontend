@@ -56,4 +56,4 @@ flowchart LR
 - The dashboard is designed for broad monitoring rather than deep drill-down.
 - All values are numeric and formatted for readability.
 - The open/assigned service table reads `analytics.snapshot_open_due_daily_facts`.
-- The created/completed/cancelled service table reads `analytics.snapshot_task_event_daily_facts`.
+- The created/completed/cancelled service table uses `analytics.snapshot_task_event_service_daily_facts` when only the event date range and optional service filters are selected. It falls back to `analytics.snapshot_task_event_daily_facts` when role category, region, location, task name, or work type filters are selected.

@@ -7,7 +7,7 @@ import { snapshotOutstandingCreatedAssignmentDailyFactsRepository } from '../../
 import { snapshotOutstandingDueStatusDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOutstandingDueStatusDailyFactsRepository';
 import { snapshotOutstandingFilterFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOutstandingFilterFactsRepository';
 import { snapshotOverviewFilterFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOverviewFilterFactsRepository';
-import { snapshotTaskEventDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotTaskEventDailyFactsRepository';
+import { snapshotTaskEventsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotTaskEventsRepository';
 import { snapshotUserCompletedRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserCompletedRepository';
 import { snapshotUserFilterFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserFilterFactsRepository';
 
@@ -19,9 +19,8 @@ const factsRepositoriesHarness = {
   fetchServiceOverviewRows: snapshotOpenDueDailyFactsRepository.fetchServiceOverviewRows.bind(
     snapshotOpenDueDailyFactsRepository
   ),
-  fetchTaskEventsByServiceRows: snapshotTaskEventDailyFactsRepository.fetchTaskEventsByServiceRows.bind(
-    snapshotTaskEventDailyFactsRepository
-  ),
+  fetchTaskEventsByServiceRows:
+    snapshotTaskEventsRepository.fetchTaskEventsByServiceRows.bind(snapshotTaskEventsRepository),
   async fetchOverviewFilterOptionsRows(
     snapshotId: number,
     params?: {
@@ -146,19 +145,75 @@ describe('factsRepositoriesHarness', () => {
     expect(tmPrisma.$queryRaw).toHaveBeenCalledTimes(5);
   });
 
-  test('builds task events query with explicit date range filters', async () => {
+  test('builds task events query from the service rollup with explicit date range and service filters', async () => {
     const from = new Date('2024-01-01');
     const to = new Date('2024-01-31');
 
     await factsRepositoriesHarness.fetchTaskEventsByServiceRows(snapshotId, { service: ['A'] }, { from, to });
     const query = queryCall();
+    const normalised = normaliseSql(query.sql);
 
     expect(query.sql).toContain('event_date >=');
     expect(query.sql).toContain('event_date <=');
     expect(query.sql).toContain("event_type = 'completed'");
     expect(query.sql).toContain("event_type = 'cancelled'");
     expect(query.sql).toContain("event_type = 'created'");
+    expect(query.sql).toContain('FROM analytics.snapshot_task_event_service_daily_facts');
+    expect(query.sql).not.toContain('FROM analytics.snapshot_task_event_daily_facts');
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('jurisdiction_label IN');
+    expect(normalised).toContain(
+      'WHERE snapshot_id = ? AND event_date >= ? AND event_date <= ? AND jurisdiction_label IN'
+    );
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, from, to, 'A']));
+  });
+
+  test('builds task events query from the service rollup when no shared filters are selected', async () => {
+    const from = new Date('2024-01-01');
+    const to = new Date('2024-01-31');
+
+    await factsRepositoriesHarness.fetchTaskEventsByServiceRows(snapshotId, {}, { from, to });
+    const query = queryCall();
+    const normalised = normaliseSql(query.sql);
+
+    expect(query.sql).toContain('FROM analytics.snapshot_task_event_service_daily_facts');
+    expect(query.sql).toContain('snapshot_id =');
+    expect(query.sql).toContain('event_date >=');
+    expect(query.sql).toContain('event_date <=');
+    expect(normalised).toContain('WHERE snapshot_id = ? AND event_date >= ? AND event_date <= ?');
+    expect(query.sql).not.toContain('jurisdiction_label IN');
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, from, to]));
+  });
+
+  test('treats empty service filters as unselected for task event rollups', async () => {
+    const from = new Date('2024-01-01');
+    const to = new Date('2024-01-31');
+
+    await factsRepositoriesHarness.fetchTaskEventsByServiceRows(snapshotId, { service: [] }, { from, to });
+    const query = queryCall();
+    const normalised = normaliseSql(query.sql);
+
+    expect(query.sql).toContain('FROM analytics.snapshot_task_event_service_daily_facts');
+    expect(normalised).toContain('WHERE snapshot_id = ? AND event_date >= ? AND event_date <= ?');
+    expect(query.sql).not.toContain('jurisdiction_label IN');
+    expect(query.values).toEqual([snapshotId, from, to]);
+  });
+
+  test.each([
+    ['role category', { roleCategory: ['Admin'] }],
+    ['region', { region: ['1'] }],
+    ['location', { location: ['231596'] }],
+    ['task name', { taskName: ['Review case'] }],
+    ['work type', { workType: ['routine_work'] }],
+  ])('keeps task events on full facts when %s filters are active', async (_label, filters) => {
+    const from = new Date('2024-01-01');
+    const to = new Date('2024-01-31');
+
+    await factsRepositoriesHarness.fetchTaskEventsByServiceRows(snapshotId, filters, { from, to });
+    const query = queryCall();
+
     expect(query.sql).toContain('FROM analytics.snapshot_task_event_daily_facts');
+    expect(query.sql).not.toContain('FROM analytics.snapshot_task_event_service_daily_facts');
     expect(query.sql).toContain('snapshot_id =');
     expect(query.values).toEqual(expect.arrayContaining([snapshotId, from, to]));
   });
