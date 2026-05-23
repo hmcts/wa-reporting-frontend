@@ -112,6 +112,7 @@ Current refresh shape:
 - Populates `analytics.snapshot_completed_daily_metrics_facts` from the completed dashboard facts partition for default `/completed` date-metric workloads.
 - Populates `analytics.snapshot_completed_region_location_facts` from the completed dashboard facts partition for the `/completed` region/location workload.
 - Populates `analytics.snapshot_task_event_service_daily_facts` from the task event facts partition for default and service-filter-only `/` task-event workloads.
+- Creates child indexes on detached aggregate partitions with definitions that match the parent partitioned indexes, so publish can attach/reuse them without leaving duplicate per-snapshot index families behind.
 - Runs `ANALYZE` on every detached snapshot table before publish.
 - Commits the detached build tables before publish, then opens a short publish transaction that only attaches those tables as partitions and updates `analytics.snapshot_state`.
 - Keeps the previous published snapshot readable during the detached build phase because the live parent tables are not modified until the final attach step.

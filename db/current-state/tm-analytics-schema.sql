@@ -1160,28 +1160,28 @@ LANGUAGE plpgsql
 AS $procedure$
 BEGIN
   EXECUTE format(
-    'CREATE UNIQUE INDEX %I ON analytics.%I(completed_date)',
+    'CREATE UNIQUE INDEX %I ON analytics.%I(snapshot_id, completed_date)',
     format('ux_sucdt_p_%s_key', p_snapshot_id),
     p_user_completed_daily_totals_partition_name
   );
 
   EXECUTE format(
-    'CREATE UNIQUE INDEX %I ON analytics.%I(jurisdiction_label, role_category_label, region, location, task_name, work_type, completed_date)',
+    'CREATE UNIQUE INDEX %I ON analytics.%I(snapshot_id, jurisdiction_label, role_category_label, region, location, task_name, work_type, completed_date)',
     format('ux_sucsdf_p_%s_key', p_snapshot_id),
     p_user_completed_slicer_daily_facts_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(completed_date)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, completed_date)',
     format('ix_sucsdf_p_%s_completed_date', p_snapshot_id),
     p_user_completed_slicer_daily_facts_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
     format('ix_sucsdf_p_%s_slicers', p_snapshot_id),
     p_user_completed_slicer_daily_facts_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(task_name)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, task_name)',
     format('ix_sucsdf_p_%s_task_name', p_snapshot_id),
     p_user_completed_slicer_daily_facts_partition_name
   );
@@ -1240,7 +1240,7 @@ LANGUAGE plpgsql
 AS $procedure$
 BEGIN
   EXECUTE format(
-    'CREATE UNIQUE INDEX IF NOT EXISTS %I ON analytics.%I(reference_date)',
+    'CREATE UNIQUE INDEX IF NOT EXISTS %I ON analytics.%I(snapshot_id, reference_date)',
     format('ux_scdmf_p_%s_date', p_snapshot_id),
     p_completed_daily_metrics_facts_partition_name
   );
@@ -1302,17 +1302,17 @@ LANGUAGE plpgsql
 AS $procedure$
 BEGIN
   EXECUTE format(
-    'CREATE UNIQUE INDEX IF NOT EXISTS %I ON analytics.%I(reference_date, region, location)',
+    'CREATE UNIQUE INDEX IF NOT EXISTS %I ON analytics.%I(snapshot_id, reference_date, region, location)',
     format('ux_scrlf_p_%s_key', p_snapshot_id),
     p_completed_region_location_facts_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX IF NOT EXISTS %I ON analytics.%I(reference_date)',
+    'CREATE INDEX IF NOT EXISTS %I ON analytics.%I(snapshot_id, reference_date)',
     format('ix_scrlf_p_%s_ref_date', p_snapshot_id),
     p_completed_region_location_facts_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX IF NOT EXISTS %I ON analytics.%I(region, location)',
+    'CREATE INDEX IF NOT EXISTS %I ON analytics.%I(snapshot_id, region, location)',
     format('ix_scrlf_p_%s_region_loc', p_snapshot_id),
     p_completed_region_location_facts_partition_name
   );
@@ -1364,7 +1364,7 @@ LANGUAGE plpgsql
 AS $procedure$
 BEGIN
   EXECUTE format(
-    'CREATE UNIQUE INDEX IF NOT EXISTS %I ON analytics.%I(event_date, event_type, jurisdiction_label) INCLUDE (task_count)',
+    'CREATE UNIQUE INDEX IF NOT EXISTS %I ON analytics.%I(snapshot_id, event_date, event_type, jurisdiction_label)',
     format('ux_stesdf_p_%s_key', p_snapshot_id),
     p_task_event_service_daily_partition_name
   );
@@ -2006,49 +2006,49 @@ BEGIN
   );
 
   EXECUTE format(
-    'CREATE UNIQUE INDEX %I ON analytics.%I(reference_date, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+    'CREATE UNIQUE INDEX %I ON analytics.%I(snapshot_id, reference_date, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
     format('ux_scdf_p_%s_key', p_snapshot_id),
     p_completed_dashboard_facts_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(reference_date)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, reference_date)',
     format('ix_scdf_p_%s_reference_date', p_snapshot_id),
     p_completed_dashboard_facts_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
     format('ix_scdf_p_%s_slicers', p_snapshot_id),
     p_completed_dashboard_facts_partition_name
   );
 
   EXECUTE format(
-    'CREATE UNIQUE INDEX %I ON analytics.%I(due_date, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+    'CREATE UNIQUE INDEX %I ON analytics.%I(snapshot_id, due_date, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
     format('ux_sodsf_p_%s_key', p_snapshot_id),
     p_outstanding_due_status_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(due_date) INCLUDE (open_task_count, completed_task_count)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, due_date) INCLUDE (open_task_count, completed_task_count)',
     format('ix_sodsf_p_%s_due_date', p_snapshot_id),
     p_outstanding_due_status_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
     format('ix_sodsf_p_%s_slicers', p_snapshot_id),
     p_outstanding_due_status_partition_name
   );
 
   EXECUTE format(
-    'CREATE UNIQUE INDEX %I ON analytics.%I(reference_date, jurisdiction_label, role_category_label, region, location, task_name, work_type, assignment_state)',
+    'CREATE UNIQUE INDEX %I ON analytics.%I(snapshot_id, reference_date, jurisdiction_label, role_category_label, region, location, task_name, work_type, assignment_state)',
     format('ux_socaf_p_%s_key', p_snapshot_id),
     p_outstanding_created_assignment_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(reference_date)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, reference_date)',
     format('ix_socaf_p_%s_ref_date', p_snapshot_id),
     p_outstanding_created_assignment_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(jurisdiction_label, role_category_label, region, location, task_name, work_type, assignment_state)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, jurisdiction_label, role_category_label, region, location, task_name, work_type, assignment_state)',
     format('ix_socaf_p_%s_slicers', p_snapshot_id),
     p_outstanding_created_assignment_partition_name
   );
