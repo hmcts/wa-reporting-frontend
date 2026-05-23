@@ -210,6 +210,7 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
   - The application DB role has permissions to read from `cron.job` and execute `cron.unschedule(...)` / `cron.schedule_in_database(...)`.
 - Runtime note:
   - `analytics.run_snapshot_refresh_batch()` now builds detached snapshot tables first and only takes parent-table metadata locks during the short final attach/publish step.
+  - Refresh-created aggregate partition indexes match the corresponding parent partitioned indexes. This lets Postgres attach/reuse those indexes at publish time instead of maintaining duplicate child-local index families for the same access paths.
   - Post-publish retention cleanup uses a short `lock_timeout` while detaching obsolete partitions; if that cleanup cannot obtain the lock quickly it logs a warning and leaves the old snapshot for a later run.
 
 ### TM schema permissions bootstrap
