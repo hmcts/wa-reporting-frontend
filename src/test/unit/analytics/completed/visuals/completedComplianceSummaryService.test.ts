@@ -1,8 +1,8 @@
 import { completedComplianceSummaryService } from '../../../../../main/modules/analytics/completed/visuals/completedComplianceSummaryService';
-import { snapshotCompletedDashboardFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
+import { snapshotCompletedDashboardRepository } from '../../../../../main/modules/analytics/shared/repositories';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  snapshotCompletedDashboardFactsRepository: { fetchCompletedSummaryRows: jest.fn() },
+  snapshotCompletedDashboardRepository: { fetchCompletedSummaryRows: jest.fn() },
 }));
 
 describe('completedComplianceSummaryService', () => {
@@ -13,7 +13,7 @@ describe('completedComplianceSummaryService', () => {
   });
 
   test('returns null when there are no rows', async () => {
-    (snapshotCompletedDashboardFactsRepository.fetchCompletedSummaryRows as jest.Mock).mockResolvedValue([]);
+    (snapshotCompletedDashboardRepository.fetchCompletedSummaryRows as jest.Mock).mockResolvedValue([]);
 
     const result = await completedComplianceSummaryService.fetchCompletedSummary(snapshotId, {});
 
@@ -21,13 +21,13 @@ describe('completedComplianceSummaryService', () => {
   });
 
   test('maps totals from the first row', async () => {
-    (snapshotCompletedDashboardFactsRepository.fetchCompletedSummaryRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedDashboardRepository.fetchCompletedSummaryRows as jest.Mock).mockResolvedValue([
       { total: 10, within: 7 },
     ]);
 
     const result = await completedComplianceSummaryService.fetchCompletedSummary(snapshotId, { service: ['Civil'] });
 
-    expect(snapshotCompletedDashboardFactsRepository.fetchCompletedSummaryRows).toHaveBeenCalledWith(
+    expect(snapshotCompletedDashboardRepository.fetchCompletedSummaryRows).toHaveBeenCalledWith(
       snapshotId,
       { service: ['Civil'] },
       undefined,
@@ -37,7 +37,7 @@ describe('completedComplianceSummaryService', () => {
   });
 
   test('defaults missing totals to zero', async () => {
-    (snapshotCompletedDashboardFactsRepository.fetchCompletedSummaryRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedDashboardRepository.fetchCompletedSummaryRows as jest.Mock).mockResolvedValue([
       { total: null, within: undefined },
     ]);
 
@@ -47,7 +47,7 @@ describe('completedComplianceSummaryService', () => {
   });
 
   test('forwards query options when provided', async () => {
-    (snapshotCompletedDashboardFactsRepository.fetchCompletedSummaryRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedDashboardRepository.fetchCompletedSummaryRows as jest.Mock).mockResolvedValue([
       { total: 3, within: 2 },
     ]);
 
@@ -58,7 +58,7 @@ describe('completedComplianceSummaryService', () => {
       { excludeRoleCategories: ['Judicial'] }
     );
 
-    expect(snapshotCompletedDashboardFactsRepository.fetchCompletedSummaryRows).toHaveBeenCalledWith(
+    expect(snapshotCompletedDashboardRepository.fetchCompletedSummaryRows).toHaveBeenCalledWith(
       snapshotId,
       { roleCategory: ['Operations'] },
       { from: new Date('2024-08-01'), to: new Date('2024-08-31') },

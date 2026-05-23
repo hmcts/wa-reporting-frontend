@@ -29,6 +29,14 @@ DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facts_from_tables(
   REGCLASS,
   REGCLASS
 );
+DROP PROCEDURE IF EXISTS analytics.populate_snapshot_user_completed_rollup_tables(BIGINT, REGCLASS, REGCLASS, REGCLASS);
+DROP PROCEDURE IF EXISTS analytics.create_snapshot_user_completed_rollup_indexes(BIGINT, TEXT, TEXT);
+DROP PROCEDURE IF EXISTS analytics.populate_snapshot_completed_daily_metrics_rollup_table(BIGINT, REGCLASS, REGCLASS);
+DROP PROCEDURE IF EXISTS analytics.create_snapshot_completed_daily_metrics_indexes(BIGINT, TEXT);
+DROP PROCEDURE IF EXISTS analytics.populate_snapshot_completed_region_location_rollup_table(BIGINT, REGCLASS, REGCLASS);
+DROP PROCEDURE IF EXISTS analytics.create_snapshot_completed_region_location_indexes(BIGINT, TEXT);
+DROP PROCEDURE IF EXISTS analytics.populate_snapshot_task_event_service_daily_rollup_table(BIGINT, REGCLASS, REGCLASS);
+DROP PROCEDURE IF EXISTS analytics.create_snapshot_task_event_service_daily_indexes(BIGINT, TEXT);
 DROP PROCEDURE IF EXISTS analytics.cleanup_snapshot_partitions(BIGINT);
 DROP PROCEDURE IF EXISTS analytics.cleanup_snapshot_retention();
 DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facet_facts(BIGINT);
@@ -41,11 +49,16 @@ DROP TABLE IF EXISTS analytics.snapshot_completed_filter_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_outstanding_filter_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_overview_filter_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_wait_time_by_assigned_date CASCADE;
+DROP TABLE IF EXISTS analytics.snapshot_task_event_service_daily_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_task_event_daily_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_open_due_daily_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_outstanding_created_assignment_daily_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_outstanding_due_status_daily_facts CASCADE;
+DROP TABLE IF EXISTS analytics.snapshot_completed_region_location_facts CASCADE;
+DROP TABLE IF EXISTS analytics.snapshot_completed_daily_metrics_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_completed_dashboard_facts CASCADE;
+DROP TABLE IF EXISTS analytics.snapshot_user_completed_slicer_daily_facts CASCADE;
+DROP TABLE IF EXISTS analytics.snapshot_user_completed_daily_totals CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_user_completed_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_completed_task_rows CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_open_task_rows CASCADE;
@@ -140,6 +153,68 @@ CREATE TABLE analytics.snapshot_user_completed_facts (
   days_beyond_count INTEGER NOT NULL
 ) PARTITION BY LIST (snapshot_id);
 
+CREATE TABLE analytics.snapshot_user_completed_daily_totals (
+  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
+  completed_date DATE NOT NULL,
+  tasks INTEGER NOT NULL,
+  within_due INTEGER NOT NULL,
+  beyond_due INTEGER NOT NULL,
+  handling_time_sum NUMERIC NOT NULL,
+  handling_time_count INTEGER NOT NULL,
+  days_beyond_sum NUMERIC NOT NULL,
+  days_beyond_count INTEGER NOT NULL
+) PARTITION BY LIST (snapshot_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_snapshot_user_completed_daily_totals_snapshot_date
+  ON ONLY analytics.snapshot_user_completed_daily_totals(snapshot_id, completed_date);
+
+CREATE TABLE analytics.snapshot_user_completed_slicer_daily_facts (
+  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
+  jurisdiction_label TEXT,
+  role_category_label TEXT,
+  region TEXT,
+  location TEXT,
+  task_name TEXT,
+  work_type TEXT,
+  completed_date DATE NOT NULL,
+  tasks INTEGER NOT NULL,
+  within_due INTEGER NOT NULL,
+  beyond_due INTEGER NOT NULL,
+  handling_time_sum NUMERIC NOT NULL,
+  handling_time_count INTEGER NOT NULL,
+  days_beyond_sum NUMERIC NOT NULL,
+  days_beyond_count INTEGER NOT NULL
+) PARTITION BY LIST (snapshot_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_snapshot_user_completed_slicer_daily_facts_snapshot_key
+  ON ONLY analytics.snapshot_user_completed_slicer_daily_facts(
+    snapshot_id,
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    work_type,
+    completed_date
+  );
+
+CREATE INDEX IF NOT EXISTS ix_snapshot_user_completed_slicer_daily_facts_snapshot_date
+  ON ONLY analytics.snapshot_user_completed_slicer_daily_facts(snapshot_id, completed_date);
+
+CREATE INDEX IF NOT EXISTS ix_snapshot_user_completed_slicer_daily_facts_snapshot_slicers
+  ON ONLY analytics.snapshot_user_completed_slicer_daily_facts(
+    snapshot_id,
+    jurisdiction_label,
+    role_category_label,
+    region,
+    location,
+    task_name,
+    work_type
+  );
+
+CREATE INDEX IF NOT EXISTS ix_snapshot_user_completed_slicer_daily_facts_snapshot_task_name
+  ON ONLY analytics.snapshot_user_completed_slicer_daily_facts(snapshot_id, task_name);
+
 CREATE TABLE analytics.snapshot_completed_dashboard_facts (
   snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
   reference_date DATE NOT NULL,
@@ -184,6 +259,44 @@ CREATE INDEX IF NOT EXISTS ix_snapshot_completed_dashboard_facts_snapshot_slicer
     task_name,
     work_type
   );
+
+CREATE TABLE analytics.snapshot_completed_daily_metrics_facts (
+  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
+  reference_date DATE NOT NULL,
+  total_task_count BIGINT NOT NULL,
+  within_task_count BIGINT NOT NULL,
+  handling_time_days_sum NUMERIC NOT NULL,
+  handling_time_days_sum_squares NUMERIC NOT NULL,
+  handling_time_days_count BIGINT NOT NULL,
+  processing_time_days_sum NUMERIC NOT NULL,
+  processing_time_days_sum_squares NUMERIC NOT NULL,
+  processing_time_days_count BIGINT NOT NULL
+) PARTITION BY LIST (snapshot_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_snapshot_completed_daily_metrics_facts_date
+  ON ONLY analytics.snapshot_completed_daily_metrics_facts(snapshot_id, reference_date);
+
+CREATE TABLE analytics.snapshot_completed_region_location_facts (
+  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
+  reference_date DATE NOT NULL,
+  region TEXT,
+  location TEXT,
+  total_task_count BIGINT NOT NULL,
+  within_task_count BIGINT NOT NULL,
+  handling_time_days_sum NUMERIC NOT NULL,
+  handling_time_days_count BIGINT NOT NULL,
+  processing_time_days_sum NUMERIC NOT NULL,
+  processing_time_days_count BIGINT NOT NULL
+) PARTITION BY LIST (snapshot_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_snapshot_completed_region_location_facts_key
+  ON ONLY analytics.snapshot_completed_region_location_facts(snapshot_id, reference_date, region, location);
+
+CREATE INDEX IF NOT EXISTS ix_snapshot_completed_region_location_facts_date
+  ON ONLY analytics.snapshot_completed_region_location_facts(snapshot_id, reference_date);
+
+CREATE INDEX IF NOT EXISTS ix_snapshot_completed_region_location_facts_region_loc
+  ON ONLY analytics.snapshot_completed_region_location_facts(snapshot_id, region, location);
 
 CREATE TABLE analytics.snapshot_outstanding_due_status_daily_facts (
   snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
@@ -293,6 +406,22 @@ CREATE TABLE analytics.snapshot_task_event_daily_facts (
   task_count BIGINT NOT NULL
 ) PARTITION BY LIST (snapshot_id);
 
+CREATE TABLE analytics.snapshot_task_event_service_daily_facts (
+  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
+  event_date DATE NOT NULL,
+  event_type TEXT NOT NULL CHECK (event_type IN ('created', 'completed', 'cancelled')),
+  jurisdiction_label TEXT,
+  task_count BIGINT NOT NULL
+) PARTITION BY LIST (snapshot_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_snapshot_task_event_service_daily_facts_key
+  ON ONLY analytics.snapshot_task_event_service_daily_facts(
+    snapshot_id,
+    event_date,
+    event_type,
+    jurisdiction_label
+  );
+
 CREATE TABLE analytics.snapshot_wait_time_by_assigned_date (
   snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
   jurisdiction_label TEXT,
@@ -381,6 +510,12 @@ DROP PROCEDURE IF EXISTS analytics.create_snapshot_core_indexes(
   TEXT,
   TEXT
 );
+DROP PROCEDURE IF EXISTS analytics.populate_snapshot_completed_region_location_rollup_table(BIGINT, REGCLASS, REGCLASS);
+DROP PROCEDURE IF EXISTS analytics.create_snapshot_completed_region_location_indexes(BIGINT, TEXT);
+DROP PROCEDURE IF EXISTS analytics.populate_snapshot_completed_daily_metrics_rollup_table(BIGINT, REGCLASS, REGCLASS);
+DROP PROCEDURE IF EXISTS analytics.create_snapshot_completed_daily_metrics_indexes(BIGINT, TEXT);
+DROP PROCEDURE IF EXISTS analytics.populate_snapshot_task_event_service_daily_rollup_table(BIGINT, REGCLASS, REGCLASS);
+DROP PROCEDURE IF EXISTS analytics.create_snapshot_task_event_service_daily_indexes(BIGINT, TEXT);
 DROP PROCEDURE IF EXISTS analytics.create_snapshot_filter_indexes(
   BIGINT,
   TEXT,
@@ -407,11 +542,16 @@ AS $$
       'snapshot_open_task_rows',
       'snapshot_completed_task_rows',
       'snapshot_user_completed_facts',
+      'snapshot_user_completed_daily_totals',
+      'snapshot_user_completed_slicer_daily_facts',
       'snapshot_completed_dashboard_facts',
+      'snapshot_completed_daily_metrics_facts',
+      'snapshot_completed_region_location_facts',
       'snapshot_outstanding_due_status_daily_facts',
       'snapshot_outstanding_created_assignment_daily_facts',
       'snapshot_open_due_daily_facts',
       'snapshot_task_event_daily_facts',
+      'snapshot_task_event_service_daily_facts',
       'snapshot_wait_time_by_assigned_date',
       'snapshot_overview_filter_facts',
       'snapshot_outstanding_filter_facts',
@@ -910,6 +1050,324 @@ BEGIN
       p_snapshot_id
     );
   END LOOP;
+END;
+$procedure$;
+
+CREATE OR REPLACE PROCEDURE analytics.populate_snapshot_user_completed_rollup_tables(
+  p_snapshot_id BIGINT,
+  p_user_completed_facts_table REGCLASS,
+  p_user_completed_daily_totals_table REGCLASS,
+  p_user_completed_slicer_daily_facts_table REGCLASS
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+  EXECUTE format(
+    $daily_totals$
+    INSERT INTO %s (
+      snapshot_id,
+      completed_date,
+      tasks,
+      within_due,
+      beyond_due,
+      handling_time_sum,
+      handling_time_count,
+      days_beyond_sum,
+      days_beyond_count
+    )
+    SELECT
+      $1,
+      completed_date,
+      SUM(tasks)::int AS tasks,
+      SUM(within_due)::int AS within_due,
+      SUM(beyond_due)::int AS beyond_due,
+      SUM(handling_time_sum)::numeric AS handling_time_sum,
+      SUM(handling_time_count)::int AS handling_time_count,
+      SUM(days_beyond_sum)::numeric AS days_beyond_sum,
+      SUM(days_beyond_count)::int AS days_beyond_count
+    FROM %s
+    WHERE snapshot_id = $1
+      AND completed_date IS NOT NULL
+      AND (role_category_label IS NULL OR UPPER(role_category_label) <> 'JUDICIAL')
+    GROUP BY completed_date
+    $daily_totals$,
+    p_user_completed_daily_totals_table,
+    p_user_completed_facts_table
+  )
+  USING p_snapshot_id;
+
+  EXECUTE format(
+    $slicer_daily_facts$
+    INSERT INTO %s (
+      snapshot_id,
+      jurisdiction_label,
+      role_category_label,
+      region,
+      location,
+      task_name,
+      work_type,
+      completed_date,
+      tasks,
+      within_due,
+      beyond_due,
+      handling_time_sum,
+      handling_time_count,
+      days_beyond_sum,
+      days_beyond_count
+    )
+    SELECT
+      $1,
+      jurisdiction_label,
+      role_category_label,
+      region,
+      location,
+      task_name,
+      work_type,
+      completed_date,
+      SUM(tasks)::int AS tasks,
+      SUM(within_due)::int AS within_due,
+      SUM(beyond_due)::int AS beyond_due,
+      SUM(handling_time_sum)::numeric AS handling_time_sum,
+      SUM(handling_time_count)::int AS handling_time_count,
+      SUM(days_beyond_sum)::numeric AS days_beyond_sum,
+      SUM(days_beyond_count)::int AS days_beyond_count
+    FROM %s
+    WHERE snapshot_id = $1
+      AND completed_date IS NOT NULL
+      AND (role_category_label IS NULL OR UPPER(role_category_label) <> 'JUDICIAL')
+    GROUP BY
+      jurisdiction_label,
+      role_category_label,
+      region,
+      location,
+      task_name,
+      work_type,
+      completed_date
+    $slicer_daily_facts$,
+    p_user_completed_slicer_daily_facts_table,
+    p_user_completed_facts_table
+  )
+  USING p_snapshot_id;
+END;
+$procedure$;
+
+CREATE OR REPLACE PROCEDURE analytics.create_snapshot_user_completed_rollup_indexes(
+  p_snapshot_id BIGINT,
+  p_user_completed_daily_totals_partition_name TEXT,
+  p_user_completed_slicer_daily_facts_partition_name TEXT
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+  EXECUTE format(
+    'CREATE UNIQUE INDEX %I ON analytics.%I(snapshot_id, completed_date)',
+    format('ux_sucdt_p_%s_key', p_snapshot_id),
+    p_user_completed_daily_totals_partition_name
+  );
+
+  EXECUTE format(
+    'CREATE UNIQUE INDEX %I ON analytics.%I(snapshot_id, jurisdiction_label, role_category_label, region, location, task_name, work_type, completed_date)',
+    format('ux_sucsdf_p_%s_key', p_snapshot_id),
+    p_user_completed_slicer_daily_facts_partition_name
+  );
+  EXECUTE format(
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, completed_date)',
+    format('ix_sucsdf_p_%s_completed_date', p_snapshot_id),
+    p_user_completed_slicer_daily_facts_partition_name
+  );
+  EXECUTE format(
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+    format('ix_sucsdf_p_%s_slicers', p_snapshot_id),
+    p_user_completed_slicer_daily_facts_partition_name
+  );
+  EXECUTE format(
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, task_name)',
+    format('ix_sucsdf_p_%s_task_name', p_snapshot_id),
+    p_user_completed_slicer_daily_facts_partition_name
+  );
+END;
+$procedure$;
+
+CREATE OR REPLACE PROCEDURE analytics.populate_snapshot_completed_daily_metrics_rollup_table(
+  p_snapshot_id BIGINT,
+  p_completed_dashboard_facts_table REGCLASS,
+  p_completed_daily_metrics_facts_table REGCLASS
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+  EXECUTE format(
+    $daily_metrics$
+    INSERT INTO %s (
+      snapshot_id,
+      reference_date,
+      total_task_count,
+      within_task_count,
+      handling_time_days_sum,
+      handling_time_days_sum_squares,
+      handling_time_days_count,
+      processing_time_days_sum,
+      processing_time_days_sum_squares,
+      processing_time_days_count
+    )
+    SELECT
+      $1,
+      reference_date,
+      SUM(total_task_count)::bigint AS total_task_count,
+      SUM(within_task_count)::bigint AS within_task_count,
+      SUM(handling_time_days_sum)::numeric AS handling_time_days_sum,
+      SUM(handling_time_days_sum_squares)::numeric AS handling_time_days_sum_squares,
+      SUM(handling_time_days_count)::bigint AS handling_time_days_count,
+      SUM(processing_time_days_sum)::numeric AS processing_time_days_sum,
+      SUM(processing_time_days_sum_squares)::numeric AS processing_time_days_sum_squares,
+      SUM(processing_time_days_count)::bigint AS processing_time_days_count
+    FROM %s
+    WHERE snapshot_id = $1
+    GROUP BY reference_date
+    $daily_metrics$,
+    p_completed_daily_metrics_facts_table,
+    p_completed_dashboard_facts_table
+  )
+  USING p_snapshot_id;
+END;
+$procedure$;
+
+CREATE OR REPLACE PROCEDURE analytics.create_snapshot_completed_daily_metrics_indexes(
+  p_snapshot_id BIGINT,
+  p_completed_daily_metrics_facts_partition_name TEXT
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+  EXECUTE format(
+    'CREATE UNIQUE INDEX IF NOT EXISTS %I ON analytics.%I(snapshot_id, reference_date)',
+    format('ux_scdmf_p_%s_date', p_snapshot_id),
+    p_completed_daily_metrics_facts_partition_name
+  );
+END;
+$procedure$;
+
+CREATE OR REPLACE PROCEDURE analytics.populate_snapshot_completed_region_location_rollup_table(
+  p_snapshot_id BIGINT,
+  p_completed_dashboard_facts_table REGCLASS,
+  p_completed_region_location_facts_table REGCLASS
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+  EXECUTE format(
+    $region_location$
+    INSERT INTO %s (
+      snapshot_id,
+      reference_date,
+      region,
+      location,
+      total_task_count,
+      within_task_count,
+      handling_time_days_sum,
+      handling_time_days_count,
+      processing_time_days_sum,
+      processing_time_days_count
+    )
+    SELECT
+      $1,
+      reference_date,
+      region,
+      location,
+      SUM(total_task_count)::bigint AS total_task_count,
+      SUM(within_task_count)::bigint AS within_task_count,
+      SUM(handling_time_days_sum)::numeric AS handling_time_days_sum,
+      SUM(handling_time_days_count)::bigint AS handling_time_days_count,
+      SUM(processing_time_days_sum)::numeric AS processing_time_days_sum,
+      SUM(processing_time_days_count)::bigint AS processing_time_days_count
+    FROM %s
+    WHERE snapshot_id = $1
+    GROUP BY
+      reference_date,
+      region,
+      location
+    $region_location$,
+    p_completed_region_location_facts_table,
+    p_completed_dashboard_facts_table
+  )
+  USING p_snapshot_id;
+END;
+$procedure$;
+
+CREATE OR REPLACE PROCEDURE analytics.create_snapshot_completed_region_location_indexes(
+  p_snapshot_id BIGINT,
+  p_completed_region_location_facts_partition_name TEXT
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+  EXECUTE format(
+    'CREATE UNIQUE INDEX IF NOT EXISTS %I ON analytics.%I(snapshot_id, reference_date, region, location)',
+    format('ux_scrlf_p_%s_key', p_snapshot_id),
+    p_completed_region_location_facts_partition_name
+  );
+  EXECUTE format(
+    'CREATE INDEX IF NOT EXISTS %I ON analytics.%I(snapshot_id, reference_date)',
+    format('ix_scrlf_p_%s_ref_date', p_snapshot_id),
+    p_completed_region_location_facts_partition_name
+  );
+  EXECUTE format(
+    'CREATE INDEX IF NOT EXISTS %I ON analytics.%I(snapshot_id, region, location)',
+    format('ix_scrlf_p_%s_region_loc', p_snapshot_id),
+    p_completed_region_location_facts_partition_name
+  );
+END;
+$procedure$;
+
+CREATE OR REPLACE PROCEDURE analytics.populate_snapshot_task_event_service_daily_rollup_table(
+  p_snapshot_id BIGINT,
+  p_task_event_table REGCLASS,
+  p_task_event_service_daily_table REGCLASS
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+  EXECUTE format(
+    $service_daily$
+    INSERT INTO %s (
+      snapshot_id,
+      event_date,
+      event_type,
+      jurisdiction_label,
+      task_count
+    )
+    SELECT
+      $1,
+      event_date,
+      event_type,
+      jurisdiction_label,
+      SUM(task_count)::bigint AS task_count
+    FROM %s
+    WHERE snapshot_id = $1
+    GROUP BY
+      event_date,
+      event_type,
+      jurisdiction_label
+    $service_daily$,
+    p_task_event_service_daily_table,
+    p_task_event_table
+  )
+  USING p_snapshot_id;
+END;
+$procedure$;
+
+CREATE OR REPLACE PROCEDURE analytics.create_snapshot_task_event_service_daily_indexes(
+  p_snapshot_id BIGINT,
+  p_task_event_service_daily_partition_name TEXT
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+  EXECUTE format(
+    'CREATE UNIQUE INDEX IF NOT EXISTS %I ON analytics.%I(snapshot_id, event_date, event_type, jurisdiction_label)',
+    format('ux_stesdf_p_%s_key', p_snapshot_id),
+    p_task_event_service_daily_partition_name
+  );
 END;
 $procedure$;
 
@@ -1548,49 +2006,49 @@ BEGIN
   );
 
   EXECUTE format(
-    'CREATE UNIQUE INDEX %I ON analytics.%I(reference_date, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+    'CREATE UNIQUE INDEX %I ON analytics.%I(snapshot_id, reference_date, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
     format('ux_scdf_p_%s_key', p_snapshot_id),
     p_completed_dashboard_facts_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(reference_date)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, reference_date)',
     format('ix_scdf_p_%s_reference_date', p_snapshot_id),
     p_completed_dashboard_facts_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
     format('ix_scdf_p_%s_slicers', p_snapshot_id),
     p_completed_dashboard_facts_partition_name
   );
 
   EXECUTE format(
-    'CREATE UNIQUE INDEX %I ON analytics.%I(due_date, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+    'CREATE UNIQUE INDEX %I ON analytics.%I(snapshot_id, due_date, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
     format('ux_sodsf_p_%s_key', p_snapshot_id),
     p_outstanding_due_status_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(due_date) INCLUDE (open_task_count, completed_task_count)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, due_date) INCLUDE (open_task_count, completed_task_count)',
     format('ix_sodsf_p_%s_due_date', p_snapshot_id),
     p_outstanding_due_status_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, jurisdiction_label, role_category_label, region, location, task_name, work_type)',
     format('ix_sodsf_p_%s_slicers', p_snapshot_id),
     p_outstanding_due_status_partition_name
   );
 
   EXECUTE format(
-    'CREATE UNIQUE INDEX %I ON analytics.%I(reference_date, jurisdiction_label, role_category_label, region, location, task_name, work_type, assignment_state)',
+    'CREATE UNIQUE INDEX %I ON analytics.%I(snapshot_id, reference_date, jurisdiction_label, role_category_label, region, location, task_name, work_type, assignment_state)',
     format('ux_socaf_p_%s_key', p_snapshot_id),
     p_outstanding_created_assignment_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(reference_date)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, reference_date)',
     format('ix_socaf_p_%s_ref_date', p_snapshot_id),
     p_outstanding_created_assignment_partition_name
   );
   EXECUTE format(
-    'CREATE INDEX %I ON analytics.%I(jurisdiction_label, role_category_label, region, location, task_name, work_type, assignment_state)',
+    'CREATE INDEX %I ON analytics.%I(snapshot_id, jurisdiction_label, role_category_label, region, location, task_name, work_type, assignment_state)',
     format('ix_socaf_p_%s_slicers', p_snapshot_id),
     p_outstanding_created_assignment_partition_name
   );
@@ -1827,11 +2285,16 @@ DECLARE
   v_open_rows_partition_name TEXT;
   v_completed_rows_partition_name TEXT;
   v_user_completed_facts_partition_name TEXT;
+  v_user_completed_daily_totals_partition_name TEXT;
+  v_user_completed_slicer_daily_facts_partition_name TEXT;
   v_completed_dashboard_facts_partition_name TEXT;
+  v_completed_daily_metrics_facts_partition_name TEXT;
+  v_completed_region_location_facts_partition_name TEXT;
   v_outstanding_due_status_partition_name TEXT;
   v_outstanding_created_assignment_partition_name TEXT;
   v_open_due_daily_partition_name TEXT;
   v_task_event_daily_partition_name TEXT;
+  v_task_event_service_daily_partition_name TEXT;
   v_wait_time_partition_name TEXT;
   v_overview_filter_partition_name TEXT;
   v_outstanding_filter_partition_name TEXT;
@@ -1880,7 +2343,23 @@ BEGIN
     v_open_rows_partition_name := format('snapshot_open_task_rows_p_%s', v_snapshot_id);
     v_completed_rows_partition_name := format('snapshot_completed_task_rows_p_%s', v_snapshot_id);
     v_user_completed_facts_partition_name := format('snapshot_user_completed_facts_p_%s', v_snapshot_id);
+    v_user_completed_daily_totals_partition_name := format(
+      'snapshot_user_completed_daily_totals_p_%s',
+      v_snapshot_id
+    );
+    v_user_completed_slicer_daily_facts_partition_name := format(
+      'snapshot_user_completed_slicer_daily_facts_p_%s',
+      v_snapshot_id
+    );
     v_completed_dashboard_facts_partition_name := format('snapshot_completed_dashboard_facts_p_%s', v_snapshot_id);
+    v_completed_daily_metrics_facts_partition_name := format(
+      'snapshot_completed_daily_metrics_facts_p_%s',
+      v_snapshot_id
+    );
+    v_completed_region_location_facts_partition_name := format(
+      'snapshot_completed_region_location_facts_p_%s',
+      v_snapshot_id
+    );
     v_outstanding_due_status_partition_name := format('snapshot_outstanding_due_status_daily_facts_p_%s', v_snapshot_id);
     v_outstanding_created_assignment_partition_name := format(
       'snapshot_outstanding_created_assignment_daily_facts_p_%s',
@@ -1888,6 +2367,10 @@ BEGIN
     );
     v_open_due_daily_partition_name := format('snapshot_open_due_daily_facts_p_%s', v_snapshot_id);
     v_task_event_daily_partition_name := format('snapshot_task_event_daily_facts_p_%s', v_snapshot_id);
+    v_task_event_service_daily_partition_name := format(
+      'snapshot_task_event_service_daily_facts_p_%s',
+      v_snapshot_id
+    );
     v_wait_time_partition_name := format('snapshot_wait_time_by_assigned_date_p_%s', v_snapshot_id);
     v_overview_filter_partition_name := format('snapshot_overview_filter_facts_p_%s', v_snapshot_id);
     v_outstanding_filter_partition_name := format('snapshot_outstanding_filter_facts_p_%s', v_snapshot_id);
@@ -1909,6 +2392,31 @@ BEGIN
       format('analytics.%I', v_wait_time_partition_name)::REGCLASS
     );
 
+    CALL analytics.populate_snapshot_user_completed_rollup_tables(
+      v_snapshot_id,
+      format('analytics.%I', v_user_completed_facts_partition_name)::REGCLASS,
+      format('analytics.%I', v_user_completed_daily_totals_partition_name)::REGCLASS,
+      format('analytics.%I', v_user_completed_slicer_daily_facts_partition_name)::REGCLASS
+    );
+
+    CALL analytics.populate_snapshot_completed_daily_metrics_rollup_table(
+      v_snapshot_id,
+      format('analytics.%I', v_completed_dashboard_facts_partition_name)::REGCLASS,
+      format('analytics.%I', v_completed_daily_metrics_facts_partition_name)::REGCLASS
+    );
+
+    CALL analytics.populate_snapshot_completed_region_location_rollup_table(
+      v_snapshot_id,
+      format('analytics.%I', v_completed_dashboard_facts_partition_name)::REGCLASS,
+      format('analytics.%I', v_completed_region_location_facts_partition_name)::REGCLASS
+    );
+
+    CALL analytics.populate_snapshot_task_event_service_daily_rollup_table(
+      v_snapshot_id,
+      format('analytics.%I', v_task_event_daily_partition_name)::REGCLASS,
+      format('analytics.%I', v_task_event_service_daily_partition_name)::REGCLASS
+    );
+
     CALL analytics.create_snapshot_core_indexes(
       v_snapshot_id,
       v_open_rows_partition_name,
@@ -1920,6 +2428,27 @@ BEGIN
       v_open_due_daily_partition_name,
       v_task_event_daily_partition_name,
       v_wait_time_partition_name
+    );
+
+    CALL analytics.create_snapshot_user_completed_rollup_indexes(
+      v_snapshot_id,
+      v_user_completed_daily_totals_partition_name,
+      v_user_completed_slicer_daily_facts_partition_name
+    );
+
+    CALL analytics.create_snapshot_completed_daily_metrics_indexes(
+      v_snapshot_id,
+      v_completed_daily_metrics_facts_partition_name
+    );
+
+    CALL analytics.create_snapshot_completed_region_location_indexes(
+      v_snapshot_id,
+      v_completed_region_location_facts_partition_name
+    );
+
+    CALL analytics.create_snapshot_task_event_service_daily_indexes(
+      v_snapshot_id,
+      v_task_event_service_daily_partition_name
     );
 
     -- Bias facet aggregation toward in-memory hash aggregate.

@@ -89,9 +89,11 @@ flowchart LR
   - By region
   - By location
 - Columns include total tasks, within due, beyond due, and average handling/processing time where available.
+- Default, completed date, region, and location-only reads use the completed region/location snapshot rollup. Service, role category, task name, and work type filtered reads use the full completed dashboard facts table so filter semantics remain exact.
 
 ## Notes
 - All tables include CSV export.
 - Filters apply to all sections; the metric selector only changes the timing chart/table.
+- Summary, timeline, and processing/handling default reads use the completed daily metrics snapshot rollup. Shared-filtered reads use the full completed dashboard facts table so filter semantics remain exact.
 - Completed-task determination is based on case-insensitive `termination_reason = completed`; task `state` is not used to classify completion.
 - Dates are displayed as `D Mon YYYY` in the UI, while CSV export keeps ISO `YYYY-MM-DD` date values.

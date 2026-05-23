@@ -1,8 +1,8 @@
 import { completedRegionLocationTableService } from '../../../../../main/modules/analytics/completed/visuals/completedRegionLocationTableService';
-import { snapshotCompletedDashboardFactsRepository } from '../../../../../main/modules/analytics/shared/repositories';
+import { snapshotCompletedDashboardRepository } from '../../../../../main/modules/analytics/shared/repositories';
 
 jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
-  snapshotCompletedDashboardFactsRepository: {
+  snapshotCompletedDashboardRepository: {
     fetchCompletedRegionLocationRows: jest.fn(),
   },
 }));
@@ -15,7 +15,7 @@ describe('completedRegionLocationTableService', () => {
   });
 
   test('maps combined region and location rows and calculates averages', async () => {
-    (snapshotCompletedDashboardFactsRepository.fetchCompletedRegionLocationRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedDashboardRepository.fetchCompletedRegionLocationRows as jest.Mock).mockResolvedValue([
       {
         grouping_type: 'region',
         location: null,
@@ -108,7 +108,7 @@ describe('completedRegionLocationTableService', () => {
   });
 
   test('defaults missing totals to zero in both result groups', async () => {
-    (snapshotCompletedDashboardFactsRepository.fetchCompletedRegionLocationRows as jest.Mock).mockResolvedValue([
+    (snapshotCompletedDashboardRepository.fetchCompletedRegionLocationRows as jest.Mock).mockResolvedValue([
       {
         grouping_type: 'location',
         location: 'Leeds',

@@ -14,7 +14,7 @@ import {
 } from '../../../../../main/modules/analytics/shared/repositories/rowRepositoryHelpers';
 import { snapshotCompletedTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedTaskRowsRepository';
 import { snapshotOpenTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOpenTaskRowsRepository';
-import { snapshotUserCompletedFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserCompletedFactsRepository';
+import { snapshotUserCompletedRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserCompletedRepository';
 import { snapshotWaitTimeByAssignedDateRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotWaitTimeByAssignedDateRepository';
 import {
   AssignedSortBy,
@@ -34,13 +34,11 @@ const rowRepositoriesHarness = {
   ),
   fetchUserOverviewAssignedTaskCount:
     snapshotOpenTaskRowsRepository.fetchUserOverviewAssignedTaskCount.bind(snapshotOpenTaskRowsRepository),
-  fetchUserOverviewCompletedByDateRows: snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedByDateRows.bind(
-    snapshotUserCompletedFactsRepository
+  fetchUserOverviewCompletedByDateRows: snapshotUserCompletedRepository.fetchUserOverviewCompletedByDateRows.bind(
+    snapshotUserCompletedRepository
   ),
   fetchUserOverviewCompletedByTaskNameRows:
-    snapshotUserCompletedFactsRepository.fetchUserOverviewCompletedByTaskNameRows.bind(
-      snapshotUserCompletedFactsRepository
-    ),
+    snapshotUserCompletedRepository.fetchUserOverviewCompletedByTaskNameRows.bind(snapshotUserCompletedRepository),
   fetchCompletedTaskAuditRows: snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows.bind(
     snapshotCompletedTaskRowsRepository
   ),
@@ -316,8 +314,53 @@ describe('rowRepositoriesHarness', () => {
 
     await rowRepositoriesHarness.fetchUserOverviewCompletedByDateRows(snapshotId, completedFilters, queryOptions);
     const completedByDateQuery = latestQuery();
-    expect(completedByDateQuery.sql).toContain('UPPER(role_category_label) NOT IN');
-    expect(completedByDateQuery.values).toContain('JUDICIAL');
+    expect(completedByDateQuery.sql).toContain('FROM analytics.snapshot_user_completed_daily_totals');
+    expect(completedByDateQuery.sql).not.toContain('UPPER(role_category_label) NOT IN');
+    expect(completedByDateQuery.values).not.toContain('JUDICIAL');
+  });
+
+  test('routes user-overview completed by date to rollups for non-user Judicial-excluded paths', async () => {
+    const queryOptions = { excludeRoleCategories: ['Judicial'] };
+
+    await rowRepositoriesHarness.fetchUserOverviewCompletedByDateRows(snapshotId, {}, queryOptions);
+    const defaultQuery = latestQuery();
+    expect(defaultQuery.sql).toContain('FROM analytics.snapshot_user_completed_daily_totals');
+    expect(defaultQuery.sql).toContain('GROUP BY completed_date');
+    expect(defaultQuery.sql).not.toContain('UPPER(role_category_label) NOT IN');
+    expect(defaultQuery.sql).not.toContain('jurisdiction_label IN');
+    expect(defaultQuery.values).toEqual([snapshotId]);
+
+    await rowRepositoriesHarness.fetchUserOverviewCompletedByDateRows(
+      snapshotId,
+      { service: ['Service A'], completedFrom: new Date('2024-01-01') },
+      queryOptions
+    );
+    const filteredQuery = latestQuery();
+    expect(filteredQuery.sql).toContain('FROM analytics.snapshot_user_completed_slicer_daily_facts');
+    expect(filteredQuery.sql).toContain('jurisdiction_label IN');
+    expect(filteredQuery.sql).toContain('completed_date >=');
+    expect(filteredQuery.sql).not.toContain('assignee IN');
+    expect(filteredQuery.sql).not.toContain('UPPER(role_category_label) NOT IN');
+    expect(filteredQuery.values).toEqual(expect.arrayContaining([snapshotId, 'Service A']));
+  });
+
+  test('routes user-overview completed by task name to slicer rollup when no user filter is active', async () => {
+    await rowRepositoriesHarness.fetchUserOverviewCompletedByTaskNameRows(
+      snapshotId,
+      { completedTo: new Date('2024-02-29') },
+      { excludeRoleCategories: ['Judicial'] }
+    );
+    const query = latestQuery();
+    const normalised = normaliseSql(query.sql);
+
+    expect(normalised).toContain('FROM analytics.snapshot_user_completed_slicer_daily_facts');
+    expect(normalised).toContain('SUM(tasks)::int AS tasks');
+    expect(normalised).toContain('SUM(tasks)::int AS handling_time_count');
+    expect(normalised).toContain('SUM(tasks)::int AS days_beyond_count');
+    expect(normalised).toContain('GROUP BY task_name');
+    expect(normalised).toContain('ORDER BY tasks DESC, task_name ASC');
+    expect(normalised).not.toContain('assignee IN');
+    expect(normalised).not.toContain('UPPER(role_category_label) NOT IN');
   });
 
   test('builds completed row conditions with and without case id', () => {

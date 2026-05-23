@@ -72,7 +72,7 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
       fetchTasksDuePriorityRows: jest.fn().mockResolvedValue([]),
       fetchAssignedSummaryRows: jest.fn().mockResolvedValue(userOverviewAssignedSummaryRows),
     },
-    snapshotTaskEventDailyFactsRepository: {
+    snapshotTaskEventsRepository: {
       fetchTaskEventsByServiceRows: jest.fn().mockResolvedValue([]),
     },
     snapshotOutstandingCreatedAssignmentDailyFactsRepository: {
@@ -81,7 +81,7 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
     snapshotOutstandingDueStatusDailyFactsRepository: {
       fetchTasksDueByDateRows: jest.fn().mockResolvedValue([]),
     },
-    snapshotCompletedDashboardFactsRepository: {
+    snapshotCompletedDashboardRepository: {
       fetchCompletedSummaryRows: jest.fn().mockResolvedValue([]),
       fetchCompletedTimelineRows: jest.fn().mockResolvedValue([]),
       fetchCompletedProcessingHandlingTimeRows: jest.fn().mockResolvedValue([]),
@@ -99,7 +99,7 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
       fetchUserOverviewCompletedTaskRows: jest.fn().mockResolvedValue(userOverviewCompletedTaskRows),
       fetchCompletedTaskAuditRows: jest.fn().mockResolvedValue([]),
     },
-    snapshotUserCompletedFactsRepository: {
+    snapshotUserCompletedRepository: {
       fetchUserOverviewCompletedSummaryRows: jest.fn().mockResolvedValue(userOverviewCompletedSummaryRows),
       fetchUserOverviewCompletedByDateRows: jest.fn().mockResolvedValue([]),
       fetchUserOverviewCompletedByTaskNameRows: jest.fn().mockResolvedValue([]),

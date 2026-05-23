@@ -55,12 +55,17 @@ Each analytics repository file owns one table or view:
 
 - `analytics.snapshot_open_due_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOpenDueDailyFactsRepository.ts`
 - `analytics.snapshot_task_event_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotTaskEventDailyFactsRepository.ts`
+- `analytics.snapshot_task_event_service_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotTaskEventServiceDailyFactsRepository.ts`
 - `analytics.snapshot_outstanding_created_assignment_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOutstandingCreatedAssignmentDailyFactsRepository.ts`
 - `analytics.snapshot_outstanding_due_status_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOutstandingDueStatusDailyFactsRepository.ts`
 - `analytics.snapshot_completed_dashboard_facts` -> `src/main/modules/analytics/shared/repositories/snapshotCompletedDashboardFactsRepository.ts`
+- `analytics.snapshot_completed_daily_metrics_facts` -> `src/main/modules/analytics/shared/repositories/snapshotCompletedDailyMetricsFactsRepository.ts`
+- `analytics.snapshot_completed_region_location_facts` -> `src/main/modules/analytics/shared/repositories/snapshotCompletedRegionLocationFactsRepository.ts`
 - `analytics.snapshot_open_task_rows` -> `src/main/modules/analytics/shared/repositories/snapshotOpenTaskRowsRepository.ts`
 - `analytics.snapshot_completed_task_rows` -> `src/main/modules/analytics/shared/repositories/snapshotCompletedTaskRowsRepository.ts`
 - `analytics.snapshot_user_completed_facts` -> `src/main/modules/analytics/shared/repositories/snapshotUserCompletedFactsRepository.ts`
+- `analytics.snapshot_user_completed_daily_totals` -> `src/main/modules/analytics/shared/repositories/snapshotUserCompletedDailyTotalsRepository.ts`
+- `analytics.snapshot_user_completed_slicer_daily_facts` -> `src/main/modules/analytics/shared/repositories/snapshotUserCompletedSlicerDailyFactsRepository.ts`
 - `analytics.snapshot_wait_time_by_assigned_date` -> `src/main/modules/analytics/shared/repositories/snapshotWaitTimeByAssignedDateRepository.ts`
 - `analytics.snapshot_overview_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOverviewFilterFactsRepository.ts`
 - `analytics.snapshot_outstanding_filter_facts` -> `src/main/modules/analytics/shared/repositories/snapshotOutstandingFilterFactsRepository.ts`
@@ -70,6 +75,8 @@ Each analytics repository file owns one table or view:
 - `analytics.snapshot_batches` -> `src/main/modules/analytics/shared/repositories/snapshotBatchesRepository.ts`
 
 Shared helpers such as `filterFactsQueryHelpers.ts`, `rowRepositoryHelpers.ts`, and `snapshotMetadataHelpers.ts` may build SQL fragments for multiple repositories, but they do not own table reads themselves.
+
+Dashboard-facing coordinators such as `snapshotCompletedDashboardRepository.ts`, `snapshotUserCompletedRepository.ts`, and `snapshotTaskEventsRepository.ts` choose between table-specific repositories for safe fast paths and full-facts fallbacks. They do not contain table SQL.
 
 ### Snapshot metadata
 
@@ -102,6 +109,10 @@ Current refresh shape:
 - Loads thin row tables first, then facts, then page-scoped facet tables.
 - Populates `analytics.snapshot_outstanding_due_status_daily_facts` and `analytics.snapshot_outstanding_created_assignment_daily_facts` directly from `tmp_snapshot_fact_source` for the `/outstanding` aggregate workloads.
 - Populates `analytics.snapshot_completed_dashboard_facts` directly from `tmp_snapshot_fact_source` for the `/completed` aggregate workload.
+- Populates `analytics.snapshot_completed_daily_metrics_facts` from the completed dashboard facts partition for default `/completed` date-metric workloads.
+- Populates `analytics.snapshot_completed_region_location_facts` from the completed dashboard facts partition for the `/completed` region/location workload.
+- Populates `analytics.snapshot_task_event_service_daily_facts` from the task event facts partition for default and service-filter-only `/` task-event workloads.
+- Creates child indexes on detached aggregate partitions with definitions that match the parent partitioned indexes, so publish can attach/reuse them without leaving duplicate per-snapshot index families behind.
 - Runs `ANALYZE` on every detached snapshot table before publish.
 - Commits the detached build tables before publish, then opens a short publish transaction that only attaches those tables as partitions and updates `analytics.snapshot_state`.
 - Keeps the previous published snapshot readable during the detached build phase because the live parent tables are not modified until the final attach step.
@@ -237,8 +248,69 @@ Notes:
 - `handling_time_sum` uses `COALESCE(handling_time_days, 0)` so null handling times remain in the task denominator for the `/users` completed-by-task-name table.
 - `days_beyond_sum` uses the refresh-time `days_beyond_due` value derived from `due_date_to_completed_diff_time`, also with nulls treated as zero.
 - `days_beyond_count` preserves `COUNT(*)` semantics for the `/users` completed-by-task-name average.
-- On the combined `/users` completed overview AJAX path, the completed summary and completed-table pagination totals are derived from the completed-by-date aggregate over this table instead of a separate summary query.
-- On completed-only child refreshes (`user-overview-completed`), the dedicated completed summary aggregate is still used so completed-table sort and pagination do not trigger the completed-by-date aggregate.
+- User-filtered `/users` completed reads stay on this assignee-aware table.
+- No-user `/users` completed reads with the standard User Overview Judicial exclusion use smaller no-assignee rollups where possible:
+  - `analytics.snapshot_user_completed_daily_totals` for default no-slicer completed overview and completed summary.
+  - `analytics.snapshot_user_completed_slicer_daily_facts` for shared-slicer filtered completed overview, completed summary, and completed-by-task-name.
+
+### analytics.snapshot_user_completed_daily_totals
+Date-only non-Judicial completed-task rollup for the default User Overview completed path.
+
+Used by:
+- `/users` completed summary when no `User` or shared slicer filter is selected
+- `/users` completed by date when no `User` or shared slicer filter is selected
+
+Population rule:
+- Aggregated from `analytics.snapshot_user_completed_facts`
+- Includes only rows where `completed_date IS NOT NULL`
+- Excludes Judicial role category rows case-insensitively at refresh time
+- Grouped by `completed_date`
+
+Required columns:
+- `snapshot_id`
+- `completed_date`
+- `tasks`
+- `within_due`
+- `beyond_due`
+- `handling_time_sum`
+- `handling_time_count`
+- `days_beyond_sum`
+- `days_beyond_count`
+
+### analytics.snapshot_user_completed_slicer_daily_facts
+No-assignee non-Judicial completed-task rollup for User Overview completed paths that still need shared slicers.
+
+Used by:
+- `/users` completed summary when no `User` filter is selected and at least one shared slicer filter is selected
+- `/users` completed by date when no `User` filter is selected and at least one shared slicer filter is selected
+- `/users` completed by task name when no `User` filter is selected
+
+Population rule:
+- Aggregated from `analytics.snapshot_user_completed_facts`
+- Includes only rows where `completed_date IS NOT NULL`
+- Excludes Judicial role category rows case-insensitively at refresh time
+- Grouped by shared slicers, task name, and `completed_date`
+
+Required columns:
+- `snapshot_id`
+- `jurisdiction_label`
+- `role_category_label`
+- `region`
+- `location`
+- `task_name`
+- `work_type`
+- `completed_date`
+- `tasks`
+- `within_due`
+- `beyond_due`
+- `handling_time_sum`
+- `handling_time_count`
+- `days_beyond_sum`
+- `days_beyond_count`
+
+Notes:
+- These rollups intentionally omit `assignee`. Any selected `User` filter falls back to `analytics.snapshot_user_completed_facts`.
+- The repository uses these rollups only for the standard User Overview query option that excludes Judicial role categories. Other role-exclusion options fall back to `analytics.snapshot_user_completed_facts`.
 
 ### analytics.snapshot_outstanding_due_status_daily_facts
 Page-scoped due-status fact table for the `/outstanding` tasks-due workload.
@@ -327,7 +399,65 @@ Required columns:
 
 Notes:
 - `/completed` processing and handling time reconstructs averages and population standard deviations from `sum`, `sum_squares`, and `count`.
-- The `/completed` region and region/location tables are served from one `GROUPING SETS ((location, region), (region))` aggregate over this table.
+- The `/completed` summary, timeline, and processing/handling sections fall back to this table when any shared filter or role-exclusion query option is active.
+- The `/completed` region and region/location tables fall back to this table when service, role category, task name, or work type filters are active.
+
+### analytics.snapshot_completed_daily_metrics_facts
+Completed-task date rollup for default `/completed` summary, timeline, and processing/handling sections.
+
+Used by:
+- `/completed` completed summary when no shared filters or role-exclusion query options are active
+- `/completed` completed timeline when no shared filters are active
+- `/completed` processing and handling time when no shared filters are active
+
+Population rule:
+- Source rows come from the same snapshot's `analytics.snapshot_completed_dashboard_facts` child partition.
+- Grouped by `reference_date`.
+- Populated during snapshot refresh after completed dashboard facts are loaded and before the snapshot is published.
+
+Required columns:
+- `snapshot_id`
+- `reference_date`
+- `total_task_count`
+- `within_task_count`
+- `handling_time_days_sum`
+- `handling_time_days_sum_squares`
+- `handling_time_days_count`
+- `processing_time_days_sum`
+- `processing_time_days_sum_squares`
+- `processing_time_days_count`
+
+Notes:
+- Date-range filters are safe because `reference_date` is preserved.
+- Filters on service, role category, region, location, task name, or work type must use `analytics.snapshot_completed_dashboard_facts` because those slicers are intentionally not stored in this smaller rollup.
+- Processing and handling time still reconstruct averages and population standard deviations from the same sum, sum-of-squares, and count columns as the full completed dashboard facts table.
+
+### analytics.snapshot_completed_region_location_facts
+Completed-task date, region, and location rollup for the `/completed` region/location tables.
+
+Used by:
+- `/completed` completed by region/location when filters are absent or limited to completed date, region, and location.
+
+Population rule:
+- Source rows come from the same snapshot's `analytics.snapshot_completed_dashboard_facts` child partition.
+- Grouped by `reference_date`, `region`, and `location`.
+- Populated during snapshot refresh after completed dashboard facts are loaded and before the snapshot is published.
+
+Required columns:
+- `snapshot_id`
+- `reference_date`
+- `region`
+- `location`
+- `total_task_count`
+- `within_task_count`
+- `handling_time_days_sum`
+- `handling_time_days_count`
+- `processing_time_days_sum`
+- `processing_time_days_count`
+
+Notes:
+- The repository still emits one `GROUPING SETS ((location, region), (region))` query so the service/view-model contract is unchanged.
+- Filters on service, role category, task name, or work type must use `analytics.snapshot_completed_dashboard_facts` because those slicers are intentionally not stored in this smaller rollup.
 
 ### analytics.snapshot_open_due_daily_facts
 Open-task fact table for the shared due/open aggregate workload.
@@ -366,7 +496,7 @@ Notes:
 Overview event fact table for created, completed, and cancelled counts by date and shared slicers.
 
 Used by:
-- `/` task events by service
+- `/` task events by service when role category, region, location, task name, or work type filters are selected
 
 Population rule:
 - Created rows where `created_date IS NOT NULL`
@@ -389,6 +519,26 @@ Required columns:
 Notes:
 - This table intentionally omits `priority` and `task_status`.
 - The refresh aggregates across those fields so Overview event counts cannot be duplicated by dimensions that the UI never groups on.
+
+### analytics.snapshot_task_event_service_daily_facts
+Narrow Overview event rollup for created, completed, and cancelled counts by service and date.
+
+Used by:
+- `/` task events by service when only the event date range and optional service filters are selected
+
+Population rule:
+- Aggregated from `analytics.snapshot_task_event_daily_facts`
+- Grouped by `event_date`, `event_type`, and `jurisdiction_label`
+
+Required columns:
+- `snapshot_id`
+- `event_date`
+- `event_type`
+- `jurisdiction_label`
+- `task_count`
+
+Notes:
+- Role category, region, location, task name, and work type filters use `analytics.snapshot_task_event_daily_facts` because this rollup intentionally drops those dimensions.
 
 ### analytics.snapshot_wait_time_by_assigned_date
 Assigned-task wait-time facts.
