@@ -35,6 +35,8 @@ DROP PROCEDURE IF EXISTS analytics.populate_snapshot_completed_daily_metrics_rol
 DROP PROCEDURE IF EXISTS analytics.create_snapshot_completed_daily_metrics_indexes(BIGINT, TEXT);
 DROP PROCEDURE IF EXISTS analytics.populate_snapshot_completed_region_location_rollup_table(BIGINT, REGCLASS, REGCLASS);
 DROP PROCEDURE IF EXISTS analytics.create_snapshot_completed_region_location_indexes(BIGINT, TEXT);
+DROP PROCEDURE IF EXISTS analytics.populate_snapshot_task_event_service_daily_rollup_table(BIGINT, REGCLASS, REGCLASS);
+DROP PROCEDURE IF EXISTS analytics.create_snapshot_task_event_service_daily_indexes(BIGINT, TEXT);
 DROP PROCEDURE IF EXISTS analytics.cleanup_snapshot_partitions(BIGINT);
 DROP PROCEDURE IF EXISTS analytics.cleanup_snapshot_retention();
 DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facet_facts(BIGINT);
@@ -47,6 +49,7 @@ DROP TABLE IF EXISTS analytics.snapshot_completed_filter_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_outstanding_filter_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_overview_filter_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_wait_time_by_assigned_date CASCADE;
+DROP TABLE IF EXISTS analytics.snapshot_task_event_service_daily_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_task_event_daily_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_open_due_daily_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_outstanding_created_assignment_daily_facts CASCADE;
@@ -403,6 +406,22 @@ CREATE TABLE analytics.snapshot_task_event_daily_facts (
   task_count BIGINT NOT NULL
 ) PARTITION BY LIST (snapshot_id);
 
+CREATE TABLE analytics.snapshot_task_event_service_daily_facts (
+  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
+  event_date DATE NOT NULL,
+  event_type TEXT NOT NULL CHECK (event_type IN ('created', 'completed', 'cancelled')),
+  jurisdiction_label TEXT,
+  task_count BIGINT NOT NULL
+) PARTITION BY LIST (snapshot_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_snapshot_task_event_service_daily_facts_key
+  ON ONLY analytics.snapshot_task_event_service_daily_facts(
+    snapshot_id,
+    event_date,
+    event_type,
+    jurisdiction_label
+  );
+
 CREATE TABLE analytics.snapshot_wait_time_by_assigned_date (
   snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
   jurisdiction_label TEXT,
@@ -495,6 +514,8 @@ DROP PROCEDURE IF EXISTS analytics.populate_snapshot_completed_region_location_r
 DROP PROCEDURE IF EXISTS analytics.create_snapshot_completed_region_location_indexes(BIGINT, TEXT);
 DROP PROCEDURE IF EXISTS analytics.populate_snapshot_completed_daily_metrics_rollup_table(BIGINT, REGCLASS, REGCLASS);
 DROP PROCEDURE IF EXISTS analytics.create_snapshot_completed_daily_metrics_indexes(BIGINT, TEXT);
+DROP PROCEDURE IF EXISTS analytics.populate_snapshot_task_event_service_daily_rollup_table(BIGINT, REGCLASS, REGCLASS);
+DROP PROCEDURE IF EXISTS analytics.create_snapshot_task_event_service_daily_indexes(BIGINT, TEXT);
 DROP PROCEDURE IF EXISTS analytics.create_snapshot_filter_indexes(
   BIGINT,
   TEXT,
@@ -530,6 +551,7 @@ AS $$
       'snapshot_outstanding_created_assignment_daily_facts',
       'snapshot_open_due_daily_facts',
       'snapshot_task_event_daily_facts',
+      'snapshot_task_event_service_daily_facts',
       'snapshot_wait_time_by_assigned_date',
       'snapshot_overview_filter_facts',
       'snapshot_outstanding_filter_facts',
@@ -1293,6 +1315,58 @@ BEGIN
     'CREATE INDEX IF NOT EXISTS %I ON analytics.%I(region, location)',
     format('ix_scrlf_p_%s_region_loc', p_snapshot_id),
     p_completed_region_location_facts_partition_name
+  );
+END;
+$procedure$;
+
+CREATE OR REPLACE PROCEDURE analytics.populate_snapshot_task_event_service_daily_rollup_table(
+  p_snapshot_id BIGINT,
+  p_task_event_table REGCLASS,
+  p_task_event_service_daily_table REGCLASS
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+  EXECUTE format(
+    $service_daily$
+    INSERT INTO %s (
+      snapshot_id,
+      event_date,
+      event_type,
+      jurisdiction_label,
+      task_count
+    )
+    SELECT
+      $1,
+      event_date,
+      event_type,
+      jurisdiction_label,
+      SUM(task_count)::bigint AS task_count
+    FROM %s
+    WHERE snapshot_id = $1
+    GROUP BY
+      event_date,
+      event_type,
+      jurisdiction_label
+    $service_daily$,
+    p_task_event_service_daily_table,
+    p_task_event_table
+  )
+  USING p_snapshot_id;
+END;
+$procedure$;
+
+CREATE OR REPLACE PROCEDURE analytics.create_snapshot_task_event_service_daily_indexes(
+  p_snapshot_id BIGINT,
+  p_task_event_service_daily_partition_name TEXT
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+  EXECUTE format(
+    'CREATE UNIQUE INDEX IF NOT EXISTS %I ON analytics.%I(event_date, event_type, jurisdiction_label) INCLUDE (task_count)',
+    format('ux_stesdf_p_%s_key', p_snapshot_id),
+    p_task_event_service_daily_partition_name
   );
 END;
 $procedure$;
@@ -2220,6 +2294,7 @@ DECLARE
   v_outstanding_created_assignment_partition_name TEXT;
   v_open_due_daily_partition_name TEXT;
   v_task_event_daily_partition_name TEXT;
+  v_task_event_service_daily_partition_name TEXT;
   v_wait_time_partition_name TEXT;
   v_overview_filter_partition_name TEXT;
   v_outstanding_filter_partition_name TEXT;
@@ -2292,6 +2367,10 @@ BEGIN
     );
     v_open_due_daily_partition_name := format('snapshot_open_due_daily_facts_p_%s', v_snapshot_id);
     v_task_event_daily_partition_name := format('snapshot_task_event_daily_facts_p_%s', v_snapshot_id);
+    v_task_event_service_daily_partition_name := format(
+      'snapshot_task_event_service_daily_facts_p_%s',
+      v_snapshot_id
+    );
     v_wait_time_partition_name := format('snapshot_wait_time_by_assigned_date_p_%s', v_snapshot_id);
     v_overview_filter_partition_name := format('snapshot_overview_filter_facts_p_%s', v_snapshot_id);
     v_outstanding_filter_partition_name := format('snapshot_outstanding_filter_facts_p_%s', v_snapshot_id);
@@ -2332,6 +2411,12 @@ BEGIN
       format('analytics.%I', v_completed_region_location_facts_partition_name)::REGCLASS
     );
 
+    CALL analytics.populate_snapshot_task_event_service_daily_rollup_table(
+      v_snapshot_id,
+      format('analytics.%I', v_task_event_daily_partition_name)::REGCLASS,
+      format('analytics.%I', v_task_event_service_daily_partition_name)::REGCLASS
+    );
+
     CALL analytics.create_snapshot_core_indexes(
       v_snapshot_id,
       v_open_rows_partition_name,
@@ -2359,6 +2444,11 @@ BEGIN
     CALL analytics.create_snapshot_completed_region_location_indexes(
       v_snapshot_id,
       v_completed_region_location_facts_partition_name
+    );
+
+    CALL analytics.create_snapshot_task_event_service_daily_indexes(
+      v_snapshot_id,
+      v_task_event_service_daily_partition_name
     );
 
     -- Bias facet aggregation toward in-memory hash aggregate.

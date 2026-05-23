@@ -1,4 +1,4 @@
-import { snapshotTaskEventDailyFactsRepository } from '../../shared/repositories';
+import { snapshotTaskEventsRepository } from '../../shared/repositories';
 import { emptyTaskEventsByServiceRow } from '../../shared/series';
 import { AnalyticsFilters, TaskEventsByServiceResponse } from '../../shared/types';
 import { toNumber } from '../../shared/utils';
@@ -9,7 +9,7 @@ class TaskEventsByServiceChartService {
     filters: AnalyticsFilters,
     range: { from: Date; to: Date }
   ): Promise<TaskEventsByServiceResponse> {
-    const rows = await snapshotTaskEventDailyFactsRepository.fetchTaskEventsByServiceRows(snapshotId, filters, range);
+    const rows = await snapshotTaskEventsRepository.fetchTaskEventsByServiceRows(snapshotId, filters, range);
 
     const mappedRows = rows.map(row => ({
       service: row.service,

@@ -11,6 +11,8 @@ import { snapshotCompletedTaskRowsRepository } from '../../../../../main/modules
 import { snapshotOpenDueDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOpenDueDailyFactsRepository';
 import { snapshotOpenTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOpenTaskRowsRepository';
 import { snapshotStateRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotStateRepository';
+import { snapshotTaskEventsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotTaskEventsRepository';
+import { snapshotTaskEventServiceDailyFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotTaskEventServiceDailyFactsRepository';
 import { snapshotUserCompletedDailyTotalsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserCompletedDailyTotalsRepository';
 import { snapshotUserCompletedFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserCompletedFactsRepository';
 import { snapshotUserCompletedRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserCompletedRepository';
@@ -34,6 +36,10 @@ describe('repositories index', () => {
     expect(repositories.snapshotOpenDueDailyFactsRepository).toBe(snapshotOpenDueDailyFactsRepository);
     expect(repositories.snapshotOpenTaskRowsRepository).toBe(snapshotOpenTaskRowsRepository);
     expect(repositories.snapshotStateRepository).toBe(snapshotStateRepository);
+    expect(repositories.snapshotTaskEventsRepository).toBe(snapshotTaskEventsRepository);
+    expect(repositories.snapshotTaskEventServiceDailyFactsRepository).toBe(
+      snapshotTaskEventServiceDailyFactsRepository
+    );
     expect(repositories.snapshotUserCompletedDailyTotalsRepository).toBe(snapshotUserCompletedDailyTotalsRepository);
     expect(repositories.snapshotUserCompletedFactsRepository).toBe(snapshotUserCompletedFactsRepository);
     expect(repositories.snapshotUserCompletedRepository).toBe(snapshotUserCompletedRepository);

@@ -17,6 +17,8 @@ export * from './snapshotOutstandingFilterFactsRepository';
 export * from './snapshotOverviewFilterFactsRepository';
 export * from './snapshotStateRepository';
 export * from './snapshotTaskEventDailyFactsRepository';
+export * from './snapshotTaskEventsRepository';
+export * from './snapshotTaskEventServiceDailyFactsRepository';
 export * from './snapshotUserCompletedDailyTotalsRepository';
 export * from './snapshotUserCompletedFactsRepository';
 export * from './snapshotUserCompletedRepository';
