@@ -221,6 +221,7 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
   - `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_HOST` / `PORT` / `DATABASE` / `USER` / `PASSWORD` / `OPTIONS`
   - fallback TM env vars used by Jenkins or local shells: `TM_DB_PRIMARY_HOST` or `TM_DB_REPLICA_HOST` or `TM_DB_HOST`, plus `TM_DB_MIGRATION_USER` or `TM_DB_USER`, `TM_DB_MIGRATION_PASSWORD` or `TM_DB_PASSWORD`, `TM_DB_NAME`, `TM_DB_PORT`, and `TM_DB_OPTIONS`
 - The bootstrap is safe to rerun because repeated `GRANT` statements are idempotent for the target role.
+- Concurrent bootstrap runs against the same TM database are serialised with a transaction-scoped PostgreSQL advisory lock before schema/table ACLs are updated. This avoids catalog update races between Jenkins jobs while keeping the grants atomic.
 - This bootstrap is intentionally external to application startup: the runtime service remains read-only and should continue to use its normal TM read connection.
 - In Jenkins, the Demo and Prod stages invoke the bootstrap directly after Flyway, so stage selection is the environment toggle.
 - The Demo bootstrap overrides `TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME` to `DTS CFT DB Access Reader`; the Prod bootstrap invocation does not set a stage-specific reader username.

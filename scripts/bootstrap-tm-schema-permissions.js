@@ -4,6 +4,8 @@ const DEFAULT_DB_READER_USERNAME = 'DTS JIT Access wa DB Reader SC';
 const DEFAULT_TM_DATABASE = 'cft_task_db';
 const DEFAULT_TM_PORT = '5432';
 const DEFAULT_TM_OPTIONS = 'ssl=true&sslmode=require';
+// Serialises catalog ACL updates when multiple CI jobs bootstrap the same TM database.
+const TM_SCHEMA_PERMISSIONS_BOOTSTRAP_LOCK_KEY = [0x746d, 0x7065726d];
 
 const firstDefined = (...values) => values.find(value => value !== undefined);
 
@@ -80,6 +82,7 @@ const bootstrapTmSchemaPermissions = async (
 
   try {
     await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1, $2)', TM_SCHEMA_PERMISSIONS_BOOTSTRAP_LOCK_KEY);
     await client.query(`GRANT USAGE ON SCHEMA analytics TO ${quotedDbReaderUsername}`);
     await client.query(`GRANT SELECT ON ALL TABLES IN SCHEMA analytics TO ${quotedDbReaderUsername}`);
     await client.query('COMMIT');
