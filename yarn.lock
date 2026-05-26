@@ -9868,9 +9868,9 @@ __metadata:
   linkType: hard
 
 "hono@npm:^4.12.8":
-  version: 4.12.22
-  resolution: "hono@npm:4.12.22"
-  checksum: 10/0dd4485c28c7a84504cb759d34256a7e2f4335a7e40f6f879ca42c217c65ff64671d27e7af702148730251d62630469976e2cff65f9fee876c4cbcba3cdcc19e
+  version: 4.12.23
+  resolution: "hono@npm:4.12.23"
+  checksum: 10/721a7f0728fafe229ea84d5f0f3a2575b44dce5eb2047e49f4e7929257bb59511c80adefbe09637480ca3b65ad553510d7cd75c7dc696a916f141aefcbcb2667
   languageName: node
   linkType: hard
 
@@ -14963,9 +14963,9 @@ __metadata:
   linkType: hard
 
 "tinyexec@npm:^1.1.2":
-  version: 1.1.2
-  resolution: "tinyexec@npm:1.1.2"
-  checksum: 10/2bbe37f9001c6f5723ab39eb8dc1e88f77e830d7cf2e8f34bb75019eb505fcfe3b061b4799c502ff31fa63aa1a9adc649add5ff1e17b7fbd8c16e1afb75d0b9e
+  version: 1.2.2
+  resolution: "tinyexec@npm:1.2.2"
+  checksum: 10/e6f3cabafc33a46063868b4e9c0ab76722e21cb46f0177f7bef5a9656e09ea6fa37115d3e47f776aff11aab9ab696b0c840c8e0099fab574b1e37767c4371aec
   languageName: node
   linkType: hard
 
@@ -14986,19 +14986,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^7.0.30":
-  version: 7.0.30
-  resolution: "tldts-core@npm:7.0.30"
-  checksum: 10/ac2c06a9c51c2638177893a9a799aca66f7032a2fe73b891a39d1d38093d9bcd8904e23893a6aaebd864dcdead701a9c4c9c88243e8b7cf347f57696304d8fa0
+"tldts-core@npm:^7.1.2":
+  version: 7.1.2
+  resolution: "tldts-core@npm:7.1.2"
+  checksum: 10/245fa0053e9438c2d8613719cb8691f66285548c554a08c98f6ae426a710489f44d100db5e54e97a739753a854cc8aa536821d563903785ba17039a9720d8c47
   languageName: node
   linkType: hard
 
 "tldts-icann@npm:^7.0.30":
-  version: 7.0.30
-  resolution: "tldts-icann@npm:7.0.30"
+  version: 7.1.2
+  resolution: "tldts-icann@npm:7.1.2"
   dependencies:
-    tldts-core: "npm:^7.0.30"
-  checksum: 10/1327491e15fabb7b8b7f7c53f2df16137b4304fa5e6d064e317306bea66050b26edfba6ff96d26d4245f504c937bd4acce674a30eedc6b556f250c21aa27bd37
+    tldts-core: "npm:^7.1.2"
+  checksum: 10/6b8051bb8d68ae920145c1df1bcad65ac10bf6ff76b1857422d778a978a64b2b49bc9fffefe31912c0aa97b87275d409eaf24f85d5330d9871c7860cef3cde9a
   languageName: node
   linkType: hard
 
