@@ -122,6 +122,7 @@ yarn setup:edge
 ## Healthcheck
 
 The application exposes a health endpoint at [http://localhost:3100/health](http://localhost:3100/health).
+When authentication is enabled, the aggregate health response includes an IDAM check.
 
 ## License
 

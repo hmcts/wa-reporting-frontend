@@ -40,6 +40,17 @@ services:
   idam:
     clientID: IDAM_CLIENT_ID
     scope: IDAM_CLIENT_SCOPE
+    health:
+      enabled:
+        __name: IDAM_HEALTH_ENABLED
+        __format: boolean
+      path: IDAM_HEALTH_PATH
+      timeout:
+        __name: IDAM_HEALTH_TIMEOUT
+        __format: number
+      deadline:
+        __name: IDAM_HEALTH_DEADLINE
+        __format: number
     url:
       wa: WA_BASE_URL
       public: IDAM_PUBLIC_URL

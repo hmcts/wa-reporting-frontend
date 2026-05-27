@@ -37,6 +37,12 @@
     "idam": {
       "clientID": "wa_reporting_frontend",
       "scope": "openid profile roles",
+      "health": {
+        "enabled": true,
+        "path": "/o/.well-known/openid-configuration",
+        "timeout": 5000,
+        "deadline": 10000
+      },
       "url": {
         "public": "https://hmcts-access.aat.platform.hmcts.net",
         "wa": "http://localhost:3100"

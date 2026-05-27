@@ -37,6 +37,7 @@ COPY --from=build $WORKDIR/package.json ./package.json
 COPY --from=build $WORKDIR/yarn.lock ./yarn.lock
 COPY --from=build $WORKDIR/dist ./dist
 COPY --from=build $WORKDIR/config ./config
+COPY --from=build $WORKDIR/version ./version
 
 RUN corepack prepare --activate
 
