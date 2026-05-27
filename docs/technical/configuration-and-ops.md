@@ -119,7 +119,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `LOGGING_PRISMA_QUERY_TIMINGS_QUERY_PREVIEW_MAX_LENGTH`
 - `APPLICATIONINSIGHTS_CONNECTION_STRING`
 - `IDAM_CLIENT_ID`, `WA_REPORTING_FRONTEND_CLIENT_SECRET`, `IDAM_CLIENT_SCOPE`
-- `IDAM_HEALTH_ENABLED`, `IDAM_HEALTH_PATH`, `IDAM_HEALTH_TIMEOUT`, `IDAM_HEALTH_DEADLINE`
+- `IDAM_HEALTH_ENABLED`, `IDAM_HEALTH_PATH`, `IDAM_HEALTH_DEADLINE`
 - `IDAM_PUBLIC_URL`, `WA_BASE_URL`
 - `RBAC_ACCESS`
 - `TM_DB_HOST`, `TM_DB_PORT`, `TM_DB_NAME`, `TM_DB_SCHEMA`, `TM_DB_OPTIONS`, `TM_DB_URL`, `TM_DB_USER`, `TM_DB_PASSWORD`
@@ -186,10 +186,10 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 - Neither `cichecks` nor the checked-in Jenkins build stage currently runs `yarn build:server`.
 
 ### Health and info endpoints
-- `/health` returns aggregate HMCTS health, including build metadata.
+- `/health` returns aggregate HMCTS health in an actuator-style `groups` and `components` format.
 - `/info` returns build and runtime metadata.
 - When authentication is enabled, `/health` includes an IDAM OIDC discovery check.
-- When Redis is configured, `/health` includes a Redis ping check in both liveness and readiness.
+- When Redis is configured, `/health` and `/health/readiness` include a Redis ping check.
 - `/health/readiness` remains limited to shutdown state and Redis. Shared downstreams such as IDAM are not included in readiness.
 
 ### Logging and monitoring

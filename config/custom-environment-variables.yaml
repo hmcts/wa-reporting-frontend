@@ -45,9 +45,6 @@ services:
         __name: IDAM_HEALTH_ENABLED
         __format: boolean
       path: IDAM_HEALTH_PATH
-      timeout:
-        __name: IDAM_HEALTH_TIMEOUT
-        __format: number
       deadline:
         __name: IDAM_HEALTH_DEADLINE
         __format: number

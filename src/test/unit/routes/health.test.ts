@@ -1,129 +1,180 @@
 import type { Application } from 'express';
 
 describe('routes/health', () => {
-  type WebCheckOptions = {
-    callback: (err: Error | null, res?: { status?: number }) => string;
-    timeout: number;
-    deadline: number;
+  type RouteHandler = (_req: unknown, res: MockResponse) => Promise<void> | void;
+  type MockResponse = {
+    status: jest.Mock;
+    json: jest.Mock;
   };
 
-  const buildInfoEnvKeys = ['PACKAGES_ENVIRONMENT', 'PACKAGES_PROJECT', 'PACKAGES_NAME', 'PACKAGES_VERSION'];
-  const originalBuildInfoEnv = Object.fromEntries(buildInfoEnvKeys.map(key => [key, process.env[key]]));
-
-  beforeEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    buildInfoEnvKeys.forEach(key => {
-      const value = originalBuildInfoEnv[key];
-      if (value === undefined) {
-        delete process.env[key];
-        return;
-      }
-      process.env[key] = value;
-    });
-  });
+  const originalFetch = global.fetch;
 
   const defaultConfigValues: Record<string, unknown> = {
     'auth.enabled': true,
     'services.idam.health.enabled': true,
     'services.idam.health.path': '/o/.well-known/openid-configuration',
-    'services.idam.health.timeout': 5000,
     'services.idam.health.deadline': 10000,
     'services.idam.url.public': 'https://idam.example',
   };
 
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    global.fetch = jest.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
   function registerHealth(configOverrides: Record<string, unknown> = {}, locals: Record<string, unknown> = {}) {
-    const appState = { locals: { shutdown: false, ...locals } };
-    const addTo = jest.fn();
-    const raw = jest.fn((fn: () => unknown) => fn);
-    const web = jest.fn((_url: string, _options: WebCheckOptions) => 'web-check');
-    const up = jest.fn(() => 'up');
-    const down = jest.fn(() => 'down');
+    const appState = { locals: { shutdown: false } };
     const configValues = { ...defaultConfigValues, ...configOverrides };
 
     jest.doMock('../../../main/app', () => ({ app: appState }));
     jest.doMock('config', () => ({
       get: jest.fn((path: string) => configValues[path]),
     }));
-    jest.doMock('@hmcts/nodejs-healthcheck', () => ({ addTo, raw, web, up, down }));
 
-    const app = { locals } as Application;
+    const app = {
+      locals,
+      get: jest.fn(),
+    } as unknown as Application & { get: jest.Mock };
 
     jest.isolateModules(() => {
       const registerHealthRoute = require('../../../main/routes/health').default;
       registerHealthRoute(app);
     });
 
+    const handlers = Object.fromEntries(app.get.mock.calls.map(([path, handler]) => [path, handler])) as Record<
+      string,
+      RouteHandler
+    >;
+
     return {
       app,
       appState,
-      addTo,
-      raw,
-      web,
-      up,
-      down,
-      healthCheckConfig: addTo.mock.calls[0][1],
+      handlers,
+      fetchMock: global.fetch as jest.Mock,
     };
   }
 
-  it('registers health checks and honours shutdown flag', () => {
-    const { app, appState, addTo, healthCheckConfig } = registerHealth();
+  function createResponse(): MockResponse {
+    const res = {
+      status: jest.fn(),
+      json: jest.fn(),
+    };
+    res.status.mockReturnValue(res);
+    return res;
+  }
 
-    expect(addTo).toHaveBeenCalledWith(app, expect.any(Object));
-    expect(healthCheckConfig.readinessChecks.shutdownCheck()).toBe('up');
+  it('registers aggregate, liveness and readiness endpoints', () => {
+    const { app } = registerHealth();
 
-    appState.locals.shutdown = true;
-    expect(healthCheckConfig.readinessChecks.shutdownCheck()).toBe('down');
+    expect(app.get).toHaveBeenCalledWith('/health', expect.any(Function));
+    expect(app.get).toHaveBeenCalledWith('/health/liveness', expect.any(Function));
+    expect(app.get).toHaveBeenCalledWith('/health/readiness', expect.any(Function));
   });
 
-  it('sets build info defaults used by the HMCTS healthcheck library', () => {
-    buildInfoEnvKeys.forEach(key => delete process.env[key]);
+  it('returns aggregate health in actuator-style component format', async () => {
+    const { handlers, fetchMock } = registerHealth();
+    const res = createResponse();
 
-    registerHealth();
+    await handlers['/health']({}, res);
 
-    expect(process.env.PACKAGES_ENVIRONMENT).toBe(process.env.NODE_ENV ?? 'development');
-    expect(process.env.PACKAGES_PROJECT).toBe('wa');
-    expect(process.env.PACKAGES_NAME).toBe('wa-reporting-frontend');
-    expect(process.env.PACKAGES_VERSION).toBe('0.0.1');
-  });
-
-  it('adds IDAM to aggregate health checks but not readiness checks', () => {
-    const { healthCheckConfig, web, up, down } = registerHealth();
-
-    expect(healthCheckConfig.checks.idam).toBe('web-check');
-    expect(healthCheckConfig.readinessChecks.idam).toBeUndefined();
-    expect(web).toHaveBeenCalledWith(
-      'https://idam.example/o/.well-known/openid-configuration',
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        timeout: 5000,
-        deadline: 10000,
-        callback: expect.any(Function),
+        status: 'UP',
+        groups: ['liveness', 'readiness'],
+        components: expect.objectContaining({
+          diskSpace: expect.objectContaining({
+            status: 'UP',
+            details: expect.objectContaining({
+              total: expect.any(Number),
+              free: expect.any(Number),
+              threshold: 10485760,
+              path: expect.any(String),
+              exists: true,
+            }),
+          }),
+          idam: { status: 'UP' },
+          livenessState: { status: 'UP' },
+          ping: { status: 'UP' },
+          readinessState: { status: 'UP' },
+        }),
       })
     );
-
-    const [, options] = web.mock.calls[0];
-    const callback = options.callback;
-    expect(callback(null, { status: 200 })).toBe('up');
-    expect(callback(new Error('idam down'))).toBe('down');
-    expect(up).toHaveBeenCalled();
-    expect(down).toHaveBeenCalled();
+    expect(res.json.mock.calls[0][0]).not.toHaveProperty('buildInfo');
+    expect(res.json.mock.calls[0][0].components).not.toHaveProperty('db');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://idam.example/o/.well-known/openid-configuration',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
   });
 
-  it('omits IDAM checks when auth is disabled', () => {
-    const { healthCheckConfig, web } = registerHealth({ 'auth.enabled': false });
+  it('reports aggregate health down when IDAM is down', async () => {
+    const { handlers } = registerHealth();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false });
+    const res = createResponse();
 
-    expect(healthCheckConfig.checks.idam).toBeUndefined();
-    expect(web).not.toHaveBeenCalled();
+    await handlers['/health']({}, res);
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'DOWN',
+        components: expect.objectContaining({
+          idam: { status: 'DOWN' },
+        }),
+      })
+    );
   });
 
-  it('adds redis checks when redis client is available', () => {
-    const ping = jest.fn().mockResolvedValue('pong');
-    const { healthCheckConfig } = registerHealth({}, { redisClient: { ping } });
+  it('omits IDAM when authentication is disabled', async () => {
+    const { handlers, fetchMock } = registerHealth({ 'auth.enabled': false });
+    const res = createResponse();
 
-    expect(healthCheckConfig.checks.redis).toBeDefined();
-    expect(healthCheckConfig.readinessChecks.redis).toBeDefined();
+    await handlers['/health']({}, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json.mock.calls[0][0].components).not.toHaveProperty('idam');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('includes Redis in aggregate and readiness health when a Redis client exists', async () => {
+    const redisClient = { ping: jest.fn().mockResolvedValue('PONG') };
+    const { handlers } = registerHealth({}, { redisClient });
+    const aggregateRes = createResponse();
+    const readinessRes = createResponse();
+
+    await handlers['/health']({}, aggregateRes);
+    await handlers['/health/readiness']({}, readinessRes);
+
+    expect(aggregateRes.json.mock.calls[0][0].components.redis).toEqual({ status: 'UP' });
+    expect(readinessRes.json).toHaveBeenCalledWith({
+      status: 'UP',
+      components: {
+        readinessState: { status: 'UP' },
+        redis: { status: 'UP' },
+      },
+    });
+    expect(redisClient.ping).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports readiness out of service when shutdown has started', async () => {
+    const { appState, handlers } = registerHealth();
+    const res = createResponse();
+
+    appState.locals.shutdown = true;
+    await handlers['/health/readiness']({}, res);
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith({
+      status: 'OUT_OF_SERVICE',
+      components: {
+        readinessState: { status: 'OUT_OF_SERVICE' },
+      },
+    });
   });
 });
