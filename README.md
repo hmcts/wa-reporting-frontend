@@ -121,7 +121,7 @@ yarn setup:edge
 
 ## Healthcheck
 
-The application exposes a health endpoint at [http://localhost:3100/health](http://localhost:3100/health).
+The application exposes HMCTS nodejs healthcheck endpoints at [http://localhost:3100/health](http://localhost:3100/health).
 The aggregate health response includes a deployed TM analytics database check and, when authentication is enabled, an IDAM check.
 
 ## License

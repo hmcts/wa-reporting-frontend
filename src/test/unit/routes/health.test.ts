@@ -1,13 +1,14 @@
 import type { Application } from 'express';
 
 describe('routes/health', () => {
-  type RouteHandler = (_req: unknown, res: MockResponse) => Promise<void> | void;
-  type MockResponse = {
-    status: jest.Mock;
-    json: jest.Mock;
+  type WebCheckOptions = {
+    callback: (err: Error | null, res?: { status?: number }) => string;
+    timeout: number;
+    deadline: number;
   };
 
-  const originalFetch = global.fetch;
+  const buildInfoEnvKeys = ['PACKAGES_ENVIRONMENT', 'PACKAGES_PROJECT', 'PACKAGES_NAME', 'PACKAGES_VERSION'];
+  const originalBuildInfoEnv = Object.fromEntries(buildInfoEnvKeys.map(key => [key, process.env[key]]));
   const originalEnv = process.env;
   const pgClientMock = {
     connect: jest.fn(),
@@ -39,100 +40,153 @@ describe('routes/health', () => {
       TM_DB_USER: 'deployed-user',
     };
     delete process.env.TM_DB_URL;
-    global.fetch = jest.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
     pgClientMock.connect.mockResolvedValue(undefined);
     pgClientMock.query.mockResolvedValue({ rowCount: 1 });
     pgClientMock.end.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    buildInfoEnvKeys.forEach(key => {
+      const value = originalBuildInfoEnv[key];
+      if (value === undefined) {
+        delete process.env[key];
+        return;
+      }
+      process.env[key] = value;
+    });
     process.env = originalEnv;
   });
 
   function registerHealth(configOverrides: Record<string, unknown> = {}, locals: Record<string, unknown> = {}) {
-    const appState = { locals: { shutdown: false } };
+    const appState = { locals: { shutdown: false, ...locals } };
+    const addTo = jest.fn();
+    const raw = jest.fn((fn: () => unknown) => fn);
+    const web = jest.fn((_url: string, _options: WebCheckOptions) => 'web-check');
+    const up = jest.fn(() => 'up');
+    const down = jest.fn(() => 'down');
     const configValues = { ...defaultConfigValues, ...configOverrides };
 
     jest.doMock('../../../main/app', () => ({ app: appState }));
     jest.doMock('config', () => ({
       get: jest.fn((path: string) => configValues[path]),
+      has: jest.fn((path: string) => Object.prototype.hasOwnProperty.call(configValues, path)),
     }));
+    jest.doMock('@hmcts/nodejs-healthcheck', () => ({ addTo, raw, web, up, down }));
     jest.doMock('pg', () => ({
       Client: PgClientMock,
     }));
 
-    const app = {
-      locals,
-      get: jest.fn(),
-    } as unknown as Application & { get: jest.Mock };
+    const app = { locals } as Application;
 
     jest.isolateModules(() => {
       const registerHealthRoute = require('../../../main/routes/health').default;
       registerHealthRoute(app);
     });
 
-    const handlers = Object.fromEntries(app.get.mock.calls.map(([path, handler]) => [path, handler])) as Record<
-      string,
-      RouteHandler
-    >;
-
     return {
       app,
       appState,
-      handlers,
-      fetchMock: global.fetch as jest.Mock,
+      addTo,
+      raw,
+      web,
+      up,
+      down,
+      healthCheckConfig: addTo.mock.calls[0][1],
     };
   }
 
-  function createResponse(): MockResponse {
-    const res = {
-      status: jest.fn(),
-      json: jest.fn(),
-    };
-    res.status.mockReturnValue(res);
-    return res;
-  }
+  it('registers health checks through the HMCTS nodejs healthcheck package', () => {
+    const { app, addTo, healthCheckConfig } = registerHealth();
 
-  it('registers aggregate, liveness and readiness endpoints', () => {
-    const { app } = registerHealth();
-
-    expect(app.get).toHaveBeenCalledWith('/health', expect.any(Function));
-    expect(app.get).toHaveBeenCalledWith('/health/liveness', expect.any(Function));
-    expect(app.get).toHaveBeenCalledWith('/health/readiness', expect.any(Function));
-  });
-
-  it('returns aggregate health in actuator-style component format', async () => {
-    const { handlers, fetchMock } = registerHealth();
-    const res = createResponse();
-
-    await handlers['/health']({}, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(addTo).toHaveBeenCalledWith(app, expect.any(Object));
+    expect(healthCheckConfig.checks).toEqual(
       expect.objectContaining({
-        status: 'UP',
-        groups: ['liveness', 'readiness'],
-        components: expect.objectContaining({
-          diskSpace: expect.objectContaining({
-            status: 'UP',
-            details: expect.objectContaining({
-              total: expect.any(Number),
-              free: expect.any(Number),
-              threshold: 10485760,
-              path: expect.any(String),
-              exists: true,
-            }),
-          }),
-          db: { status: 'UP' },
-          idam: { status: 'UP' },
-          livenessState: { status: 'UP' },
-          ping: { status: 'UP' },
-          readinessState: { status: 'UP' },
-        }),
+        db: expect.any(Function),
+        idam: 'web-check',
       })
     );
-    expect(res.json.mock.calls[0][0]).not.toHaveProperty('buildInfo');
+    expect(healthCheckConfig.readinessChecks).toEqual(
+      expect.objectContaining({
+        shutdownCheck: expect.any(Function),
+      })
+    );
+    expect(healthCheckConfig.readinessChecks.db).toBeUndefined();
+  });
+
+  it('sets build info defaults used by the HMCTS healthcheck library', () => {
+    buildInfoEnvKeys.forEach(key => delete process.env[key]);
+
+    registerHealth();
+
+    expect(process.env.PACKAGES_ENVIRONMENT).toBe('aat');
+    expect(process.env.PACKAGES_PROJECT).toBe('wa');
+    expect(process.env.PACKAGES_NAME).toBe('wa-reporting-frontend');
+    expect(process.env.PACKAGES_VERSION).toBe('0.0.1');
+  });
+
+  it('adds IDAM to aggregate health checks but not readiness checks', () => {
+    const { healthCheckConfig, web, up, down } = registerHealth();
+
+    expect(healthCheckConfig.checks.idam).toBe('web-check');
+    expect(healthCheckConfig.readinessChecks.idam).toBeUndefined();
+    expect(web).toHaveBeenCalledWith(
+      'https://idam.example/o/.well-known/openid-configuration',
+      expect.objectContaining({
+        timeout: 10000,
+        deadline: 10000,
+        callback: expect.any(Function),
+      })
+    );
+
+    const [, options] = web.mock.calls[0];
+    const callback = options.callback;
+    expect(callback(null, { status: 200 })).toBe('up');
+    expect(callback(new Error('idam down'))).toBe('down');
+    expect(up).toHaveBeenCalled();
+    expect(down).toHaveBeenCalled();
+  });
+
+  it('uses configured IDAM timeout when provided', () => {
+    const { web } = registerHealth({ 'services.idam.health.timeout': 5000 });
+
+    expect(web).toHaveBeenCalledWith(
+      'https://idam.example/o/.well-known/openid-configuration',
+      expect.objectContaining({
+        timeout: 5000,
+        deadline: 10000,
+      })
+    );
+  });
+
+  it('omits IDAM checks when auth is disabled', () => {
+    const { healthCheckConfig, web } = registerHealth({ 'auth.enabled': false });
+
+    expect(healthCheckConfig.checks.idam).toBeUndefined();
+    expect(web).not.toHaveBeenCalled();
+  });
+
+  it('adds Redis to aggregate and readiness checks when a Redis client is available', () => {
+    const ping = jest.fn().mockResolvedValue('pong');
+    const { healthCheckConfig } = registerHealth({}, { redisClient: { ping } });
+
+    expect(healthCheckConfig.checks.redis).toBeDefined();
+    expect(healthCheckConfig.readinessChecks.redis).toBeDefined();
+  });
+
+  it('honours shutdown state in readiness checks', () => {
+    const { appState, healthCheckConfig } = registerHealth();
+
+    expect(healthCheckConfig.readinessChecks.shutdownCheck()).toBe('up');
+
+    appState.locals.shutdown = true;
+    expect(healthCheckConfig.readinessChecks.shutdownCheck()).toBe('down');
+  });
+
+  it('adds a deployed TM database check using the deployed replica connection details', async () => {
+    const { healthCheckConfig } = registerHealth();
+
+    await expect(healthCheckConfig.checks.db()).resolves.toBe('up');
+
     expect(PgClientMock).toHaveBeenCalledWith({
       connectionString:
         'postgresql://deployed-user:deployed-password@cft-task-postgres-db-flexible-replica-aat.postgres.database.azure.com:5432/cft_task_db?sslmode=verify-full&options=-csearch_path=analytics',
@@ -142,132 +196,30 @@ describe('routes/health', () => {
       'analytics',
     ]);
     expect(pgClientMock.end).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://idam.example/o/.well-known/openid-configuration',
-      expect.objectContaining({ signal: expect.any(AbortSignal) })
-    );
   });
 
-  it('reports aggregate health down when IDAM is down', async () => {
-    const { handlers } = registerHealth();
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false });
-    const res = createResponse();
-
-    await handlers['/health']({}, res);
-
-    expect(res.status).toHaveBeenCalledWith(503);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'DOWN',
-        components: expect.objectContaining({
-          idam: { status: 'DOWN' },
-        }),
-      })
-    );
-  });
-
-  it('reports aggregate health down when the TM database is down', async () => {
-    const { handlers } = registerHealth();
+  it('reports the deployed TM database check down when the query rejects', async () => {
+    const { healthCheckConfig } = registerHealth();
     pgClientMock.query.mockRejectedValueOnce(new Error('database unavailable'));
-    const res = createResponse();
 
-    await handlers['/health']({}, res);
-
-    expect(res.status).toHaveBeenCalledWith(503);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'DOWN',
-        components: expect.objectContaining({
-          db: { status: 'DOWN' },
-        }),
-      })
-    );
+    await expect(healthCheckConfig.checks.db()).resolves.toBe('down');
   });
 
-  it('reports aggregate health down when deployed TM database configuration is missing', async () => {
+  it('reports the deployed TM database check down when deployed configuration is missing', async () => {
     delete process.env.TM_DB_HOST;
-    const { handlers } = registerHealth();
-    const res = createResponse();
+    const { healthCheckConfig } = registerHealth();
 
-    await handlers['/health']({}, res);
+    await expect(healthCheckConfig.checks.db()).resolves.toBe('down');
 
-    expect(res.status).toHaveBeenCalledWith(503);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'DOWN',
-        components: expect.objectContaining({
-          db: { status: 'DOWN' },
-        }),
-      })
-    );
     expect(PgClientMock).not.toHaveBeenCalled();
   });
 
-  it('reports the TM database health as unknown outside a deployed runtime when deployed configuration is absent', async () => {
+  it('omits the TM database check outside deployed runtime when deployed configuration is absent', () => {
     delete process.env.REFORM_ENVIRONMENT;
     delete process.env.TM_DB_HOST;
-    const { handlers } = registerHealth();
-    const res = createResponse();
+    const { healthCheckConfig } = registerHealth();
 
-    await handlers['/health']({}, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'UP',
-        components: expect.objectContaining({
-          db: { status: 'UNKNOWN' },
-        }),
-      })
-    );
+    expect(healthCheckConfig.checks.db).toBeUndefined();
     expect(PgClientMock).not.toHaveBeenCalled();
-  });
-
-  it('omits IDAM when authentication is disabled', async () => {
-    const { handlers, fetchMock } = registerHealth({ 'auth.enabled': false });
-    const res = createResponse();
-
-    await handlers['/health']({}, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json.mock.calls[0][0].components).not.toHaveProperty('idam');
-    expect(res.json.mock.calls[0][0].components.db).toEqual({ status: 'UP' });
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('includes Redis in aggregate and readiness health when a Redis client exists', async () => {
-    const redisClient = { ping: jest.fn().mockResolvedValue('PONG') };
-    const { handlers } = registerHealth({}, { redisClient });
-    const aggregateRes = createResponse();
-    const readinessRes = createResponse();
-
-    await handlers['/health']({}, aggregateRes);
-    await handlers['/health/readiness']({}, readinessRes);
-
-    expect(aggregateRes.json.mock.calls[0][0].components.redis).toEqual({ status: 'UP' });
-    expect(readinessRes.json).toHaveBeenCalledWith({
-      status: 'UP',
-      components: {
-        readinessState: { status: 'UP' },
-        redis: { status: 'UP' },
-      },
-    });
-    expect(redisClient.ping).toHaveBeenCalledTimes(2);
-  });
-
-  it('reports readiness out of service when shutdown has started', async () => {
-    const { appState, handlers } = registerHealth();
-    const res = createResponse();
-
-    appState.locals.shutdown = true;
-    await handlers['/health/readiness']({}, res);
-
-    expect(res.status).toHaveBeenCalledWith(503);
-    expect(res.json).toHaveBeenCalledWith({
-      status: 'OUT_OF_SERVICE',
-      components: {
-        readinessState: { status: 'OUT_OF_SERVICE' },
-      },
-    });
   });
 });
