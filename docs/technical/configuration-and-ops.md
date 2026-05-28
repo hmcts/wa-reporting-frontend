@@ -117,7 +117,6 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `LOGGING_PRISMA_QUERY_TIMINGS_INCLUDE_QUERY_PREVIEW`
 - `LOGGING_PRISMA_QUERY_TIMINGS_QUERY_PREVIEW_MAX_LENGTH`
 - `APPLICATIONINSIGHTS_CONNECTION_STRING`
-- `SERVICE_ENVIRONMENT`, `SERVICE_TEAM`, `SERVICE_NAME`
 - `IDAM_CLIENT_ID`, `WA_REPORTING_FRONTEND_CLIENT_SECRET`, `IDAM_CLIENT_SCOPE`
 - `IDAM_HEALTH_ENABLED`, `IDAM_HEALTH_PATH`, `IDAM_HEALTH_DEADLINE`
 - `IDAM_PUBLIC_URL`, `WA_BASE_URL`
@@ -188,7 +187,6 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 ### Health and info endpoints
 - `/health`, `/health/liveness`, and `/health/readiness` are registered through `@hmcts/nodejs-healthcheck`.
 - `/info` returns build and runtime metadata.
-- Health build info is populated from `SERVICE_ENVIRONMENT`, `SERVICE_TEAM`, and `SERVICE_NAME` through the `PACKAGES_*` metadata consumed by `@hmcts/nodejs-healthcheck`.
 - `/health` includes package-backed raw checks for `ping`, `livenessState`, and `readinessState`.
 - When authentication is enabled, `/health` includes an IDAM OIDC discovery check.
 - When Redis is configured, `/health` and `/health/readiness` include a Redis ping check.

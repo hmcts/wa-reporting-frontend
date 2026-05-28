@@ -4,7 +4,6 @@ import config = require('config');
 import { app as myApp } from '../app';
 
 const healthcheck = require('@hmcts/nodejs-healthcheck');
-const packageJson = require('../../../package.json') as { name: string; version: string };
 
 type HealthCheckResponse = {
   status?: number;
@@ -16,13 +15,6 @@ type RedisClient = {
 
 function shutdownCheck(): boolean {
   return myApp.locals.shutdown;
-}
-
-function setDefaultBuildInfoEnvironment(): void {
-  process.env.PACKAGES_ENVIRONMENT ??= process.env.SERVICE_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development';
-  process.env.PACKAGES_PROJECT ??= process.env.SERVICE_TEAM ?? 'wa';
-  process.env.PACKAGES_NAME ??= process.env.SERVICE_NAME ?? packageJson.name;
-  process.env.PACKAGES_VERSION ??= packageJson.version;
 }
 
 function createIdamHealthCheck() {
@@ -70,8 +62,6 @@ function createReadinessStateHealthCheck() {
 }
 
 export default function (app: Application): void {
-  setDefaultBuildInfoEnvironment();
-
   const readinessState = createReadinessStateHealthCheck();
   const redis = hasRedisConfigured(app) ? createRedisHealthCheck(app) : null;
   const idam =

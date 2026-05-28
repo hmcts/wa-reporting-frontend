@@ -7,8 +7,6 @@ describe('routes/health', () => {
     deadline: number;
   };
 
-  const buildInfoEnvKeys = ['PACKAGES_ENVIRONMENT', 'PACKAGES_PROJECT', 'PACKAGES_NAME', 'PACKAGES_VERSION'];
-  const originalBuildInfoEnv = Object.fromEntries(buildInfoEnvKeys.map(key => [key, process.env[key]]));
   const originalEnv = process.env;
 
   const defaultConfigValues: Record<string, unknown> = {
@@ -25,21 +23,10 @@ describe('routes/health', () => {
     jest.clearAllMocks();
     process.env = {
       ...originalEnv,
-      SERVICE_ENVIRONMENT: 'aat',
-      SERVICE_TEAM: 'wa',
-      SERVICE_NAME: 'wa-reporting-frontend',
     };
   });
 
   afterEach(() => {
-    buildInfoEnvKeys.forEach(key => {
-      const value = originalBuildInfoEnv[key];
-      if (value === undefined) {
-        delete process.env[key];
-        return;
-      }
-      process.env[key] = value;
-    });
     process.env = originalEnv;
   });
 
@@ -98,17 +85,6 @@ describe('routes/health', () => {
     );
     expect(healthCheckConfig.readinessChecks.idam).toBeUndefined();
     expect(healthCheckConfig.readinessChecks.db).toBeUndefined();
-  });
-
-  it('sets build info defaults used by the HMCTS healthcheck library', () => {
-    buildInfoEnvKeys.forEach(key => delete process.env[key]);
-
-    registerHealth();
-
-    expect(process.env.PACKAGES_ENVIRONMENT).toBe('aat');
-    expect(process.env.PACKAGES_PROJECT).toBe('wa');
-    expect(process.env.PACKAGES_NAME).toBe('wa-reporting-frontend');
-    expect(process.env.PACKAGES_VERSION).toBe('0.0.1');
   });
 
   it('returns up for ping and liveness state checks', () => {
