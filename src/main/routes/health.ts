@@ -2,6 +2,7 @@ import { statfsSync } from 'node:fs';
 import path from 'node:path';
 
 import { Application, Response } from 'express';
+import { Client } from 'pg';
 import config = require('config');
 
 import { app as myApp } from '../app';
@@ -25,8 +26,18 @@ type RedisHealthClient = {
   ping: () => Promise<unknown>;
 };
 
+type DatabaseHealthConfig = {
+  connectionString: string;
+  schema: string;
+};
+
 const GROUPS = ['liveness', 'readiness'];
 const DISK_SPACE_THRESHOLD_BYTES = 10 * 1024 * 1024;
+const DEFAULT_TM_DATABASE = 'cft_task_db';
+const DEFAULT_TM_PORT = '5432';
+const DEFAULT_TM_SCHEMA = 'analytics';
+const DEFAULT_TM_OPTIONS = 'sslmode=verify-full';
+const TM_DATABASE_HEALTH_QUERY = 'SELECT 1 FROM pg_namespace WHERE nspname = $1 LIMIT 1';
 
 function shutdownCheck(): boolean {
   return myApp.locals.shutdown;
@@ -38,6 +49,10 @@ function up(): HealthComponent {
 
 function down(details?: Record<string, unknown>): HealthComponent {
   return details ? { status: 'DOWN', details } : { status: 'DOWN' };
+}
+
+function unknown(): HealthComponent {
+  return { status: 'UNKNOWN' };
 }
 
 function readinessState(): HealthComponent {
@@ -95,6 +110,68 @@ async function redisHealth(redisClient: RedisHealthClient): Promise<HealthCompon
   }
 }
 
+function firstNonEmpty(...values: (string | undefined)[]): string | undefined {
+  return values.find(value => value !== undefined && value.trim() !== '')?.trim();
+}
+
+function normaliseDatabaseOptions(options: string | undefined): string {
+  return firstNonEmpty(options)?.replace(/^\?+/, '') ?? '';
+}
+
+function isDeployedEnvironment(env: NodeJS.ProcessEnv = process.env): boolean {
+  return Boolean(firstNonEmpty(env.REFORM_ENVIRONMENT));
+}
+
+function buildTmDatabaseConnectionString(env: NodeJS.ProcessEnv = process.env): DatabaseHealthConfig | undefined {
+  const schema = firstNonEmpty(env.TM_DB_SCHEMA) ?? DEFAULT_TM_SCHEMA;
+  const directUrl = firstNonEmpty(env.TM_DB_URL);
+
+  if (directUrl) {
+    return { connectionString: directUrl, schema };
+  }
+
+  const host = firstNonEmpty(env.TM_DB_HOST);
+  const port = firstNonEmpty(env.TM_DB_PORT) ?? DEFAULT_TM_PORT;
+  const user = firstNonEmpty(env.TM_DB_USER);
+  const password = env.TM_DB_PASSWORD;
+  const database = firstNonEmpty(env.TM_DB_NAME) ?? DEFAULT_TM_DATABASE;
+  const options = normaliseDatabaseOptions(env.TM_DB_OPTIONS ?? DEFAULT_TM_OPTIONS);
+
+  if (!host || !user) {
+    return undefined;
+  }
+
+  const auth = password ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}` : encodeURIComponent(user);
+  const connectionString = `postgresql://${auth}@${host}:${port}/${database}`;
+  const searchPathOption = `options=-csearch_path=${encodeURIComponent(schema)}`;
+  const connectionOptions = options ? `${options}&${searchPathOption}` : searchPathOption;
+
+  return {
+    connectionString: `${connectionString}?${connectionOptions}`,
+    schema,
+  };
+}
+
+async function databaseHealth(): Promise<HealthComponent> {
+  const databaseConfig = buildTmDatabaseConnectionString();
+
+  if (!databaseConfig) {
+    return isDeployedEnvironment() ? down() : unknown();
+  }
+
+  const client = new Client({ connectionString: databaseConfig.connectionString });
+
+  try {
+    await client.connect();
+    const result = await client.query(TM_DATABASE_HEALTH_QUERY, [databaseConfig.schema]);
+    return result.rowCount === 1 ? up() : down();
+  } catch {
+    return down();
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
 async function idamHealth(): Promise<HealthComponent> {
   const idamPublicUrl = config.get<string>('services.idam.url.public');
   const idamHealthPath = config.get<string>('services.idam.health.path');
@@ -126,6 +203,7 @@ async function aggregateComponents(app: Application): Promise<Record<string, Hea
   const redisClient = getRedisClient(app);
   const componentEntries: (Promise<[string, HealthComponent]> | [string, HealthComponent])[] = [
     ['diskSpace', diskSpaceHealth()],
+    databaseHealth().then(component => ['db', component] as [string, HealthComponent]),
     ['livenessState', up()],
     ['ping', up()],
     ['readinessState', readinessState()],

@@ -188,6 +188,9 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 ### Health and info endpoints
 - `/health` returns aggregate HMCTS health in an actuator-style `groups` and `components` format.
 - `/info` returns build and runtime metadata.
+- `/health` includes a `db` component that verifies the deployed TM analytics database using the `TM_DB_URL` connection string when provided, or the deployed `TM_DB_HOST`, `TM_DB_PORT`, `TM_DB_NAME`, `TM_DB_SCHEMA`, `TM_DB_OPTIONS`, `TM_DB_USER`, and `TM_DB_PASSWORD` environment variables.
+- The Helm chart sets the TM host to the CFT Task PostgreSQL flexible replica, database to `cft_task_db`, schema to `analytics`, and SSL mode to `verify-full`; the TM username/password come from the `cft-task-POSTGRES-USER-FLEXIBLE-REPLICA` and `cft-task-POSTGRES-PASS-FLEXIBLE-REPLICA` Key Vault secrets.
+- Outside a deployed runtime, when no deployed TM database environment is present, the `db` component is reported as `UNKNOWN` rather than falling back to the checked-in local defaults.
 - When authentication is enabled, `/health` includes an IDAM OIDC discovery check.
 - When Redis is configured, `/health` and `/health/readiness` include a Redis ping check.
 - `/health/readiness` remains limited to shutdown state and Redis. Shared downstreams such as IDAM are not included in readiness.

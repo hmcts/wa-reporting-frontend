@@ -8,6 +8,13 @@ describe('routes/health', () => {
   };
 
   const originalFetch = global.fetch;
+  const originalEnv = process.env;
+  const pgClientMock = {
+    connect: jest.fn(),
+    query: jest.fn(),
+    end: jest.fn(),
+  };
+  const PgClientMock = jest.fn(() => pgClientMock);
 
   const defaultConfigValues: Record<string, unknown> = {
     'auth.enabled': true,
@@ -20,11 +27,27 @@ describe('routes/health', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
+    process.env = {
+      ...originalEnv,
+      REFORM_ENVIRONMENT: 'aat',
+      TM_DB_HOST: 'cft-task-postgres-db-flexible-replica-aat.postgres.database.azure.com',
+      TM_DB_NAME: 'cft_task_db',
+      TM_DB_OPTIONS: 'sslmode=verify-full',
+      TM_DB_PASSWORD: 'deployed-password',
+      TM_DB_PORT: '5432',
+      TM_DB_SCHEMA: 'analytics',
+      TM_DB_USER: 'deployed-user',
+    };
+    delete process.env.TM_DB_URL;
     global.fetch = jest.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
+    pgClientMock.connect.mockResolvedValue(undefined);
+    pgClientMock.query.mockResolvedValue({ rowCount: 1 });
+    pgClientMock.end.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
     global.fetch = originalFetch;
+    process.env = originalEnv;
   });
 
   function registerHealth(configOverrides: Record<string, unknown> = {}, locals: Record<string, unknown> = {}) {
@@ -34,6 +57,9 @@ describe('routes/health', () => {
     jest.doMock('../../../main/app', () => ({ app: appState }));
     jest.doMock('config', () => ({
       get: jest.fn((path: string) => configValues[path]),
+    }));
+    jest.doMock('pg', () => ({
+      Client: PgClientMock,
     }));
 
     const app = {
@@ -98,6 +124,7 @@ describe('routes/health', () => {
               exists: true,
             }),
           }),
+          db: { status: 'UP' },
           idam: { status: 'UP' },
           livenessState: { status: 'UP' },
           ping: { status: 'UP' },
@@ -106,7 +133,15 @@ describe('routes/health', () => {
       })
     );
     expect(res.json.mock.calls[0][0]).not.toHaveProperty('buildInfo');
-    expect(res.json.mock.calls[0][0].components).not.toHaveProperty('db');
+    expect(PgClientMock).toHaveBeenCalledWith({
+      connectionString:
+        'postgresql://deployed-user:deployed-password@cft-task-postgres-db-flexible-replica-aat.postgres.database.azure.com:5432/cft_task_db?sslmode=verify-full&options=-csearch_path=analytics',
+    });
+    expect(pgClientMock.connect).toHaveBeenCalledTimes(1);
+    expect(pgClientMock.query).toHaveBeenCalledWith('SELECT 1 FROM pg_namespace WHERE nspname = $1 LIMIT 1', [
+      'analytics',
+    ]);
+    expect(pgClientMock.end).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
       'https://idam.example/o/.well-known/openid-configuration',
       expect.objectContaining({ signal: expect.any(AbortSignal) })
@@ -131,6 +166,63 @@ describe('routes/health', () => {
     );
   });
 
+  it('reports aggregate health down when the TM database is down', async () => {
+    const { handlers } = registerHealth();
+    pgClientMock.query.mockRejectedValueOnce(new Error('database unavailable'));
+    const res = createResponse();
+
+    await handlers['/health']({}, res);
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'DOWN',
+        components: expect.objectContaining({
+          db: { status: 'DOWN' },
+        }),
+      })
+    );
+  });
+
+  it('reports aggregate health down when deployed TM database configuration is missing', async () => {
+    delete process.env.TM_DB_HOST;
+    const { handlers } = registerHealth();
+    const res = createResponse();
+
+    await handlers['/health']({}, res);
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'DOWN',
+        components: expect.objectContaining({
+          db: { status: 'DOWN' },
+        }),
+      })
+    );
+    expect(PgClientMock).not.toHaveBeenCalled();
+  });
+
+  it('reports the TM database health as unknown outside a deployed runtime when deployed configuration is absent', async () => {
+    delete process.env.REFORM_ENVIRONMENT;
+    delete process.env.TM_DB_HOST;
+    const { handlers } = registerHealth();
+    const res = createResponse();
+
+    await handlers['/health']({}, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'UP',
+        components: expect.objectContaining({
+          db: { status: 'UNKNOWN' },
+        }),
+      })
+    );
+    expect(PgClientMock).not.toHaveBeenCalled();
+  });
+
   it('omits IDAM when authentication is disabled', async () => {
     const { handlers, fetchMock } = registerHealth({ 'auth.enabled': false });
     const res = createResponse();
@@ -139,6 +231,7 @@ describe('routes/health', () => {
 
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json.mock.calls[0][0].components).not.toHaveProperty('idam');
+    expect(res.json.mock.calls[0][0].components.db).toEqual({ status: 'UP' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
