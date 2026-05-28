@@ -6,8 +6,8 @@
 
 !package.json
 !yarn.lock
-!.yarn/**
 !version
+!.yarn/**
 !.yarnrc.yml
 !.pnp.cjs
 
