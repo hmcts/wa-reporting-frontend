@@ -10,12 +10,6 @@ describe('routes/health', () => {
   const buildInfoEnvKeys = ['PACKAGES_ENVIRONMENT', 'PACKAGES_PROJECT', 'PACKAGES_NAME', 'PACKAGES_VERSION'];
   const originalBuildInfoEnv = Object.fromEntries(buildInfoEnvKeys.map(key => [key, process.env[key]]));
   const originalEnv = process.env;
-  const pgClientMock = {
-    connect: jest.fn(),
-    query: jest.fn(),
-    end: jest.fn(),
-  };
-  const PgClientMock = jest.fn(() => pgClientMock);
 
   const defaultConfigValues: Record<string, unknown> = {
     'auth.enabled': true,
@@ -23,6 +17,7 @@ describe('routes/health', () => {
     'services.idam.health.path': '/o/.well-known/openid-configuration',
     'services.idam.health.deadline': 10000,
     'services.idam.url.public': 'https://idam.example',
+    'secrets.wa.wa-reporting-redis-host': '',
   };
 
   beforeEach(() => {
@@ -31,18 +26,7 @@ describe('routes/health', () => {
     process.env = {
       ...originalEnv,
       REFORM_ENVIRONMENT: 'aat',
-      TM_DB_HOST: 'cft-task-postgres-db-flexible-replica-aat.postgres.database.azure.com',
-      TM_DB_NAME: 'cft_task_db',
-      TM_DB_OPTIONS: 'sslmode=verify-full',
-      TM_DB_PASSWORD: 'deployed-password',
-      TM_DB_PORT: '5432',
-      TM_DB_SCHEMA: 'analytics',
-      TM_DB_USER: 'deployed-user',
     };
-    delete process.env.TM_DB_URL;
-    pgClientMock.connect.mockResolvedValue(undefined);
-    pgClientMock.query.mockResolvedValue({ rowCount: 1 });
-    pgClientMock.end.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -58,7 +42,7 @@ describe('routes/health', () => {
   });
 
   function registerHealth(configOverrides: Record<string, unknown> = {}, locals: Record<string, unknown> = {}) {
-    const appState = { locals: { shutdown: false, ...locals } };
+    const appState = { locals: { shutdown: false } };
     const addTo = jest.fn();
     const raw = jest.fn((fn: () => unknown) => fn);
     const web = jest.fn((_url: string, _options: WebCheckOptions) => 'web-check');
@@ -72,9 +56,6 @@ describe('routes/health', () => {
       has: jest.fn((path: string) => Object.prototype.hasOwnProperty.call(configValues, path)),
     }));
     jest.doMock('@hmcts/nodejs-healthcheck', () => ({ addTo, raw, web, up, down }));
-    jest.doMock('pg', () => ({
-      Client: PgClientMock,
-    }));
 
     const app = { locals } as Application;
 
@@ -95,21 +76,25 @@ describe('routes/health', () => {
     };
   }
 
-  it('registers health checks through the HMCTS nodejs healthcheck package', () => {
+  it('registers package-backed aggregate and readiness health checks', () => {
     const { app, addTo, healthCheckConfig } = registerHealth();
 
     expect(addTo).toHaveBeenCalledWith(app, expect.any(Object));
     expect(healthCheckConfig.checks).toEqual(
       expect.objectContaining({
-        db: expect.any(Function),
+        ping: expect.any(Function),
+        livenessState: expect.any(Function),
+        readinessState: expect.any(Function),
         idam: 'web-check',
       })
     );
+    expect(healthCheckConfig.checks.db).toBeUndefined();
     expect(healthCheckConfig.readinessChecks).toEqual(
       expect.objectContaining({
-        shutdownCheck: expect.any(Function),
+        readinessState: healthCheckConfig.checks.readinessState,
       })
     );
+    expect(healthCheckConfig.readinessChecks.idam).toBeUndefined();
     expect(healthCheckConfig.readinessChecks.db).toBeUndefined();
   });
 
@@ -122,6 +107,24 @@ describe('routes/health', () => {
     expect(process.env.PACKAGES_PROJECT).toBe('wa');
     expect(process.env.PACKAGES_NAME).toBe('wa-reporting-frontend');
     expect(process.env.PACKAGES_VERSION).toBe('0.0.1');
+  });
+
+  it('returns up for ping and liveness state checks', () => {
+    const { healthCheckConfig } = registerHealth();
+
+    expect(healthCheckConfig.checks.ping()).toBe('up');
+    expect(healthCheckConfig.checks.livenessState()).toBe('up');
+  });
+
+  it('reports readiness state from the application shutdown flag', () => {
+    const { appState, healthCheckConfig } = registerHealth();
+
+    expect(healthCheckConfig.checks.readinessState()).toBe('up');
+    expect(healthCheckConfig.readinessChecks.readinessState()).toBe('up');
+
+    appState.locals.shutdown = true;
+    expect(healthCheckConfig.checks.readinessState()).toBe('down');
+    expect(healthCheckConfig.readinessChecks.readinessState()).toBe('down');
   });
 
   it('adds IDAM to aggregate health checks but not readiness checks', () => {
@@ -165,61 +168,39 @@ describe('routes/health', () => {
     expect(web).not.toHaveBeenCalled();
   });
 
-  it('adds Redis to aggregate and readiness checks when a Redis client is available', () => {
+  it('adds Redis to aggregate and readiness checks when Redis is configured', async () => {
     const ping = jest.fn().mockResolvedValue('pong');
-    const { healthCheckConfig } = registerHealth({}, { redisClient: { ping } });
+    const { healthCheckConfig } = registerHealth(
+      { 'secrets.wa.wa-reporting-redis-host': 'redis-host' },
+      { redisClient: { ping } }
+    );
 
-    expect(healthCheckConfig.checks.redis).toBeDefined();
-    expect(healthCheckConfig.readinessChecks.redis).toBeDefined();
+    await expect(healthCheckConfig.checks.redis()).resolves.toBe('up');
+    await expect(healthCheckConfig.readinessChecks.redis()).resolves.toBe('up');
+    expect(ping).toHaveBeenCalledTimes(2);
   });
 
-  it('honours shutdown state in readiness checks', () => {
-    const { appState, healthCheckConfig } = registerHealth();
+  it('reports Redis down when configured but no client is available yet', () => {
+    const { healthCheckConfig } = registerHealth({ 'secrets.wa.wa-reporting-redis-host': 'redis-host' });
 
-    expect(healthCheckConfig.readinessChecks.shutdownCheck()).toBe('up');
-
-    appState.locals.shutdown = true;
-    expect(healthCheckConfig.readinessChecks.shutdownCheck()).toBe('down');
+    expect(healthCheckConfig.checks.redis()).toBe('down');
+    expect(healthCheckConfig.readinessChecks.redis()).toBe('down');
   });
 
-  it('adds a deployed TM database check using the deployed replica connection details', async () => {
+  it('reports Redis down when ping rejects', async () => {
+    const ping = jest.fn().mockRejectedValue(new Error('redis unavailable'));
+    const { healthCheckConfig } = registerHealth(
+      { 'secrets.wa.wa-reporting-redis-host': 'redis-host' },
+      { redisClient: { ping } }
+    );
+
+    await expect(healthCheckConfig.checks.redis()).resolves.toBe('down');
+  });
+
+  it('omits Redis when no Redis client or host is configured', () => {
     const { healthCheckConfig } = registerHealth();
 
-    await expect(healthCheckConfig.checks.db()).resolves.toBe('up');
-
-    expect(PgClientMock).toHaveBeenCalledWith({
-      connectionString:
-        'postgresql://deployed-user:deployed-password@cft-task-postgres-db-flexible-replica-aat.postgres.database.azure.com:5432/cft_task_db?sslmode=verify-full&options=-csearch_path=analytics',
-    });
-    expect(pgClientMock.connect).toHaveBeenCalledTimes(1);
-    expect(pgClientMock.query).toHaveBeenCalledWith('SELECT 1 FROM pg_namespace WHERE nspname = $1 LIMIT 1', [
-      'analytics',
-    ]);
-    expect(pgClientMock.end).toHaveBeenCalledTimes(1);
-  });
-
-  it('reports the deployed TM database check down when the query rejects', async () => {
-    const { healthCheckConfig } = registerHealth();
-    pgClientMock.query.mockRejectedValueOnce(new Error('database unavailable'));
-
-    await expect(healthCheckConfig.checks.db()).resolves.toBe('down');
-  });
-
-  it('reports the deployed TM database check down when deployed configuration is missing', async () => {
-    delete process.env.TM_DB_HOST;
-    const { healthCheckConfig } = registerHealth();
-
-    await expect(healthCheckConfig.checks.db()).resolves.toBe('down');
-
-    expect(PgClientMock).not.toHaveBeenCalled();
-  });
-
-  it('omits the TM database check outside deployed runtime when deployed configuration is absent', () => {
-    delete process.env.REFORM_ENVIRONMENT;
-    delete process.env.TM_DB_HOST;
-    const { healthCheckConfig } = registerHealth();
-
-    expect(healthCheckConfig.checks.db).toBeUndefined();
-    expect(PgClientMock).not.toHaveBeenCalled();
+    expect(healthCheckConfig.checks.redis).toBeUndefined();
+    expect(healthCheckConfig.readinessChecks.redis).toBeUndefined();
   });
 });

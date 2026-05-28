@@ -7,7 +7,7 @@ The application connects to three PostgreSQL databases using Prisma clients and 
 - Purpose: snapshot-backed analytics for work allocation tasks.
 - Prisma client: `tmPrisma`.
 - Config prefix: `database.tm`.
-- Health: aggregate `/health` registers a `db` raw check with `@hmcts/nodejs-healthcheck`. The check uses a lightweight `pg` connection built from deployed `TM_DB_*` environment variables and Key Vault-provided TM replica credentials. It does not fall back to the checked-in local defaults.
+- Health: `/health` does not open a TM database connection; database availability is exercised by the analytics data paths.
 
 2. Caseworker reference database (`crd`)
 - Purpose: caseworker profiles for user display names.

@@ -122,6 +122,8 @@ yarn setup:edge
 ## Healthcheck
 
 The application exposes a health endpoint at [http://localhost:3100/health](http://localhost:3100/health).
+It is registered through `@hmcts/nodejs-healthcheck` and reports package build info plus aggregate checks for
+`ping`, liveness state, readiness state, IDAM when authentication is enabled, and Redis when configured.
 
 ## License
 

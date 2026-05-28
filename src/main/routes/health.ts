@@ -1,5 +1,4 @@
 import { Application } from 'express';
-import { Client } from 'pg';
 import config = require('config');
 
 import { app as myApp } from '../app';
@@ -9,21 +8,11 @@ const packageJson = require('../../../package.json') as { name: string; version:
 
 type HealthCheckResponse = {
   status?: number;
-  body?: {
-    status?: string;
-  };
 };
 
-type DatabaseHealthConfig = {
-  connectionString: string;
-  schema: string;
+type RedisClient = {
+  ping: () => Promise<unknown>;
 };
-
-const DEFAULT_TM_DATABASE = 'cft_task_db';
-const DEFAULT_TM_PORT = '5432';
-const DEFAULT_TM_SCHEMA = 'analytics';
-const DEFAULT_TM_OPTIONS = 'sslmode=verify-full';
-const TM_DATABASE_HEALTH_QUERY = 'SELECT 1 FROM pg_namespace WHERE nspname = $1 LIMIT 1';
 
 function shutdownCheck(): boolean {
   return myApp.locals.shutdown;
@@ -34,75 +23,6 @@ function setDefaultBuildInfoEnvironment(): void {
   process.env.PACKAGES_PROJECT ??= process.env.REFORM_TEAM ?? 'wa';
   process.env.PACKAGES_NAME ??= process.env.REFORM_SERVICE_NAME ?? packageJson.name;
   process.env.PACKAGES_VERSION ??= packageJson.version;
-}
-
-function firstNonEmpty(...values: (string | undefined)[]): string | undefined {
-  return values.find(value => value !== undefined && value.trim() !== '')?.trim();
-}
-
-function normaliseDatabaseOptions(options: string | undefined): string {
-  return firstNonEmpty(options)?.replace(/^\?+/, '') ?? '';
-}
-
-function isDeployedEnvironment(env: NodeJS.ProcessEnv = process.env): boolean {
-  return Boolean(firstNonEmpty(env.REFORM_ENVIRONMENT));
-}
-
-function buildTmDatabaseConnectionString(env: NodeJS.ProcessEnv = process.env): DatabaseHealthConfig | undefined {
-  const schema = firstNonEmpty(env.TM_DB_SCHEMA) ?? DEFAULT_TM_SCHEMA;
-  const directUrl = firstNonEmpty(env.TM_DB_URL);
-
-  if (directUrl) {
-    return { connectionString: directUrl, schema };
-  }
-
-  const host = firstNonEmpty(env.TM_DB_HOST);
-  const port = firstNonEmpty(env.TM_DB_PORT) ?? DEFAULT_TM_PORT;
-  const user = firstNonEmpty(env.TM_DB_USER);
-  const password = env.TM_DB_PASSWORD;
-  const database = firstNonEmpty(env.TM_DB_NAME) ?? DEFAULT_TM_DATABASE;
-  const options = normaliseDatabaseOptions(env.TM_DB_OPTIONS ?? DEFAULT_TM_OPTIONS);
-
-  if (!host || !user) {
-    return undefined;
-  }
-
-  const auth = password ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}` : encodeURIComponent(user);
-  const connectionString = `postgresql://${auth}@${host}:${port}/${database}`;
-  const searchPathOption = `options=-csearch_path=${encodeURIComponent(schema)}`;
-  const connectionOptions = options ? `${options}&${searchPathOption}` : searchPathOption;
-
-  return {
-    connectionString: `${connectionString}?${connectionOptions}`,
-    schema,
-  };
-}
-
-function shouldRegisterDatabaseHealthCheck(env: NodeJS.ProcessEnv = process.env): boolean {
-  return (
-    Boolean(firstNonEmpty(env.TM_DB_URL) || (firstNonEmpty(env.TM_DB_HOST) && firstNonEmpty(env.TM_DB_USER))) ||
-    isDeployedEnvironment(env)
-  );
-}
-
-async function tmDatabaseHealth() {
-  const databaseConfig = buildTmDatabaseConnectionString();
-
-  if (!databaseConfig) {
-    return healthcheck.down();
-  }
-
-  const client = new Client({ connectionString: databaseConfig.connectionString });
-
-  try {
-    await client.connect();
-    const result = await client.query(TM_DATABASE_HEALTH_QUERY, [databaseConfig.schema]);
-    return result.rowCount === 1 ? healthcheck.up() : healthcheck.down();
-  } catch {
-    return healthcheck.down();
-  } finally {
-    await client.end().catch(() => undefined);
-  }
 }
 
 function createIdamHealthCheck() {
@@ -124,30 +44,51 @@ function createIdamHealthCheck() {
   });
 }
 
+function createRedisHealthCheck(app: Application) {
+  return healthcheck.raw(() => {
+    const redisClient = app.locals?.redisClient as RedisClient | undefined;
+
+    if (!redisClient) {
+      return healthcheck.down();
+    }
+
+    return redisClient
+      .ping()
+      .then(() => healthcheck.up())
+      .catch(() => healthcheck.down());
+  });
+}
+
+function hasRedisConfigured(app: Application): boolean {
+  return Boolean(app.locals?.redisClient || config.get<string>('secrets.wa.wa-reporting-redis-host'));
+}
+
+function createReadinessStateHealthCheck() {
+  return healthcheck.raw(() => {
+    return shutdownCheck() ? healthcheck.down() : healthcheck.up();
+  });
+}
+
 export default function (app: Application): void {
   setDefaultBuildInfoEnvironment();
 
-  const locals = app.locals ?? {};
-  const redisClient = locals.redisClient as { ping: () => Promise<unknown> } | undefined;
-  const redis = redisClient
-    ? healthcheck.raw(() => redisClient.ping().then(healthcheck.up).catch(healthcheck.down))
-    : null;
+  const readinessState = createReadinessStateHealthCheck();
+  const redis = hasRedisConfigured(app) ? createRedisHealthCheck(app) : null;
   const idam =
     config.get<boolean>('auth.enabled') && config.get<boolean>('services.idam.health.enabled')
       ? createIdamHealthCheck()
       : null;
-  const db = shouldRegisterDatabaseHealthCheck() ? healthcheck.raw(tmDatabaseHealth) : null;
 
   const healthCheckConfig = {
     checks: {
+      ping: healthcheck.raw(() => healthcheck.up()),
+      livenessState: healthcheck.raw(() => healthcheck.up()),
+      readinessState,
       ...(idam ? { idam } : {}),
-      ...(db ? { db } : {}),
       ...(redis ? { redis } : {}),
     },
     readinessChecks: {
-      shutdownCheck: healthcheck.raw(() => {
-        return shutdownCheck() ? healthcheck.down() : healthcheck.up();
-      }),
+      readinessState,
       ...(redis ? { redis } : {}),
     },
   };
