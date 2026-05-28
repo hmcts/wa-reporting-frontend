@@ -30,9 +30,9 @@ nodejs:
           alias: lrd-db-password
   environment:
     ALLOW_CONFIG_MUTATIONS: true
-    REFORM_TEAM: wa
-    REFORM_SERVICE_NAME: wa-reporting-frontend
-    REFORM_ENVIRONMENT: '{{ .Values.global.environment }}'
+    SERVICE_TEAM: wa
+    SERVICE_NAME: wa-reporting-frontend
+    SERVICE_ENVIRONMENT: '{{ .Values.global.environment }}'
     TM_DB_HOST: cft-task-postgres-db-flexible-replica-{{ .Values.global.environment }}.postgres.database.azure.com
     TM_DB_NAME: cft_task_db
     TM_DB_SCHEMA: analytics

@@ -25,7 +25,9 @@ describe('routes/health', () => {
     jest.clearAllMocks();
     process.env = {
       ...originalEnv,
-      REFORM_ENVIRONMENT: 'aat',
+      SERVICE_ENVIRONMENT: 'aat',
+      SERVICE_TEAM: 'wa',
+      SERVICE_NAME: 'wa-reporting-frontend',
     };
   });
 

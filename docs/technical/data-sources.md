@@ -7,7 +7,6 @@ The application connects to three PostgreSQL databases using Prisma clients and 
 - Purpose: snapshot-backed analytics for work allocation tasks.
 - Prisma client: `tmPrisma`.
 - Config prefix: `database.tm`.
-- Health: `/health` does not open a TM database connection; database availability is exercised by the analytics data paths.
 
 2. Caseworker reference database (`crd`)
 - Purpose: caseworker profiles for user display names.

@@ -19,9 +19,9 @@ function shutdownCheck(): boolean {
 }
 
 function setDefaultBuildInfoEnvironment(): void {
-  process.env.PACKAGES_ENVIRONMENT ??= process.env.REFORM_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development';
-  process.env.PACKAGES_PROJECT ??= process.env.REFORM_TEAM ?? 'wa';
-  process.env.PACKAGES_NAME ??= process.env.REFORM_SERVICE_NAME ?? packageJson.name;
+  process.env.PACKAGES_ENVIRONMENT ??= process.env.SERVICE_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development';
+  process.env.PACKAGES_PROJECT ??= process.env.SERVICE_TEAM ?? 'wa';
+  process.env.PACKAGES_NAME ??= process.env.SERVICE_NAME ?? packageJson.name;
   process.env.PACKAGES_VERSION ??= packageJson.version;
 }
 
