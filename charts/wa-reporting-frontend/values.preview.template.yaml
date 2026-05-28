@@ -24,9 +24,6 @@ nodejs:
           alias: lrd-db-password
   environment:
     AUTH_ENABLED: false
-    SERVICE_TEAM: wa
-    SERVICE_NAME: wa-reporting-frontend
-    SERVICE_ENVIRONMENT: preview
     REDIS_HOST: ${SERVICE_NAME}-hmcts-redis-master
 hmcts-redis:
   enabled: true
