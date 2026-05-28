@@ -64,17 +64,14 @@ function createReadinessStateHealthCheck() {
 export default function (app: Application): void {
   const readinessState = createReadinessStateHealthCheck();
   const redis = hasRedisConfigured(app) ? createRedisHealthCheck(app) : null;
-  const idam =
-    config.get<boolean>('auth.enabled') && config.get<boolean>('services.idam.health.enabled')
-      ? createIdamHealthCheck()
-      : null;
+  const idam = createIdamHealthCheck();
 
   const healthCheckConfig = {
     checks: {
       ping: healthcheck.raw(() => healthcheck.up()),
       livenessState: healthcheck.raw(() => healthcheck.up()),
       readinessState,
-      ...(idam ? { idam } : {}),
+      idam,
       ...(redis ? { redis } : {}),
     },
     readinessChecks: {

@@ -38,7 +38,6 @@
       "clientID": "wa_reporting_frontend",
       "scope": "openid profile roles",
       "health": {
-        "enabled": true,
         "path": "/o/.well-known/openid-configuration",
         "deadline": 10000
       },

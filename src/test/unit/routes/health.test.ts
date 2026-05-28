@@ -10,8 +10,6 @@ describe('routes/health', () => {
   const originalEnv = process.env;
 
   const defaultConfigValues: Record<string, unknown> = {
-    'auth.enabled': true,
-    'services.idam.health.enabled': true,
     'services.idam.health.path': '/o/.well-known/openid-configuration',
     'services.idam.health.deadline': 10000,
     'services.idam.url.public': 'https://idam.example',
@@ -139,11 +137,18 @@ describe('routes/health', () => {
     );
   });
 
-  it('omits IDAM checks when auth is disabled', () => {
+  it('adds IDAM to aggregate health checks when auth is disabled', () => {
     const { healthCheckConfig, web } = registerHealth({ 'auth.enabled': false });
 
-    expect(healthCheckConfig.checks.idam).toBeUndefined();
-    expect(web).not.toHaveBeenCalled();
+    expect(healthCheckConfig.checks.idam).toBe('web-check');
+    expect(web).toHaveBeenCalledWith(
+      'https://idam.example/o/.well-known/openid-configuration',
+      expect.objectContaining({
+        timeout: 10000,
+        deadline: 10000,
+        callback: expect.any(Function),
+      })
+    );
   });
 
   it('adds Redis to aggregate and readiness checks when Redis is configured', async () => {
