@@ -5,10 +5,6 @@ import { app as myApp } from '../app';
 
 const healthcheck = require('@hmcts/nodejs-healthcheck');
 
-type HealthCheckResponse = {
-  status?: number;
-};
-
 type RedisClient = {
   ping: () => Promise<unknown>;
 };
@@ -18,20 +14,11 @@ function shutdownCheck(): boolean {
 }
 
 function createIdamHealthCheck() {
-  const idamPublicUrl = config.get<string>('services.idam.url.public');
-  const idamHealthPath = config.get<string>('services.idam.health.path');
-  const idamHealthUrl = new URL(idamHealthPath, idamPublicUrl).toString();
+  const idamHealthUrl = config.get<string>('services.idam.health.url');
   const deadline = config.get<number>('services.idam.health.deadline');
-  const timeout = config.has('services.idam.health.timeout')
-    ? config.get<number>('services.idam.health.timeout')
-    : deadline;
 
   return healthcheck.web(idamHealthUrl, {
-    callback: (err: Error | null, res?: HealthCheckResponse) => {
-      const healthy = !err && res?.status === 200;
-      return healthy ? healthcheck.up() : healthcheck.down();
-    },
-    timeout,
+    timeout: deadline,
     deadline,
   });
 }

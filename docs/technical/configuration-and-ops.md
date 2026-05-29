@@ -118,7 +118,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 - `LOGGING_PRISMA_QUERY_TIMINGS_QUERY_PREVIEW_MAX_LENGTH`
 - `APPLICATIONINSIGHTS_CONNECTION_STRING`
 - `IDAM_CLIENT_ID`, `WA_REPORTING_FRONTEND_CLIENT_SECRET`, `IDAM_CLIENT_SCOPE`
-- `IDAM_HEALTH_PATH`, `IDAM_HEALTH_DEADLINE`
+- `IDAM_HEALTH_URL`, `IDAM_HEALTH_DEADLINE`
 - `IDAM_PUBLIC_URL`, `WA_BASE_URL`
 - `RBAC_ACCESS`
 - `TM_DB_HOST`, `TM_DB_PORT`, `TM_DB_NAME`, `TM_DB_SCHEMA`, `TM_DB_OPTIONS`, `TM_DB_URL`, `TM_DB_USER`, `TM_DB_PASSWORD`
@@ -188,7 +188,7 @@ Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` an
 - `/health`, `/health/liveness`, and `/health/readiness` are registered through `@hmcts/nodejs-healthcheck`.
 - `/info` returns build and runtime metadata.
 - `/health` includes package-backed raw checks for `ping`, `livenessState`, and `readinessState`.
-- `/health` always includes an IDAM OIDC discovery check.
+- `/health` always includes an IDAM API health check using `IDAM_HEALTH_URL`.
 - When Redis is configured, `/health` and `/health/readiness` include a Redis ping check.
 - `/health` does not open database connections. Database connectivity is exercised by the analytics data paths rather than the health endpoint.
 - `/health/readiness` remains limited to readiness state and Redis. Shared downstreams such as IDAM are not included in readiness.

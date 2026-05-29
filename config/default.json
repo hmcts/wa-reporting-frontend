@@ -38,7 +38,7 @@
       "clientID": "wa_reporting_frontend",
       "scope": "openid profile roles",
       "health": {
-        "path": "/o/.well-known/openid-configuration",
+        "url": "https://idam-api.aat.platform.hmcts.net/health",
         "deadline": 10000
       },
       "url": {

@@ -21,6 +21,8 @@ const defaultValues: RouteTestConfigValues = {
   'analytics.filtersCookieMaxAgeDays': 365,
   'analytics.manageCaseBaseUrl': 'https://manage-case.aat.platform.hmcts.net',
   'analytics.cacheTtlSeconds': 900,
+  'services.idam.health.url': 'https://idam.test/health',
+  'services.idam.health.deadline': 10000,
   'requestBody.urlencodedLimit': '512kb',
   'requestBody.urlencodedParameterLimit': 10000,
   'logging.prismaQueryTimings': {

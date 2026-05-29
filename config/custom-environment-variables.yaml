@@ -41,7 +41,7 @@ services:
     clientID: IDAM_CLIENT_ID
     scope: IDAM_CLIENT_SCOPE
     health:
-      path: IDAM_HEALTH_PATH
+      url: IDAM_HEALTH_URL
       deadline:
         __name: IDAM_HEALTH_DEADLINE
         __format: number

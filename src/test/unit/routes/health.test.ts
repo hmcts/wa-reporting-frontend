@@ -2,7 +2,6 @@ import type { Application } from 'express';
 
 describe('routes/health', () => {
   type WebCheckOptions = {
-    callback: (err: Error | null, res?: { status?: number }) => string;
     timeout: number;
     deadline: number;
   };
@@ -10,9 +9,8 @@ describe('routes/health', () => {
   const originalEnv = process.env;
 
   const defaultConfigValues: Record<string, unknown> = {
-    'services.idam.health.path': '/o/.well-known/openid-configuration',
+    'services.idam.health.url': 'https://idam.test/health',
     'services.idam.health.deadline': 10000,
-    'services.idam.url.public': 'https://idam.example',
     'secrets.wa.wa-reporting-redis-host': '',
   };
 
@@ -104,51 +102,24 @@ describe('routes/health', () => {
   });
 
   it('adds IDAM to aggregate health checks but not readiness checks', () => {
-    const { healthCheckConfig, web, up, down } = registerHealth();
+    const { healthCheckConfig, web } = registerHealth();
 
     expect(healthCheckConfig.checks.idam).toBe('web-check');
     expect(healthCheckConfig.readinessChecks.idam).toBeUndefined();
-    expect(web).toHaveBeenCalledWith(
-      'https://idam.example/o/.well-known/openid-configuration',
-      expect.objectContaining({
-        timeout: 10000,
-        deadline: 10000,
-        callback: expect.any(Function),
-      })
-    );
-
-    const [, options] = web.mock.calls[0];
-    const callback = options.callback;
-    expect(callback(null, { status: 200 })).toBe('up');
-    expect(callback(new Error('idam down'))).toBe('down');
-    expect(up).toHaveBeenCalled();
-    expect(down).toHaveBeenCalled();
-  });
-
-  it('uses configured IDAM timeout when provided', () => {
-    const { web } = registerHealth({ 'services.idam.health.timeout': 5000 });
-
-    expect(web).toHaveBeenCalledWith(
-      'https://idam.example/o/.well-known/openid-configuration',
-      expect.objectContaining({
-        timeout: 5000,
-        deadline: 10000,
-      })
-    );
+    expect(web).toHaveBeenCalledWith('https://idam.test/health', {
+      timeout: 10000,
+      deadline: 10000,
+    });
   });
 
   it('adds IDAM to aggregate health checks when auth is disabled', () => {
     const { healthCheckConfig, web } = registerHealth({ 'auth.enabled': false });
 
     expect(healthCheckConfig.checks.idam).toBe('web-check');
-    expect(web).toHaveBeenCalledWith(
-      'https://idam.example/o/.well-known/openid-configuration',
-      expect.objectContaining({
-        timeout: 10000,
-        deadline: 10000,
-        callback: expect.any(Function),
-      })
-    );
+    expect(web).toHaveBeenCalledWith('https://idam.test/health', {
+      timeout: 10000,
+      deadline: 10000,
+    });
   });
 
   it('adds Redis to aggregate and readiness checks when Redis is configured', async () => {
