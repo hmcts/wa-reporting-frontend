@@ -4,58 +4,42 @@
 
 ### I. Code Quality Is Non-Negotiable
 
-Changes must be maintainable: no new duplication, keep cognitive load flat, idiomatic TypeScript, modular routes, and GOV.UK-compliant UI. Lint, formatting, and type errors block merge; behavior changes require tests. Use existing naming patterns: match file, class, function, and route names to nearby modules; avoid new abbreviations unless already established.
+Changes must be maintainable: no new duplication, keep cognitive load flat, use idiomatic TypeScript, keep routes modular, and preserve GOV.UK-compliant UI. Lint, formatting, and type errors block merge. Behaviour changes require tests. Match file, class, function, and route names to nearby modules; avoid new abbreviations unless already established.
 
 ### II. Tests Define Release Readiness
 
-Every feature ships with appropriate unit tests for edge cases and error
-paths, route tests for Express endpoints, automated accessibility coverage (Playwright + AxeUtils), and
-smoke tests for unmocked happy paths. Tests act as living documentation for intended behavior.
+Every feature ships with appropriate unit tests for edge cases and error paths, route tests for Express endpoints, automated accessibility coverage (Playwright + AxeUtils), and smoke tests for unmocked happy paths. Tests act as living documentation for intended behaviour.
 
 ### III. GOV.UK Experience Consistency
 
-GOV.UK Design System patterns (https://design-system.service.gov.uk) are the preferred option in every flow.
-Pages use GOV.UK Frontend macros, typography, spacing tokens, and colour palette;
-bespoke styling is only allowed when no pattern exists. Content follows the GOV.UK style guide and
-interactive states retain ≥ WCAG AA contrast.
+GOV.UK Design System patterns (https://design-system.service.gov.uk) are preferred in every flow. Pages use GOV.UK Frontend macros, typography, spacing tokens, and colour palette. Bespoke styling is only allowed when no pattern exists. Content follows the GOV.UK style guide and interactive states retain >= WCAG AA contrast.
 
-### IV. Unit Test Quality And Maintainability Standards
+### IV. Unit Test Quality
 
-Unit tests must remain clear, deterministic, and resistant to implementation-only refactors.
-For all non-trivial test changes, apply these mandatory standards:
+Unit tests must remain clear, deterministic, and resistant to implementation-only refactors. For all non-trivial test changes:
 
-- Assert behavior and collaborator contracts at module boundaries (for example `toHaveBeenCalledWith(...)` for dependency calls).
-- Cover both happy paths and rejection/error paths for dependency-bound logic (`mockRejectedValue`, thrown error, or equivalent).
-- Use explicit negative-path assertions (error type/status/message); avoid broad `toThrow()` with no expectation.
-- Freeze time for time-sensitive logic (`jest.useFakeTimers().setSystemTime(...)`) and restore timer state during teardown.
-- Avoid coupling tests to framework/private internals (for example Express `_router.stack` indexes, middleware arity heuristics, private method access) unless no public seam exists and the reason is documented in the test.
+- Assert behaviour and collaborator contracts at module boundaries, for example `toHaveBeenCalledWith(...)` for dependency calls.
+- Cover both happy paths and rejection/error paths for dependency-bound logic.
+- Use explicit negative-path assertions for error type, status, or message; avoid broad `toThrow()` with no expectation.
+- Freeze time for time-sensitive logic with `jest.useFakeTimers().setSystemTime(...)` and restore timer state during teardown.
+- Avoid coupling tests to framework/private internals unless no public seam exists and the reason is documented in the test.
 - Extract repeated large fixtures into typed builders/factories once duplication appears across scenarios.
-- Prefer high-signal assertions; avoid low-value checks such as `toBeDefined`, `expect.any(...)` stand-ins, or "was called" assertions without argument/outcome checks when stronger assertions are available.
+- Prefer high-signal assertions; avoid low-value checks such as `toBeDefined`, `expect.any(...)` stand-ins, or "was called" assertions without argument/outcome checks.
 - For security-sensitive modules (session, OIDC, helmet, CSRF), assert the full security-relevant configuration contract, not a single field.
-- Keep tests focused: one behavior per test where practical, avoiding large omnibus cases that obscure failure diagnosis.
+- Keep tests focused: one behaviour per test where practical, avoiding large omnibus cases that obscure failure diagnosis.
 
 ## Active Technologies
 
-- TypeScript on Node.js + Express 5, Nunjucks/express-nunjucks, govuk-frontend components, Plotly for charts, axios for API data fetch, Prisma for database integration.
-- Playwright smoke/functional tests with @hmcts/playwright-common (shared Playwright config and helpers).
-- GOV.UK Design System using the `govuk-frontend` library; refer to https://design-system.service.gov.uk/ for official documentation and usage.
+- TypeScript on Node.js + Express 5, Nunjucks/express-nunjucks, govuk-frontend components, Plotly for charts, axios for API data fetch, and Prisma for database integration.
+- Playwright smoke/functional tests with `@hmcts/playwright-common`.
+- GOV.UK Design System through the `govuk-frontend` library.
 
-## Subagents (When Available)
+## Required Reading
 
-Use subagents to parallelise work that can be done independently, then consolidate findings in the main thread. Good fit examples:
-
-- Broad discovery across multiple areas (e.g., one agent scans `docs/`, another scans `src/main/modules/analytics/`, another scans `src/test/`).
-- Multi-file refactors with independent scopes (e.g., controller/service/viewModel updates vs. Nunjucks template changes).
-- Test coverage work (e.g., one agent identifies missing tests or coverage gaps, another drafts unit/route/a11y tests).
-- Investigations that benefit from parallel tracks (e.g., one agent reproduces or runs tests, another inspects recent specs or config).
-- Documentation sync tasks (e.g., one agent updates `docs/`, another updates code/tests to match).
-- Verification orchestration (e.g., if CI/tooling allows safe parallel runs, delegate lint/tests/build to separate agents and aggregate results).
-
-For verification after code changes, use subagents by default and run independent checks in parallel:
-
-- Spawn one subagent each for `yarn lint`, `yarn test:coverage`, `yarn test:routes`, `yarn build`, and `yarn build:server`.
-- Run these checks in parallel unless a concrete dependency requires sequencing.
-- Treat `yarn build` as the frontend asset build only. Use `yarn build:server` for the server TypeScript compile. If the change affects packaged runtime output or `yarn start`, also run `yarn build:prod`.
+- Start with `docs/README.md` and follow the reading path for the task type.
+- Use `docs/technical/change-recipes.md` before common dashboard, SQL, filter, config, AJAX, security, sorting, or chart changes.
+- Follow any nested `AGENTS.md` in the target path, especially under analytics modules, analytics shared code, analytics views, and analytics unit tests.
+- Before researching or planning a change, review the relevant `docs/` specifications and use them as the starting point for current behaviour, data flows, and constraints.
 
 ## Project Structure
 
@@ -63,6 +47,12 @@ For verification after code changes, use subagents by default and run independen
 docs/
   functional/
   technical/
+    data-sources/
+    operations/
+db/
+  current-state/
+  migrations/
+  flyway/
 src/
   main/
     modules/
@@ -77,13 +67,16 @@ src/
     a11y/
     smoke/
     playwright/
-      auth/
+charts/
 config/
+infrastructure/
 prisma/
 scripts/
+skills/
+webpack/
 ```
 
-## Key commands
+## Key Commands
 
 - `yarn test:unit`
 - `yarn test` (repository wrapper; locally delegates to `yarn test:unit`, currently exits early when `CI=true`)
@@ -94,40 +87,67 @@ scripts/
 - `yarn build` (frontend assets)
 - `yarn build:server` (server TypeScript)
 - `yarn build:prod` (production assets + static copy)
-- Add dependencies with `yarn add` (or `yarn add -D` for dev deps) to ensure the latest versions are pulled in.
+- Add dependencies with `yarn add` or `yarn add -D` so Yarn resolves and records the selected versions.
 
-## Implementation Guidance
+## Change Workflow
 
-- Analytics pages live under `src/main/modules/analytics/<page>/` with `controller.ts`, `service.ts`, `page.ts`, `viewModel.ts`, and optional `visuals/` for charts/data fetchers. Purpose — `controller.ts`: HTTP entrypoint and route wiring; `service.ts`: data access orchestration; `page.ts`: async composition and fallbacks; `viewModel.ts`: shape data for templates; `visuals/`: chart builders and data fetchers.
-- Register new page routes in `src/main/modules/analytics/index.ts` and keep rendering in the page controller (`res.render('analytics/<page>/index')`).
-- Nunjucks templates for analytics pages live under `src/main/views/analytics/<page>/index.njk`, with per-page partials in `src/main/views/analytics/<page>/partials/` and shared filters in `src/main/views/analytics/partials/shared-filters.njk`.
-- Where Nunjucks macros exist, they should be preferred over pure HTML.
-- Shared analytics helpers belong in `src/main/modules/analytics/shared/` (filters, services, viewModels, charts, cache, repositories); reuse before adding new helpers.
-- Before researching or planning a change, review the relevant `docs/` specifications and use them as the starting point for understanding current behavior, data flows, and constraints.
-- When changing code or behavior, update the corresponding `docs/` files to keep the specifications in sync with the implementation. Dependency-only upgrades must not add or change `docs/`.
-- Documentation updates for implementation changes must keep `docs/` as the latest specification of the application. Carry forward only durable, important context needed for future work (for example final behavior, rules/constraints, dependencies, and operational considerations such as migrations/backfills/rollback).
-- Avoid duplicating exact versions, image tags, chart versions, package versions, or generated values in documentation when they are already declared in source or configuration files, unless the version itself is an operational constraint future maintainers must understand.
-- Do not consider implementation work complete until this documentation handoff is committed in `docs/` (or, if no existing page fits, in a new linked document under `docs/` and indexed from `docs/README.md`). This requirement does not apply to dependency-only upgrades. Do not require changelog-style detail such as exhaustive file-change listings.
-- When changing the analytics SQL end state through Flyway migrations, keep `db/current-state/tm-analytics-schema.sql` synchronised with the same final schema, helper, and stored procedure definitions so the repository has one consistent current-state bootstrap script.
-- For AJAX section refreshes (e.g., user overview sorting), follow the established pattern: add a `data-section` wrapper around the section partial, submit `ajaxSection` with `X-Requested-With: fetch`, render the specific partial in the controller when the header/section is present, and send URL-encoded form data (including `_csrf`) so `csurf` can validate it.
-- Add or update tests under `src/test/` following existing unit/functional/a11y/smoke patterns for the change. Branch and line coverage per file should be at least 95%.
-- For changes in mutation-sensitive analytics logic (for example `shared/` helpers, analytics aggregations, repository filter/query composition, and view-model calculations), run focused mutation testing during development using `yarn test:mutation --mutate <source-file>` and, when helpful, `--testFiles <matching-test-file>` to validate the changed unit tests kill mutants in that area.
-- Mandatory for non-documentation changes: the final step after any code/config/runtime SQL change is to run `yarn lint`, `yarn test:coverage`, `yarn test:routes`, `yarn build`, and `yarn build:server`; do not consider work complete unless all five pass and coverage for files modified as part of the task is above the mandated 95%. If the change affects packaged runtime output or `yarn start`, also run `yarn build:prod`.
-- `yarn build:prod` rewrites `src/main/views/webpack/{css.njk,js.njk,analytics-js.njk}` as generated verification artifacts; those file changes must not be committed unless the asset-manifest generation itself is being intentionally changed.
-- Documentation-only exception: when all changed files are documentation files (for example `*.md` under repo root or `docs/`) and no executable code, configuration, SQL, assets, or tests are changed, the mandatory verification commands are not required.
-- Any changes which impact these Development Guidelines should be accompanied with changes to the Development Guidelines.
+- Keep edits scoped to the modules, views, tests, SQL, and docs implied by the request.
+- Reuse existing shared analytics helpers before adding new helpers.
+- Add or update tests under `src/test/` following existing unit, route, functional, a11y, and smoke patterns.
+- For code, config, runtime SQL, or executable asset changes, update the corresponding `docs/` files in the same change set. Dependency-only upgrades must not add or change `docs/` unless the dependency version itself is an operational constraint.
+- Documentation updates must carry forward durable context only: final behaviour, rules/constraints, dependencies, migrations, backfills, rollback notes, and operational considerations. Do not add changelog-style file lists.
+- Do not duplicate exact versions, image tags, chart versions, package versions, or generated values in docs when already declared in source/config unless the version is an operational constraint.
+- If no existing docs page fits, add a linked page under `docs/` and index it from `docs/README.md`.
+- If asked to commit, include required docs updates in the commit. If not asked to commit, include them in the final change set and call out any missing docs explicitly.
+- Changes that impact these Development Guidelines should update this file.
 
-# ExecPlans
+## Verification Matrix
 
-When writing complex features or significant refactors, use an ExecPlan (as described in PLANS.md) from design to implementation.
+| Change type | Required verification |
+| --- | --- |
+| Documentation only (`*.md` under repo root or `docs/`) | Markdown/link review. Mandatory build/test commands are not required. |
+| Code/config/runtime SQL/assets | `yarn lint`, `yarn test:coverage`, `yarn test:routes`, `yarn build`, `yarn build:server`. |
+| Packaged runtime output or `yarn start` | All code checks plus `yarn build:prod`. |
+| Analytics shared helpers, aggregations, repository filter/query composition, or view-model calculations | Code checks plus focused mutation testing where practical, for example `yarn test:mutation --mutate <source-file>` and optional `--testFiles <matching-test-file>`. |
+| Dependency upgrade | Relevant install/audit/test checks from the dependency-upgrade skill, plus normal code checks when executable behaviour changes. |
 
-- ExecPlans may be treated as working artifacts and can remain uncommitted, but important, durable outcomes must be transferred into committed `docs/` before the related code change is considered complete.
-- Transfer only what helps future contributors understand and evolve the current system state (for example behavior, constraints, dependencies, and operations guidance). Omit transient planning artifacts such as task breakdowns, discarded options, or per-file edit logs unless they are operationally relevant.
+Branch and line coverage for modified executable files should be at least 95% where Jest coverage tooling applies. For generated files, static config, templates, or files outside coverage instrumentation, record the relevant verification instead of inventing coverage.
+
+If a required check cannot run, record the exact command, the blocker, and the risk. Do not claim verification passed. `yarn build:prod` rewrites `src/main/views/webpack/{css.njk,js.njk,analytics-js.njk}` as generated verification artifacts; do not commit those file changes unless asset-manifest generation is intentionally changed.
+
+## Analytics Patterns
+
+- Analytics pages live under `src/main/modules/analytics/<page>/` with `controller.ts`, `service.ts`, `page.ts`, `viewModel.ts`, and optional `visuals/`.
+- `controller.ts` owns HTTP entrypoints and route wiring.
+- `service.ts` owns data access orchestration and domain aggregation.
+- `page.ts` owns async composition and fallbacks.
+- `viewModel.ts` shapes data for templates.
+- `visuals/` owns chart builders and data fetchers.
+- Register new page routes in `src/main/modules/analytics/index.ts` and keep rendering in the page controller with `res.render('analytics/<page>/index')`.
+- Nunjucks templates for analytics pages live under `src/main/views/analytics/<page>/index.njk`; per-page partials live under `src/main/views/analytics/<page>/partials/`; shared filters live in `src/main/views/analytics/partials/shared-filters.njk`.
+- Prefer Nunjucks macros over pure HTML where macros exist.
+- Shared analytics helpers belong in `src/main/modules/analytics/shared/`.
+- For AJAX section refreshes, follow the established pattern: wrap the section partial in `data-section`, submit `ajaxSection` with `X-Requested-With: fetch`, render the specific partial in the controller, and send URL-encoded form data including `_csrf`.
+- When changing the analytics SQL end state through Flyway migrations, keep `db/current-state/tm-analytics-schema.sql` synchronised with the same final schema, helper, and stored procedure definitions.
+
+## Subagents
+
+Use subagents when available and permitted to parallelise independent work, then consolidate findings in the main thread. Good fits include broad discovery, independent multi-file refactors, test coverage work, documentation sync tasks, and verification orchestration.
+
+For verification after code changes, use independent parallel checks when tooling allows. Prefer one worker each for `yarn lint`, `yarn test:coverage`, `yarn test:routes`, `yarn build`, and `yarn build:server`. Run checks locally in the main thread when subagents are unavailable or not permitted. Treat `yarn build` as frontend assets only; use `yarn build:server` for server TypeScript.
+
+## ExecPlans
+
+When writing complex features or significant refactors, use an ExecPlan as described in `PLANS.md` from design to implementation.
+
+- ExecPlans may be treated as working artifacts and can remain uncommitted.
+- Important durable outcomes must be transferred into committed `docs/` before the related code change is considered complete.
+- Transfer only what helps future contributors understand and evolve the current system state. Omit transient planning artifacts unless operationally relevant.
 
 ## Repo Skills
 
 This repository includes reusable Codex skills under `skills/`.
 
-### Available skills
+### Available Skills
 
 - `yarn-dependency-upgrades`: Upgrade dependencies with Yarn 4 for single, multiple, all-package, and CVE-driven flows. Includes precedence-based remediation for `yarn-audit-known-issues` findings and resolution fallback guidance. (file: `skills/yarn-dependency-upgrades/SKILL.md`)
