@@ -148,7 +148,7 @@
   },
   "resolutions": {
     "@hono/node-server": "npm:@hono/node-server@2.0.4",
-    "protobufjs": "npm:protobufjs@8.4.2"
+    "protobufjs": "npm:protobufjs@8.6.3"
   },
   "husky": {
     "hooks": {
