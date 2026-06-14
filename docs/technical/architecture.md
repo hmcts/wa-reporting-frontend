@@ -3,6 +3,18 @@
 ## High-level overview
 The application is a Node.js + Express 5 server that renders Nunjucks templates, serves static assets, and provides read-only analytics dashboards. Data is fetched from PostgreSQL databases using Prisma clients and raw SQL against analytics views.
 
+## Technology stack
+
+- TypeScript on Node.js + Express 5.
+- Server-rendered Nunjucks through `express-nunjucks`.
+- GOV.UK Frontend components and macros for page structure and controls.
+- MOJ Frontend where Ministry of Justice-specific components are needed.
+- Plotly for analytics charts.
+- Webpack for frontend asset bundles.
+- Prisma with `@prisma/adapter-pg` for PostgreSQL access.
+- Axios for API data fetches where HTTP clients are required.
+- Playwright for smoke, functional, and accessibility coverage.
+
 Key runtime components:
 - Express application (`src/main/app.ts`)
 - Nunjucks templating (`src/main/modules/nunjucks`)
