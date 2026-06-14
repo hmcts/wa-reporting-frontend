@@ -46,6 +46,8 @@ The Nunjucks environment adds:
 `macros/case-link.njk` builds a link to Manage Case using `manageCaseBaseUrl` and opens in a new tab.
 
 ## JavaScript behaviors
+Common user-facing filter, sorting, pagination, AJAX, CSV, and section error contracts are documented in [Shared dashboard behaviour](../functional/shared-dashboard-behaviour.md). This technical spec describes the template and client-side implementation responsibilities for those behaviours.
+
 Entry points:
 - `src/main/assets/js/index.ts` (global GOV.UK/MOJ init)
 - `src/main/assets/js/analytics.ts` (analytics-specific behaviors)
