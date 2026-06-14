@@ -41,7 +41,8 @@
 - Keep new Playwright tests aligned with the shared patterns to reduce maintenance overhead.
 
 ## Coverage targets
-- Project guidelines require at least 95% branch and line coverage on modified files.
+- Project guidelines require at least 95% branch and line coverage on modified executable files where Jest coverage tooling applies.
+- For generated files, static config, templates, or files outside coverage instrumentation, record the relevant verification instead of inventing coverage.
 - The contributor guidance for non-documentation changes currently expects `yarn test:coverage` and `yarn test:routes` alongside the relevant build commands, but the checked-in CI scripts are narrower than that guidance.
 
 ## Unit test quality checklist
@@ -49,6 +50,7 @@
 - Keep tests deterministic: avoid runtime clock/random/network dependencies unless explicitly controlled.
 - Structure tests as Arrange/Act/Assert and keep each test focused on one primary behavior.
 - Assert observable behavior and dependency contracts, not only implementation internals.
+- Assert collaborator contracts at module boundaries when call parameters or order are part of behaviour.
 - For dependency-bound logic, include rejection/error-path tests alongside success-path tests.
 - Prefer precise assertions over broad ones (for example explicit error/status checks instead of bare `toThrow()`).
 - Use typed fixture builders/factories for repeated complex objects to reduce duplication and improve readability.
@@ -64,7 +66,7 @@
 - Split large omnibus tests into focused cases to reduce failure blast radius and improve diagnostics.
 - Consolidate duplicate coverage ownership so one suite is the source of truth for a module's behavior.
 - Replace repeated inline fixtures with shared builders once the same shape appears in multiple tests.
-- Avoid coupling to framework-private internals (such as Express stack index positions) unless no public seam exists.
+- Avoid coupling to framework-private internals (such as Express stack index positions, middleware arity heuristics, or private method access) unless no public seam exists and the reason is documented in the test.
 - Freeze time in date-sensitive tests with `jest.useFakeTimers().setSystemTime(...)` and reset in teardown.
 
 ## Security-sensitive unit tests

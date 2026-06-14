@@ -47,6 +47,41 @@ Start at the repository root [README.md](../README.md) for local setup and comma
 3. The relevant functional and technical specs for the target area
 4. [Testing and quality](technical/testing.md)
 
+## Repository layout
+
+```text
+docs/
+  functional/
+  technical/
+    data-sources/
+    operations/
+db/
+  current-state/
+  migrations/
+  flyway/
+src/
+  main/
+    modules/
+    routes/
+    views/
+    assets/
+    public/
+    resources/
+  test/
+    unit/
+    functional/
+    a11y/
+    smoke/
+    playwright/
+charts/
+config/
+infrastructure/
+prisma/
+scripts/
+skills/
+webpack/
+```
+
 ## Document map
 
 ### Business
