@@ -1,7 +1,7 @@
-@use 'govuk-frontend/dist/govuk/index' as * with (
-  $govuk-page-width: 1600px
+@use '@ministryofjustice/frontend' as * with (
+  $moj-page-width: 1600px
 );
-@use '@ministryofjustice/frontend';
+@use 'govuk-frontend/dist/govuk/index' as *;
 
 .moj-datepicker__dialog {
   z-index: 5;
