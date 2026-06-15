@@ -113,6 +113,7 @@ webpack/
 - [Runtime and build](technical/runtime-and-build.md): package management, builds, running, health, logging, and monitoring.
 - [Deployment and CI](technical/deployment-and-ci.md): current CI/Jenkins behaviour and verification coverage.
 - [Flyway runbook](technical/operations/flyway.md): analytics migration model and baseline behaviour.
+- [Local database runbook](technical/operations/local-database.md): opt-in Docker Postgres, Flyway-backed local rebuilds, seeded data, and local app startup.
 - [Snapshot refresh runbook](technical/operations/snapshot-refresh.md): pg_cron bootstrap and runtime refresh notes.
 - [Schema permissions runbook](technical/operations/schema-permissions.md): rerunnable analytics reader grants.
 - [Testing and quality](technical/testing.md): test suites, command semantics, coverage, mutation testing, and assertion standards.

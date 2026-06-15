@@ -70,4 +70,5 @@ This repository includes reusable Codex skills under `skills/`.
 
 ### Available Skills
 
+- `local-app-startup`: Start, restart, rebuild, or smoke-check the app locally with the Flyway-backed seeded Docker database, auth disabled, and configurable local seed record counts. (file: `skills/local-app-startup/SKILL.md`)
 - `yarn-dependency-upgrades`: Upgrade dependencies with Yarn 4 for single, multiple, all-package, and CVE-driven flows. Includes precedence-based remediation for `yarn-audit-known-issues` findings and resolution fallback guidance. (file: `skills/yarn-dependency-upgrades/SKILL.md`)

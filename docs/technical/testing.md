@@ -7,6 +7,7 @@
 - Accessibility tests: Playwright + Axe (`src/test/a11y`).
 - Functional tests: Playwright (`src/test/functional`).
 - Smoke tests: Playwright (`src/test/smoke`).
+- Opt-in local database checks use `docker-compose.local-db.yml`, the `db:local:*` package scripts, and deterministic Flyway-backed seed data under `db/local/`.
 
 ## Key commands
 - `yarn test:unit` (direct Jest unit-test suite)
@@ -20,11 +21,25 @@
 - `yarn test:smoke`
 - `yarn test:ui` (Playwright UI mode)
 - `yarn setup:edge` (install Edge for Playwright)
+- `yarn db:local:up` (start the opt-in local Postgres container)
+- `yarn db:local:rebuild` (reset local databases, run Flyway, generate source data, run snapshot refresh, and validate)
+- `yarn db:local:refresh` (run only `analytics.run_snapshot_refresh_batch()` against the local TM database)
+- `yarn db:local:validate` (check that the local seeded TM, CRD, and LRD data published a valid snapshot)
 
 ## Current command semantics
 - Use `yarn test:unit` when you specifically need the unit-test suite.
 - Treat `yarn test` as a repository wrapper, not as proof that Jest executed in every environment.
 - `yarn build` is the frontend webpack build only; `yarn build:server` is the server TypeScript compile.
+- The local database scripts are not part of the default Jest route/unit suites. Use them before unmocked local browser checks or when manually testing repository SQL against PostgreSQL.
+
+## Local database-backed checks
+- Run `yarn db:local:up`, then `yarn db:local:rebuild`.
+- Use `LOCAL_DB_SEED_RECORD_COUNT` to change the total generated `cft_task_db.reportable_task` source rows. The default is `500000`, and values below `20` are rejected. Use `LOCAL_DB_SEED_RANDOM_SEED` to reproduce a specific generated dataset.
+- Start the app with `AUTH_ENABLED=false yarn start:dev`.
+- Load `/`, `/outstanding`, `/completed`, and `/users`, or run the relevant Playwright smoke/functional checks against the local server.
+- If the database is exposed on a non-default port, set `TM_DB_PORT`, `CRD_DB_PORT`, and `LRD_DB_PORT` to the same value before starting the app.
+- The seed generates upstream TM source rows and publishes a snapshot through the real Flyway-created refresh procedure. It is deterministic for a given record count and random seed.
+- Local seed dimensions use weighted sampling across services, regions, locations, work types, task names, scenarios, and 5,000 generated users. Coverage is best effort, so small seeds may not contain every available value.
 
 ## Accessibility
 - Playwright a11y tests run with `AUTH_ENABLED=false` and perform Axe checks.
