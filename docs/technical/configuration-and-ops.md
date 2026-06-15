@@ -8,6 +8,7 @@ This is the entry point for configuration, runtime, deployment, and operational 
 - [Runtime and build](runtime-and-build.md): package management, builds, running, health endpoints, logging, and monitoring.
 - [Deployment and CI](deployment-and-ci.md): current repository CI/Jenkins behaviour and verification gaps.
 - [Flyway runbook](operations/flyway.md): analytics migration model and baseline behaviour.
+- [Local database runbook](operations/local-database.md): opt-in Docker Postgres, Flyway-backed local rebuilds, seeded data, and local app startup.
 - [Snapshot refresh runbook](operations/snapshot-refresh.md): startup pg_cron registration and refresh runtime notes.
 - [Schema permissions runbook](operations/schema-permissions.md): rerunnable analytics reader grants.
 
