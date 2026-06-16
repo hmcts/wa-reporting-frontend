@@ -52,7 +52,7 @@
     "@opentelemetry/instrumentation-winston": "^0.63.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
-    "axios": "^1.17.0",
+    "axios": "^1.18.0",
     "body-parser": "^2.2.2",
     "compression": "^1.8.1",
     "config": "^4.4.1",
@@ -154,7 +154,8 @@
     "webpack-node-externals": "^3.0.0"
   },
   "resolutions": {
-    "@hono/node-server": "npm:@hono/node-server@2.0.4"
+    "@hono/node-server": "npm:@hono/node-server@2.0.4",
+    "@opentelemetry/core@npm:2.7.1": "npm:2.8.0"
   },
   "husky": {
     "hooks": {
