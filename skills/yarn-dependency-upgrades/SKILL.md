@@ -8,7 +8,7 @@ description: "Upgrade dependencies and maintain CVE-focused resolution hygiene i
 ## Overview
 Use deterministic Yarn 4 commands that match `yarn up -i` outcomes while remaining scriptable and repeatable.
 
-Top-level `resolutions` are a CVE-remediation mechanism in this skill. Do not add, keep, or upgrade a `resolution` just to force a newer transitive version. If removing a `resolution` does not cause the production audit command `yarn npm audit --recursive --environment production --json` to report a vulnerability, remove it.
+Top-level `resolutions` are a CVE-remediation mechanism in this skill. Do not add or keep a `resolution` just to force a newer transitive version. If removing a `resolution` does not cause the production audit command `yarn npm audit --recursive --environment production --json` to report a vulnerability, remove it. If a `resolution` is still required for a CVE after cleanup, check whether its target version is stale and upgrade the retained resolution to the latest compatible fixed npm version.
 
 ## Preflight
 - Run commands from the repository root.
@@ -60,6 +60,19 @@ Top-level `resolutions` are a CVE-remediation mechanism in this skill. Do not ad
    - Keep the entry removed when `yarn-audit-after` stays empty or otherwise does not introduce a vulnerability finding attributable to that package
    - Restore the entry only when removing it causes a production CVE to reappear
 4. Repeat until each resolution entry has been tested, then run the CVE workflow again for any remaining findings.
+
+## Retained Resolution Upgrade
+After cleanup, check every remaining `package.json` `resolutions` entry for newer target versions:
+
+1. Generate the non-mutating retained-resolution report:
+   - `node skills/yarn-dependency-upgrades/scripts/resolution-upgrade-plan.js`
+2. For each report item where `needsUpgrade` is `true`:
+   - Update that `package.json` resolution to the reported `suggestedPackageJsonValue`
+   - Run `yarn install`
+   - Re-run the production audit:
+     - `yarn npm audit --recursive --environment production --json > yarn-audit-known-issues`
+3. If install, audit, or tests fail after upgrading a retained resolution, revert that resolution or narrow it to the CVE-required descriptor and document the blocker.
+4. Do not upgrade retained resolutions that are not required by the production audit after cleanup; remove them instead.
 
 ## Verification
 Run mandatory repository checks after dependency changes:
