@@ -10,7 +10,7 @@
   {{ analyticsSectionError(sectionError) }}
 {% else %}
   {% set openAssignedTableHtml %}
-    <div class="analytics-tab-panel">
+    <div class="analytics-tab-panel analytics-tab-panel--fit-content">
       {{ csvDownloadButton() }}
       {{ analyticsTable({
         attributes: {

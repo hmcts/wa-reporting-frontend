@@ -136,6 +136,12 @@
   contain: layout paint;
 }
 
+.analytics-tab-panel--fit-content {
+  overflow: visible;
+  max-height: none;
+  contain: none;
+}
+
 .analytics-tab-panel--paginated {
   position: relative;
 }
