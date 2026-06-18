@@ -18,7 +18,7 @@
 4. Apply commands from the plan in precedence order.
 5. Re-run audit and verify no remaining CVEs.
 
-Top-level `resolutions` are a CVE-only fallback in this workflow. Do not keep or upgrade a `resolution` merely to preserve a newer transitive version.
+Top-level `resolutions` are a CVE-only fallback in this workflow. Do not keep a `resolution` merely to preserve a newer transitive version. After proving a resolution is still required for a CVE, check whether the retained target version is stale and upgrade it to the latest compatible fixed npm version.
 
 ## Direct parent discovery (manual fallback)
 - Inspect dependency chain for vulnerable package:
@@ -44,6 +44,15 @@ Top-level `resolutions` are a CVE-only fallback in this workflow. Do not keep or
    - Re-audit: `yarn npm audit --recursive --environment production --json > yarn-audit-after`
 3. Keep the entry removed unless the re-audit shows that removing it reintroduces a production CVE.
 4. Restore the entry only when CVEs reappear, then continue to the next resolution.
+
+## Retained resolution upgrade flow
+1. After cleanup, report stale retained resolution targets:
+   - `node skills/yarn-dependency-upgrades/scripts/resolution-upgrade-plan.js`
+2. For each item with `needsUpgrade: true`, update the `package.json` resolution to `suggestedPackageJsonValue`.
+3. Re-resolve and audit:
+   - `yarn install`
+   - `yarn npm audit --recursive --environment production --json > yarn-audit-known-issues`
+4. If the upgrade fails install, audit, or tests, revert that resolution or narrow it to the CVE-required descriptor.
 
 ## Post-upgrade checks
 - `yarn lint`

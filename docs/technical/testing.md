@@ -7,6 +7,7 @@
 - Accessibility tests: Playwright + Axe (`src/test/a11y`).
 - Functional tests: Playwright (`src/test/functional`).
 - Smoke tests: Playwright (`src/test/smoke`).
+- Opt-in local database checks use `docker-compose.local-db.yml`, the `db:local:*` package scripts, and deterministic Flyway-backed seed data under `db/local/`.
 
 ## Key commands
 - `yarn test:unit` (direct Jest unit-test suite)
@@ -20,11 +21,25 @@
 - `yarn test:smoke`
 - `yarn test:ui` (Playwright UI mode)
 - `yarn setup:edge` (install Edge for Playwright)
+- `yarn db:local:up` (start the opt-in local Postgres container)
+- `yarn db:local:rebuild` (reset local databases, run Flyway, generate source data, run snapshot refresh, and validate)
+- `yarn db:local:refresh` (run only `analytics.run_snapshot_refresh_batch()` against the local TM database)
+- `yarn db:local:validate` (check that the local seeded TM, CRD, and LRD data published a valid snapshot)
 
 ## Current command semantics
 - Use `yarn test:unit` when you specifically need the unit-test suite.
 - Treat `yarn test` as a repository wrapper, not as proof that Jest executed in every environment.
 - `yarn build` is the frontend webpack build only; `yarn build:server` is the server TypeScript compile.
+- The local database scripts are not part of the default Jest route/unit suites. Use them before unmocked local browser checks or when manually testing repository SQL against PostgreSQL.
+
+## Local database-backed checks
+- Run `yarn db:local:up`, then `yarn db:local:rebuild`.
+- Use `LOCAL_DB_SEED_RECORD_COUNT` to change the total generated `cft_task_db.reportable_task` source rows. The default is `500000`, and values below `20` are rejected. Use `LOCAL_DB_SEED_RANDOM_SEED` to reproduce a specific generated dataset.
+- Start the app with `AUTH_ENABLED=false yarn start:dev`.
+- Load `/`, `/outstanding`, `/completed`, and `/users`, or run the relevant Playwright smoke/functional checks against the local server.
+- If the database is exposed on a non-default port, set `TM_DB_PORT`, `CRD_DB_PORT`, and `LRD_DB_PORT` to the same value before starting the app.
+- The seed generates upstream TM source rows and publishes a snapshot through the real Flyway-created refresh procedure. It is deterministic for a given record count and random seed.
+- Local seed dimensions use weighted sampling across services, regions, locations, work types, task names, scenarios, and 5,000 generated users. Coverage is best effort, so small seeds may not contain every available value.
 
 ## Accessibility
 - Playwright a11y tests run with `AUTH_ENABLED=false` and perform Axe checks.
@@ -41,7 +56,8 @@
 - Keep new Playwright tests aligned with the shared patterns to reduce maintenance overhead.
 
 ## Coverage targets
-- Project guidelines require at least 95% branch and line coverage on modified files.
+- Project guidelines require at least 95% branch and line coverage on modified executable files where Jest coverage tooling applies.
+- For generated files, static config, templates, or files outside coverage instrumentation, record the relevant verification instead of inventing coverage.
 - The contributor guidance for non-documentation changes currently expects `yarn test:coverage` and `yarn test:routes` alongside the relevant build commands, but the checked-in CI scripts are narrower than that guidance.
 
 ## Unit test quality checklist
@@ -49,6 +65,7 @@
 - Keep tests deterministic: avoid runtime clock/random/network dependencies unless explicitly controlled.
 - Structure tests as Arrange/Act/Assert and keep each test focused on one primary behavior.
 - Assert observable behavior and dependency contracts, not only implementation internals.
+- Assert collaborator contracts at module boundaries when call parameters or order are part of behaviour.
 - For dependency-bound logic, include rejection/error-path tests alongside success-path tests.
 - Prefer precise assertions over broad ones (for example explicit error/status checks instead of bare `toThrow()`).
 - Use typed fixture builders/factories for repeated complex objects to reduce duplication and improve readability.
@@ -64,7 +81,7 @@
 - Split large omnibus tests into focused cases to reduce failure blast radius and improve diagnostics.
 - Consolidate duplicate coverage ownership so one suite is the source of truth for a module's behavior.
 - Replace repeated inline fixtures with shared builders once the same shape appears in multiple tests.
-- Avoid coupling to framework-private internals (such as Express stack index positions) unless no public seam exists.
+- Avoid coupling to framework-private internals (such as Express stack index positions, middleware arity heuristics, or private method access) unless no public seam exists and the reason is documented in the test.
 - Freeze time in date-sensitive tests with `jest.useFakeTimers().setSystemTime(...)` and reset in teardown.
 
 ## Security-sensitive unit tests

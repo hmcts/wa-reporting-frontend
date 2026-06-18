@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Local App Startup'
+  short_description: 'Run app with seeded local DB'
+  default_prompt: 'Use $local-app-startup to rebuild the local seeded database and start the app without auth.'
