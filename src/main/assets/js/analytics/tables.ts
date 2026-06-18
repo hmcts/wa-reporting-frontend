@@ -1,9 +1,33 @@
 import type { FetchSortedSection } from './ajax';
 import { getAnalyticsFiltersForm, setHiddenInput } from './forms';
 
+const ANALYTICS_TAB_PANEL_SCROLL_CLASS = 'analytics-tab-panel--scroll-y';
+
 function escapeCsvValue(value: string): string {
   const escaped = value.replace(/"/g, '""');
   return `"${escaped}"`;
+}
+
+function syncAnalyticsTabPanelOverflow(panel: HTMLElement): void {
+  const maxHeight = Number.parseFloat(
+    getComputedStyle(panel).getPropertyValue('--analytics-tab-panel-max-height').trim()
+  );
+
+  panel.classList.remove(ANALYTICS_TAB_PANEL_SCROLL_CLASS);
+  if (!Number.isFinite(maxHeight)) {
+    return;
+  }
+
+  if (panel.scrollHeight > maxHeight + 1) {
+    panel.classList.add(ANALYTICS_TAB_PANEL_SCROLL_CLASS);
+  }
+}
+
+export function initAnalyticsTabPanelOverflow(scope: ParentNode = document): void {
+  const panels = scope.querySelectorAll<HTMLElement>('.analytics-tab-panel');
+  panels.forEach(panel => {
+    window.requestAnimationFrame(() => syncAnalyticsTabPanelOverflow(panel));
+  });
 }
 
 export function tableToCsv(table: HTMLTableElement): string {
