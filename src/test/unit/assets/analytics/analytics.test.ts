@@ -24,6 +24,7 @@ import {
   initUserOverviewPagination,
 } from '../../../../main/assets/js/analytics/pagination';
 import {
+  initAnalyticsTabPanelOverflow,
   initMojServerSorting,
   initMojTotalsRowPinning,
   initTableExports,
@@ -67,6 +68,7 @@ jest.mock('../../../../main/assets/js/analytics/pagination', () => ({
   initUserOverviewPagination: jest.fn(),
 }));
 jest.mock('../../../../main/assets/js/analytics/tables', () => ({
+  initAnalyticsTabPanelOverflow: jest.fn(),
   initMojServerSorting: jest.fn(),
   initMojTotalsRowPinning: jest.fn(),
   initTableExports: jest.fn(),
@@ -99,6 +101,7 @@ describe('analytics bootstrap', () => {
     (initOpenByName as jest.Mock).mockClear();
     (initCriticalTasksPagination as jest.Mock).mockClear();
     (initUserOverviewPagination as jest.Mock).mockClear();
+    (initAnalyticsTabPanelOverflow as jest.Mock).mockClear();
     (initMojServerSorting as jest.Mock).mockClear();
     (initTableExports as jest.Mock).mockClear();
     (initMojTotalsRowPinning as jest.Mock).mockClear();
@@ -112,6 +115,7 @@ describe('analytics bootstrap', () => {
     await flushPromises();
     expect(initMojAll).not.toHaveBeenCalled();
     expect(renderCharts).toHaveBeenCalled();
+    expect(initAnalyticsTabPanelOverflow).toHaveBeenCalled();
     expect(initTableExports).toHaveBeenCalled();
     expect(initMojServerSorting).toHaveBeenCalledWith(expect.any(Function));
     expect(initMojTotalsRowPinning).toHaveBeenCalled();
@@ -173,6 +177,7 @@ describe('analytics bootstrap', () => {
     depsWithRebind.rebindSectionBehaviors();
 
     expect(renderCharts).toHaveBeenCalledTimes(2);
+    expect(initAnalyticsTabPanelOverflow).toHaveBeenCalledTimes(2);
     expect(initTableExports).toHaveBeenCalledTimes(2);
     expect(initMojServerSorting).toHaveBeenCalledTimes(2);
     expect(initMojServerSorting).toHaveBeenCalledTimes(2);
