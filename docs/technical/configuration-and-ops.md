@@ -1,232 +1,34 @@
 # Configuration and operations
 
-## Configuration files
-- `config/default.json` defines defaults for all runtime configuration (including local development defaults).
-- `config/custom-environment-variables.yaml` maps config keys to environment variables for overrides.
-- `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` define Key Vault secret names that are injected into the app in non-local environments and the optional in-cluster Redis chart used by preview.
+This is the entry point for configuration, runtime, deployment, and operational runbooks.
 
-## Configuration flow and precedence
-1. `config/default.json` provides the baseline values (used directly for local development).
-2. Environment variables (wired via `config/custom-environment-variables.yaml`) override defaults.
-3. For production-like environments, Key Vault secrets are declared in Helm values (`values.yaml` and `values.preview.template.yaml`) and loaded through Properties Volume under `secrets.wa.<secret-name>`.
-4. Application code reads secrets directly from `secrets.wa.<secret-name>` paths.
+## Read first
 
-## Retrieving config values in the app
-Use the `config` package with dot-notation keys that match `config/default.json` paths:
+- [Configuration reference](configuration.md): configuration files, precedence, key areas, environment variables, secrets, and Redis dependency.
+- [Runtime and build](runtime-and-build.md): package management, builds, running, health endpoints, logging, and monitoring.
+- [Deployment and CI](deployment-and-ci.md): current repository CI/Jenkins behaviour and verification gaps.
+- [Flyway runbook](operations/flyway.md): analytics migration model and baseline behaviour.
+- [Local database runbook](operations/local-database.md): opt-in Docker Postgres, Flyway-backed local rebuilds, seeded data, and local app startup.
+- [Snapshot refresh runbook](operations/snapshot-refresh.md): startup pg_cron registration and refresh runtime notes.
+- [Schema permissions runbook](operations/schema-permissions.md): rerunnable analytics reader grants.
 
-```ts
-import config from 'config';
+## Operational boundaries
 
-const redisHost: string | undefined = config.get('secrets.wa.wa-reporting-redis-host');
-const ttlSeconds: number = config.get<number>('analytics.cacheTtlSeconds');
+- Runtime application startup loads configuration, sessions, telemetry, and optional pg_cron bootstrap.
+- Runtime startup does not apply Flyway migrations.
+- Flyway remains a Jenkins-run concern.
+- TM schema permissions bootstrap remains an external script/runbook concern.
+- The frontend service is read-only against downstream analytics data.
+- The aggregate health endpoint derives the IDAM health check from `services.idam.url.public` plus `/health`; no custom IDAM health timeout or deadline setting is configured.
 
-if (config.has('secrets.wa.app-insights-connection-string')) {
-  const connectionString = config.get<string>('secrets.wa.app-insights-connection-string');
-}
+```mermaid
+flowchart TB
+  Config["Runtime config"] --> App["wa-reporting-frontend"]
+  App --> CronBootstrap["Optional pg_cron registration"]
+  App --> Reads["Read-only analytics reads"]
+  Jenkins["Jenkins"] --> Flyway["Flyway analytics migrations"]
+  Jenkins --> Grants["TM schema permissions bootstrap"]
+  Flyway --> AnalyticsSchema["analytics schema"]
+  Grants --> AnalyticsSchema
+  Reads --> AnalyticsSchema
 ```
-
-Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...)` when a value is optional. Secrets injected via Properties Volume are available through the `secrets.wa.*` keys.
-
-## Key configuration areas
-
-### Analytics
-- `analytics.cacheTtlSeconds`: NodeCache TTL for filter options and reference data.
-- `analytics.publishedSnapshotCacheTtlSeconds`: NodeCache TTL for current published snapshot metadata.
-- `analytics.manageCaseBaseUrl`: base URL used for case links.
-- `analytics.filtersCookieName`: name for filter persistence cookie.
-- `analytics.filtersCookieMaxAgeDays`: cookie lifetime in days.
-- `analytics.snapshotRefreshCronBootstrap.enabled`: enables/disables startup registration of snapshot refresh pg_cron jobs.
-- `analytics.snapshotRefreshCronBootstrap.jobName`: pg_cron job name used for idempotent replace behavior.
-- `analytics.snapshotRefreshCronBootstrap.schedule`: cron expression used for snapshot refresh execution.
-- `analytics.snapshotRefreshCronBootstrap.targetDatabase`: database where `analytics.run_snapshot_refresh_batch()` executes.
-- `analytics.snapshotRefreshCronBootstrap.cronDatabase`: database where pg_cron metadata/functions are available (default `postgres`).
-
-### Authentication
-- `auth.enabled`: enables/disables OIDC and RBAC.
-- `services.idam.clientID`, `scope`.
-- `services.idam.url.public`: IDAM base URL.
-- `services.idam.url.wa`: base URL of this application.
-- `RBAC.access`: required role for access.
-- `secrets.wa.wa-reporting-frontend-client-secret`: IDAM client secret.
-
-### Session
-- `secrets.wa.wa-reporting-frontend-session-secret`: session signing secret.
-- `session.cookie.name`: cookie for OIDC session.
-- `session.appCookie.name`: cookie for app session.
-- `secrets.wa.wa-reporting-redis-host`, `wa-reporting-redis-port`, `wa-reporting-redis-access-key`: Redis connection for session storage.
-- Preview deploys the `hmcts-redis` Helm dependency as standalone, unauthenticated Redis and sets `REDIS_HOST` to `${SERVICE_NAME}-hmcts-redis-master`.
-
-### Database
-- `database.tm`, `database.crd`, `database.lrd`: PostgreSQL connection details.
-- The runtime helper supports `database.<prefix>.url` when that config value is present.
-- The checked-in environment-variable mapping exposes `TM_DB_URL` for TM only; CRD and LRD currently use host/port/db/schema/options plus username/password mappings.
-- `schema` is appended to the PostgreSQL `search_path` when the helper builds a URL from host/port/user/password/db details.
-- `secrets.wa.tm-db-user`/`secrets.wa.tm-db-password`: TM database credentials.
-- `secrets.wa.crd-db-user`/`secrets.wa.crd-db-password`: CRD database credentials.
-- `secrets.wa.lrd-db-user`/`secrets.wa.lrd-db-password`: LRD database credentials.
-- Terraform reads the source credentials from Key Vault `rd-<env>` and writes them into WA Key Vault under the repo key names:
-  - `caseworker-ref-api-POSTGRES-USER` -> `rd-caseworker-ref-api-POSTGRES-USER`
-  - `caseworker-ref-api-POSTGRES-PASS` -> `rd-caseworker-ref-api-POSTGRES-PASS`
-  - `location-ref-api-POSTGRES-USER` -> `rd-location-ref-api-POSTGRES-USER`
-  - `location-ref-api-POSTGRES-PASS` -> `rd-location-ref-api-POSTGRES-PASS`
-
-### Flyway analytics migrations
-- The analytics schema is managed by Flyway migrations under `db/migrations/tm/`.
-- `db/migrations/tm/V001__init_analytics_schema.sql` is a repository-local copy of the previously deployed HMCTS analytics baseline from `wa-task-management-api` `V1.0.44__init_analytics_schema.sql`.
-- Later repository-owned migrations, including `V002__redesign_analytics_snapshot_schema.sql`, evolve that baseline to the schema expected by this application branch.
-- `db/current-state/tm-analytics-schema.sql` is the rerunnable current-state bootstrap mirror of the TM analytics schema. It is used for local/disposable rebuilds and SQL design review, but it is not the canonical migration history and must stay aligned with the latest Flyway end state.
-- `db/flyway/` contains a minimal Gradle wrapper project used only for Flyway commands (`flywayInfo`, `flywayBaseline`, `flywayValidate`, `flywayMigrate`).
-- The Flyway wrapper is configured with `baselineOnMigrate = true`, `baselineVersion = '001'`, and `baselineDescription = 'init analytics schema'`. On the first `flywayMigrate` against an existing environment with a non-empty `analytics` schema and no history table, Flyway records the local `V001` baseline automatically and then applies later migrations such as `V002`.
-- New empty environments still run `flywayMigrate` directly, but they must already contain the upstream TM source schema expected by `V001`; the analytics migration chain is not a full bootstrap for an otherwise blank Postgres database.
-- Flyway is wired in Jenkins to use the TM replica host and replica credential secrets. The runtime application still does not run schema migrations on startup.
-- In Jenkins, the Flyway step is wired as an explicit post-`buildinfra` action for `aat`, `demo`, `ithc`, `perftest`, and `prod`, with `TM_DB_MIGRATION_USER` / `TM_DB_MIGRATION_PASSWORD` loaded inside that step from WA Key Vault secrets `cft-task-POSTGRES-USER-FLEXIBLE-REPLICA` and `cft-task-POSTGRES-PASS-FLEXIBLE-REPLICA`. The Flyway JDBC URL mirrors the Jenkins library Gradle migration pattern and uses `?ssl=true&sslmode=require`. Jenkins runs `flywayMigrate` only; on the first run in an existing environment, Flyway auto-baselines to `001` before applying later migrations.
-
-### Security and logging
-- `useCSRFProtection`.
-- `compression.enabled`: enables/disables HTTP compression middleware (default `false`).
-- `requestBody.urlencodedLimit`: app-wide `application/x-www-form-urlencoded` body size limit used by Express/body-parser.
-- `requestBody.urlencodedParameterLimit`: app-wide maximum number of URL-encoded form parameters accepted by Express/body-parser.
-- Helmet security-header behavior is defined in `src/main/modules/helmet/index.ts`, not in `config/default.json`.
-- The current wrapper hard-codes `referrerPolicy: origin`, adds `'unsafe-eval'` only in development, and otherwise uses Helmet defaults for HSTS.
-- `logging.prismaQueryTimings`: Prisma query timing log settings.
-  - `enabled`: turns Prisma query timing logs on/off.
-  - `minDurationMs`: logs only queries with duration at or above this value.
-  - `slowQueryThresholdMs`: logs queries at or above this value as slow-query events.
-  - `includeQueryPreview`: includes a normalised SQL preview string in logs when `true`.
-  - `queryPreviewMaxLength`: max characters in the SQL preview string.
-- `secrets.wa.app-insights-connection-string` for Azure Application Insights.
-
-## Environment variables (selected)
-- `AUTH_ENABLED`
-- `COMPRESSION_ENABLED`
-- `REQUEST_BODY_URLENCODED_LIMIT`
-- `REQUEST_BODY_URLENCODED_PARAMETER_LIMIT`
-- `ANALYTICS_CACHE_TTL_SECONDS`
-- `ANALYTICS_PUBLISHED_SNAPSHOT_CACHE_TTL_SECONDS`
-- `MANAGE_CASE_BASE_URL`
-- `ANALYTICS_FILTERS_COOKIE_NAME`
-- `ANALYTICS_FILTERS_COOKIE_MAX_AGE_DAYS`
-- `SNAPSHOT_REFRESH_CRON_BOOTSTRAP_ENABLED`
-- `SNAPSHOT_REFRESH_CRON_JOB_NAME`
-- `SNAPSHOT_REFRESH_CRON_SCHEDULE`
-- `SNAPSHOT_REFRESH_CRON_TARGET_DATABASE`
-- `SNAPSHOT_REFRESH_CRON_DATABASE`
-- `LOGGING_PRISMA_QUERY_TIMINGS_ENABLED`
-- `LOGGING_PRISMA_QUERY_TIMINGS_MIN_DURATION_MS`
-- `LOGGING_PRISMA_QUERY_TIMINGS_SLOW_QUERY_THRESHOLD_MS`
-- `LOGGING_PRISMA_QUERY_TIMINGS_INCLUDE_QUERY_PREVIEW`
-- `LOGGING_PRISMA_QUERY_TIMINGS_QUERY_PREVIEW_MAX_LENGTH`
-- `APPLICATIONINSIGHTS_CONNECTION_STRING`
-- `IDAM_CLIENT_ID`, `WA_REPORTING_FRONTEND_CLIENT_SECRET`, `IDAM_CLIENT_SCOPE`
-- `IDAM_HEALTH_URL`, `IDAM_HEALTH_DEADLINE`
-- `IDAM_PUBLIC_URL`, `WA_BASE_URL`
-- `RBAC_ACCESS`
-- `TM_DB_HOST`, `TM_DB_PORT`, `TM_DB_NAME`, `TM_DB_SCHEMA`, `TM_DB_OPTIONS`, `TM_DB_URL`, `TM_DB_USER`, `TM_DB_PASSWORD`
-- `CRD_DB_HOST`, `CRD_DB_PORT`, `CRD_DB_NAME`, `CRD_DB_SCHEMA`, `CRD_DB_OPTIONS`, `CRD_DB_USER`, `CRD_DB_PASSWORD`
-- `LRD_DB_HOST`, `LRD_DB_PORT`, `LRD_DB_NAME`, `LRD_DB_SCHEMA`, `LRD_DB_OPTIONS`, `LRD_DB_USER`, `LRD_DB_PASSWORD`
-- `REDIS_HOST`, `REDIS_PORT`, `REDIS_KEY`
-- `SESSION_SECRET`, `SESSION_COOKIE_NAME`, `SESSION_APP_COOKIE_NAME`
-- `TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME`
-- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_URL`
-- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_HOST`
-- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_PORT`
-- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_DATABASE`
-- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_USER`
-- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_PASSWORD`
-- `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_OPTIONS`
-
-## Secrets via Properties Volume
-When not in development, `PropertiesVolume` loads Kubernetes secrets into the configuration under `secrets.wa.*`, including:
-- IDAM client secret
-- Session secret
-- Redis credentials
-- Database credentials
-
-Keep the Key Vault secret lists in `charts/wa-reporting-frontend/values.yaml` and `charts/wa-reporting-frontend/values.preview.template.yaml` aligned with the secrets consumed by the app. Any new secret must be added in all three places.
-
-## Helm Redis dependency
-- The application chart consumes the HMCTS `hmcts-redis` chart from `oci://hmctsprod.azurecr.io/helm` instead of the Docker Hub Bitnami Redis chart.
-- The dependency remains disabled in shared/default values because persistent environments use Redis connection details from Key Vault.
-- Preview enables the dependency with `architecture: standalone`, `auth.enabled: false`, disabled persistence, disabled Sentinel, and disabled metrics so session storage is local to the preview release.
-
-## Build and runtime
-
-### Package management
-- The repository uses the Yarn release declared by `package.json` `packageManager`.
-- `package.json` may include top-level `resolutions` for transitive packages when upstream dependency ranges do not yet converge on the required version.
-- Dependency upgrades should review each top-level resolution and remove any override that no longer changes the resolved dependency graph or production audit outcome.
-
-### Build
-- `yarn build` builds frontend assets via webpack only. It does not compile the server TypeScript entrypoint.
-- `yarn build:watch` rebuilds frontend assets continuously via webpack watch mode.
-- `yarn build:server` compiles server TypeScript to `dist/`.
-- `yarn build:prod` builds production frontend assets and copies views/public into `dist/main`. It does not compile the server by itself.
-- `db/flyway/gradlew` runs repository-owned Flyway commands for the TM analytics schema.
-- `yarn bootstrap:tm-schema-permissions` runs the rerunnable TM analytics schema grants bootstrap.
-
-### Run
-- `yarn start` runs the compiled server from `dist/main/server.js` and requires both `yarn build:server` and `yarn build:prod` to have been run first.
-- `yarn start:dev` runs via nodemon with webpack dev middleware.
-- For local frontend iteration, `yarn start:dev` is enough to serve the in-memory webpack bundles. Run `yarn build:watch` as well only if you need the on-disk bundles refreshed continuously.
-- Default port is 3100 (configurable via `PORT`).
-- Express trusts one proxy hop (`trust proxy = 1`) to support AKS/ingress `X-Forwarded-For` headers.
-
-### CI and verification
-- `package.json` `cichecks` currently runs:
-  - `yarn install`
-  - `yarn build`
-  - `yarn rebuild puppeteer`
-  - `yarn lint`
-  - `yarn test`
-  - `yarn test:routes`
-  - `yarn test:a11y`
-- In the current scripts, `yarn test` is a wrapper: outside CI it delegates to `yarn test:unit`, and when `CI=true` it exits early instead of running Jest.
-- The checked-in Jenkins pipeline currently runs `playwright install`, `rebuild puppeteer`, and `build` in the build stage, then `test:routes` in a later post-test step.
-- Neither `cichecks` nor the checked-in Jenkins build stage currently runs `yarn build:server`.
-
-### Health and info endpoints
-- `/health`, `/health/liveness`, and `/health/readiness` are registered through `@hmcts/nodejs-healthcheck`.
-- `/info` returns build and runtime metadata.
-- `/health` includes package-backed raw checks for `ping`, `livenessState`, and `readinessState`.
-- `/health` always includes an IDAM API health check using `IDAM_HEALTH_URL`.
-- When Redis is configured, `/health` and `/health/readiness` include a Redis ping check.
-- `/health` does not open database connections. Database connectivity is exercised by the analytics data paths rather than the health endpoint.
-- `/health/readiness` remains limited to readiness state and Redis. Shared downstreams such as IDAM are not included in readiness.
-
-### Logging and monitoring
-- Uses a local Winston 3 logger wrapper for server logs. `LOG_LEVEL` controls verbosity (default `info`), and `JSON_PRINT=true` enables JSON output.
-- When `logging.prismaQueryTimings.enabled=true`, Prisma query events are emitted as:
-  - `db.query` for timings at or above `minDurationMs` and below `slowQueryThresholdMs`.
-  - `db.query.slow` for timings at or above `slowQueryThresholdMs`.
-  Payload fields include `database` (`tm`/`crd`/`lrd`), `durationMs`, `target`, `queryFingerprint`, and optional `queryPreview` when enabled.
-- OpenTelemetry (Azure Monitor) exports traces and logs to Application Insights when a connection string is available from `APPLICATIONINSIGHTS_CONNECTION_STRING` or `secrets.wa.app-insights-connection-string`.
-- In non-development environments, startup loads Properties Volume secrets into `config` before OpenTelemetry initialisation, so mounted Key Vault values are available during telemetry setup.
-- The service name is configured in code as `wa-reporting-frontend`.
-
-### Snapshot refresh cron bootstrap
-- When `analytics.snapshotRefreshCronBootstrap.enabled=true`, app startup attempts to register the snapshot refresh schedule via `cron.schedule_in_database(...)`.
-- Registration uses TM connection credentials and host settings, with the database name overridden to `analytics.snapshotRefreshCronBootstrap.cronDatabase` (default `postgres`).
-- Registration is non-fatal: startup logs failures and continues serving requests.
-- Failure logs include structured error fields (`errorName`, `errorMessage`, optional `errorCode`/`errorDetail`/`errorHint`/`errorMeta`, and `errorStack`) to aid diagnosis in JSON logging mode.
-- Startup registration is idempotent: existing jobs matching `jobName` and `targetDatabase` are unscheduled before registering the configured definition.
-- This bootstrap does not initialize or advance Flyway schema history; Flyway remains a separate Jenkins-run concern.
-- Prerequisites:
-  - `pg_cron` extension and `cron` schema/functions are available in `cronDatabase`.
-  - The application DB role has permissions to read from `cron.job` and execute `cron.unschedule(...)` / `cron.schedule_in_database(...)`.
-- Runtime note:
-  - `analytics.run_snapshot_refresh_batch()` now builds detached snapshot tables first and only takes parent-table metadata locks during the short final attach/publish step.
-  - Refresh-created aggregate partition indexes match the corresponding parent partitioned indexes. This lets Postgres attach/reuse those indexes at publish time instead of maintaining duplicate child-local index families for the same access paths.
-  - Post-publish retention cleanup uses a short `lock_timeout` while detaching obsolete partitions; if that cleanup cannot obtain the lock quickly it logs a warning and leaves the old snapshot for a later run.
-
-### TM schema permissions bootstrap
-- `yarn bootstrap:tm-schema-permissions` grants `USAGE` on schema `analytics` and `SELECT` on all tables in that schema to a configured reader role.
-- `TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME` defaults to `DTS JIT Access wa DB Reader SC`.
-- Connection resolution order is:
-  - `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_URL`
-  - `TM_SCHEMA_PERMISSIONS_BOOTSTRAP_HOST` / `PORT` / `DATABASE` / `USER` / `PASSWORD` / `OPTIONS`
-  - fallback TM env vars used by Jenkins or local shells: `TM_DB_PRIMARY_HOST` or `TM_DB_REPLICA_HOST` or `TM_DB_HOST`, plus `TM_DB_MIGRATION_USER` or `TM_DB_USER`, `TM_DB_MIGRATION_PASSWORD` or `TM_DB_PASSWORD`, `TM_DB_NAME`, `TM_DB_PORT`, and `TM_DB_OPTIONS`
-- The bootstrap is safe to rerun because repeated `GRANT` statements are idempotent for the target role.
-- Concurrent bootstrap runs against the same TM database are serialised with a transaction-scoped PostgreSQL advisory lock before schema/table ACLs are updated. This avoids catalog update races between Jenkins jobs while keeping the grants atomic.
-- This bootstrap is intentionally external to application startup: the runtime service remains read-only and should continue to use its normal TM read connection.
-- In Jenkins, the Demo and Prod stages invoke the bootstrap directly after Flyway, so stage selection is the environment toggle.
-- The Demo bootstrap overrides `TM_SCHEMA_PERMISSIONS_DB_READER_USERNAME` to `DTS CFT DB Access Reader`; the Prod bootstrap invocation does not set a stage-specific reader username.

@@ -1,12 +1,13 @@
 import config from 'config';
 import { Application } from 'express';
 import { createClient } from 'redis';
+import type { RedisClientType } from 'redis';
 
 const { Logger } = require('../logging');
 
 const logger = Logger.getLogger('redis');
 
-type RedisClient = ReturnType<typeof createClient>;
+type RedisClient = RedisClientType;
 
 export function getRedisClient(app: Application): RedisClient | null {
   const redisHost: string | undefined = config.get('secrets.wa.wa-reporting-redis-host');

@@ -14,13 +14,9 @@ function shutdownCheck(): boolean {
 }
 
 function createIdamHealthCheck() {
-  const idamHealthUrl = config.get<string>('services.idam.health.url');
-  const deadline = config.get<number>('services.idam.health.deadline');
+  const idamUrl = config.get<string>('services.idam.url.public');
 
-  return healthcheck.web(idamHealthUrl, {
-    timeout: deadline,
-    deadline,
-  });
+  return healthcheck.web(`${idamUrl}/health`);
 }
 
 function createRedisHealthCheck(app: Application) {

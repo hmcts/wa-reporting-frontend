@@ -1,16 +1,10 @@
 import type { Application } from 'express';
 
 describe('routes/health', () => {
-  type WebCheckOptions = {
-    timeout: number;
-    deadline: number;
-  };
-
   const originalEnv = process.env;
 
   const defaultConfigValues: Record<string, unknown> = {
-    'services.idam.health.url': 'https://idam.test/health',
-    'services.idam.health.deadline': 10000,
+    'services.idam.url.public': 'https://idam.test',
     'secrets.wa.wa-reporting-redis-host': '',
   };
 
@@ -30,7 +24,7 @@ describe('routes/health', () => {
     const appState = { locals: { shutdown: false } };
     const addTo = jest.fn();
     const raw = jest.fn((fn: () => unknown) => fn);
-    const web = jest.fn((_url: string, _options: WebCheckOptions) => 'web-check');
+    const web = jest.fn((_url: string) => 'web-check');
     const up = jest.fn(() => 'up');
     const down = jest.fn(() => 'down');
     const configValues = { ...defaultConfigValues, ...configOverrides };
@@ -106,20 +100,14 @@ describe('routes/health', () => {
 
     expect(healthCheckConfig.checks.idam).toBe('web-check');
     expect(healthCheckConfig.readinessChecks.idam).toBeUndefined();
-    expect(web).toHaveBeenCalledWith('https://idam.test/health', {
-      timeout: 10000,
-      deadline: 10000,
-    });
+    expect(web).toHaveBeenCalledWith('https://idam.test/health');
   });
 
   it('adds IDAM to aggregate health checks when auth is disabled', () => {
     const { healthCheckConfig, web } = registerHealth({ 'auth.enabled': false });
 
     expect(healthCheckConfig.checks.idam).toBe('web-check');
-    expect(web).toHaveBeenCalledWith('https://idam.test/health', {
-      timeout: 10000,
-      deadline: 10000,
-    });
+    expect(web).toHaveBeenCalledWith('https://idam.test/health');
   });
 
   it('adds Redis to aggregate and readiness checks when Redis is configured', async () => {

@@ -37,10 +37,6 @@
     "idam": {
       "clientID": "wa_reporting_frontend",
       "scope": "openid profile roles",
-      "health": {
-        "url": "https://idam-api.aat.platform.hmcts.net/health",
-        "deadline": 10000
-      },
       "url": {
         "public": "https://hmcts-access.aat.platform.hmcts.net",
         "wa": "http://localhost:3100"
