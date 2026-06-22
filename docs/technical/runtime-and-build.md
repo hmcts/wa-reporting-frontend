@@ -33,6 +33,7 @@ Express trusts one proxy hop (`trust proxy = 1`) to support AKS/ingress `X-Forwa
 ## Health and info endpoints
 
 - `/health` returns liveness and readiness checks.
+- The aggregate `/health` checks include the public IDAM health endpoint; readiness checks exclude IDAM.
 - `/info` returns build and runtime metadata.
 - When Redis is configured, `/health` includes a Redis ping check in both liveness and readiness.
 
