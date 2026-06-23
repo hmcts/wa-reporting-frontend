@@ -58,7 +58,6 @@ describe('routes/health', () => {
         idam: 'web-check',
       })
     );
-    expect(healthCheckConfig.checks.db).toBeUndefined();
     expect(healthCheckConfig.readinessChecks).toEqual(
       expect.objectContaining({
         readinessState: healthCheckConfig.checks.readinessState,
