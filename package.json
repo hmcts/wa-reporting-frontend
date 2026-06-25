@@ -154,7 +154,7 @@
     "webpack-node-externals": "^3.0.0"
   },
   "resolutions": {
-    "@hono/node-server": "npm:@hono/node-server@2.0.4",
+    "@hono/node-server": "npm:@hono/node-server@2.0.6",
     "@opentelemetry/core@npm:2.7.1": "npm:2.8.0",
     "undici": "npm:6.27.0"
   },
