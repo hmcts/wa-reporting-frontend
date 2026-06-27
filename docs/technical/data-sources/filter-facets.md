@@ -29,6 +29,7 @@ User-only extra column:
 Notes for all facet tables:
 
 - Blank strings are normalised to `NULL` at materialisation time.
+- `location` values are display-ready labels materialised during snapshot refresh; filter option rendering does not relabel them through LRD.
 - Work type display labels are resolved at read time by joining `cft_task_db.work_types`.
 - User Overview still applies its query-time Judicial exclusion when reading row and fact queries.
 - Unfiltered non-user scopes (`/`, `/outstanding`, and `/completed`) read filter options with one `GROUPING SETS` query per page-scoped facet table.

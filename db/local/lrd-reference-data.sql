@@ -6,10 +6,11 @@ CREATE TABLE IF NOT EXISTS locrefdata.region (
 );
 
 CREATE TABLE IF NOT EXISTS locrefdata.court_venue (
-  epimms_id TEXT PRIMARY KEY,
+  epimms_id TEXT NOT NULL,
   site_name TEXT NOT NULL,
   region_id TEXT NOT NULL,
-  court_type_id TEXT
+  court_type_id TEXT NOT NULL,
+  CONSTRAINT court_venue_epimms_court_type_pk PRIMARY KEY (epimms_id, court_type_id)
 );
 
 CREATE TABLE IF NOT EXISTS locrefdata.court_type_service_assoc (
@@ -25,10 +26,29 @@ CREATE TABLE IF NOT EXISTS locrefdata.service_to_ccd_case_type_assoc (
 ALTER TABLE locrefdata.court_venue
   ADD COLUMN IF NOT EXISTS court_type_id TEXT;
 
+ALTER TABLE locrefdata.court_venue
+  DROP CONSTRAINT IF EXISTS court_venue_pkey;
+
 TRUNCATE locrefdata.service_to_ccd_case_type_assoc;
 TRUNCATE locrefdata.court_type_service_assoc;
 TRUNCATE locrefdata.court_venue;
 TRUNCATE locrefdata.region;
+
+ALTER TABLE locrefdata.court_venue
+  ALTER COLUMN court_type_id SET NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'locrefdata.court_venue'::regclass
+      AND conname = 'court_venue_epimms_court_type_pk'
+  ) THEN
+    ALTER TABLE locrefdata.court_venue
+      ADD CONSTRAINT court_venue_epimms_court_type_pk PRIMARY KEY (epimms_id, court_type_id);
+  END IF;
+END $$;
 
 INSERT INTO locrefdata.region (region_id, description)
 SELECT
@@ -44,6 +64,14 @@ SELECT
   'local_court' AS court_type_id
 FROM generate_series(1, 100) AS venues(value);
 
+INSERT INTO locrefdata.court_venue (epimms_id, site_name, region_id, court_type_id)
+VALUES
+  ('900001', 'Duplicate EPIMMS Civil Court', '1', 'local_duplicate_civil'),
+  ('900001', 'Duplicate EPIMMS Family Court', '1', 'local_duplicate_family'),
+  ('900002', 'Ambiguous EPIMMS Mapped Court', '2', 'local_ambiguous_mapped'),
+  ('900002', 'Ambiguous EPIMMS Unmapped Court', '2', 'local_ambiguous_unmapped'),
+  ('900003', 'Unambiguous EPIMMS Fallback Court', '3', 'local_unambiguous_unmapped');
+
 INSERT INTO locrefdata.service_to_ccd_case_type_assoc (service_code, ccd_case_type)
 SELECT
   format('local_service_%s', lpad(value::TEXT, 2, '0')) AS service_code,
@@ -55,3 +83,9 @@ SELECT
   'local_court' AS court_type_id,
   format('local_service_%s', lpad(value::TEXT, 2, '0')) AS service_code
 FROM generate_series(1, 10) AS services(value);
+
+INSERT INTO locrefdata.court_type_service_assoc (court_type_id, service_code)
+VALUES
+  ('local_duplicate_civil', 'local_service_01'),
+  ('local_duplicate_family', 'local_service_02'),
+  ('local_ambiguous_mapped', 'local_service_03');

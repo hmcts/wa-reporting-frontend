@@ -37,7 +37,8 @@ This runbook covers the opt-in local PostgreSQL database used for unmocked analy
 - `LOCAL_DB_SEED_RANDOM_SEED` controls deterministic value variation. The default is `12345`.
 - The same record count and random seed produce the same source rows.
 - Seeded data uses weighted sampling across assigned, unassigned, overdue, due-soon, due-later, completed-within-SLA, completed-beyond-SLA, cancelled/deleted, and pending-auto-assign scenarios.
-- Generated dimensions include 10 services, 8 regions, 100 locations, 5 role categories, 5 work types, 500 task names, and 5,000 generated caseworkers.
+- Generated dimensions include 10 services, 8 regions, 100 weighted locations, 5 role categories, 5 work types, 500 task names, and 5,000 generated caseworkers.
+- The LRD seed and first generated source rows also include fixed duplicate-EPIMMS fixtures so local snapshot refresh covers case-type-specific court venue labels, ambiguous generic fallback, and unambiguous generic fallback.
 - Coverage is best effort: small or heavily skewed seeds may not include every configured value.
 
 Examples:

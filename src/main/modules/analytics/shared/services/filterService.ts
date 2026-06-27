@@ -18,7 +18,7 @@ import type { AnalyticsQueryOptions } from '../repositories/filters';
 import type { AnalyticsFilters } from '../types';
 import type { SelectOption } from '../viewModels/filterOptions';
 
-import { caseWorkerProfileService, courtVenueService, regionService } from './index';
+import { caseWorkerProfileService, regionService } from './index';
 
 export type FilterOptions = {
   services: string[];
@@ -82,18 +82,11 @@ function buildRegionOptions(
   return [{ value: '', text: 'All regions' }, ...options];
 }
 
-function buildLocationOptions(
-  locationIds: string[],
-  courtVenues: { epimms_id: string; site_name: string }[]
-): SelectOption[] {
-  const descriptions = courtVenues.reduce<Record<string, string>>((acc, venue) => {
-    acc[venue.epimms_id] = venue.site_name;
-    return acc;
-  }, {});
+function buildLocationOptions(locationIds: string[]): SelectOption[] {
   const options = locationIds
     .map(locationId => ({
       value: locationId,
-      text: locationId === '' ? '(Blank)' : (descriptions[locationId] ?? locationId),
+      text: locationId === '' ? '(Blank)' : locationId,
     }))
     .sort(compareByText);
   return [{ value: '', text: 'All locations' }, ...options];
@@ -213,14 +206,13 @@ class FilterService {
       return cached;
     }
 
-    const [rawOptions, regionRecords, courtVenues, profiles] = await Promise.all([
+    const [rawOptions, regionRecords, profiles] = await Promise.all([
       filterFactsRepositoryForScope(scope).fetchFilterOptionsRows(snapshotId, {
         filters,
         queryOptions,
         includeUserFilter,
       }),
       regionService.fetchRegions(),
-      courtVenueService.fetchCourtVenues(),
       includeUserFilter ? caseWorkerProfileService.fetchCaseWorkerProfiles() : Promise.resolve([]),
     ]);
 
@@ -235,10 +227,7 @@ class FilterService {
       regions.map(row => row.value),
       regionRecords
     );
-    const locationOptions = buildLocationOptions(
-      locations.map(row => row.value),
-      courtVenues
-    );
+    const locationOptions = buildLocationOptions(locations.map(row => row.value));
 
     const options = {
       services: services.map(row => row.value),

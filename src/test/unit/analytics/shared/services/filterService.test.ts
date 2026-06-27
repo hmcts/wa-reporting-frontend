@@ -74,13 +74,15 @@ describe('filterService', () => {
       services: [{ value: 'Service A' }],
       roleCategories: [{ value: 'Ops' }],
       regions: [{ value: '1' }, { value: '' }, { value: '99' }],
-      locations: [{ value: '100' }, { value: '' }, { value: '999' }],
+      locations: [{ value: 'Leeds Crown Court' }, { value: '' }, { value: '229786' }],
       taskNames: [{ value: 'Review' }],
       workTypes: [{ value: 'hearing-work-type', text: 'Hearing work' }],
       assignees: [{ value: 'user-1' }, { value: 'user-2' }],
     });
     (regionService.fetchRegions as jest.Mock).mockResolvedValue([{ region_id: '1', description: 'North' }]);
-    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([{ epimms_id: '100', site_name: 'Leeds' }]);
+    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([
+      { epimms_id: '229786', site_name: 'Wrong Barnet label' },
+    ]);
     (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([
       { case_worker_id: 'user-1', first_name: 'Sam', last_name: 'Lee', email_id: 'sam@example.com', region_id: 1 },
       { case_worker_id: 'user-3', first_name: 'Alex', last_name: 'P', email_id: 'alex@example.com', region_id: 2 },
@@ -101,9 +103,10 @@ describe('filterService', () => {
     expect(result.locations).toEqual([
       { value: '', text: 'All locations' },
       { value: '', text: '(Blank)' },
-      { value: '999', text: '999' },
-      { value: '100', text: 'Leeds' },
+      { value: '229786', text: '229786' },
+      { value: 'Leeds Crown Court', text: 'Leeds Crown Court' },
     ]);
+    expect(courtVenueService.fetchCourtVenues).not.toHaveBeenCalled();
     expect(result.users[0]).toEqual({ value: '', text: 'All users' });
     expect(result.users[1].value).toBe('user-1');
     expect(result.users.find(option => option.value === 'user-2')).toBeUndefined();
@@ -130,7 +133,6 @@ describe('filterService', () => {
       assignees: [],
     });
     (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
-    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
     (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([]);
 
     await filterService.fetchFilterOptions(snapshotId, {
@@ -161,7 +163,6 @@ describe('filterService', () => {
       assignees: [],
     });
     (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
-    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
     (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([]);
 
     await filterService.fetchFilterOptions(snapshotId, {
@@ -196,10 +197,9 @@ describe('filterService', () => {
       assignees: [{ value: 'user-1' }, { value: 'user-2' }],
     });
     (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
-    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
     (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([
-      { case_worker_id: 'user-2', first_name: 'Alex', last_name: 'P', email_id: 'alex@example.com', region_id: 2 },
       { case_worker_id: 'user-1', first_name: 'Sam', last_name: 'Lee', email_id: 'sam@example.com', region_id: 1 },
+      { case_worker_id: 'user-2', first_name: 'Alex', last_name: 'P', email_id: 'alex@example.com', region_id: 2 },
     ]);
 
     const result = await filterService.fetchFilterOptions(
@@ -238,7 +238,6 @@ describe('filterService', () => {
       assignees: [],
     });
     (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
-    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
     (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([]);
 
     await filterService.fetchFilterOptions(snapshotId, undefined, 'completed');
@@ -263,7 +262,6 @@ describe('filterService', () => {
       assignees: [],
     });
     (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
-    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
 
     await filterService.fetchFacetedFilterState(
       snapshotId,
@@ -279,6 +277,104 @@ describe('filterService', () => {
       queryOptions: undefined,
       includeUserFilter: false,
     });
+  });
+
+  test('includes user filter options by default for faceted filter state', async () => {
+    (getCache as jest.Mock).mockReturnValue(undefined);
+    (snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows as jest.Mock).mockResolvedValue({
+      services: [],
+      roleCategories: [],
+      regions: [],
+      locations: [],
+      taskNames: [],
+      workTypes: [],
+      assignees: [{ value: 'user-1' }, { value: 'user-2' }],
+    });
+    (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
+    (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([
+      { case_worker_id: 'user-1', first_name: 'Sam', last_name: 'Lee', email_id: 'sam@example.com', region_id: 1 },
+      { case_worker_id: 'user-2', first_name: 'Alex', last_name: 'P', email_id: 'alex@example.com', region_id: 2 },
+    ]);
+
+    const result = await filterService.fetchFacetedFilterState(snapshotId, {}, {});
+
+    expect(snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows).toHaveBeenCalledWith(snapshotId, {
+      filters: {},
+      queryOptions: undefined,
+      includeUserFilter: true,
+    });
+    expect(result.filterOptions.users).toEqual([
+      { value: '', text: 'All users' },
+      { value: 'user-2', text: 'Alex P (alex@example.com)' },
+      { value: 'user-1', text: 'Sam Lee (sam@example.com)' },
+    ]);
+  });
+
+  test('keeps changed filter values while pruning compatible non-changed filters', async () => {
+    (getCache as jest.Mock).mockReturnValue(undefined);
+    (snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows as jest.Mock)
+      .mockResolvedValueOnce({
+        services: [{ value: 'Civil' }],
+        roleCategories: [],
+        regions: [{ value: 'North' }],
+        locations: [{ value: ' Leeds ' }, { value: ' ' }],
+        taskNames: [],
+        workTypes: [],
+        assignees: [{ value: '111' }],
+      })
+      .mockResolvedValueOnce({
+        services: [{ value: 'Civil' }],
+        roleCategories: [],
+        regions: [{ value: 'North' }],
+        locations: [{ value: ' Leeds ' }],
+        taskNames: [],
+        workTypes: [],
+        assignees: [],
+      });
+    (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
+
+    const result = await filterService.fetchFacetedFilterState(
+      snapshotId,
+      {
+        service: [' Beta ', '', 'Alpha'],
+        region: ['North'],
+        location: ['Leeds', 'Legacy'],
+        user: ['111'],
+      },
+      {
+        changedFilter: 'service',
+        includeUserFilter: false,
+      }
+    );
+
+    expect(result.filters).toEqual({
+      service: ['Beta', 'Alpha'],
+      region: ['North'],
+      location: ['Leeds'],
+    });
+    expect(snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows).toHaveBeenNthCalledWith(1, snapshotId, {
+      filters: { service: ['Beta', 'Alpha'], region: ['North'], location: ['Leeds', 'Legacy'] },
+      queryOptions: undefined,
+      includeUserFilter: false,
+    });
+    expect(snapshotOverviewFilterFactsRepository.fetchFilterOptionsRows).toHaveBeenNthCalledWith(2, snapshotId, {
+      filters: { service: ['Beta', 'Alpha'], region: ['North'], location: ['Leeds'] },
+      queryOptions: undefined,
+      includeUserFilter: false,
+    });
+    expect(buildSnapshotScopedCacheKey).toHaveBeenNthCalledWith(
+      1,
+      CacheKeys.filterOptions,
+      snapshotId,
+      'scope=overview|includeUser=0|filters=service=Alpha,Beta;region=North;location=Leeds,Legacy|query=default'
+    );
+    expect(buildSnapshotScopedCacheKey).toHaveBeenNthCalledWith(
+      2,
+      CacheKeys.filterOptions,
+      snapshotId,
+      'scope=overview|includeUser=0|filters=service=Alpha,Beta;region=North;location=Leeds|query=default'
+    );
+    expect(caseWorkerProfileService.fetchCaseWorkerProfiles).not.toHaveBeenCalled();
   });
 
   test('prunes conflicting non-changed selections and refetches options for canonical filters', async () => {
@@ -303,7 +399,6 @@ describe('filterService', () => {
         assignees: [],
       });
     (regionService.fetchRegions as jest.Mock).mockResolvedValue([{ region_id: '1', description: 'North' }]);
-    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([{ epimms_id: '100', site_name: 'Leeds' }]);
 
     const result = await filterService.fetchFacetedFilterState(
       snapshotId,
@@ -344,7 +439,6 @@ describe('filterService', () => {
       assignees: [{ value: '111' }],
     });
     (regionService.fetchRegions as jest.Mock).mockResolvedValue([]);
-    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([]);
     (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([
       { case_worker_id: '111', first_name: 'Sam', last_name: 'Lee', email_id: 'sam@example.com', region_id: 1 },
     ]);

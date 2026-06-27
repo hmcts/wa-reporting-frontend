@@ -160,6 +160,16 @@ const locations = Array.from({ length: 100 }, (_value, index) => ({
   region: String((index % 8) + 1),
   location: String(1001 + index),
 }));
+const localLocationReferenceFixtures = [
+  { index: 0, region: '1', location: '900001', service: services[0] },
+  { index: 1, region: '1', location: '900001', service: services[1] },
+  { index: 2, region: '2', location: '900002', service: services[2] },
+  { index: 3, region: '2', location: '900002', service: services[3] },
+  { index: 4, region: '3', location: '900003', service: services[4] },
+];
+const localLocationReferenceFixtureByIndex = new Map(
+  localLocationReferenceFixtures.map(fixture => [fixture.index, fixture])
+);
 
 const regionIds = Array.from({ length: 8 }, (_value, index) => String(index + 1));
 const workTypes = Array.from({ length: 5 }, (_value, index) => `work_type_${padNumber(index + 1)}`);
@@ -316,32 +326,66 @@ const applyDeletedScenario = (row, random, seedContext) => {
   };
 };
 
+const applyLocalLocationReferenceFixture = (index, row) => {
+  const fixture = localLocationReferenceFixtureByIndex.get(index);
+  if (!fixture) {
+    return row;
+  }
+
+  return {
+    ...row,
+    jurisdictionLabel: fixture.service.jurisdictionLabel,
+    caseTypeId: fixture.service.caseTypeId,
+    caseTypeLabel: fixture.service.caseTypeLabel,
+    region: fixture.region,
+    location: fixture.location,
+    state: 'UNASSIGNED',
+    terminationReason: null,
+    terminationProcessLabel: null,
+    outcome: null,
+    isWithinSla: null,
+    createdOffset: -10 - index,
+    dueOffset: 5,
+    completedOffset: null,
+    dueDateToCompletedDiffDays: null,
+    firstAssignedOffset: null,
+    assignee: null,
+    waitTimeDays: null,
+    handlingTimeDays: null,
+    processingTimeDays: null,
+  };
+};
+
 const createReportableTask = (index, random, seedContext) => {
   const scenario = selectWeighted(seedContext.scenarios, random);
   const row = createBaseReportableTask(index, random, seedContext);
 
-  switch (scenario) {
-    case 'assigned_overdue':
-      return applyAssignedScenario(row, random, -randomInt(random, 1, 10), seedContext);
-    case 'assigned_due_soon':
-      return applyAssignedScenario(row, random, randomInt(random, 1, 5), seedContext);
-    case 'assigned_due_later':
-      return applyAssignedScenario(row, random, randomInt(random, 14, 35), seedContext);
-    case 'unassigned_overdue':
-      return { ...row, state: 'UNASSIGNED', dueOffset: -randomInt(random, 1, 10) };
-    case 'unassigned_due_soon':
-      return { ...row, state: 'UNASSIGNED', dueOffset: randomInt(random, 1, 5) };
-    case 'pending_auto_assign':
-      return { ...row, state: 'PENDING AUTO ASSIGN', dueOffset: randomInt(random, 14, 35) };
-    case 'completed_within_sla':
-      return applyCompletedScenario(row, random, true, seedContext);
-    case 'completed_beyond_sla':
-      return applyCompletedScenario(row, random, false, seedContext);
-    case 'deleted_cancelled':
-      return applyDeletedScenario(row, random, seedContext);
-    default:
-      return row;
-  }
+  const scenarioRow = (() => {
+    switch (scenario) {
+      case 'assigned_overdue':
+        return applyAssignedScenario(row, random, -randomInt(random, 1, 10), seedContext);
+      case 'assigned_due_soon':
+        return applyAssignedScenario(row, random, randomInt(random, 1, 5), seedContext);
+      case 'assigned_due_later':
+        return applyAssignedScenario(row, random, randomInt(random, 14, 35), seedContext);
+      case 'unassigned_overdue':
+        return { ...row, state: 'UNASSIGNED', dueOffset: -randomInt(random, 1, 10) };
+      case 'unassigned_due_soon':
+        return { ...row, state: 'UNASSIGNED', dueOffset: randomInt(random, 1, 5) };
+      case 'pending_auto_assign':
+        return { ...row, state: 'PENDING AUTO ASSIGN', dueOffset: randomInt(random, 14, 35) };
+      case 'completed_within_sla':
+        return applyCompletedScenario(row, random, true, seedContext);
+      case 'completed_beyond_sla':
+        return applyCompletedScenario(row, random, false, seedContext);
+      case 'deleted_cancelled':
+        return applyDeletedScenario(row, random, seedContext);
+      default:
+        return row;
+    }
+  })();
+
+  return applyLocalLocationReferenceFixture(index, scenarioRow);
 };
 
 const generateReportableTasks = (recordCount, randomSeed) => {

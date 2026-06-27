@@ -64,8 +64,9 @@ NodeCache caches:
 - Filter options
 - Caseworker profiles and names
 - Regions and region descriptions
-- Court venues for filter option population
 
 These caches use the configurable `analytics.cacheTtlSeconds` TTL.
+
+Location filter options use snapshot facet `location` values directly. They do not translate EPIMMS IDs through live LRD court venue data at request time.
 
 The app also keeps a dedicated NodeCache entry for current published snapshot metadata using `analytics.publishedSnapshotCacheTtlSeconds`. That cache is intentionally separate so current snapshot routing can use a much shorter TTL than filter and reference caches.
