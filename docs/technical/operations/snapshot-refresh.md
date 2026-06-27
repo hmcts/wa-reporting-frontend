@@ -15,7 +15,7 @@ Synced tables:
 Operational behaviour:
 
 - The sync is enabled by default through `analytics.locationReferenceSync.enabled`.
-- The periodic interval defaults to 900 seconds through `analytics.locationReferenceSync.intervalSeconds`.
+- The periodic interval defaults to 10800 seconds (3 hours) through `analytics.locationReferenceSync.intervalSeconds`.
 - A TM transaction-level advisory lock prevents concurrent sync writes from multiple app instances.
 - Startup and periodic sync failures are logged but do not stop the app from serving requests.
 - Snapshot refresh uses the last successful analytics lookup state; it does not perform cross-database joins to LRD.

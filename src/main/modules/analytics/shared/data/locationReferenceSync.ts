@@ -36,11 +36,11 @@ function getLocationReferenceSyncConfig(): LocationReferenceSyncConfig {
   if (config.has('analytics.locationReferenceSync')) {
     return config.get<LocationReferenceSyncConfig>('analytics.locationReferenceSync');
   }
-  return { enabled: true, intervalSeconds: 900 };
+  return { enabled: true, intervalSeconds: 10800 };
 }
 
 function getSafeIntervalMilliseconds(intervalSeconds: number): number {
-  const seconds = Number.isFinite(intervalSeconds) ? Math.max(60, Math.floor(intervalSeconds)) : 900;
+  const seconds = Number.isFinite(intervalSeconds) ? Math.max(60, Math.floor(intervalSeconds)) : 10800;
   return seconds * 1000;
 }
 

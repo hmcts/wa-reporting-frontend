@@ -51,7 +51,7 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 | `analytics.filtersCookieName` | Analytics filter persistence cookie name | `ANALYTICS_FILTERS_COOKIE_NAME` |
 | `analytics.filtersCookieMaxAgeDays` | Filter cookie lifetime in days | `ANALYTICS_FILTERS_COOKIE_MAX_AGE_DAYS` |
 | `analytics.locationReferenceSync.enabled` | Enables app-managed LRD court venue lookup sync into analytics tables | `ANALYTICS_LOCATION_REFERENCE_SYNC_ENABLED` |
-| `analytics.locationReferenceSync.intervalSeconds` | Periodic location reference sync interval; minimum runtime interval is 60 seconds | `ANALYTICS_LOCATION_REFERENCE_SYNC_INTERVAL_SECONDS` |
+| `analytics.locationReferenceSync.intervalSeconds` | Periodic location reference sync interval; defaults to 10800 seconds, with a minimum runtime interval of 60 seconds | `ANALYTICS_LOCATION_REFERENCE_SYNC_INTERVAL_SECONDS` |
 | `analytics.snapshotRefreshCronBootstrap.enabled` | Enables startup registration of snapshot refresh pg_cron jobs | `SNAPSHOT_REFRESH_CRON_BOOTSTRAP_ENABLED` |
 | `analytics.snapshotRefreshCronBootstrap.jobName` | pg_cron job name used for idempotent replace behaviour | `SNAPSHOT_REFRESH_CRON_JOB_NAME` |
 | `analytics.snapshotRefreshCronBootstrap.schedule` | Cron expression used for snapshot refresh execution | `SNAPSHOT_REFRESH_CRON_SCHEDULE` |

@@ -272,7 +272,7 @@ describe('locationReferenceSync', () => {
 
     expect(mockConfigHas).toHaveBeenCalledWith('analytics.locationReferenceSync');
     expect(mockConfigGet).not.toHaveBeenCalledWith('analytics.locationReferenceSync');
-    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 900000);
+    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 10800000);
 
     setIntervalSpy.mockRestore();
   });
