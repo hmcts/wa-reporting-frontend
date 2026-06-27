@@ -10,11 +10,7 @@ import {
   snapshotOverviewFilterFactsRepository,
   snapshotUserFilterFactsRepository,
 } from '../../../../../main/modules/analytics/shared/repositories';
-import {
-  caseWorkerProfileService,
-  courtVenueService,
-  regionService,
-} from '../../../../../main/modules/analytics/shared/services';
+import { caseWorkerProfileService, regionService } from '../../../../../main/modules/analytics/shared/services';
 import { filterService } from '../../../../../main/modules/analytics/shared/services/filterService';
 
 jest.mock('../../../../../main/modules/analytics/shared/cache/cache', () => ({
@@ -35,7 +31,6 @@ jest.mock('../../../../../main/modules/analytics/shared/repositories', () => ({
 
 jest.mock('../../../../../main/modules/analytics/shared/services/index', () => ({
   caseWorkerProfileService: { fetchCaseWorkerProfiles: jest.fn() },
-  courtVenueService: { fetchCourtVenues: jest.fn() },
   regionService: { fetchRegions: jest.fn() },
 }));
 
@@ -80,9 +75,6 @@ describe('filterService', () => {
       assignees: [{ value: 'user-1' }, { value: 'user-2' }],
     });
     (regionService.fetchRegions as jest.Mock).mockResolvedValue([{ region_id: '1', description: 'North' }]);
-    (courtVenueService.fetchCourtVenues as jest.Mock).mockResolvedValue([
-      { epimms_id: '229786', site_name: 'Wrong Barnet label' },
-    ]);
     (caseWorkerProfileService.fetchCaseWorkerProfiles as jest.Mock).mockResolvedValue([
       { case_worker_id: 'user-1', first_name: 'Sam', last_name: 'Lee', email_id: 'sam@example.com', region_id: 1 },
       { case_worker_id: 'user-3', first_name: 'Alex', last_name: 'P', email_id: 'alex@example.com', region_id: 2 },
@@ -106,7 +98,6 @@ describe('filterService', () => {
       { value: '229786', text: '229786' },
       { value: 'Leeds Crown Court', text: 'Leeds Crown Court' },
     ]);
-    expect(courtVenueService.fetchCourtVenues).not.toHaveBeenCalled();
     expect(result.users[0]).toEqual({ value: '', text: 'All users' });
     expect(result.users[1].value).toBe('user-1');
     expect(result.users.find(option => option.value === 'user-2')).toBeUndefined();

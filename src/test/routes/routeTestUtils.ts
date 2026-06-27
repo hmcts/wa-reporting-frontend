@@ -166,10 +166,6 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
       getAll: jest.fn().mockResolvedValue([]),
       getById: jest.fn().mockResolvedValue(null),
     },
-    courtVenueRepository: {
-      getAll: jest.fn().mockResolvedValue([]),
-      getById: jest.fn().mockResolvedValue(null),
-    },
     caseWorkerProfileRepository: {
       getAll: jest.fn().mockResolvedValue([]),
       getById: jest.fn().mockResolvedValue(null),
