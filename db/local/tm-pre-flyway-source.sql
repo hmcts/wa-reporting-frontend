@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS cft_task_db.reportable_task (
   update_id BIGINT,
   task_name TEXT,
   jurisdiction_label TEXT,
+  case_type_id TEXT,
   case_type_label TEXT,
   role_category_label TEXT,
   case_id TEXT,

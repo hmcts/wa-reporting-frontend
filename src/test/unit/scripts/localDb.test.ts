@@ -32,6 +32,7 @@ type ReportableTaskSeedRow = {
   taskId: string;
   taskName: string;
   jurisdictionLabel: string;
+  caseTypeId: string;
   roleCategoryLabel: string;
   region: string;
   location: string;
@@ -71,6 +72,7 @@ type LocalDbScriptModule = {
   generateReportableTasks: (recordCount: number, randomSeed: number) => ReportableTaskSeedRow[];
   localDbFiles: {
     crdReferenceData: string;
+    lrdReferenceData: string;
   };
   migrateLocalDatabase: (
     config?: LocalDbConfig,
@@ -115,6 +117,13 @@ type LocalDbScriptModule = {
       batchSize?: number;
     }
   ) => Promise<void>;
+  syncLocalLocationReferenceData: (
+    config?: LocalDbConfig,
+    dependencies?: {
+      ClientCtor?: ClientConstructor;
+      logger?: { info: jest.Mock };
+    }
+  ) => Promise<void>;
   validateLocalDatabase: (
     config?: LocalDbConfig,
     dependencies?: {
@@ -137,6 +146,14 @@ const loadLocalDbModule = (): LocalDbScriptModule => {
 const defaultQueryHandler = (sql: string): QueryResult => {
   if (sql.includes('published_snapshot_id AS snapshot_id')) {
     return { rows: [{ snapshot_id: 42 }] };
+  }
+
+  if (sql.includes('information_schema.tables')) {
+    return { rows: [] };
+  }
+
+  if (sql.includes('FROM locrefdata.court_venue cv')) {
+    return { rows: [] };
   }
 
   return { rows: [{ rows: 1 }] };
@@ -291,6 +308,7 @@ describe('local database script', () => {
 
     expect(repeatedRows).toEqual(rows);
     expect(rows.every(row => /^Service (0[1-9]|10)$/.test(row.jurisdictionLabel))).toBe(true);
+    expect(rows.every(row => /^Service (0[1-9]|10)$/.test(row.caseTypeId))).toBe(true);
     expect(rows.every(row => /^work_type_0[1-5]$/.test(row.workType))).toBe(true);
     expect(rows.every(row => /^[1-8]$/.test(row.region))).toBe(true);
     expect(rows.every(row => /^(10(0[1-9]|[1-9][0-9])|1100)$/.test(row.location))).toBe(true);
@@ -377,6 +395,17 @@ describe('local database script', () => {
     expect(sql).toContain('FROM generate_series(1, 5000) AS profiles(value)');
   });
 
+  test('seeds LRD court venue association data for local location lookup sync', () => {
+    const { localDbFiles } = loadLocalDbModule();
+    const sql = fs.readFileSync(localDbFiles.lrdReferenceData, 'utf8');
+
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS locrefdata.court_type_service_assoc');
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS locrefdata.service_to_ccd_case_type_assoc');
+    expect(sql).toContain('court_type_id');
+    expect(sql).toContain("format('Service %s', lpad(value::TEXT, 2, '0')) AS ccd_case_type");
+    expect(sql).toContain("'local_court' AS court_type_id");
+  });
+
   test('truncates and inserts generated source task rows in deterministic batches', async () => {
     const { generateReportableTasks, resolveLocalDbConfig, seedReportableTasks } = loadLocalDbModule();
     const events: QueryEvent[] = [];
@@ -395,7 +424,7 @@ describe('local database script', () => {
 
     expect(truncateIndex).toBe(0);
     expect(insertEvents).toHaveLength(3);
-    expect(insertEvents.map(event => event.params.length)).toEqual([208, 208, 104]);
+    expect(insertEvents.map(event => event.params.length)).toEqual([216, 216, 108]);
     expect(insertEvents[0].params[0]).toBe(rows[0].taskId);
     expect(insertEvents[1].params[0]).toBe(rows[8].taskId);
     expect(insertEvents[2].params[0]).toBe(rows[16].taskId);
@@ -410,7 +439,64 @@ describe('local database script', () => {
       logger: { info: jest.fn() },
     });
 
-    expect(events.map(event => event.sql)).toEqual(['CALL analytics.run_snapshot_refresh_batch()']);
+    const syncStateIndex = findQueryIndex(events, event =>
+      event.sql.includes('INSERT INTO analytics.location_reference_sync_state')
+    );
+    const refreshIndex = findQueryIndex(events, event => event.sql === 'CALL analytics.run_snapshot_refresh_batch()');
+
+    expect(syncStateIndex).toBeGreaterThanOrEqual(0);
+    expect(refreshIndex).toBeGreaterThan(syncStateIndex);
+  });
+
+  test('syncs local location lookup rows before snapshot refresh can use them', async () => {
+    const { resolveLocalDbConfig, syncLocalLocationReferenceData } = loadLocalDbModule();
+    const events: QueryEvent[] = [];
+
+    await syncLocalLocationReferenceData(resolveLocalDbConfig({}), {
+      ClientCtor: createClientConstructor(events, sql => {
+        if (sql.includes('information_schema.tables')) {
+          return {
+            rows: [{ table_name: 'court_type_service_assoc' }, { table_name: 'service_to_ccd_case_type_assoc' }],
+          };
+        }
+
+        if (sql.includes('service_to_ccd_case_type_assoc assoc')) {
+          return {
+            rows: [
+              {
+                epimms_id: '100',
+                ccd_case_type: 'CivilCaseType',
+                service_code: 'AAA',
+                court_type_id: 'civil',
+                site_name: 'Leeds Crown Court',
+                region_id: '1',
+              },
+            ],
+          };
+        }
+
+        if (sql.includes('FROM locrefdata.court_venue cv')) {
+          return {
+            rows: [{ epimms_id: '200', site_name: 'York Crown Court', region_id: '2' }],
+          };
+        }
+
+        return { rows: [{ rows: 1 }] };
+      }),
+      logger: { info: jest.fn() },
+    });
+
+    const caseTypeInsert = events.find(event =>
+      event.sql.includes('INSERT INTO analytics.court_venue_case_type_lookup')
+    );
+    const epimmsInsert = events.find(event => event.sql.includes('INSERT INTO analytics.court_venue_epimms_lookup'));
+    const syncStateUpsert = events.find(event =>
+      event.sql.includes('INSERT INTO analytics.location_reference_sync_state')
+    );
+
+    expect(caseTypeInsert?.params).toEqual(['100', 'CivilCaseType', 'AAA', 'civil', 'Leeds Crown Court', '1']);
+    expect(epimmsInsert?.params).toEqual(['200', 'York Crown Court', '2']);
+    expect(syncStateUpsert?.params).toEqual([1, 1]);
   });
 
   test('validates the dynamically published snapshot rather than hard-coding snapshot 1', async () => {
@@ -473,6 +559,10 @@ describe('local database script', () => {
     const insertSourceIndex = findQueryIndex(events, event =>
       event.sql.includes('INSERT INTO cft_task_db.reportable_task')
     );
+    const locationSyncIndex = findQueryIndex(
+      events,
+      event => event.sql === 'DELETE FROM analytics.court_venue_case_type_lookup'
+    );
     const refreshIndex = findQueryIndex(events, event => event.sql === 'CALL analytics.run_snapshot_refresh_batch()');
     const validationIndex = findQueryIndex(events, event => event.sql.includes('published_snapshot_id AS snapshot_id'));
 
@@ -484,7 +574,8 @@ describe('local database script', () => {
     expect(lrdSeedIndex).toBeGreaterThan(crdSeedIndex);
     expect(truncateSourceIndex).toBeGreaterThan(lrdSeedIndex);
     expect(insertSourceIndex).toBeGreaterThan(truncateSourceIndex);
-    expect(refreshIndex).toBeGreaterThan(insertSourceIndex);
+    expect(locationSyncIndex).toBeGreaterThan(insertSourceIndex);
+    expect(refreshIndex).toBeGreaterThan(locationSyncIndex);
     expect(validationIndex).toBeGreaterThan(refreshIndex);
   });
 

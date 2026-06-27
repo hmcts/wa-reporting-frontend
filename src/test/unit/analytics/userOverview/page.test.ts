@@ -8,7 +8,7 @@ import {
   snapshotOpenTaskRowsRepository,
   snapshotUserCompletedRepository,
 } from '../../../../main/modules/analytics/shared/repositories';
-import { caseWorkerProfileService, courtVenueService } from '../../../../main/modules/analytics/shared/services';
+import { caseWorkerProfileService } from '../../../../main/modules/analytics/shared/services';
 import { getDefaultUserOverviewSort } from '../../../../main/modules/analytics/shared/userOverviewSort';
 import {
   FILTERS_UNAVAILABLE_MESSAGE,
@@ -33,7 +33,6 @@ jest.mock('../../../../main/modules/analytics/shared/pageUtils', () => ({
 
 jest.mock('../../../../main/modules/analytics/shared/services', () => ({
   caseWorkerProfileService: { fetchCaseWorkerProfileNames: jest.fn() },
-  courtVenueService: { fetchCourtVenueDescriptions: jest.fn() },
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
@@ -130,7 +129,6 @@ describe('buildUserOverviewPage', () => {
       { total: 2, urgent: 1, high: 0, medium: 0, low: 1 },
     ]);
     (snapshotOpenTaskRowsRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue(assignedRows);
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ Leeds: 'Leeds Crown Court' });
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({
       'user-1': 'Sam Taylor',
     });
@@ -158,7 +156,7 @@ describe('buildUserOverviewPage', () => {
     expect(buildUserOverviewViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
         filters: { user: ['user-1'] },
-        locationDescriptions: { Leeds: 'Leeds Crown Court' },
+        locationDescriptions: {},
         sort,
         assignedPage: 1,
         completedPage: 1,
@@ -271,7 +269,6 @@ describe('buildUserOverviewPage', () => {
       { total: 1, urgent: 1, high: 0, medium: 0, low: 0 },
     ]);
     (snapshotOpenTaskRowsRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue([]);
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-assigned-alias' });
 
@@ -321,7 +318,6 @@ describe('buildUserOverviewPage', () => {
       },
     ]);
     (snapshotUserCompletedRepository.fetchUserOverviewCompletedByDateRows as jest.Mock).mockResolvedValue([]);
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({
       'user-1': 'Sam Taylor',
     });
@@ -388,7 +384,6 @@ describe('buildUserOverviewPage', () => {
         number_of_reassignments: 0,
       },
     ]);
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({
       'user-1': 'Sam Taylor',
     });
@@ -430,7 +425,6 @@ describe('buildUserOverviewPage', () => {
       { total: 20000, within: 19999 },
     ]);
     (snapshotCompletedTaskRowsRepository.fetchUserOverviewCompletedTaskRows as jest.Mock).mockResolvedValue([]);
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-completed-overview-fallback' });
 
@@ -473,7 +467,6 @@ describe('buildUserOverviewPage', () => {
       new Error('completed-summary-db')
     );
     (snapshotCompletedTaskRowsRepository.fetchUserOverviewCompletedTaskRows as jest.Mock).mockResolvedValue([]);
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({
       view: 'user-overview-completed-overview-double-failure',
@@ -497,7 +490,6 @@ describe('buildUserOverviewPage', () => {
       { total: 1, within: 1 },
     ]);
     (snapshotCompletedTaskRowsRepository.fetchUserOverviewCompletedTaskRows as jest.Mock).mockResolvedValue([]);
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-completed-only' });
 
@@ -517,7 +509,6 @@ describe('buildUserOverviewPage', () => {
       { total: 20000, urgent: 1, high: 2, medium: 3, low: 4 },
     ]);
     (snapshotOpenTaskRowsRepository.fetchUserOverviewAssignedTaskRows as jest.Mock).mockResolvedValue([]);
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-clamped' });
 
@@ -556,7 +547,6 @@ describe('buildUserOverviewPage', () => {
     (snapshotUserCompletedRepository.fetchUserOverviewCompletedSummaryRows as jest.Mock).mockRejectedValue(
       new Error('completed-summary-db')
     );
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-errors' });
 
@@ -638,7 +628,6 @@ describe('buildUserOverviewPage', () => {
       { total: 1, urgent: 0, high: 0, medium: 1, low: 0 },
     ]);
     mockDefaultUserOverviewFilterState();
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview' });
 
@@ -683,7 +672,6 @@ describe('buildUserOverviewPage', () => {
       },
     ]);
     mockDefaultUserOverviewFilterState();
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-defaults' });
 
@@ -737,7 +725,6 @@ describe('buildUserOverviewPage', () => {
     ]);
     (snapshotUserCompletedRepository.fetchUserOverviewCompletedByTaskNameRows as jest.Mock).mockResolvedValue([]);
     mockDefaultUserOverviewFilterState();
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockResolvedValue({});
     (buildUserOverviewViewModel as jest.Mock).mockReturnValue({ view: 'user-overview-compliance' });
 

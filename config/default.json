@@ -12,6 +12,10 @@
       "schedule": "15,45 * * * *",
       "targetDatabase": "cft_task_db",
       "cronDatabase": "postgres"
+    },
+    "locationReferenceSync": {
+      "enabled": true,
+      "intervalSeconds": 900
     }
   },
   "logging": {

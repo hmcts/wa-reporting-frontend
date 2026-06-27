@@ -16,7 +16,7 @@ import {
   snapshotOpenTaskRowsRepository,
   snapshotUserCompletedRepository,
 } from '../shared/repositories';
-import { caseWorkerProfileService, courtVenueService } from '../shared/services';
+import { caseWorkerProfileService } from '../shared/services';
 import { PrioritySummary } from '../shared/types';
 import { AnalyticsFilters, Task, TaskStatus } from '../shared/types';
 import { UserOverviewSort } from '../shared/userOverviewSort';
@@ -218,13 +218,7 @@ export async function buildUserOverviewPage(
   const completedTotalPages = getCappedTotalPages(completedTotalResults, USER_OVERVIEW_PAGE_SIZE);
   const resolvedAssignedPage = normalisePage(assignedPage, assignedTotalPages);
   const resolvedCompletedPage = normalisePage(completedPage, completedTotalPages);
-  const [
-    assignedResult,
-    completedResult,
-    completedByTaskNameResult,
-    locationDescriptionsResult,
-    caseWorkerNamesResult,
-  ] = await Promise.allSettled([
+  const [assignedResult, completedResult, completedByTaskNameResult, caseWorkerNamesResult] = await Promise.allSettled([
     shouldFetchAssigned
       ? snapshotOpenTaskRowsRepository.fetchUserOverviewAssignedTaskRows(
           snapshotContext.snapshotId,
@@ -256,7 +250,6 @@ export async function buildUserOverviewPage(
           USER_OVERVIEW_QUERY_OPTIONS
         )
       : Promise.resolve([]),
-    shouldFetchAssigned || shouldFetchCompleted ? courtVenueService.fetchCourtVenueDescriptions() : Promise.resolve({}),
     shouldFetchAssigned || shouldFetchCompleted
       ? caseWorkerProfileService.fetchCaseWorkerProfileNames()
       : Promise.resolve({}),
@@ -285,11 +278,7 @@ export async function buildUserOverviewPage(
   if (completedByTaskNameResult.status === 'rejected') {
     sectionErrors['user-overview-completed-by-task-name'] = { message: SECTION_DATA_UNAVAILABLE_MESSAGE };
   }
-  const locationDescriptions = settledValueWithFallback(
-    locationDescriptionsResult,
-    'Failed to fetch court venue descriptions from database',
-    {}
-  );
+  const locationDescriptions = {};
   const caseWorkerNames = settledValueWithFallback(
     caseWorkerNamesResult,
     'Failed to fetch case worker profiles from database',

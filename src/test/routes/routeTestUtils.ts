@@ -177,12 +177,19 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
   }));
 }
 
+function mockStartupBackgroundJobs(): void {
+  jest.doMock('../../main/modules/analytics/shared/data/locationReferenceSync', () => ({
+    bootstrapLocationReferenceSync: jest.fn().mockResolvedValue(undefined),
+  }));
+}
+
 export async function buildRouteTestServer(config: RouteTestConfig = {}): Promise<RouteTestServer> {
   jest.clearAllMocks();
 
   setRouteTestConfig(config);
   mockOidcMiddleware();
   mockAnalyticsRepositories(config.analyticsMocks);
+  mockStartupBackgroundJobs();
 
   let app!: { listen: (port: number, host: string) => Server };
   let bootstrapPromise: Promise<void> | undefined;
