@@ -32,6 +32,7 @@ type ReportableTaskSeedRow = {
   taskId: string;
   taskName: string;
   jurisdictionLabel: string;
+  caseTypeId: string;
   roleCategoryLabel: string;
   region: string;
   location: string;
@@ -71,6 +72,7 @@ type LocalDbScriptModule = {
   generateReportableTasks: (recordCount: number, randomSeed: number) => ReportableTaskSeedRow[];
   localDbFiles: {
     crdReferenceData: string;
+    lrdReferenceData: string;
   };
   migrateLocalDatabase: (
     config?: LocalDbConfig,
@@ -115,6 +117,13 @@ type LocalDbScriptModule = {
       batchSize?: number;
     }
   ) => Promise<void>;
+  syncLocalLocationReferenceData: (
+    config?: LocalDbConfig,
+    dependencies?: {
+      ClientCtor?: ClientConstructor;
+      logger?: { info: jest.Mock };
+    }
+  ) => Promise<void>;
   validateLocalDatabase: (
     config?: LocalDbConfig,
     dependencies?: {
@@ -137,6 +146,14 @@ const loadLocalDbModule = (): LocalDbScriptModule => {
 const defaultQueryHandler = (sql: string): QueryResult => {
   if (sql.includes('published_snapshot_id AS snapshot_id')) {
     return { rows: [{ snapshot_id: 42 }] };
+  }
+
+  if (sql.includes('information_schema.tables')) {
+    return { rows: [] };
+  }
+
+  if (sql.includes('FROM locrefdata.court_venue cv')) {
+    return { rows: [] };
   }
 
   return { rows: [{ rows: 1 }] };
@@ -290,10 +307,26 @@ describe('local database script', () => {
     const scenarios = new Set(rows.map(scenarioKey));
 
     expect(repeatedRows).toEqual(rows);
+    expect(
+      rows.slice(0, 5).map(row => ({
+        caseTypeId: row.caseTypeId,
+        location: row.location,
+        region: row.region,
+        state: row.state,
+        terminationReason: row.terminationReason,
+      }))
+    ).toEqual([
+      { caseTypeId: 'Service 01', location: '900001', region: '1', state: 'UNASSIGNED', terminationReason: null },
+      { caseTypeId: 'Service 02', location: '900001', region: '1', state: 'UNASSIGNED', terminationReason: null },
+      { caseTypeId: 'Service 03', location: '900002', region: '2', state: 'UNASSIGNED', terminationReason: null },
+      { caseTypeId: 'Service 04', location: '900002', region: '2', state: 'UNASSIGNED', terminationReason: null },
+      { caseTypeId: 'Service 05', location: '900003', region: '3', state: 'UNASSIGNED', terminationReason: null },
+    ]);
     expect(rows.every(row => /^Service (0[1-9]|10)$/.test(row.jurisdictionLabel))).toBe(true);
+    expect(rows.every(row => /^Service (0[1-9]|10)$/.test(row.caseTypeId))).toBe(true);
     expect(rows.every(row => /^work_type_0[1-5]$/.test(row.workType))).toBe(true);
     expect(rows.every(row => /^[1-8]$/.test(row.region))).toBe(true);
-    expect(rows.every(row => /^(10(0[1-9]|[1-9][0-9])|1100)$/.test(row.location))).toBe(true);
+    expect(rows.every(row => /^(10(0[1-9]|[1-9][0-9])|1100|90000[1-3])$/.test(row.location))).toBe(true);
     expect(
       rows.every(row =>
         ['Admin', 'Casework', 'Judicial', 'Legal Operations', 'Tribunal Caseworker'].includes(row.roleCategoryLabel)
@@ -377,6 +410,27 @@ describe('local database script', () => {
     expect(sql).toContain('FROM generate_series(1, 5000) AS profiles(value)');
   });
 
+  test('seeds LRD court venue association data for local location lookup sync', () => {
+    const { localDbFiles } = loadLocalDbModule();
+    const sql = fs.readFileSync(localDbFiles.lrdReferenceData, 'utf8');
+
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS locrefdata.court_type_service_assoc');
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS locrefdata.service_to_ccd_case_type_assoc');
+    expect(sql).not.toContain('epimms_id TEXT PRIMARY KEY');
+    expect(sql).toContain('CONSTRAINT court_venue_epimms_court_type_pk PRIMARY KEY (epimms_id, court_type_id)');
+    expect(sql).toContain('court_type_id');
+    expect(sql).toContain("'900001', 'Duplicate EPIMMS Civil Court'");
+    expect(sql).toContain("'900001', 'Duplicate EPIMMS Family Court'");
+    expect(sql).toContain("'900002', 'Ambiguous EPIMMS Mapped Court'");
+    expect(sql).toContain("'900002', 'Ambiguous EPIMMS Unmapped Court'");
+    expect(sql).toContain("'900003', 'Unambiguous EPIMMS Fallback Court'");
+    expect(sql).toContain("format('Service %s', lpad(value::TEXT, 2, '0')) AS ccd_case_type");
+    expect(sql).toContain("'local_court' AS court_type_id");
+    expect(sql).toContain("('local_duplicate_civil', 'local_service_01')");
+    expect(sql).toContain("('local_duplicate_family', 'local_service_02')");
+    expect(sql).toContain("('local_ambiguous_mapped', 'local_service_03')");
+  });
+
   test('truncates and inserts generated source task rows in deterministic batches', async () => {
     const { generateReportableTasks, resolveLocalDbConfig, seedReportableTasks } = loadLocalDbModule();
     const events: QueryEvent[] = [];
@@ -395,7 +449,7 @@ describe('local database script', () => {
 
     expect(truncateIndex).toBe(0);
     expect(insertEvents).toHaveLength(3);
-    expect(insertEvents.map(event => event.params.length)).toEqual([208, 208, 104]);
+    expect(insertEvents.map(event => event.params.length)).toEqual([216, 216, 108]);
     expect(insertEvents[0].params[0]).toBe(rows[0].taskId);
     expect(insertEvents[1].params[0]).toBe(rows[8].taskId);
     expect(insertEvents[2].params[0]).toBe(rows[16].taskId);
@@ -410,7 +464,107 @@ describe('local database script', () => {
       logger: { info: jest.fn() },
     });
 
-    expect(events.map(event => event.sql)).toEqual(['CALL analytics.run_snapshot_refresh_batch()']);
+    const syncStateIndex = findQueryIndex(events, event =>
+      event.sql.includes('INSERT INTO analytics.location_reference_sync_state')
+    );
+    const refreshIndex = findQueryIndex(events, event => event.sql === 'CALL analytics.run_snapshot_refresh_batch()');
+
+    expect(syncStateIndex).toBeGreaterThanOrEqual(0);
+    expect(refreshIndex).toBeGreaterThan(syncStateIndex);
+  });
+
+  test('syncs local location lookup rows before snapshot refresh can use them', async () => {
+    const { resolveLocalDbConfig, syncLocalLocationReferenceData } = loadLocalDbModule();
+    const events: QueryEvent[] = [];
+
+    await syncLocalLocationReferenceData(resolveLocalDbConfig({}), {
+      ClientCtor: createClientConstructor(events, sql => {
+        if (sql.includes('information_schema.tables')) {
+          return {
+            rows: [{ table_name: 'court_type_service_assoc' }, { table_name: 'service_to_ccd_case_type_assoc' }],
+          };
+        }
+
+        if (sql.includes('service_to_ccd_case_type_assoc assoc')) {
+          return {
+            rows: [
+              {
+                epimms_id: '900001',
+                ccd_case_type: 'Service 01',
+                service_code: 'local_service_01',
+                court_type_id: 'local_duplicate_civil',
+                site_name: 'Duplicate EPIMMS Civil Court',
+                region_id: '1',
+              },
+              {
+                epimms_id: '900001',
+                ccd_case_type: 'Service 02',
+                service_code: 'local_service_02',
+                court_type_id: 'local_duplicate_family',
+                site_name: 'Duplicate EPIMMS Family Court',
+                region_id: '1',
+              },
+              {
+                epimms_id: '900002',
+                ccd_case_type: 'Service 03',
+                service_code: 'local_service_03',
+                court_type_id: 'local_ambiguous_mapped',
+                site_name: 'Ambiguous EPIMMS Mapped Court',
+                region_id: '2',
+              },
+            ],
+          };
+        }
+
+        if (sql.includes('FROM locrefdata.court_venue cv')) {
+          return {
+            rows: [{ epimms_id: '900003', site_name: 'Unambiguous EPIMMS Fallback Court', region_id: '3' }],
+          };
+        }
+
+        return { rows: [{ rows: 1 }] };
+      }),
+      logger: { info: jest.fn() },
+    });
+
+    const caseTypeInsert = events.find(event =>
+      event.sql.includes('INSERT INTO analytics.court_venue_case_type_lookup')
+    );
+    const epimmsInsert = events.find(event => event.sql.includes('INSERT INTO analytics.court_venue_epimms_lookup'));
+    const syncStateUpsert = events.find(event =>
+      event.sql.includes('INSERT INTO analytics.location_reference_sync_state')
+    );
+
+    const caseTypeLookupQuery = events.find(event => event.sql.includes('service_to_ccd_case_type_assoc assoc'));
+    const epimmsLookupQuery = events.find(event => event.sql.includes('GROUP BY cv.epimms_id'));
+
+    expect(caseTypeLookupQuery?.sql).toContain('HAVING COUNT(DISTINCT cv.court_type_id) = 1');
+    expect(caseTypeLookupQuery?.sql).toContain('AND COUNT(DISTINCT cv.site_name) = 1');
+    expect(epimmsLookupQuery?.sql).toContain('HAVING COUNT(DISTINCT cv.site_name) = 1');
+    expect(caseTypeInsert?.params).toEqual([
+      '900001',
+      'Service 01',
+      'local_service_01',
+      'local_duplicate_civil',
+      'Duplicate EPIMMS Civil Court',
+      '1',
+      '900001',
+      'Service 02',
+      'local_service_02',
+      'local_duplicate_family',
+      'Duplicate EPIMMS Family Court',
+      '1',
+      '900002',
+      'Service 03',
+      'local_service_03',
+      'local_ambiguous_mapped',
+      'Ambiguous EPIMMS Mapped Court',
+      '2',
+    ]);
+    expect(epimmsInsert?.params).toEqual(['900003', 'Unambiguous EPIMMS Fallback Court', '3']);
+    expect(epimmsInsert?.params).not.toContain('900001');
+    expect(epimmsInsert?.params).not.toContain('900002');
+    expect(syncStateUpsert?.params).toEqual([3, 1]);
   });
 
   test('validates the dynamically published snapshot rather than hard-coding snapshot 1', async () => {
@@ -473,6 +627,10 @@ describe('local database script', () => {
     const insertSourceIndex = findQueryIndex(events, event =>
       event.sql.includes('INSERT INTO cft_task_db.reportable_task')
     );
+    const locationSyncIndex = findQueryIndex(
+      events,
+      event => event.sql === 'DELETE FROM analytics.court_venue_case_type_lookup'
+    );
     const refreshIndex = findQueryIndex(events, event => event.sql === 'CALL analytics.run_snapshot_refresh_batch()');
     const validationIndex = findQueryIndex(events, event => event.sql.includes('published_snapshot_id AS snapshot_id'));
 
@@ -484,7 +642,8 @@ describe('local database script', () => {
     expect(lrdSeedIndex).toBeGreaterThan(crdSeedIndex);
     expect(truncateSourceIndex).toBeGreaterThan(lrdSeedIndex);
     expect(insertSourceIndex).toBeGreaterThan(truncateSourceIndex);
-    expect(refreshIndex).toBeGreaterThan(insertSourceIndex);
+    expect(locationSyncIndex).toBeGreaterThan(insertSourceIndex);
+    expect(refreshIndex).toBeGreaterThan(locationSyncIndex);
     expect(validationIndex).toBeGreaterThan(refreshIndex);
   });
 

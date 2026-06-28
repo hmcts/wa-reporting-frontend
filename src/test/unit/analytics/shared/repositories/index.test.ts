@@ -1,6 +1,5 @@
 import * as repositories from '../../../../../main/modules/analytics/shared/repositories';
 import { caseWorkerProfileRepository } from '../../../../../main/modules/analytics/shared/repositories/caseWorkerProfileRepository';
-import { courtVenueRepository } from '../../../../../main/modules/analytics/shared/repositories/courtVenueRepository';
 import { regionRepository } from '../../../../../main/modules/analytics/shared/repositories/regionRepository';
 import { snapshotBatchesRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotBatchesRepository';
 import { snapshotCompletedDashboardRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedDashboardRepository';
@@ -22,7 +21,6 @@ describe('repositories index', () => {
   test('re-exports repositories from source modules', () => {
     expect(repositories.caseWorkerProfileRepository).toBe(caseWorkerProfileRepository);
     expect(repositories.regionRepository).toBe(regionRepository);
-    expect(repositories.courtVenueRepository).toBe(courtVenueRepository);
     expect(repositories.snapshotBatchesRepository).toBe(snapshotBatchesRepository);
     expect(repositories.snapshotCompletedDashboardRepository).toBe(snapshotCompletedDashboardRepository);
     expect(repositories.snapshotCompletedDashboardFactsRepository).toBe(snapshotCompletedDashboardFactsRepository);

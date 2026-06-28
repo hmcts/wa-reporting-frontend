@@ -153,13 +153,23 @@ const createPopularityWeightedSelector = (values, exponent, random) =>
 
 const services = Array.from({ length: 10 }, (_value, index) => {
   const label = `Service ${padNumber(index + 1)}`;
-  return { jurisdictionLabel: label, caseTypeLabel: label };
+  return { jurisdictionLabel: label, caseTypeId: label, caseTypeLabel: label };
 });
 
 const locations = Array.from({ length: 100 }, (_value, index) => ({
   region: String((index % 8) + 1),
   location: String(1001 + index),
 }));
+const localLocationReferenceFixtures = [
+  { index: 0, region: '1', location: '900001', service: services[0] },
+  { index: 1, region: '1', location: '900001', service: services[1] },
+  { index: 2, region: '2', location: '900002', service: services[2] },
+  { index: 3, region: '2', location: '900002', service: services[3] },
+  { index: 4, region: '3', location: '900003', service: services[4] },
+];
+const localLocationReferenceFixtureByIndex = new Map(
+  localLocationReferenceFixtures.map(fixture => [fixture.index, fixture])
+);
 
 const regionIds = Array.from({ length: 8 }, (_value, index) => String(index + 1));
 const workTypes = Array.from({ length: 5 }, (_value, index) => `work_type_${padNumber(index + 1)}`);
@@ -231,6 +241,7 @@ const createBaseReportableTask = (index, random, seedContext) => {
     updateId: index + 1,
     taskName,
     jurisdictionLabel: service.jurisdictionLabel,
+    caseTypeId: service.caseTypeId,
     caseTypeLabel: service.caseTypeLabel,
     roleCategoryLabel,
     caseId: `LOCAL-CASE-${String(index + 1).padStart(6, '0')}`,
@@ -315,32 +326,66 @@ const applyDeletedScenario = (row, random, seedContext) => {
   };
 };
 
+const applyLocalLocationReferenceFixture = (index, row) => {
+  const fixture = localLocationReferenceFixtureByIndex.get(index);
+  if (!fixture) {
+    return row;
+  }
+
+  return {
+    ...row,
+    jurisdictionLabel: fixture.service.jurisdictionLabel,
+    caseTypeId: fixture.service.caseTypeId,
+    caseTypeLabel: fixture.service.caseTypeLabel,
+    region: fixture.region,
+    location: fixture.location,
+    state: 'UNASSIGNED',
+    terminationReason: null,
+    terminationProcessLabel: null,
+    outcome: null,
+    isWithinSla: null,
+    createdOffset: -10 - index,
+    dueOffset: 5,
+    completedOffset: null,
+    dueDateToCompletedDiffDays: null,
+    firstAssignedOffset: null,
+    assignee: null,
+    waitTimeDays: null,
+    handlingTimeDays: null,
+    processingTimeDays: null,
+  };
+};
+
 const createReportableTask = (index, random, seedContext) => {
   const scenario = selectWeighted(seedContext.scenarios, random);
   const row = createBaseReportableTask(index, random, seedContext);
 
-  switch (scenario) {
-    case 'assigned_overdue':
-      return applyAssignedScenario(row, random, -randomInt(random, 1, 10), seedContext);
-    case 'assigned_due_soon':
-      return applyAssignedScenario(row, random, randomInt(random, 1, 5), seedContext);
-    case 'assigned_due_later':
-      return applyAssignedScenario(row, random, randomInt(random, 14, 35), seedContext);
-    case 'unassigned_overdue':
-      return { ...row, state: 'UNASSIGNED', dueOffset: -randomInt(random, 1, 10) };
-    case 'unassigned_due_soon':
-      return { ...row, state: 'UNASSIGNED', dueOffset: randomInt(random, 1, 5) };
-    case 'pending_auto_assign':
-      return { ...row, state: 'PENDING AUTO ASSIGN', dueOffset: randomInt(random, 14, 35) };
-    case 'completed_within_sla':
-      return applyCompletedScenario(row, random, true, seedContext);
-    case 'completed_beyond_sla':
-      return applyCompletedScenario(row, random, false, seedContext);
-    case 'deleted_cancelled':
-      return applyDeletedScenario(row, random, seedContext);
-    default:
-      return row;
-  }
+  const scenarioRow = (() => {
+    switch (scenario) {
+      case 'assigned_overdue':
+        return applyAssignedScenario(row, random, -randomInt(random, 1, 10), seedContext);
+      case 'assigned_due_soon':
+        return applyAssignedScenario(row, random, randomInt(random, 1, 5), seedContext);
+      case 'assigned_due_later':
+        return applyAssignedScenario(row, random, randomInt(random, 14, 35), seedContext);
+      case 'unassigned_overdue':
+        return { ...row, state: 'UNASSIGNED', dueOffset: -randomInt(random, 1, 10) };
+      case 'unassigned_due_soon':
+        return { ...row, state: 'UNASSIGNED', dueOffset: randomInt(random, 1, 5) };
+      case 'pending_auto_assign':
+        return { ...row, state: 'PENDING AUTO ASSIGN', dueOffset: randomInt(random, 14, 35) };
+      case 'completed_within_sla':
+        return applyCompletedScenario(row, random, true, seedContext);
+      case 'completed_beyond_sla':
+        return applyCompletedScenario(row, random, false, seedContext);
+      case 'deleted_cancelled':
+        return applyDeletedScenario(row, random, seedContext);
+      default:
+        return row;
+    }
+  })();
+
+  return applyLocalLocationReferenceFixture(index, scenarioRow);
 };
 
 const generateReportableTasks = (recordCount, randomSeed) => {
@@ -357,6 +402,7 @@ const reportableTaskValueFields = [
   'updateId',
   'taskName',
   'jurisdictionLabel',
+  'caseTypeId',
   'caseTypeLabel',
   'roleCategoryLabel',
   'caseId',
@@ -404,6 +450,7 @@ INSERT INTO cft_task_db.reportable_task (
   update_id,
   task_name,
   jurisdiction_label,
+  case_type_id,
   case_type_label,
   role_category_label,
   case_id,
@@ -435,6 +482,7 @@ SELECT
   rows.update_id::bigint,
   rows.task_name,
   rows.jurisdiction_label,
+  rows.case_type_id,
   rows.case_type_label,
   rows.role_category_label,
   rows.case_id,
@@ -477,6 +525,7 @@ ${valuesSql}
   update_id,
   task_name,
   jurisdiction_label,
+  case_type_id,
   case_type_label,
   role_category_label,
   case_id,
@@ -640,10 +689,152 @@ const seedReportableTasks = async (config = resolveLocalDbConfig(), dependencies
   }
 };
 
+const buildBulkInsertQuery = (tableName, columns, rows) => {
+  const params = [];
+  const values = rows
+    .map(row => {
+      const placeholders = columns.map(column => {
+        params.push(row[column] ?? null);
+        return `$${params.length}`;
+      });
+      return `(${placeholders.join(', ')})`;
+    })
+    .join(', ');
+
+  return {
+    sql: `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES ${values}`,
+    params,
+  };
+};
+
+const fetchLocalCourtVenueCaseTypeLookupRows = async lrdClient => {
+  const associationTableResult = await lrdClient.query(`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'locrefdata'
+      AND table_name IN ('court_type_service_assoc', 'service_to_ccd_case_type_assoc')
+  `);
+  const associationTables = new Set(associationTableResult.rows.map(row => row.table_name));
+  if (!associationTables.has('court_type_service_assoc') || !associationTables.has('service_to_ccd_case_type_assoc')) {
+    return [];
+  }
+
+  const result = await lrdClient.query(`
+    SELECT
+      cv.epimms_id,
+      assoc.ccd_case_type,
+      MIN(ctsa.service_code) AS service_code,
+      MIN(cv.court_type_id) AS court_type_id,
+      MIN(cv.site_name) AS site_name,
+      MIN(cv.region_id) AS region_id
+    FROM locrefdata.court_venue cv
+    INNER JOIN locrefdata.court_type_service_assoc ctsa
+      ON ctsa.court_type_id = cv.court_type_id
+    INNER JOIN locrefdata.service_to_ccd_case_type_assoc assoc
+      ON assoc.service_code = ctsa.service_code
+    WHERE NULLIF(BTRIM(cv.epimms_id), '') IS NOT NULL
+      AND NULLIF(BTRIM(assoc.ccd_case_type), '') IS NOT NULL
+      AND NULLIF(BTRIM(cv.site_name), '') IS NOT NULL
+    GROUP BY
+      cv.epimms_id,
+      assoc.ccd_case_type
+    HAVING COUNT(DISTINCT cv.court_type_id) = 1
+      AND COUNT(DISTINCT cv.site_name) = 1
+  `);
+
+  return result.rows;
+};
+
+const fetchLocalCourtVenueEpimmsLookupRows = async lrdClient => {
+  const result = await lrdClient.query(`
+    SELECT
+      cv.epimms_id,
+      MIN(cv.site_name) AS site_name,
+      MIN(cv.region_id) AS region_id
+    FROM locrefdata.court_venue cv
+    WHERE NULLIF(BTRIM(cv.epimms_id), '') IS NOT NULL
+      AND NULLIF(BTRIM(cv.site_name), '') IS NOT NULL
+    GROUP BY cv.epimms_id
+    HAVING COUNT(DISTINCT cv.site_name) = 1
+  `);
+
+  return result.rows;
+};
+
+const syncLocalLocationReferenceData = async (config = resolveLocalDbConfig(), dependencies = {}) => {
+  assertLocalHost(config.host);
+  const { ClientCtor = Client, logger = console } = dependencies;
+  const lrdClient = createClient(config, config.databases.lrd, ClientCtor);
+  const tmClient = createClient(config, config.databases.tm, ClientCtor);
+
+  logger.info('Syncing local analytics location reference data');
+  await lrdClient.connect();
+  await tmClient.connect();
+  try {
+    const caseTypeRows = await fetchLocalCourtVenueCaseTypeLookupRows(lrdClient);
+    const epimmsRows = await fetchLocalCourtVenueEpimmsLookupRows(lrdClient);
+
+    await tmClient.query('BEGIN');
+    try {
+      await tmClient.query('DELETE FROM analytics.court_venue_case_type_lookup');
+      await tmClient.query('DELETE FROM analytics.court_venue_epimms_lookup');
+
+      if (caseTypeRows.length > 0) {
+        const { sql, params } = buildBulkInsertQuery(
+          'analytics.court_venue_case_type_lookup',
+          ['epimms_id', 'ccd_case_type', 'service_code', 'court_type_id', 'site_name', 'region_id'],
+          caseTypeRows
+        );
+        await tmClient.query(sql, params);
+      }
+
+      if (epimmsRows.length > 0) {
+        const { sql, params } = buildBulkInsertQuery(
+          'analytics.court_venue_epimms_lookup',
+          ['epimms_id', 'site_name', 'region_id'],
+          epimmsRows
+        );
+        await tmClient.query(sql, params);
+      }
+
+      await tmClient.query(
+        `
+          INSERT INTO analytics.location_reference_sync_state (
+            singleton_id,
+            last_synced_at,
+            case_type_lookup_rows,
+            epimms_lookup_rows
+          )
+          VALUES (TRUE, now(), $1, $2)
+          ON CONFLICT (singleton_id) DO UPDATE
+          SET
+            last_synced_at = EXCLUDED.last_synced_at,
+            case_type_lookup_rows = EXCLUDED.case_type_lookup_rows,
+            epimms_lookup_rows = EXCLUDED.epimms_lookup_rows
+        `,
+        [caseTypeRows.length, epimmsRows.length]
+      );
+      await tmClient.query('COMMIT');
+    } catch (error) {
+      await tmClient.query('ROLLBACK');
+      throw error;
+    }
+
+    logger.info(
+      `Synced local location reference data (${caseTypeRows.length} case-type rows, ${epimmsRows.length} EPIMMS rows)`
+    );
+  } finally {
+    await lrdClient.end();
+    await tmClient.end();
+  }
+};
+
 const refreshLocalDatabase = async (config = resolveLocalDbConfig(), dependencies = {}) => {
   assertLocalHost(config.host);
   const { ClientCtor = Client, logger = console } = dependencies;
   const client = createClient(config, config.databases.tm, ClientCtor);
+
+  await syncLocalLocationReferenceData(config, dependencies);
 
   logger.info('Running local analytics snapshot refresh');
   await client.connect();
@@ -835,6 +1026,7 @@ module.exports = {
   seedLocalDatabase,
   seedReportableTasks,
   startLocalDatabase,
+  syncLocalLocationReferenceData,
   validateLocalDatabase,
   waitForLocalDatabase,
 };

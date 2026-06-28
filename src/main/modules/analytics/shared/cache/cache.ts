@@ -10,8 +10,6 @@ export const CacheKeys = {
   caseWorkerProfileNames: 'case-worker-profile-names',
   regions: 'regions',
   regionDescriptions: 'region-descriptions',
-  courtVenues: 'court-venues',
-  courtVenueDescriptions: 'court-venue-descriptions',
 } as const;
 
 export function getCache<T>(key: string): T | undefined {

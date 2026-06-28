@@ -1,6 +1,5 @@
 export * from './caseWorkerProfileRepository';
 export * from './regionRepository';
-export * from './courtVenueRepository';
 export * from './snapshotBatchesRepository';
 export * from './snapshotCompletedDashboardRepository';
 export * from './snapshotCompletedDashboardFactsRepository';
