@@ -48,6 +48,7 @@ If a required check cannot run, record the exact command, the blocker, and the r
 - `yarn test` is a repository wrapper: locally it delegates to `yarn test:unit`, and when `CI=true` it currently exits early.
 - `yarn build:prod` rewrites `src/main/views/webpack/{css.njk,js.njk,analytics-js.njk}` as generated verification artifacts. Do not commit those files unless asset-manifest generation is intentionally changed.
 - When changing the analytics SQL end state through Flyway migrations, keep `db/current-state/tm-analytics-schema.sql` synchronised with the same final schema, helper, and stored procedure definitions.
+- Flyway migrations that touch snapshot refresh procedures, snapshot parent/partition tables, partition indexes, or refresh publish/retention cleanup must coordinate with the refresh advisory lock before DDL and use a 20 minute `lock_timeout`; follow `docs/technical/operations/flyway.md`.
 - For AJAX section refreshes, follow the established pattern: wrap the section partial in `data-section`, submit `ajaxSection` with `X-Requested-With: fetch`, render the specific partial in the controller, and send URL-encoded form data including `_csrf`.
 
 ## Subagents
