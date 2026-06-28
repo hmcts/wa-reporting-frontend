@@ -98,7 +98,7 @@ Docs to update:
 Migration guidance:
 
 - If the migration touches snapshot refresh procedures, refresh helper procedures, snapshot parent or partition tables, partition indexes, or publish/retention cleanup, add the advisory-lock block from `docs/technical/operations/flyway.md` before the first affected DDL statement.
-- Use the same `analytics_run_snapshot_refresh_batch_lock` key as the refresh procedure and set `lock_timeout` to `20min`.
+- Use the same `analytics_run_snapshot_refresh_batch_lock` key as the refresh procedure and set `lock_timeout` to `20min`; the timeout applies per lock acquisition, not to the full migration runtime.
 
 Verification:
 
