@@ -8,22 +8,10 @@ import { asOfSnapshotCondition } from './snapshotSql';
 import { FilterValueRow, FilterValueWithTextRow, OverviewFilterOptionsRows } from './types';
 
 type OverviewFilterOptionKind =
-  | 'service'
-  | 'roleCategory'
-  | 'region'
-  | 'location'
-  | 'taskName'
-  | 'workType'
-  | 'assignee';
+  'service' | 'roleCategory' | 'region' | 'location' | 'taskName' | 'workType' | 'assignee';
 
 export type OverviewFacetFilterKey =
-  | 'service'
-  | 'roleCategory'
-  | 'region'
-  | 'location'
-  | 'taskName'
-  | 'workType'
-  | 'user';
+  'service' | 'roleCategory' | 'region' | 'location' | 'taskName' | 'workType' | 'user';
 
 type OverviewFilterOptionRow = {
   option_type: OverviewFilterOptionKind;

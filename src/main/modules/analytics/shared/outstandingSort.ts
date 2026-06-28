@@ -1,14 +1,7 @@
 import { SortState, parseDirection, parseSortBy } from './sort';
 
 export type CriticalTasksSortBy =
-  | 'caseId'
-  | 'caseType'
-  | 'location'
-  | 'taskName'
-  | 'createdDate'
-  | 'dueDate'
-  | 'priority'
-  | 'agentName';
+  'caseId' | 'caseType' | 'location' | 'taskName' | 'createdDate' | 'dueDate' | 'priority' | 'agentName';
 
 export type OutstandingSort = {
   criticalTasks: SortState<CriticalTasksSortBy>;
