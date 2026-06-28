@@ -1,3 +1,7 @@
+SET LOCAL lock_timeout = '20min';
+
+SELECT pg_advisory_xact_lock(hashtext('analytics_run_snapshot_refresh_batch_lock'));
+
 CREATE TABLE IF NOT EXISTS analytics.court_venue_case_type_lookup (
   epimms_id TEXT NOT NULL,
   ccd_case_type TEXT NOT NULL,
