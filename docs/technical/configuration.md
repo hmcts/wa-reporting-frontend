@@ -67,8 +67,12 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 | `services.idam.scope` | IDAM client scope | `IDAM_CLIENT_SCOPE` |
 | `services.idam.url.public` | IDAM base URL | `IDAM_PUBLIC_URL` |
 | `services.idam.url.wa` | Base URL of this application | `WA_BASE_URL` |
+| `services.roleAssignment.url` | Role Assignment Service base URL | `ROLE_ASSIGNMENT_SERVICE_URL` |
+| `services.s2s.url` | Service Auth Provider base URL | `IDAM_S2S_URL` |
 | `RBAC.access` | Required role for access | `RBAC_ACCESS` |
+| `RBAC.roleAssignmentRoleNames` | Comma-separated RAS role names that grant access | `RBAC_ROLE_ASSIGNMENT_ROLE_NAMES` |
 | `secrets.wa.wa-reporting-frontend-client-secret` | IDAM client secret | `WA_REPORTING_FRONTEND_CLIENT_SECRET` |
+| `secrets.wa.wa-reporting-frontend-s2s-secret` | S2S microservice secret for `wa_reporting_frontend` | `WA_REPORTING_FRONTEND_S2S_SECRET` |
 
 ### Session and Redis
 
@@ -97,14 +101,15 @@ Runtime helper behaviour:
 - Appends `schema` to PostgreSQL `search_path` when building a URL from host/port/user/password/db details.
 - Reads database credentials from `secrets.wa.tm-db-*`, `secrets.wa.crd-db-*`, and `secrets.wa.lrd-db-*`.
 
-Terraform reads source credentials from Key Vault `rd-<env>` and writes them into WA Key Vault under repo key names:
+Terraform reads source credentials from shared Key Vaults and writes them into WA Key Vault under repo key names:
 
-| Source key | WA key |
-| --- | --- |
-| `caseworker-ref-api-POSTGRES-USER` | `rd-caseworker-ref-api-POSTGRES-USER` |
-| `caseworker-ref-api-POSTGRES-PASS` | `rd-caseworker-ref-api-POSTGRES-PASS` |
-| `location-ref-api-POSTGRES-USER` | `rd-location-ref-api-POSTGRES-USER` |
-| `location-ref-api-POSTGRES-PASS` | `rd-location-ref-api-POSTGRES-PASS` |
+| Source vault | Source key | WA key |
+| --- | --- | --- |
+| `rd-<env>` | `caseworker-ref-api-POSTGRES-USER` | `rd-caseworker-ref-api-POSTGRES-USER` |
+| `rd-<env>` | `caseworker-ref-api-POSTGRES-PASS` | `rd-caseworker-ref-api-POSTGRES-PASS` |
+| `rd-<env>` | `location-ref-api-POSTGRES-USER` | `rd-location-ref-api-POSTGRES-USER` |
+| `rd-<env>` | `location-ref-api-POSTGRES-PASS` | `rd-location-ref-api-POSTGRES-PASS` |
+| `s2s-<env>` | `microservicekey-wa-reporting-frontend` | `wa-reporting-frontend-s2s-secret` |
 
 ### Security and logging
 
@@ -128,6 +133,7 @@ Helmet security-header behaviour is defined in `src/main/modules/helmet/index.ts
 When not in development, `PropertiesVolume` loads Kubernetes secrets into configuration under `secrets.wa.*`, including:
 
 - IDAM client secret
+- S2S microservice secret
 - Session secret
 - Redis credentials
 - Database credentials

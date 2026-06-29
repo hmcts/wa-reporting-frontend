@@ -45,10 +45,17 @@
         "public": "https://hmcts-access.aat.platform.hmcts.net",
         "wa": "http://localhost:3100"
       }
+    },
+    "roleAssignment": {
+      "url": "http://localhost:4096"
+    },
+    "s2s": {
+      "url": "http://localhost:4502"
     }
   },
   "RBAC": {
-    "access": "wa-reports-viewer"
+    "access": "wa-reports-viewer",
+    "roleAssignmentRoleNames": "task-supervisor"
   },
   "session": {
     "cookie": {
@@ -89,6 +96,7 @@
       "wa-reporting-redis-access-key": "",
       "wa-reporting-frontend-client-secret": "wa_reporting_frontend_secret",
       "wa-reporting-frontend-session-secret": "wa-reporting-frontend-session-secret",
+      "wa-reporting-frontend-s2s-secret": "AAAAAAAAAAAAAAAA",
       "tm-db-user": "postgres",
       "tm-db-password": "password",
       "crd-db-user": "postgres",

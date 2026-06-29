@@ -71,6 +71,7 @@
     "moment": "^2.30.1",
     "node-cache": "^5.1.2",
     "nunjucks": "^3.2.4",
+    "otplib": "^12.0.1",
     "pg": "^8.22.0",
     "plotly.js-basic-dist-min": "^3.6.0",
     "redis": "^6.0.1",
