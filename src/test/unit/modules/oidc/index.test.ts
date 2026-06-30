@@ -1,5 +1,7 @@
 import type { Application, Request, Response } from 'express';
 
+import { WA_REPORTING_AUTHORIZATION_SESSION_KEY } from '../../../../main/modules/oidc/roleAssignmentAccess';
+
 type AuthOptions = {
   issuerBaseURL: string;
   baseURL: string;
@@ -19,14 +21,20 @@ type AuthOptions = {
     };
     rolling: boolean;
   };
-  afterCallback: (req: Request, res: Response, session: { id_token?: string }) => unknown;
+  afterCallback: (
+    req: Request,
+    res: Response,
+    session: { id_token?: string; access_token?: string }
+  ) => Promise<unknown> | unknown;
 };
 
-const expectForbiddenHttpError = (action: () => unknown): void => {
+const fixedNow = new Date('2026-06-28T12:00:00.000Z');
+
+const expectForbiddenHttpError = async (action: () => unknown | Promise<unknown>): Promise<void> => {
   let thrownError: unknown;
 
   try {
-    action();
+    await action();
   } catch (error) {
     thrownError = error;
   }
@@ -42,8 +50,12 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
     'services.idam.scope': 'openid profile',
     'services.idam.url.wa': 'http://wa',
     'services.idam.url.public': 'http://idam',
+    'services.roleAssignment.url': 'http://ras',
+    'services.s2s.url': 'http://s2s',
     'secrets.wa.wa-reporting-frontend-session-secret': 'wa-reporting-frontend-session-secret',
+    'secrets.wa.wa-reporting-frontend-s2s-secret': 's2s-secret',
     'RBAC.access': 'role-access',
+    'RBAC.roleAssignmentRoleNames': 'task-supervisor',
     'session.cookie.name': 'session-cookie',
     'secrets.wa.wa-reporting-redis-host': 'redis-host',
     'secrets.wa.wa-reporting-redis-port': 6379,
@@ -62,6 +74,12 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
   const createClient = jest.fn(() => redisClient);
   const fileStore = jest.fn().mockImplementation(() => ({ store: 'file' }));
   const fileStoreFactory = jest.fn(() => fileStore);
+  const roleAssignmentGetAssignmentsForActor = jest.fn();
+  const roleAssignmentClient = jest.fn().mockImplementation(() => ({
+    getAssignmentsForActor: roleAssignmentGetAssignmentsForActor,
+  }));
+  const s2sTokenClient = jest.fn().mockImplementation(() => ({ getToken: jest.fn() }));
+  const loggerWarn = jest.fn();
 
   jest.doMock('config', () => ({
     get: jest.fn((key: string) => configValues[key]),
@@ -80,7 +98,15 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
   }));
 
   jest.doMock('../../../../main/modules/logging', () => ({
-    Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
+    Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: loggerWarn, error: jest.fn() })) },
+  }));
+
+  jest.doMock('../../../../main/modules/role-assignment/roleAssignmentClient', () => ({
+    RoleAssignmentClient: roleAssignmentClient,
+  }));
+
+  jest.doMock('../../../../main/modules/s2s/s2sTokenClient', () => ({
+    S2sTokenClient: s2sTokenClient,
   }));
 
   jest.doMock('session-file-store', () => fileStoreFactory);
@@ -113,18 +139,28 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
     fileStore,
     fileStoreFactory,
     configValues,
+    roleAssignmentClient,
+    roleAssignmentGetAssignmentsForActor,
+    s2sTokenClient,
+    loggerWarn,
     authOptions: () => authOptions,
   };
 };
 
 describe('OidcMiddleware', () => {
   beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(fixedNow);
     jest.resetModules();
     jest.clearAllMocks();
   });
 
-  it('configures auth middleware and uses redis when configured', () => {
-    const { OidcMiddleware, authOptions, createClient, redisClient } = buildOidc();
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('configures auth middleware, role assignment clients, and uses redis when configured', () => {
+    const { OidcMiddleware, authOptions, createClient, redisClient, roleAssignmentClient, s2sTokenClient } =
+      buildOidc();
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
 
     const instance = new OidcMiddleware();
@@ -158,6 +194,8 @@ describe('OidcMiddleware', () => {
       },
     });
     expect(redisClient.connect).toHaveBeenCalled();
+    expect(s2sTokenClient).toHaveBeenCalledWith('http://s2s', 's2s-secret');
+    expect(roleAssignmentClient).toHaveBeenCalledWith('http://ras', expect.any(Object));
   });
 
   it('falls back to file store when redis is not configured', () => {
@@ -174,7 +212,7 @@ describe('OidcMiddleware', () => {
     expect(fileStore).toHaveBeenCalledWith({ path: '/tmp' });
   });
 
-  it('afterCallback throws for missing token or non-200 response', () => {
+  it('afterCallback throws for missing token or non-200 response', async () => {
     expect.hasAssertions();
 
     const { OidcMiddleware, authOptions } = buildOidc();
@@ -185,13 +223,13 @@ describe('OidcMiddleware', () => {
     const afterCallback = (authOptions() as AuthOptions).afterCallback;
 
     const res = { statusCode: 403 } as Response;
-    expectForbiddenHttpError(() => afterCallback({} as Request, res, {}));
+    await expectForbiddenHttpError(() => afterCallback({} as Request, res, {}));
 
     const okRes = { statusCode: 200 } as Response;
-    expectForbiddenHttpError(() => afterCallback({} as Request, okRes, {}));
+    await expectForbiddenHttpError(() => afterCallback({} as Request, okRes, {}));
   });
 
-  it('afterCallback rethrows decode errors', () => {
+  it('afterCallback rethrows decode errors', async () => {
     const { OidcMiddleware, jwtDecode, authOptions } = buildOidc();
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
     const instance = new OidcMiddleware();
@@ -206,13 +244,36 @@ describe('OidcMiddleware', () => {
     const res = { statusCode: 200 } as Response;
     const session = { id_token: 'token' };
 
-    expect(() => afterCallback({} as Request, res, session)).toThrow('bad token');
+    await expect(afterCallback({} as Request, res, session)).rejects.toThrow('bad token');
   });
 
-  it('afterCallback rejects when access role is missing', () => {
+  it('afterCallback rejects when IDAM role is missing and no active role assignment matches', async () => {
     expect.hasAssertions();
 
-    const { OidcMiddleware, jwtDecode, authOptions } = buildOidc();
+    const { OidcMiddleware, jwtDecode, authOptions, roleAssignmentGetAssignmentsForActor } = buildOidc();
+    const app = { use: jest.fn(), locals: {} } as unknown as Application;
+    const instance = new OidcMiddleware();
+    instance.enableFor(app);
+
+    const afterCallback = (authOptions() as AuthOptions).afterCallback;
+
+    jwtDecode.mockReturnValue({ uid: 'u1', email: 'user@hmcts.net', roles: ['role-other'] });
+    roleAssignmentGetAssignmentsForActor.mockResolvedValue([
+      { roleName: 'task-supervisor', beginTime: '2026-06-28T12:00:01Z', endTime: null },
+      { roleName: 'role-access', beginTime: null, endTime: null },
+    ]);
+
+    const res = { statusCode: 200 } as Response;
+    const session = { id_token: 'token', access_token: 'access-token' };
+
+    await expectForbiddenHttpError(() => afterCallback({} as Request, res, session));
+    expect(roleAssignmentGetAssignmentsForActor).toHaveBeenCalledWith('u1', 'access-token');
+  });
+
+  it('afterCallback rejects when a RAS lookup is needed but the access token is missing', async () => {
+    expect.hasAssertions();
+
+    const { OidcMiddleware, jwtDecode, authOptions, roleAssignmentGetAssignmentsForActor } = buildOidc();
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
     const instance = new OidcMiddleware();
     instance.enableFor(app);
@@ -224,11 +285,92 @@ describe('OidcMiddleware', () => {
     const res = { statusCode: 200 } as Response;
     const session = { id_token: 'token' };
 
-    expectForbiddenHttpError(() => afterCallback({} as Request, res, session));
+    await expectForbiddenHttpError(() => afterCallback({} as Request, res, session));
+    expect(roleAssignmentGetAssignmentsForActor).not.toHaveBeenCalled();
   });
 
-  it('afterCallback returns enriched session for valid users', () => {
-    const { OidcMiddleware, jwtDecode, authOptions } = buildOidc();
+  it('afterCallback fails closed when RAS lookup fails', async () => {
+    expect.hasAssertions();
+
+    const { OidcMiddleware, jwtDecode, authOptions, roleAssignmentGetAssignmentsForActor, loggerWarn } = buildOidc();
+    const app = { use: jest.fn(), locals: {} } as unknown as Application;
+    const instance = new OidcMiddleware();
+    instance.enableFor(app);
+
+    const afterCallback = (authOptions() as AuthOptions).afterCallback;
+
+    jwtDecode.mockReturnValue({ uid: 'u1', email: 'user@hmcts.net', roles: ['role-other'] });
+    roleAssignmentGetAssignmentsForActor.mockRejectedValue(
+      Object.assign(new Error('ras failed'), {
+        code: 'ERR_BAD_RESPONSE',
+        response: { status: 500 },
+        config: {
+          headers: {
+            Authorization: 'Bearer access-token',
+            ServiceAuthorization: 'Bearer service-token',
+          },
+        },
+      })
+    );
+
+    const res = { statusCode: 200 } as Response;
+    const session = { id_token: 'token', access_token: 'access-token' };
+
+    await expectForbiddenHttpError(() => afterCallback({} as Request, res, session));
+    expect(loggerWarn).toHaveBeenCalledWith('Role assignment authorization failed', {
+      name: 'Error',
+      message: 'ras failed',
+      code: 'ERR_BAD_RESPONSE',
+      status: 500,
+    });
+    expect(JSON.stringify(loggerWarn.mock.calls)).not.toContain('Bearer');
+  });
+
+  it('afterCallback fails closed when the RAS response is malformed', async () => {
+    expect.hasAssertions();
+
+    const { OidcMiddleware, jwtDecode, authOptions, roleAssignmentGetAssignmentsForActor, loggerWarn } = buildOidc();
+    const app = { use: jest.fn(), locals: {} } as unknown as Application;
+    const instance = new OidcMiddleware();
+    instance.enableFor(app);
+
+    const afterCallback = (authOptions() as AuthOptions).afterCallback;
+
+    jwtDecode.mockReturnValue({ uid: 'u1', email: 'user@hmcts.net', roles: ['role-other'] });
+    roleAssignmentGetAssignmentsForActor.mockRejectedValue(new Error('Role assignment response was not valid'));
+
+    const res = { statusCode: 200 } as Response;
+    const session = { id_token: 'token', access_token: 'access-token' };
+
+    await expectForbiddenHttpError(() => afterCallback({} as Request, res, session));
+    expect(loggerWarn).toHaveBeenCalledWith('Role assignment authorization failed', {
+      name: 'Error',
+      message: 'Role assignment response was not valid',
+    });
+  });
+
+  it('afterCallback safely logs non-error RAS lookup failures', async () => {
+    expect.hasAssertions();
+
+    const { OidcMiddleware, jwtDecode, authOptions, roleAssignmentGetAssignmentsForActor, loggerWarn } = buildOidc();
+    const app = { use: jest.fn(), locals: {} } as unknown as Application;
+    const instance = new OidcMiddleware();
+    instance.enableFor(app);
+
+    const afterCallback = (authOptions() as AuthOptions).afterCallback;
+
+    jwtDecode.mockReturnValue({ uid: 'u1', email: 'user@hmcts.net', roles: ['role-other'] });
+    roleAssignmentGetAssignmentsForActor.mockRejectedValue(null);
+
+    const res = { statusCode: 200 } as Response;
+    const session = { id_token: 'token', access_token: 'access-token' };
+
+    await expectForbiddenHttpError(() => afterCallback({} as Request, res, session));
+    expect(loggerWarn).toHaveBeenCalledWith('Role assignment authorization failed', { message: 'null' });
+  });
+
+  it('afterCallback returns enriched session for users with the IDAM access role without calling RAS', async () => {
+    const { OidcMiddleware, jwtDecode, authOptions, roleAssignmentGetAssignmentsForActor } = buildOidc();
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
     const instance = new OidcMiddleware();
     instance.enableFor(app);
@@ -240,14 +382,81 @@ describe('OidcMiddleware', () => {
     const res = { statusCode: 200 } as Response;
     const session = { id_token: 'token' };
 
-    const result = afterCallback({} as Request, res, session) as {
+    const result = (await afterCallback({} as Request, res, session)) as {
       user: { id: string; email: string; roles: string[] };
+      [WA_REPORTING_AUTHORIZATION_SESSION_KEY]: { source: string; checkedAt: string };
     };
 
     expect(result.user).toEqual({ id: 'u1', email: 'user@hmcts.net', roles: ['role-access'] });
+    expect(result[WA_REPORTING_AUTHORIZATION_SESSION_KEY]).toEqual({
+      source: 'idam',
+      checkedAt: fixedNow.toISOString(),
+    });
+    expect(roleAssignmentGetAssignmentsForActor).not.toHaveBeenCalled();
   });
 
-  it('rejects unauthenticated or unauthorized requests in the guard', () => {
+  it('afterCallback returns enriched session for users with an active configured role assignment', async () => {
+    const { OidcMiddleware, jwtDecode, authOptions, roleAssignmentGetAssignmentsForActor } = buildOidc({
+      'RBAC.roleAssignmentRoleNames': 'task-supervisor,other-access-role',
+    });
+    const app = { use: jest.fn(), locals: {} } as unknown as Application;
+    const instance = new OidcMiddleware();
+    instance.enableFor(app);
+
+    const afterCallback = (authOptions() as AuthOptions).afterCallback;
+
+    jwtDecode.mockReturnValue({ uid: 'u1', email: 'user@hmcts.net', roles: ['role-other'] });
+    roleAssignmentGetAssignmentsForActor.mockResolvedValue([
+      { roleName: 'other-access-role', beginTime: '2026-06-28T11:59:59Z', endTime: null },
+    ]);
+
+    const res = { statusCode: 200 } as Response;
+    const session = { id_token: 'token', access_token: 'access-token' };
+
+    const result = (await afterCallback({} as Request, res, session)) as {
+      user: { id: string; email: string; roles: string[] };
+      [WA_REPORTING_AUTHORIZATION_SESSION_KEY]: { source: string; roleName: string };
+    };
+
+    expect(result.user).toEqual({ id: 'u1', email: 'user@hmcts.net', roles: ['role-other'] });
+    expect(result[WA_REPORTING_AUTHORIZATION_SESSION_KEY]).toEqual({
+      source: 'role-assignment',
+      roleName: 'other-access-role',
+      checkedAt: fixedNow.toISOString(),
+    });
+    expect(roleAssignmentGetAssignmentsForActor).toHaveBeenCalledWith('u1', 'access-token');
+  });
+
+  it('afterCallback can use RAS authorization when the ID token has no roles claim', async () => {
+    const { OidcMiddleware, jwtDecode, authOptions, roleAssignmentGetAssignmentsForActor } = buildOidc();
+    const app = { use: jest.fn(), locals: {} } as unknown as Application;
+    const instance = new OidcMiddleware();
+    instance.enableFor(app);
+
+    const afterCallback = (authOptions() as AuthOptions).afterCallback;
+
+    jwtDecode.mockReturnValue({ uid: 'u1', email: 'user@hmcts.net' });
+    roleAssignmentGetAssignmentsForActor.mockResolvedValue([
+      { roleName: 'task-supervisor', beginTime: '2026-06-28T11:59:59Z', endTime: null },
+    ]);
+
+    const res = { statusCode: 200 } as Response;
+    const session = { id_token: 'token', access_token: 'access-token' };
+
+    const result = (await afterCallback({} as Request, res, session)) as {
+      user: { id: string; email: string; roles: string[] };
+      [WA_REPORTING_AUTHORIZATION_SESSION_KEY]: { source: string; roleName: string };
+    };
+
+    expect(result.user).toEqual({ id: 'u1', email: 'user@hmcts.net', roles: [] });
+    expect(result[WA_REPORTING_AUTHORIZATION_SESSION_KEY]).toEqual({
+      source: 'role-assignment',
+      roleName: 'task-supervisor',
+      checkedAt: fixedNow.toISOString(),
+    });
+  });
+
+  it('rejects unauthenticated or unauthorized requests in the guard', async () => {
     expect.hasAssertions();
 
     const { OidcMiddleware } = buildOidc();
@@ -258,10 +467,15 @@ describe('OidcMiddleware', () => {
     const guard = (app.use as jest.Mock).mock.calls[1][0] as (req: Request, res: Response, next: () => void) => void;
 
     const unauthenticatedReq = { oidc: { isAuthenticated: () => false, user: { roles: ['role-access'] } } } as Request;
-    expectForbiddenHttpError(() => guard(unauthenticatedReq, {} as Response, jest.fn()));
+    await expectForbiddenHttpError(() => guard(unauthenticatedReq, {} as Response, jest.fn()));
+
+    await expectForbiddenHttpError(() => guard({} as Request, {} as Response, jest.fn()));
+
+    const missingUserReq = { oidc: { isAuthenticated: () => true } } as Request;
+    await expectForbiddenHttpError(() => guard(missingUserReq, {} as Response, jest.fn()));
 
     const unauthorizedReq = { oidc: { isAuthenticated: () => true, user: { roles: ['role-other'] } } } as Request;
-    expectForbiddenHttpError(() => guard(unauthorizedReq, {} as Response, jest.fn()));
+    await expectForbiddenHttpError(() => guard(unauthorizedReq, {} as Response, jest.fn()));
   });
 
   it('allows authenticated requests with the access role in the guard', () => {
@@ -277,5 +491,58 @@ describe('OidcMiddleware', () => {
     guard(req, {} as Response, next);
 
     expect(next).toHaveBeenCalled();
+  });
+
+  it('allows authenticated requests with a role assignment session marker in the guard', () => {
+    const { OidcMiddleware } = buildOidc();
+    const app = { use: jest.fn(), locals: {} } as unknown as Application;
+    const instance = new OidcMiddleware();
+    instance.enableFor(app);
+
+    const guard = (app.use as jest.Mock).mock.calls[1][0] as (req: Request, res: Response, next: () => void) => void;
+    const next = jest.fn();
+
+    const req = {
+      oidc: { isAuthenticated: () => true, user: { roles: ['role-other'] } },
+      'session-cookie': {
+        [WA_REPORTING_AUTHORIZATION_SESSION_KEY]: {
+          source: 'role-assignment',
+          roleName: 'task-supervisor',
+          checkedAt: '2026-06-28T12:00:00.000Z',
+        },
+      },
+    } as unknown as Request;
+    guard(req, {} as Response, next);
+
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('rejects authenticated requests with malformed role assignment session markers in the guard', async () => {
+    expect.hasAssertions();
+
+    const { OidcMiddleware } = buildOidc();
+    const app = { use: jest.fn(), locals: {} } as unknown as Application;
+    const instance = new OidcMiddleware();
+    instance.enableFor(app);
+
+    const guard = (app.use as jest.Mock).mock.calls[1][0] as (req: Request, res: Response, next: () => void) => void;
+
+    const malformedMarkers = [
+      { source: 'role-assignment', checkedAt: fixedNow.toISOString() },
+      { source: 'role-assignment', roleName: '', checkedAt: fixedNow.toISOString() },
+      { source: 'role-assignment', roleName: 'task-supervisor', checkedAt: 'not-a-date' },
+      { source: 'idam', roleName: 'task-supervisor', checkedAt: fixedNow.toISOString() },
+      'role-assignment',
+    ];
+
+    for (const marker of malformedMarkers) {
+      const req = {
+        oidc: { isAuthenticated: () => true, user: { roles: ['role-other'] } },
+        'session-cookie': {
+          [WA_REPORTING_AUTHORIZATION_SESSION_KEY]: marker,
+        },
+      } as unknown as Request;
+      await expectForbiddenHttpError(() => guard(req, {} as Response, jest.fn()));
+    }
   });
 });
