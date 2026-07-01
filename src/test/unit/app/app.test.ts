@@ -8,6 +8,7 @@ const buildAppModule = async (options: {
   compressionEnabled?: boolean;
   routePaths?: string[];
   routeMocks?: Record<string, jest.Mock>;
+  locationReferenceSyncError?: Error;
   snapshotRefreshCronBootstrapError?: Error;
   snapshotRefreshCronBootstrapEnabled?: boolean;
 }) => {
@@ -17,6 +18,7 @@ const buildAppModule = async (options: {
     compressionEnabled,
     routePaths = [],
     routeMocks = {},
+    locationReferenceSyncError,
     snapshotRefreshCronBootstrapError,
     snapshotRefreshCronBootstrapEnabled = false,
   } = options;
@@ -33,10 +35,17 @@ const buildAppModule = async (options: {
   const oidcEnableFor = jest.fn();
   const healthRoute = jest.fn();
   const infoRoute = jest.fn();
+  const bootstrapLocationReferenceSync = jest.fn();
   const bootstrapSnapshotRefreshCron = jest.fn();
   const compressionMiddleware = jest.fn((_req: unknown, _res: unknown, next: () => void) => next());
   const compressionFactory = jest.fn(() => compressionMiddleware);
   const helmetConstructor = jest.fn().mockImplementation(() => ({ enableFor }));
+
+  if (locationReferenceSyncError) {
+    bootstrapLocationReferenceSync.mockRejectedValue(locationReferenceSyncError);
+  } else {
+    bootstrapLocationReferenceSync.mockResolvedValue(undefined);
+  }
 
   if (snapshotRefreshCronBootstrapError) {
     bootstrapSnapshotRefreshCron.mockRejectedValue(snapshotRefreshCronBootstrapError);
@@ -118,6 +127,10 @@ const buildAppModule = async (options: {
     bootstrapSnapshotRefreshCron,
   }));
 
+  jest.doMock('../../../main/modules/analytics/shared/data/locationReferenceSync', () => ({
+    bootstrapLocationReferenceSync,
+  }));
+
   let app: Express | undefined;
   let bootstrap: (() => Promise<void>) | undefined;
 
@@ -144,6 +157,7 @@ const buildAppModule = async (options: {
     infoRoute,
     configGet,
     compressionFactory,
+    bootstrapLocationReferenceSync,
     bootstrapSnapshotRefreshCron,
     helmetConstructor,
   };
@@ -211,6 +225,7 @@ describe('app bootstrap', () => {
       oidcEnableFor,
       healthRoute,
       infoRoute,
+      bootstrapLocationReferenceSync,
       bootstrapSnapshotRefreshCron,
       helmetConstructor,
     } = await buildAppModule({ env: 'development', snapshotRefreshCronBootstrapEnabled: true });
@@ -222,8 +237,26 @@ describe('app bootstrap', () => {
     expect(oidcEnableFor).toHaveBeenCalledWith(app);
     expect(healthRoute).toHaveBeenCalledWith(app);
     expect(infoRoute).toHaveBeenCalledWith(app);
+    expect(bootstrapLocationReferenceSync).toHaveBeenCalled();
     expect(bootstrapSnapshotRefreshCron).toHaveBeenCalled();
+    expect(bootstrapLocationReferenceSync.mock.invocationCallOrder[0]).toBeLessThan(
+      bootstrapSnapshotRefreshCron.mock.invocationCallOrder[0]
+    );
     expect(setupDev).toHaveBeenCalledWith(app, true);
+  });
+
+  it('logs and continues bootstrapping when location reference sync rejects', async () => {
+    const startupError = new Error('location sync failed');
+    const { setupDev, logger, bootstrapLocationReferenceSync, bootstrapSnapshotRefreshCron } = await buildAppModule({
+      env: 'development',
+      snapshotRefreshCronBootstrapEnabled: true,
+      locationReferenceSyncError: startupError,
+    });
+
+    expect(bootstrapLocationReferenceSync).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith('Location reference sync failed during startup', startupError);
+    expect(bootstrapSnapshotRefreshCron).toHaveBeenCalled();
+    expect(setupDev).toHaveBeenCalled();
   });
 
   it('does not run snapshot refresh cron bootstrap when the feature is disabled', async () => {

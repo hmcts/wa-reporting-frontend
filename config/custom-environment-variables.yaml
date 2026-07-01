@@ -12,6 +12,13 @@ analytics:
     schedule: SNAPSHOT_REFRESH_CRON_SCHEDULE
     targetDatabase: SNAPSHOT_REFRESH_CRON_TARGET_DATABASE
     cronDatabase: SNAPSHOT_REFRESH_CRON_DATABASE
+  locationReferenceSync:
+    enabled:
+      __name: ANALYTICS_LOCATION_REFERENCE_SYNC_ENABLED
+      __format: boolean
+    intervalSeconds:
+      __name: ANALYTICS_LOCATION_REFERENCE_SYNC_INTERVAL_SECONDS
+      __format: number
 auth:
   enabled:
     __name: AUTH_ENABLED

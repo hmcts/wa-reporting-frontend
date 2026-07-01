@@ -50,8 +50,7 @@ const loadSnapshotRefreshCronBootstrapModule = (bootstrapConfig: CronBootstrapCo
   }));
 
   let moduleExports:
-    | typeof import('../../../../../main/modules/analytics/shared/data/snapshotRefreshCronBootstrap')
-    | undefined;
+    typeof import('../../../../../main/modules/analytics/shared/data/snapshotRefreshCronBootstrap') | undefined;
   jest.isolateModules(() => {
     moduleExports = require('../../../../../main/modules/analytics/shared/data/snapshotRefreshCronBootstrap');
   });

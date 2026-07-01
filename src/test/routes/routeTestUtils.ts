@@ -166,14 +166,16 @@ function mockAnalyticsRepositories(analyticsMocks: RouteAnalyticsMocks = {}): vo
       getAll: jest.fn().mockResolvedValue([]),
       getById: jest.fn().mockResolvedValue(null),
     },
-    courtVenueRepository: {
-      getAll: jest.fn().mockResolvedValue([]),
-      getById: jest.fn().mockResolvedValue(null),
-    },
     caseWorkerProfileRepository: {
       getAll: jest.fn().mockResolvedValue([]),
       getById: jest.fn().mockResolvedValue(null),
     },
+  }));
+}
+
+function mockStartupBackgroundJobs(): void {
+  jest.doMock('../../main/modules/analytics/shared/data/locationReferenceSync', () => ({
+    bootstrapLocationReferenceSync: jest.fn().mockResolvedValue(undefined),
   }));
 }
 
@@ -183,6 +185,7 @@ export async function buildRouteTestServer(config: RouteTestConfig = {}): Promis
   setRouteTestConfig(config);
   mockOidcMiddleware();
   mockAnalyticsRepositories(config.analyticsMocks);
+  mockStartupBackgroundJobs();
 
   let app!: { listen: (port: number, host: string) => Server };
   let bootstrapPromise: Promise<void> | undefined;

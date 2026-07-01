@@ -64,6 +64,9 @@ DROP TABLE IF EXISTS analytics.snapshot_completed_task_rows CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_open_task_rows CASCADE;
 
 -- Metadata/state
+DROP TABLE IF EXISTS analytics.location_reference_sync_state CASCADE;
+DROP TABLE IF EXISTS analytics.court_venue_epimms_lookup CASCADE;
+DROP TABLE IF EXISTS analytics.court_venue_case_type_lookup CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_state CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_batches CASCADE;
 DROP SEQUENCE IF EXISTS analytics.snapshot_id_seq;
@@ -89,6 +92,33 @@ CREATE TABLE analytics.snapshot_state (
 
 INSERT INTO analytics.snapshot_state (singleton_id) VALUES (TRUE);
 
+-- Analytics-owned LRD reference snapshots used during database-only refreshes.
+CREATE TABLE analytics.court_venue_case_type_lookup (
+  epimms_id TEXT NOT NULL,
+  ccd_case_type TEXT NOT NULL,
+  service_code TEXT NOT NULL,
+  court_type_id TEXT NOT NULL,
+  site_name TEXT NOT NULL,
+  region_id TEXT,
+  PRIMARY KEY (epimms_id, ccd_case_type)
+);
+
+CREATE INDEX IF NOT EXISTS ix_court_venue_case_type_lookup_case_type
+  ON analytics.court_venue_case_type_lookup(ccd_case_type);
+
+CREATE TABLE analytics.court_venue_epimms_lookup (
+  epimms_id TEXT PRIMARY KEY,
+  site_name TEXT NOT NULL,
+  region_id TEXT
+);
+
+CREATE TABLE analytics.location_reference_sync_state (
+  singleton_id BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (singleton_id),
+  last_synced_at TIMESTAMPTZ NOT NULL,
+  case_type_lookup_rows INTEGER NOT NULL,
+  epimms_lookup_rows INTEGER NOT NULL
+);
+
 -- Snapshot data tables (immutable rows keyed by snapshot_id).
 CREATE TABLE analytics.snapshot_open_task_rows (
   snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
@@ -99,6 +129,7 @@ CREATE TABLE analytics.snapshot_open_task_rows (
   jurisdiction_label TEXT,
   role_category_label TEXT,
   region TEXT,
+  location_id TEXT,
   location TEXT,
   work_type TEXT,
   state TEXT NOT NULL,
@@ -118,6 +149,7 @@ CREATE TABLE analytics.snapshot_completed_task_rows (
   jurisdiction_label TEXT,
   role_category_label TEXT,
   region TEXT,
+  location_id TEXT,
   location TEXT,
   work_type TEXT,
   created_date DATE,
@@ -947,12 +979,18 @@ BEGIN
   SELECT
     source.task_id,
     source.task_name,
+    source.case_type_id,
     source.jurisdiction_label,
     source.case_type_label,
     source.role_category_label,
     source.case_id,
     source.region,
-    source.location,
+    NULLIF(BTRIM(source.location), '') AS location_id,
+    COALESCE(
+      case_type_location.site_name,
+      epimms_location.site_name,
+      NULLIF(BTRIM(source.location), '')
+    ) AS location,
     source.state,
     source.termination_reason,
     LOWER(COALESCE(source.termination_reason, '')) AS termination_reason_lower,
@@ -990,16 +1028,23 @@ BEGIN
       WHEN source.is_within_sla = 'No' THEN 2
       ELSE 3
     END AS within_due_sort_value
-  FROM cft_task_db.reportable_task source;
+  FROM cft_task_db.reportable_task source
+  LEFT JOIN analytics.court_venue_case_type_lookup case_type_location
+    ON case_type_location.epimms_id = NULLIF(BTRIM(source.location), '')
+   AND case_type_location.ccd_case_type = source.case_type_id
+  LEFT JOIN analytics.court_venue_epimms_lookup epimms_location
+    ON epimms_location.epimms_id = NULLIF(BTRIM(source.location), '');
 
   CREATE TEMP TABLE tmp_snapshot_fact_source
   ON COMMIT DROP
   AS
   SELECT
     task_name,
+    case_type_id,
     jurisdiction_label,
     role_category_label,
     region,
+    location_id,
     location,
     work_type,
     major_priority AS priority,
@@ -1401,6 +1446,7 @@ BEGIN
       jurisdiction_label,
       role_category_label,
       region,
+      location_id,
       location,
       work_type,
       state,
@@ -1420,6 +1466,7 @@ BEGIN
       jurisdiction_label,
       role_category_label,
       region,
+      location_id,
       location,
       work_type,
       state,
@@ -1446,6 +1493,7 @@ BEGIN
       jurisdiction_label,
       role_category_label,
       region,
+      location_id,
       location,
       work_type,
       created_date,
@@ -1469,6 +1517,7 @@ BEGIN
       jurisdiction_label,
       role_category_label,
       region,
+      location_id,
       location,
       work_type,
       created_date,

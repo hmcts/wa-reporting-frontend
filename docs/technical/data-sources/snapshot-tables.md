@@ -28,6 +28,7 @@ Required columns:
 - `jurisdiction_label`
 - `role_category_label`
 - `region`
+- `location_id`
 - `location`
 - `work_type`
 - `state`
@@ -40,6 +41,8 @@ Required columns:
 
 Notes:
 
+- `location_id` is the raw EPIMMS ID from `cft_task_db.reportable_task.location`.
+- `location` is the resolved display label materialised during snapshot refresh. It uses `court_venue.site_name` from analytics-owned LRD lookup tables when available and falls back to the raw EPIMMS ID when no safe match exists.
 - `/users` assigned table adds `state = 'ASSIGNED'`.
 - `/outstanding` critical tasks adds the strict open-state set and `created_date IS NOT NULL`.
 - Priority rank is calculated at query time from `major_priority`, `due_date`, and `CURRENT_DATE`.
@@ -67,6 +70,7 @@ Required columns:
 - `jurisdiction_label`
 - `role_category_label`
 - `region`
+- `location_id`
 - `location`
 - `work_type`
 - `created_date`
@@ -84,6 +88,8 @@ Required columns:
 
 Notes:
 
+- `location_id` is the raw EPIMMS ID from `cft_task_db.reportable_task.location`.
+- `location` is the resolved display label materialised during snapshot refresh. Dashboard rollups, filters, sorting, and CSV exports use this display value.
 - Runtime analytics queries no longer append `NULLS LAST` to completed-table sorts.
 - Existing indexes continue to cover `completed_date`, `case_id`, and `within_due_sort_value` sorts used by User Overview.
 - Child partitions create User Overview-specific non-Judicial partial indexes for default completed-table sorts on `created_date`, `first_assigned_date`, `due_date`, `handling_time_days`, `assignee`, `task_name`, `location`, and total assignments.

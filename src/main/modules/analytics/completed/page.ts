@@ -9,10 +9,9 @@ import {
   settledValueWithFallback,
 } from '../shared/pageUtils';
 import { CompletedTaskAuditRow, snapshotCompletedTaskRowsRepository } from '../shared/repositories';
-import { caseWorkerProfileService, courtVenueService, regionService } from '../shared/services';
+import { caseWorkerProfileService, regionService } from '../shared/services';
 import { AnalyticsFilters, CompletedMetric, CompletedResponse, Task } from '../shared/types';
 import { formatAnalyticsDateDisplay } from '../shared/formatting';
-import { lookup } from '../shared/utils';
 import {
   type AnalyticsSectionErrors,
   FILTERS_UNAVAILABLE_MESSAGE,
@@ -57,11 +56,7 @@ function shouldFetchSection(requested: CompletedAjaxSection | undefined, section
   return requested === section;
 }
 
-function mapTaskAuditRow(
-  row: CompletedTaskAuditRow,
-  caseWorkerNames: Record<string, string>,
-  locationDescriptions: Record<string, string>
-): TaskAuditEntry {
+function mapTaskAuditRow(row: CompletedTaskAuditRow, caseWorkerNames: Record<string, string>): TaskAuditEntry {
   const assigneeId = row.assignee ?? undefined;
   const agentName = assigneeId ? (caseWorkerNames[assigneeId] ?? assigneeId) : null;
   return {
@@ -71,7 +66,7 @@ function mapTaskAuditRow(
     completedDate: formatAnalyticsDateDisplay(row.completed_date),
     completedDateRaw: row.completed_date ?? '-',
     totalAssignments: (row.number_of_reassignments ?? 0) + 1,
-    location: row.location ? lookup(row.location, locationDescriptions) : null,
+    location: row.location ?? null,
     status: row.termination_process_label,
     outcome: row.outcome,
   };
@@ -95,7 +90,6 @@ export async function buildCompletedPage(
   const shouldFetchRegionLocation = shouldFetchSection(requestedSection, 'completed-by-region-location');
   const shouldFetchProcessingHandling = shouldFetchSection(requestedSection, 'completed-processing-handling-time');
   const shouldFetchTaskAuditData = shouldFetchTaskAudit && Boolean(caseId);
-  const shouldFetchLocationDescriptions = shouldFetchRegionLocation || shouldFetchTaskAuditData;
 
   const fallback = completedService.buildCompleted([]);
   const fallbackRegionLocation = completedService.buildCompletedByRegionLocation([]);
@@ -117,7 +111,6 @@ export async function buildCompletedPage(
     taskAuditRowsResult,
     caseWorkerNamesResult,
     regionDescriptionsResult,
-    locationDescriptionsResult,
   ] = await Promise.allSettled([
     shouldFetchSummary
       ? completedComplianceSummaryService.fetchCompletedSummary(snapshotContext.snapshotId, filters, range)
@@ -149,7 +142,6 @@ export async function buildCompletedPage(
       : Promise.resolve([]),
     shouldFetchTaskAuditData ? caseWorkerProfileService.fetchCaseWorkerProfileNames() : Promise.resolve({}),
     shouldFetchRegionLocation ? regionService.fetchRegionDescriptions() : Promise.resolve({}),
-    shouldFetchLocationDescriptions ? courtVenueService.fetchCourtVenueDescriptions() : Promise.resolve({}),
   ]);
 
   const rangeSummary = settledValueWithError(rangeSummaryResult, 'Failed to fetch completed summary from database');
@@ -226,11 +218,7 @@ export async function buildCompletedPage(
     'Failed to fetch region descriptions from database',
     {}
   );
-  const locationDescriptions = settledValueWithFallback(
-    locationDescriptionsResult,
-    'Failed to fetch court venue descriptions from database',
-    {}
-  );
+  const locationDescriptions = {};
   const facetedFilterState = requestedSection
     ? { filters, filterOptions: emptyOverviewFilterOptions(), hadError: false }
     : await fetchFacetedFilterStateWithFallback({
@@ -267,7 +255,7 @@ export async function buildCompletedPage(
     completedByRegion,
     regionDescriptions,
     locationDescriptions,
-    taskAuditRows: taskAuditRows.map(row => mapTaskAuditRow(row, caseWorkerNames, locationDescriptions)),
+    taskAuditRows: taskAuditRows.map(row => mapTaskAuditRow(row, caseWorkerNames)),
     taskAuditCaseId: caseId ?? '',
     selectedMetric,
     freshnessInsetText: snapshotContext.freshnessInsetText,

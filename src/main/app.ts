@@ -44,6 +44,10 @@ type RouteModule = { default?: (app: Express) => void };
 
 export const bootstrap = async (): Promise<void> => {
   new PropertiesVolume().enableFor(app);
+  const { bootstrapLocationReferenceSync } = require('./modules/analytics/shared/data/locationReferenceSync');
+  await bootstrapLocationReferenceSync().catch((error: unknown) => {
+    logger.error('Location reference sync failed during startup', error);
+  });
   const snapshotRefreshCronBootstrapEnabled: boolean =
     config.get('analytics.snapshotRefreshCronBootstrap.enabled') ?? false;
   if (snapshotRefreshCronBootstrapEnabled) {

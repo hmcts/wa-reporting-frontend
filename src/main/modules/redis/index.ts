@@ -1,6 +1,7 @@
 import config from 'config';
 import { Application } from 'express';
-import { type RedisClientType, createClient } from 'redis';
+import { createClient } from 'redis';
+import type { RedisClientType } from 'redis';
 
 const { Logger } = require('../logging');
 

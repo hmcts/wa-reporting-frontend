@@ -8,7 +8,7 @@ import {
   settledValueWithError,
   settledValueWithFallback,
 } from '../shared/pageUtils';
-import { courtVenueService, regionService } from '../shared/services';
+import { regionService } from '../shared/services';
 import { AnalyticsFilters, CriticalTask, PriorityBreakdown, Task } from '../shared/types';
 import {
   type AnalyticsSectionErrors,
@@ -218,21 +218,15 @@ export async function buildOutstandingPage(
   const resolvedFilters = facetedFilterState.filters;
   const filterOptions = facetedFilterState.filterOptions;
   const needsRegionDescriptions = shouldFetch('open-by-region-location');
-  const needsLocationDescriptions = shouldFetch('open-by-region-location') || shouldFetch('criticalTasks');
-  const [regionDescriptionsResult, locationDescriptionsResult] = await Promise.allSettled([
+  const [regionDescriptionsResult] = await Promise.allSettled([
     needsRegionDescriptions ? regionService.fetchRegionDescriptions() : Promise.resolve({}),
-    needsLocationDescriptions ? courtVenueService.fetchCourtVenueDescriptions() : Promise.resolve({}),
   ]);
   const regionDescriptions = settledValueWithFallback(
     regionDescriptionsResult,
     'Failed to fetch region descriptions from database',
     {}
   );
-  const locationDescriptions = settledValueWithFallback(
-    locationDescriptionsResult,
-    'Failed to fetch court venue descriptions from database',
-    {}
-  );
+  const locationDescriptions = {};
   const allTasks: Task[] = [];
 
   return buildOutstandingViewModel({

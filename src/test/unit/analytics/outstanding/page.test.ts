@@ -23,7 +23,7 @@ import {
   fetchFacetedFilterStateWithFallback as fetchFilterOptionsWithFallback,
   fetchPublishedSnapshotContext,
 } from '../../../../main/modules/analytics/shared/pageUtils';
-import { courtVenueService, regionService } from '../../../../main/modules/analytics/shared/services';
+import { regionService } from '../../../../main/modules/analytics/shared/services';
 import {
   FILTERS_UNAVAILABLE_MESSAGE,
   SECTION_DATA_UNAVAILABLE_MESSAGE,
@@ -92,7 +92,6 @@ jest.mock('../../../../main/modules/analytics/shared/pageUtils', () => ({
 
 jest.mock('../../../../main/modules/analytics/shared/services', () => ({
   regionService: { fetchRegionDescriptions: jest.fn() },
-  courtVenueService: { fetchCourtVenueDescriptions: jest.fn() },
 }));
 
 describe('buildOutstandingPage', () => {
@@ -179,7 +178,6 @@ describe('buildOutstandingPage', () => {
     mockDefaultCharts('openByName');
 
     mockFilterOptionsWithFallback();
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ Leeds: 'Leeds Crown Court' });
 
     (buildOutstandingViewModel as jest.Mock).mockReturnValue({ view: 'outstanding' });
 
@@ -255,7 +253,6 @@ describe('buildOutstandingPage', () => {
 
     mockDefaultCriticalTasksPage();
     mockDefaultCharts();
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (buildOutstandingViewModel as jest.Mock).mockReturnValue({ view: 'outstanding-critical' });
 
     await buildOutstandingPage({}, getDefaultOutstandingSort(), 1, 'criticalTasks');
@@ -310,7 +307,7 @@ describe('buildOutstandingPage', () => {
     expect(tasksDueByDateChartService.fetchTasksDueByDate).not.toHaveBeenCalled();
   });
 
-  test('fetches region and location descriptions only for required ajax sections', async () => {
+  test('fetches region descriptions only for the region/location ajax section', async () => {
     mockOutstandingResponse();
     (openTasksByRegionLocationTableService.fetchOpenTasksByRegionLocation as jest.Mock).mockResolvedValue({
       locationRows: [],
@@ -318,17 +315,16 @@ describe('buildOutstandingPage', () => {
     });
     mockDefaultCharts();
     (regionService.fetchRegionDescriptions as jest.Mock).mockResolvedValue({ N: 'North' });
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ L: 'Leeds' });
     (buildOutstandingViewModel as jest.Mock).mockReturnValue({ view: 'region-location' });
 
     await buildOutstandingPage({}, getDefaultOutstandingSort(), 1, 'open-by-region-location');
 
     expect(regionService.fetchRegionDescriptions).toHaveBeenCalled();
-    expect(courtVenueService.fetchCourtVenueDescriptions).toHaveBeenCalled();
     expect(buildOutstandingViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
         outstandingByLocation: [],
         outstandingByRegion: [],
+        locationDescriptions: {},
       })
     );
 
@@ -336,13 +332,11 @@ describe('buildOutstandingPage', () => {
     mockOutstandingResponse();
     mockDefaultCriticalTasksPage();
     mockDefaultCharts();
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({ L: 'Leeds' });
     (buildOutstandingViewModel as jest.Mock).mockReturnValue({ view: 'critical-only' });
 
     await buildOutstandingPage({}, getDefaultOutstandingSort(), 2, 'criticalTasks');
 
     expect(regionService.fetchRegionDescriptions).not.toHaveBeenCalled();
-    expect(courtVenueService.fetchCourtVenueDescriptions).toHaveBeenCalled();
   });
 
   test('logs exact region-location failure message and preserves fallback region/location rows', async () => {
@@ -357,7 +351,6 @@ describe('buildOutstandingPage', () => {
     );
     mockDefaultCharts();
     (regionService.fetchRegionDescriptions as jest.Mock).mockRejectedValue(new Error('region-db'));
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockRejectedValue(new Error('location-db'));
     (buildOutstandingViewModel as jest.Mock).mockReturnValue({ view: 'region-location-fallback' });
 
     await buildOutstandingPage({}, getDefaultOutstandingSort(), 1, 'open-by-region-location');
@@ -368,10 +361,6 @@ describe('buildOutstandingPage', () => {
     );
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to fetch region descriptions from database',
-      expect.any(Error)
-    );
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Failed to fetch court venue descriptions from database',
       expect.any(Error)
     );
     expect(buildOutstandingViewModel).toHaveBeenCalledWith(
@@ -428,7 +417,6 @@ describe('buildOutstandingPage', () => {
     mockDefaultCriticalTasksPage();
     mockDefaultCharts();
     (regionService.fetchRegionDescriptions as jest.Mock).mockResolvedValue({});
-    (courtVenueService.fetchCourtVenueDescriptions as jest.Mock).mockResolvedValue({});
     (buildOutstandingViewModel as jest.Mock).mockReturnValue({ view: 'section-error' });
 
     if (section === 'open-tasks-table') {

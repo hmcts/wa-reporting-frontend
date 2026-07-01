@@ -6,7 +6,7 @@ The application connects to three PostgreSQL databases using Prisma clients and 
 | --- | --- | --- | --- |
 | Task Management analytics database (`tm`) | Snapshot-backed analytics for work allocation tasks | `tmPrisma` | `database.tm` |
 | Caseworker reference database (`crd`) | Caseworker profiles for user display names | `crdPrisma` | `database.crd` |
-| Location reference database (`lrd`) | Region and court venue descriptions | `lrdPrisma` | `database.lrd` |
+| Location reference database (`lrd`) | Region descriptions and source court venue data copied into analytics-owned location lookup tables | `lrdPrisma` | `database.lrd` |
 
 Connection building:
 
@@ -35,6 +35,8 @@ flowchart TB
   Services --> ReferenceServices["Reference data services"]
   ReferenceServices --> CRD["CRD DB"]
   ReferenceServices --> LRD["LRD DB"]
+  Startup["App startup/interval sync"] --> LRD
+  Startup --> TM
 ```
 
 ## Source systems

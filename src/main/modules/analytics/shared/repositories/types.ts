@@ -213,12 +213,6 @@ export type RegionRow = {
   description: string;
 };
 
-export type CourtVenueRow = {
-  epimms_id: string;
-  site_name: string;
-  region_id: string;
-};
-
 export type FilterValueRow = {
   value: string;
 };
