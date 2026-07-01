@@ -6,6 +6,7 @@ import type { AjaxDeps } from '../../../../main/assets/js/analytics/ajax';
 import { fetchSortedSection } from '../../../../main/assets/js/analytics/ajax';
 import { createSectionRequestManager } from '../../../../main/assets/js/analytics/requestManager';
 import {
+  initAnalyticsTabPanelOverflow,
   initMojServerSorting,
   initMojTotalsRowPinning,
   initTableExports,
@@ -206,6 +207,43 @@ describe('analytics tables', () => {
     await flushPromises();
 
     expect(form.querySelector<HTMLInputElement>('input[name="completedSortDir"]')?.value).toBe('desc');
+  });
+
+  test('recalculates tab panel overflow when a hidden tab is activated', async () => {
+    const requestAnimationFrameSpy = jest.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
+      callback(0);
+      return 0;
+    });
+
+    try {
+      const tabs = document.createElement('div');
+      tabs.className = 'govuk-tabs';
+
+      const tab = document.createElement('a');
+      tab.className = 'govuk-tabs__tab';
+      tab.href = '#wait-time-table';
+      tab.textContent = 'Data table';
+      tabs.appendChild(tab);
+
+      const panel = document.createElement('div');
+      panel.className = 'analytics-tab-panel';
+      panel.style.setProperty('--analytics-tab-panel-max-height', '520px');
+      Object.defineProperty(panel, 'scrollHeight', {
+        configurable: true,
+        get: () => 800,
+      });
+      tabs.appendChild(panel);
+      document.body.appendChild(tabs);
+
+      initAnalyticsTabPanelOverflow();
+      expect(panel.classList.contains('analytics-tab-panel--scroll-y')).toBe(true);
+
+      panel.classList.remove('analytics-tab-panel--scroll-y');
+      tab.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      expect(panel.classList.contains('analytics-tab-panel--scroll-y')).toBe(true);
+    } finally {
+      requestAnimationFrameSpy.mockRestore();
+    }
   });
 
   test('covers sorting guard clauses', async () => {

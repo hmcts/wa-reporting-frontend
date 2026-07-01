@@ -2,6 +2,7 @@ import type { FetchSortedSection } from './ajax';
 import { getAnalyticsFiltersForm, setHiddenInput } from './forms';
 
 const ANALYTICS_TAB_PANEL_SCROLL_CLASS = 'analytics-tab-panel--scroll-y';
+const ANALYTICS_TAB_OVERFLOW_BOUND_ATTR = 'analyticsTabOverflowBound';
 
 function escapeCsvValue(value: string): string {
   const escaped = value.replace(/"/g, '""');
@@ -23,11 +24,29 @@ function syncAnalyticsTabPanelOverflow(panel: HTMLElement): void {
   }
 }
 
+function bindAnalyticsTabOverflowRefresh(scope: ParentNode): void {
+  const tabs = scope.querySelectorAll<HTMLAnchorElement>('.govuk-tabs__tab');
+  tabs.forEach(tab => {
+    if (tab.dataset[ANALYTICS_TAB_OVERFLOW_BOUND_ATTR] === 'true') {
+      return;
+    }
+
+    tab.addEventListener('click', () => {
+      const tabGroup = tab.closest('.govuk-tabs');
+      window.requestAnimationFrame(() => {
+        initAnalyticsTabPanelOverflow(tabGroup ?? document);
+      });
+    });
+    tab.dataset[ANALYTICS_TAB_OVERFLOW_BOUND_ATTR] = 'true';
+  });
+}
+
 export function initAnalyticsTabPanelOverflow(scope: ParentNode = document): void {
   const panels = scope.querySelectorAll<HTMLElement>('.analytics-tab-panel');
   panels.forEach(panel => {
     window.requestAnimationFrame(() => syncAnalyticsTabPanelOverflow(panel));
   });
+  bindAnalyticsTabOverflowRefresh(scope);
 }
 
 export function tableToCsv(table: HTMLTableElement): string {
