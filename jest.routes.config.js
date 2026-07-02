@@ -17,5 +17,5 @@ module.exports = {
       },
     ],
   },
-  transformIgnorePatterns: ['/node_modules/(?!uuid/)'],
+  transformIgnorePatterns: ['/node_modules/(?!.*(uuid|@scure/base|@noble/hashes)/)'],
 };

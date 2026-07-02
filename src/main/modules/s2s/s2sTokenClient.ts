@@ -1,13 +1,15 @@
 import axios, { AxiosInstance } from 'axios';
-import { authenticator } from 'otplib';
+import { createGuardrails, generateSync } from 'otplib';
 
 const HTTP_TIMEOUT_MS = 15099;
+const S2S_OTP_GUARDRAILS = createGuardrails({ MIN_SECRET_BYTES: 10 });
 
 export const WA_REPORTING_FRONTEND_MICROSERVICE = 'wa_reporting_frontend';
 
 type OneTimePasswordGenerator = (secret: string) => string;
 
-const generateOneTimePassword = (secret: string): string => authenticator.generate(secret);
+// Otplib v12 accepted HMCTS 16-character Base32 S2S secrets, which decode to 10 bytes.
+const generateOneTimePassword = (secret: string): string => generateSync({ secret, guardrails: S2S_OTP_GUARDRAILS });
 
 export class S2sTokenClient {
   constructor(

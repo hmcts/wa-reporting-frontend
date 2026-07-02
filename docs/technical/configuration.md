@@ -74,6 +74,8 @@ Prefer `config.get<T>(...)` with explicit types for clarity, and `config.has(...
 | `secrets.wa.wa-reporting-frontend-client-secret` | IDAM client secret | `WA_REPORTING_FRONTEND_CLIENT_SECRET` |
 | `secrets.wa.wa-reporting-frontend-s2s-secret` | S2S microservice secret for `wa_reporting_frontend` | `WA_REPORTING_FRONTEND_S2S_SECRET` |
 
+S2S one-time passwords are generated from the configured microservice secret as a Base32 TOTP secret. The token client preserves compatibility with existing 16-character HMCTS S2S secrets, which decode to 10 bytes.
+
 ### Session and Redis
 
 | Config key | Purpose | Environment variable or secret |

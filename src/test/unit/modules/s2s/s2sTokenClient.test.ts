@@ -1,30 +1,29 @@
 import type { AxiosInstance } from 'axios';
 import axios from 'axios';
-import { authenticator } from 'otplib';
 
 import { S2sTokenClient, WA_REPORTING_FRONTEND_MICROSERVICE } from '../../../../main/modules/s2s/s2sTokenClient';
 
 describe('S2sTokenClient', () => {
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
-  it('creates an axios client and uses otplib when dependencies are not injected', async () => {
+  it('creates an axios client and generates an S2S one-time password when dependencies are not injected', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2024-01-02T03:04:05.000Z'));
     const post = jest.fn().mockResolvedValue({ status: 200, data: 'service-token' });
     jest.spyOn(axios, 'create').mockReturnValue({ post } as unknown as AxiosInstance);
-    jest.spyOn(authenticator, 'generate').mockReturnValue('654321');
 
-    const client = new S2sTokenClient('http://s2s', 'secret');
+    const client = new S2sTokenClient('http://s2s', 'AAAAAAAAAAAAAAAA');
 
     await expect(client.getToken()).resolves.toBe('service-token');
 
     expect(axios.create).toHaveBeenCalledWith({ baseURL: 'http://s2s', timeout: 15099 });
-    expect(authenticator.generate).toHaveBeenCalledWith('secret');
     expect(post).toHaveBeenCalledWith(
       '/lease',
       {
         microservice: WA_REPORTING_FRONTEND_MICROSERVICE,
-        oneTimePassword: '654321',
+        oneTimePassword: '405911',
       },
       {
         headers: {
