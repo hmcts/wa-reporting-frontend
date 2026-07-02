@@ -191,15 +191,19 @@ describe('bootstrap-tm-schema-permissions script', () => {
       connectionString: 'postgresql://bootstrap-user:s3cret@tm.db.host:5432/cft_task_db?sslmode=require',
     });
     expect(connectMock).toHaveBeenCalledTimes(1);
-    expect(queryMock).toHaveBeenCalledTimes(5);
+    expect(queryMock).toHaveBeenCalledTimes(7);
     expect(queryMock).toHaveBeenNthCalledWith(1, 'BEGIN');
-    expect(queryMock).toHaveBeenNthCalledWith(2, 'SELECT pg_advisory_xact_lock($1, $2)', [0x746d, 0x7065726d]);
-    expect(queryMock).toHaveBeenNthCalledWith(3, 'GRANT USAGE ON SCHEMA analytics TO "DTS JIT Access wa DB Reader SC"');
+    expect(queryMock).toHaveBeenNthCalledWith(2, "SET LOCAL lock_timeout = '20min'");
+    expect(queryMock).toHaveBeenNthCalledWith(3, 'SELECT pg_advisory_xact_lock(hashtext($1))', [
+      'analytics_run_snapshot_refresh_batch_lock',
+    ]);
+    expect(queryMock).toHaveBeenNthCalledWith(4, 'SELECT pg_advisory_xact_lock($1, $2)', [0x746d, 0x7065726d]);
+    expect(queryMock).toHaveBeenNthCalledWith(5, 'GRANT USAGE ON SCHEMA analytics TO "DTS JIT Access wa DB Reader SC"');
     expect(queryMock).toHaveBeenNthCalledWith(
-      4,
+      6,
       'GRANT SELECT ON ALL TABLES IN SCHEMA analytics TO "DTS JIT Access wa DB Reader SC"'
     );
-    expect(queryMock).toHaveBeenNthCalledWith(5, 'COMMIT');
+    expect(queryMock).toHaveBeenNthCalledWith(7, 'COMMIT');
     expect(logger.info).toHaveBeenCalledWith('Granted TM analytics schema permissions to configured DB reader role', {
       dbReaderUsername: 'DTS JIT Access wa DB Reader SC',
     });
@@ -225,6 +229,8 @@ describe('bootstrap-tm-schema-permissions script', () => {
     queryMock
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(grantError)
       .mockRejectedValueOnce(rollbackError);
 
@@ -239,9 +245,13 @@ describe('bootstrap-tm-schema-permissions script', () => {
     ).rejects.toThrow('grant failed');
 
     expect(queryMock).toHaveBeenNthCalledWith(1, 'BEGIN');
-    expect(queryMock).toHaveBeenNthCalledWith(2, 'SELECT pg_advisory_xact_lock($1, $2)', [0x746d, 0x7065726d]);
-    expect(queryMock).toHaveBeenNthCalledWith(3, 'GRANT USAGE ON SCHEMA analytics TO "Reader ""SC"""');
-    expect(queryMock).toHaveBeenNthCalledWith(4, 'ROLLBACK');
+    expect(queryMock).toHaveBeenNthCalledWith(2, "SET LOCAL lock_timeout = '20min'");
+    expect(queryMock).toHaveBeenNthCalledWith(3, 'SELECT pg_advisory_xact_lock(hashtext($1))', [
+      'analytics_run_snapshot_refresh_batch_lock',
+    ]);
+    expect(queryMock).toHaveBeenNthCalledWith(4, 'SELECT pg_advisory_xact_lock($1, $2)', [0x746d, 0x7065726d]);
+    expect(queryMock).toHaveBeenNthCalledWith(5, 'GRANT USAGE ON SCHEMA analytics TO "Reader ""SC"""');
+    expect(queryMock).toHaveBeenNthCalledWith(6, 'ROLLBACK');
     expect(logger.warn).toHaveBeenCalledWith(
       'Failed to roll back TM schema permissions bootstrap transaction',
       rollbackError

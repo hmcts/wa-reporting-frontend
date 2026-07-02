@@ -11,7 +11,9 @@ The script grants:
 
 The bootstrap is safe to rerun because repeated `GRANT` statements are idempotent for the target role.
 
-Concurrent bootstrap runs against the same TM database are serialised with a transaction-scoped PostgreSQL advisory lock before schema/table ACLs are updated. This avoids catalog update races between Jenkins jobs while keeping the grants atomic.
+Before updating schema/table ACLs, the bootstrap takes the shared `analytics_run_snapshot_refresh_batch_lock` used by snapshot refresh and coordinated Flyway DDL, then takes a bootstrap-specific transaction-scoped PostgreSQL advisory lock. This serialises grants with refresh/catalog DDL and concurrent Jenkins grant jobs while keeping the grants atomic.
+
+The shared lock uses the Flyway convention of `lock_timeout = '20min'`, so each lock acquisition can wait up to 20 minutes before PostgreSQL fails the transaction.
 
 This bootstrap is external to application startup. The runtime service remains read-only and should continue to use its normal TM read connection.
 
