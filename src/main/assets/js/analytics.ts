@@ -22,7 +22,12 @@ import {
 import { initOpenByName } from './analytics/outstanding/openByName';
 import { initCriticalTasksPagination, initUserOverviewPagination } from './analytics/pagination';
 import { createSectionRequestManager } from './analytics/requestManager';
-import { initMojServerSorting, initMojTotalsRowPinning, initTableExports } from './analytics/tables';
+import {
+  initAnalyticsTabPanelOverflow,
+  initMojServerSorting,
+  initMojTotalsRowPinning,
+  initTableExports,
+} from './analytics/tables';
 
 declare global {
   interface Window {
@@ -36,6 +41,7 @@ const sectionRequests = createSectionRequestManager();
 
 const rebindSectionBehaviors = (): void => {
   renderCharts();
+  initAnalyticsTabPanelOverflow();
   initTableExports();
   initMojServerSorting(fetchSortedSectionWithDeps);
   initMojTotalsRowPinning();
@@ -76,6 +82,7 @@ const fetchSharedFiltersWithDeps = (form: HTMLFormElement, changedFilter: string
 document.addEventListener('DOMContentLoaded', () => {
   sectionRequests.bindPagehide();
   renderCharts();
+  initAnalyticsTabPanelOverflow();
   initTableExports();
   initMojServerSorting(fetchSortedSectionWithDeps);
   initMojTotalsRowPinning();

@@ -130,10 +130,17 @@
 }
 
 .analytics-tab-panel {
-  overflow: auto;
+  --analytics-tab-panel-max-height: 520px;
+  overflow-x: auto;
+  overflow-y: hidden;
   max-width: 100%;
-  max-height: 520px;
+  max-height: none;
   contain: layout paint;
+}
+
+.analytics-tab-panel--scroll-y {
+  overflow-y: auto;
+  max-height: var(--analytics-tab-panel-max-height);
 }
 
 .analytics-tab-panel--paginated {
