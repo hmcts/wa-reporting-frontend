@@ -4,13 +4,13 @@ buildscript {
   }
 
   dependencies {
-    classpath 'org.flywaydb:flyway-database-postgresql:12.9.0'
+    classpath 'org.flywaydb:flyway-database-postgresql:12.10.0'
     classpath 'org.postgresql:postgresql:42.7.12'
   }
 }
 
 plugins {
-  id 'org.flywaydb.flyway' version '12.9.0'
+  id 'org.flywaydb.flyway' version '12.10.0'
 }
 
 repositories {
