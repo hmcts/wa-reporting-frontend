@@ -12,6 +12,16 @@
   position: relative;
 }
 
+.analytics-chart,
+.analytics-chart--small {
+  .modebar-btn {
+    box-sizing: border-box;
+    min-height: 32px;
+    min-width: 32px;
+    padding: 4px !important;
+  }
+}
+
 .analytics-chart--small {
   min-height: 240px;
 }
