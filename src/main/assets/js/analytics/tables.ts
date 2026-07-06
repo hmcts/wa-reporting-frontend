@@ -2,7 +2,7 @@ import type { FetchSortedSection } from './ajax';
 import { getAnalyticsFiltersForm, setHiddenInput } from './forms';
 
 const ANALYTICS_TAB_PANEL_SCROLL_CLASS = 'analytics-tab-panel--scroll-y';
-const ANALYTICS_TAB_OVERFLOW_BOUND_ATTR = 'analyticsTabOverflowBound';
+const ANALYTICS_TAB_OVERFLOW_BOUND_ATTR = 'false';
 
 function escapeCsvValue(value: string): string {
   const escaped = value.replace(/"/g, '""');
