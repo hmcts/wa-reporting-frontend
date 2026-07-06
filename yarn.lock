@@ -3446,6 +3446,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@noble/hashes@npm:^2.2.0":
+  version: 2.2.0
+  resolution: "@noble/hashes@npm:2.2.0"
+  checksum: 10/b1b78bedc2a01394be047429f3d888905015fe8a09f1b7e43e0b5736b54133df62f73dcc73ede43af38e96e86156afb45b86973fdeaa95d9f0880333c3fc0907
+  languageName: node
+  linkType: hard
+
 "@nodelib/fs.scandir@npm:2.1.5":
   version: 2.1.5
   resolution: "@nodelib/fs.scandir@npm:2.1.5"
@@ -4596,6 +4603,63 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@otplib/core@npm:13.4.1":
+  version: 13.4.1
+  resolution: "@otplib/core@npm:13.4.1"
+  checksum: 10/76d56107d702869cbc34724a442e35ee89cd8cf253ce9c75e167b73d27fc2a2f767e96db7d579ff0c03424a4f11b45212261358d73c5bc2be4879a71581c7cb9
+  languageName: node
+  linkType: hard
+
+"@otplib/hotp@npm:13.4.1":
+  version: 13.4.1
+  resolution: "@otplib/hotp@npm:13.4.1"
+  dependencies:
+    "@otplib/core": "npm:13.4.1"
+    "@otplib/uri": "npm:13.4.1"
+  checksum: 10/7949f664eac400b9a50b480fec839d930d5d0b99a1b81abc4fa30a659f952af02825ee4b43634d92505be548d5f3fe88f0bae28e09945494bb99ea5cd99c7f46
+  languageName: node
+  linkType: hard
+
+"@otplib/plugin-base32-scure@npm:13.4.1":
+  version: 13.4.1
+  resolution: "@otplib/plugin-base32-scure@npm:13.4.1"
+  dependencies:
+    "@otplib/core": "npm:13.4.1"
+    "@scure/base": "npm:^2.2.0"
+  checksum: 10/bc2ae6d86499d86e6dbb6d30c12ea28d16165cf8ae60b1d9676cddb115fa9d4090947506d59c90390e6d8e54bcadcd4ac1dc97ea0f74d62a7636fd5a4eb5911b
+  languageName: node
+  linkType: hard
+
+"@otplib/plugin-crypto-noble@npm:13.4.1":
+  version: 13.4.1
+  resolution: "@otplib/plugin-crypto-noble@npm:13.4.1"
+  dependencies:
+    "@noble/hashes": "npm:^2.2.0"
+    "@otplib/core": "npm:13.4.1"
+  checksum: 10/e89cccfd2243de778ba5eb32efe15b3e111bda9f860d40e54a7ff543fb421f121a9a347df8772cc5137a38f6f9af30b0949de43a2ce07cb30971e8d9f7c865c9
+  languageName: node
+  linkType: hard
+
+"@otplib/totp@npm:13.4.1":
+  version: 13.4.1
+  resolution: "@otplib/totp@npm:13.4.1"
+  dependencies:
+    "@otplib/core": "npm:13.4.1"
+    "@otplib/hotp": "npm:13.4.1"
+    "@otplib/uri": "npm:13.4.1"
+  checksum: 10/88b53f3c96dc1a7b2790e606945bc855cdd17e913df70248fa8aa413ef28899907536e90c699bafd8eb3ef680ef08467c58a7fef915b3ab701fb254d254ab160
+  languageName: node
+  linkType: hard
+
+"@otplib/uri@npm:13.4.1":
+  version: 13.4.1
+  resolution: "@otplib/uri@npm:13.4.1"
+  dependencies:
+    "@otplib/core": "npm:13.4.1"
+  checksum: 10/d9b2e230f6558e6c76daa8466b1373195c9f9055a7c5061e395e79894326ebc3d6bd04e1db5ad2be6d110b193d91d1d14f2caecd42b77cbba414c797b4568e63
+  languageName: node
+  linkType: hard
+
 "@paralleldrive/cuid2@npm:^2.2.2":
   version: 2.3.1
   resolution: "@paralleldrive/cuid2@npm:2.3.1"
@@ -5226,6 +5290,13 @@ __metadata:
   peerDependencies:
     "@redis/client": ^6.1.0
   checksum: 10/7b562d8ef02c84d3348225509caf54f607553097808eb76ffb923d0395ca4be096225feef01987a1127ebe82401be36d6b16a35c35c2bc8beeb98d28333b7dc1
+  languageName: node
+  linkType: hard
+
+"@scure/base@npm:^2.2.0":
+  version: 2.2.0
+  resolution: "@scure/base@npm:2.2.0"
+  checksum: 10/b52ec9cd54bad77e22f881b6924ccab692dc1c6dd10287d1787bf263e9f1e560d6d2bda906538fb9a39615d61a1b5c2f53f57a511667fd10e93b9cdaa6fb5d2a
   languageName: node
   linkType: hard
 
@@ -12869,6 +12940,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"otplib@npm:^13.4.1":
+  version: 13.4.1
+  resolution: "otplib@npm:13.4.1"
+  dependencies:
+    "@otplib/core": "npm:13.4.1"
+    "@otplib/hotp": "npm:13.4.1"
+    "@otplib/plugin-base32-scure": "npm:13.4.1"
+    "@otplib/plugin-crypto-noble": "npm:13.4.1"
+    "@otplib/totp": "npm:13.4.1"
+    "@otplib/uri": "npm:13.4.1"
+  checksum: 10/4556ffba3796894b5497c639b274f0ca7a7974b788138f881a5ca496a2bbbee1d6c22bf872e2af59015e5edca1fbf139ffe3167836f58afe036989bae4800133
+  languageName: node
+  linkType: hard
+
 "outvariant@npm:^1.4.0, outvariant@npm:^1.4.3":
   version: 1.4.3
   resolution: "outvariant@npm:1.4.3"
@@ -15869,6 +15954,7 @@ __metadata:
     node-cache: "npm:^5.1.2"
     nodemon: "npm:^3.1.14"
     nunjucks: "npm:^3.2.4"
+    otplib: "npm:^13.4.1"
     pg: "npm:^8.22.0"
     playwright: "npm:^1.61.1"
     playwright-core: "npm:^1.61.1"

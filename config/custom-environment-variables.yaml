@@ -50,6 +50,10 @@ services:
     url:
       wa: WA_BASE_URL
       public: IDAM_PUBLIC_URL
+  roleAssignment:
+    url: ROLE_ASSIGNMENT_SERVICE_URL
+  s2s:
+    url: IDAM_S2S_URL
 database:
   tm:
     host: TM_DB_HOST
@@ -77,6 +81,7 @@ session:
     name: SESSION_APP_COOKIE_NAME
 RBAC:
   access: RBAC_ACCESS
+  roleAssignmentRoleNames: RBAC_ROLE_ASSIGNMENT_ROLE_NAMES
 secrets:
   wa:
     app-insights-connection-string: APPLICATIONINSIGHTS_CONNECTION_STRING
@@ -85,6 +90,7 @@ secrets:
     wa-reporting-redis-access-key: REDIS_KEY
     wa-reporting-frontend-client-secret: WA_REPORTING_FRONTEND_CLIENT_SECRET
     wa-reporting-frontend-session-secret: SESSION_SECRET
+    wa-reporting-frontend-s2s-secret: WA_REPORTING_FRONTEND_S2S_SECRET
     tm-db-user: TM_DB_USER
     tm-db-password: TM_DB_PASSWORD
     crd-db-user: CRD_DB_USER
