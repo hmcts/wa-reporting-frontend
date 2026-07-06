@@ -2438,12 +2438,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hono/node-server@npm:@hono/node-server@2.0.6":
-  version: 2.0.6
-  resolution: "@hono/node-server@npm:2.0.6"
+"@hono/node-server@npm:@hono/node-server@2.0.8":
+  version: 2.0.8
+  resolution: "@hono/node-server@npm:2.0.8"
   peerDependencies:
     hono: ^4
-  checksum: 10/b2821eeedda8fc9f077f93f55d0a1482b2973ca518dbf2e81c9ca695eeabd79a28555a2df3c55175dd3489f9a46a99770a3face6ccdb26840dce3ad1d6797e77
+  checksum: 10/a2f55f01e915d903b3d7c7f828a6f4b54752c1ea3ee7b26a41579805ddaa45df8728351ea487b498b1d7ac3d8a1d4a4e45d34aaa6e4cf29872239566acc9c6af
   languageName: node
   linkType: hard
 
