@@ -26,6 +26,8 @@
 
 For local frontend iteration, `yarn start:dev` is enough to serve in-memory webpack bundles. Run `yarn build:watch` as well only if on-disk bundles need to be refreshed continuously.
 
+`yarn start:dev` runs the server through `ts-node` via `nodemon`, so the production TypeScript configuration explicitly includes Node ambient types for development and Playwright web-server startup.
+
 Default port is 3100, configurable via `PORT`.
 
 Express trusts one proxy hop (`trust proxy = 1`) to support AKS/ingress `X-Forwarded-For` headers.
