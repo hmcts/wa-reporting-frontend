@@ -5,6 +5,7 @@
 - The repository uses the Yarn release declared by `package.json` `packageManager`.
 - `package.json` may include top-level `resolutions` for transitive packages when upstream dependency ranges do not yet converge on the required version.
 - Dependency upgrades should review each top-level resolution, remove any override that no longer changes the resolved dependency graph or production audit outcome, and run `node skills/yarn-dependency-upgrades/scripts/resolution-upgrade-plan.js` to update target versions for retained CVE-required resolutions.
+- TypeScript 7 is installed as the `@typescript/native` alias and supplies `yarn tsc`. The top-level `typescript` package is an alias for `@typescript/typescript6`, which exposes the TypeScript 6 API and `yarn tsc6` for API-dependent tooling until those tools support TypeScript 7's replacement API. On a cold Yarn 4.17.1 install, Yarn reports the expected `YN0066` warning because its optional built-in TypeScript patch targets a file that the TypeScript 6 re-export package intentionally does not contain; `yarn tsc` and `yarn tsc6` must both remain available.
 
 ## Build scripts
 
@@ -12,7 +13,8 @@
 | --- | --- |
 | `yarn build` | Builds frontend webpack assets only. It does not compile the server TypeScript entrypoint. |
 | `yarn build:watch` | Rebuilds frontend assets continuously via webpack watch mode. |
-| `yarn build:server` | Compiles server TypeScript to `dist/`. |
+| `yarn tsc` | Runs the TypeScript 7 compiler. |
+| `yarn build:server` | Compiles server TypeScript to `dist/` with TypeScript 7. |
 | `yarn build:prod` | Builds production frontend assets and copies views/public into `dist/main`. It does not compile the server by itself. |
 | `db/flyway/gradlew` | Runs repository-owned Flyway commands for the TM analytics schema. |
 | `yarn bootstrap:tm-schema-permissions` | Runs rerunnable TM analytics schema grants bootstrap. |
@@ -26,7 +28,7 @@
 
 For local frontend iteration, `yarn start:dev` is enough to serve in-memory webpack bundles. Run `yarn build:watch` as well only if on-disk bundles need to be refreshed continuously.
 
-`yarn start:dev` runs the server through `ts-node` via `nodemon`, so the production TypeScript configuration explicitly includes Node ambient types for development and Playwright web-server startup.
+`yarn start:dev` runs the server through `ts-node` via `nodemon`. It temporarily uses the top-level TypeScript 6 dependency because `ts-node` requires the compiler API; TypeScript 7 remains the authoritative server compile and type-check path. The production TypeScript configuration explicitly includes Node ambient types for development and Playwright web-server startup.
 
 Default port is 3100, configurable via `PORT`.
 
