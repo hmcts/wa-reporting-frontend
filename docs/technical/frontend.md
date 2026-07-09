@@ -95,6 +95,7 @@ sequenceDiagram
 - Base config:
   - Responsive layout
   - Modebar without lasso/select/auto-scale
+  - Modebar buttons sized to meet WCAG 2.2 target-size checks
   - Autosized axes with compact margins
   - Shared time-series helpers (`src/main/modules/analytics/shared/charts/timeSeries.ts`) set date-axis formatting and support common axis-title configuration (`axisTitles`) so dashboards can keep chart labels aligned with table terminology.
   - Shared time-series helpers also emit `behaviors.autoFitYAxesOnXZoom` metadata in each serialized Plotly config so the frontend can re-fit y-axes when the visible x-axis date range changes.

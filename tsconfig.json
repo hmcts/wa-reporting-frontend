@@ -14,7 +14,8 @@
     "experimentalDecorators": true,
     "useUnknownInCatchVariables": false,
     "skipLibCheck": true,
-    "lib": ["es2020", "dom", "dom.iterable"]
+    "lib": ["es2020", "dom", "dom.iterable"],
+    "types": ["node"]
   },
   "include": ["**/*.ts"],
   "exclude": ["**/*.test.ts", "**/*.spec.ts", "**/codecept.conf.ts", "**/__mocks__/*", "src/test/**"]

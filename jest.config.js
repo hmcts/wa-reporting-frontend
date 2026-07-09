@@ -7,5 +7,12 @@ module.exports = {
   collectCoverageFrom: ['<rootDir>/src/main/**/*.ts', '!<rootDir>/src/main/**/*.d.ts'],
   transform: {
     '^.+\\.ts?$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.test.json' }],
+    '^.+\\.m?js$': [
+      'babel-jest',
+      {
+        presets: [['@babel/preset-env', { modules: 'commonjs', targets: { node: 'current' } }]],
+      },
+    ],
   },
+  transformIgnorePatterns: ['/node_modules/(?!.*(uuid|@scure/base|@noble/hashes)/)'],
 };

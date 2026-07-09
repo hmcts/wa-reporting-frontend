@@ -3,6 +3,7 @@
 ## Test suites
 - Unit tests: Jest (`src/test/unit`).
 - Jest TypeScript compilation uses `tsconfig.test.json`, which extends `tsconfig.json` with Jest globals and keeps Jest transforms on CommonJS-compatible settings so test-only ambient types and module semantics do not leak into the production server compile.
+- Jest configs use `babel-jest` for selected JavaScript dependencies that publish ESM under `node_modules`; keep the unit and route `transformIgnorePatterns` allowlists aligned when adding one of these packages.
 - Route tests: Jest with `jest.routes.config.js` (`src/test/routes`).
 - Accessibility tests: Playwright + Axe (`src/test/a11y`).
 - Functional tests: Playwright (`src/test/functional`).
