@@ -132,4 +132,4 @@ The specifications are derived from the current codebase and configuration under
 - `prisma` (database client setup)
 - `package.json` (scripts and dependencies)
 
-When code, SQL, configuration, or runtime behaviour changes, update the relevant documentation page in the same change. Dependency-only upgrades do not need documentation changes unless the dependency version itself is an operational constraint.
+When code, SQL, configuration, or runtime behaviour changes durable user behaviour, architecture, operations, configuration, data/schema contracts, or developer workflow, update the relevant documentation page in the same change. Dependency-only upgrades do not need documentation changes unless the dependency version itself is an operational constraint.
