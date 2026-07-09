@@ -68,6 +68,7 @@ Refresh-time derived values materialised in staging:
 - `days_beyond_due`
 - `within_due_sort_value`
 - `termination_reason_lower`
+- `outcome_lower`
 
 Refresh-time session settings:
 
