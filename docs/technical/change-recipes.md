@@ -75,8 +75,10 @@ Inspect:
 - `docs/technical/data-sources/snapshot-lifecycle.md`
 - `docs/technical/data-sources/snapshot-tables.md`
 - `docs/technical/data-sources/repository-ownership.md`
+- `docs/technical/operations/schema-permissions.md`
 - `db/migrations/tm/`
 - `db/current-state/tm-analytics-schema.sql`
+- `scripts/bootstrap-tm-schema-permissions.js`
 - `src/main/modules/analytics/shared/repositories/`
 
 Usually change:
@@ -86,6 +88,8 @@ Usually change:
 - One new table-scoped repository
 - A coordinator/service that chooses the new table only when exact
 - Focused repository and service tests
+- `DURABLE_ANALYTICS_TABLES` and its focused bootstrap test expectation when adding, renaming, or removing a durable partitioned parent, metadata table, or reference table
+- Never add generated attached or detached physical partitions to the durable-table allowlist
 
 Docs to update:
 
@@ -94,6 +98,7 @@ Docs to update:
 - Repository ownership map
 - Derived metrics if the table materialises new calculations
 - Relevant dashboard spec
+- Schema permissions runbook if the durable-table permission contract changes
 
 Migration guidance:
 
@@ -103,6 +108,7 @@ Migration guidance:
 Verification:
 
 - Unit tests for repository SQL and coordinator routing
+- Schema permissions bootstrap unit tests when the durable-table allowlist changes
 - Focused mutation tests when analytics logic is mutation-sensitive
 - Mandatory non-doc commands from `AGENTS.md`
 
