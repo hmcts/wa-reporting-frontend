@@ -2,7 +2,7 @@
 
 ## Test suites
 - Unit tests: Jest (`src/test/unit`).
-- Jest TypeScript compilation uses `tsconfig.test.json`, which extends `tsconfig.json` with Jest globals and keeps Jest transforms on CommonJS-compatible settings so test-only ambient types and module semantics do not leak into the production server compile.
+- Jest TypeScript transformation uses `ts-jest` and the top-level TypeScript 6 compatibility dependency with `tsconfig.test.json`, which extends `tsconfig.json` with Jest globals and keeps Jest transforms on CommonJS-compatible settings so test-only ambient types and module semantics do not leak into the production server compile.
 - Jest configs use `babel-jest` for selected JavaScript dependencies that publish ESM under `node_modules`; keep the unit and route `transformIgnorePatterns` allowlists aligned when adding one of these packages.
 - Route tests: Jest with `jest.routes.config.js` (`src/test/routes`).
 - Accessibility tests: Playwright + Axe (`src/test/a11y`).
@@ -30,7 +30,8 @@
 ## Current command semantics
 - Use `yarn test:unit` when you specifically need the unit-test suite.
 - Treat `yarn test` as a repository wrapper, not as proof that Jest executed in every environment.
-- `yarn build` is the frontend webpack build only; `yarn build:server` is the server TypeScript compile.
+- `yarn build` is the frontend webpack build only; `yarn build:server` is the TypeScript 7 server compile.
+- Jest, ESLint, `ts-node`, webpack, and Stryker continue to use the top-level TypeScript 6 compatibility dependency until they support TypeScript 7's replacement compiler API.
 - The local database scripts are not part of the default Jest route/unit suites. Use them before unmocked local browser checks or when manually testing repository SQL against PostgreSQL.
 
 ## Local database-backed checks
@@ -49,6 +50,7 @@
 ## Playwright browsers
 - Functional tests run against Chromium, Firefox, WebKit, and Edge via Playwright projects.
 - Smoke and a11y tests run on Chromium only.
+- The `test:a11y`, `test:smoke`, and `test:functional` scripts run `playwright install` before their tests so standalone or rerun pipeline stages have the browser versions required by the installed Playwright package.
 - Install Edge with `yarn setup:edge` if you see missing `msedge` errors.
 
 ## Playwright common
