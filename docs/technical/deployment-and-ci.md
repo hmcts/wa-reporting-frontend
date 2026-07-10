@@ -36,7 +36,7 @@ The TypeScript 7 compiler is installed as `@typescript/native` and invoked by `t
 
 Flyway is wired in Jenkins as an explicit post-`buildinfra` action for `aat`, `demo`, `ithc`, `perftest`, and `prod`. See [Flyway runbook](operations/flyway.md).
 
-Demo and Prod stages invoke the TM schema permissions bootstrap directly after Flyway. See [Schema permissions runbook](operations/schema-permissions.md).
+The Prod stage invokes the TM schema permissions bootstrap directly after Flyway. See [Schema permissions runbook](operations/schema-permissions.md).
 
 ## Local merge-readiness expectation
 
