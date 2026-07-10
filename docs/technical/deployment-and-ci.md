@@ -5,7 +5,7 @@
 - `yarn test:unit` is the direct Jest unit-test suite.
 - `yarn test` is a repository wrapper. Outside CI it delegates to `yarn test:unit`; when `CI=true` it exits early instead of running Jest.
 - `yarn build` is the frontend webpack build only.
-- `yarn build:server` is the server TypeScript compile.
+- `yarn build:server` is the TypeScript 7 server compile.
 - `yarn build:prod` builds production frontend assets and copies static/views into `dist/main`.
 
 ## Repository `cichecks`
@@ -26,12 +26,13 @@ Because `yarn test` exits early when `CI=true`, `cichecks` is not equivalent to 
 
 The checked-in Jenkins pipeline currently runs:
 
-- `playwright install`
 - `rebuild puppeteer`
 - `build` in the build stage
 - `test:routes` in a later post-test step
 
-Neither `cichecks` nor the checked-in Jenkins build stage currently runs `yarn build:server`.
+The `test:a11y`, `test:smoke`, and `test:functional` package scripts install Playwright's default browsers immediately before running their tests. Browser availability therefore does not depend on the build stage running first.
+
+The TypeScript 7 compiler is installed as `@typescript/native` and invoked by `tsc` and `build:server`. API-dependent tools continue to resolve TypeScript 6 through the top-level `typescript` alias. Neither `cichecks` nor the checked-in Jenkins build stage currently runs `yarn build:server`.
 
 Flyway is wired in Jenkins as an explicit post-`buildinfra` action for `aat`, `demo`, `ithc`, `perftest`, and `prod`. See [Flyway runbook](operations/flyway.md).
 

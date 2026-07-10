@@ -31,7 +31,7 @@ The application will be available at [http://localhost:3100](http://localhost:31
 The repository splits build responsibilities across separate scripts:
 
 - `yarn build`: builds frontend webpack assets only
-- `yarn build:server`: compiles server TypeScript into `dist/`
+- `yarn build:server`: compiles server TypeScript into `dist/` with TypeScript 7
 - `yarn build:prod`: builds production frontend assets and copies static/views into `dist/main`
 
 To run the compiled application with `yarn start`, build both the server and production assets first:
@@ -78,6 +78,10 @@ Important command semantics:
 - `yarn test` is a repository wrapper. Outside CI it delegates to `yarn test:unit`; when `CI=true` it currently exits early instead of running Jest.
 - `yarn build` does not compile the server. Use `yarn build:server` for the server TypeScript compile.
 
+## TypeScript compiler transition
+
+`yarn tsc` and `yarn build:server` use TypeScript 7. The top-level `typescript` dependency is an alias for TypeScript 6 temporarily for tools that require the TypeScript compiler API, including ESLint, Jest, `ts-node`, webpack, and Stryker. `yarn tsc6` runs the compatibility compiler directly.
+
 If you want automatic lint fixes:
 
 ```bash
@@ -85,6 +89,8 @@ yarn lint:fix
 ```
 
 ## Browser-Based Tests
+
+The accessibility, smoke, and functional test commands install Playwright's default browsers before running, so they can be invoked independently of the build workflow.
 
 Smoke tests require the application to be running:
 
