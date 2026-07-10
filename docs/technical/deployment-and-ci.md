@@ -20,7 +20,7 @@
 - `yarn test:routes`
 - `yarn test:a11y`
 
-Because `yarn test` exits early when `CI=true`, `cichecks` is not equivalent to the full local merge-readiness command set described in [Testing and quality](testing.md).
+Because `yarn test` exits early when `CI=true`, `cichecks` is not equivalent to the local merge-readiness command set described in [Testing and quality](testing.md) and required by the root [AGENTS.md](../../AGENTS.md). That local standard may exceed checks enforced by the currently checked-in CI configuration.
 
 ## Jenkins
 
@@ -39,7 +39,7 @@ Demo and Prod stages invoke the TM schema permissions bootstrap directly after F
 
 ## Local merge-readiness expectation
 
-For non-documentation changes, contributor guidance expects:
+For non-documentation changes, contributor guidance defines the local merge-readiness standard as:
 
 - `yarn lint`
 - `yarn test:coverage`
@@ -47,7 +47,7 @@ For non-documentation changes, contributor guidance expects:
 - `yarn build`
 - `yarn build:server`
 
-Run `yarn build:prod` as well when the change affects packaged runtime output or `yarn start`.
+Run `yarn build:prod` as well when the change affects production-packaged runtime output or production startup.
 
 Documentation-only changes do not require those commands.
 
@@ -60,7 +60,7 @@ flowchart TB
   Coverage --> Routes["yarn test:routes"]
   Routes --> FrontendBuild["yarn build"]
   FrontendBuild --> ServerBuild["yarn build:server"]
-  ServerBuild --> Prod{"Affects packaged runtime?"}
+  ServerBuild --> Prod{"Affects production-packaged runtime?"}
   Prod -- "Yes" --> BuildProd["yarn build:prod"]
   Prod -- "No" --> Done["Ready for review"]
   BuildProd --> Done
