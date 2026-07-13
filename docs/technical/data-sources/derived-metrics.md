@@ -35,7 +35,7 @@ Task `state` is not used to classify completion.
 
 Overview cancelled task events use case-insensitive `outcome = 'cancelled'`.
 
-The facts-backed metric stores those rows as cancelled events and does not apply an additional `state` predicate.
+The facts-backed metric stores those rows as cancelled events using `last_updated_date` as the event date and does not apply an additional `state` predicate.
 
 ## Open-task row contract
 

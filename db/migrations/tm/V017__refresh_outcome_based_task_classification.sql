@@ -34,6 +34,7 @@ BEGIN
     source.created_date,
     source.due_date,
     source.completed_date,
+    source.last_updated_date AS last_updated_date,
     source.first_assigned_date,
     source.major_priority,
     source.assignee,
@@ -85,6 +86,7 @@ BEGIN
     created_date,
     due_date,
     completed_date,
+    last_updated_date,
     handling_time_days,
     processing_time_days,
     outcome_lower,
@@ -549,7 +551,7 @@ BEGIN
 
     SELECT
       $1,
-      completed_date AS event_date,
+      last_updated_date AS event_date,
       'cancelled'::text AS event_type,
       jurisdiction_label,
       role_category_label,
@@ -559,10 +561,10 @@ BEGIN
       work_type,
       COUNT(*)::bigint AS task_count
     FROM tmp_snapshot_fact_source
-    WHERE completed_date IS NOT NULL
+    WHERE last_updated_date IS NOT NULL
       AND outcome_lower = 'cancelled'
     GROUP BY
-      completed_date,
+      last_updated_date,
       jurisdiction_label,
       role_category_label,
       region,

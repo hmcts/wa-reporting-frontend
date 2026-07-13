@@ -25,7 +25,19 @@ describe('analytics outcome-based task classification SQL', () => {
 
   test.each([
     ['current-state schema', currentStateSql],
-    ['V017 migration', migrationSql],
+    ['V018 migration', migrationSql],
+  ])('%s uses last_updated_date as the cancelled event date', (_label, sql) => {
+    const normalised = normaliseSql(sql);
+
+    expect(normalised).toContain('source.last_updated_date AS last_updated_date');
+    expect(normalised).toContain('last_updated_date AS event_date');
+    expect(normalised).toContain("WHERE last_updated_date IS NOT NULL AND outcome_lower = 'cancelled'");
+    expect(normalised).not.toContain("WHERE completed_date IS NOT NULL AND outcome_lower = 'cancelled'");
+  });
+
+  test.each([
+    ['current-state schema', currentStateSql],
+    ['V018 migration', migrationSql],
   ])('%s excludes CANCELLED rows from open snapshot rows', (_label, sql) => {
     const normalised = normaliseSql(sql);
 

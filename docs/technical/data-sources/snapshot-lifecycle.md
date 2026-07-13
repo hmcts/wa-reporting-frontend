@@ -69,6 +69,7 @@ Refresh-time derived values materialised in staging:
 - `within_due_sort_value`
 - `termination_reason_lower`
 - `outcome_lower`
+- `last_updated_date`
 
 Refresh-time session settings:
 

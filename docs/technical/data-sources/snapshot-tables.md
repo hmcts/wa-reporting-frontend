@@ -422,7 +422,7 @@ Population:
 
 - Created rows where `created_date IS NOT NULL`
 - Completed rows where `completed_date IS NOT NULL` and `LOWER(outcome) = 'completed'`
-- Cancelled rows where `completed_date IS NOT NULL` and `LOWER(outcome) = 'cancelled'`
+- Cancelled rows where `last_updated_date IS NOT NULL` and `LOWER(outcome) = 'cancelled'`
 - Grouped by shared slicers plus `event_date` and `event_type`
 
 Required columns:

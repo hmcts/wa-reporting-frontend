@@ -449,7 +449,7 @@ describe('local database script', () => {
 
     expect(truncateIndex).toBe(0);
     expect(insertEvents).toHaveLength(3);
-    expect(insertEvents.map(event => event.params.length)).toEqual([216, 216, 108]);
+    expect(insertEvents.map(event => event.params.length)).toEqual([224, 224, 112]);
     expect(insertEvents[0].params[0]).toBe(rows[0].taskId);
     expect(insertEvents[1].params[0]).toBe(rows[8].taskId);
     expect(insertEvents[2].params[0]).toBe(rows[16].taskId);
