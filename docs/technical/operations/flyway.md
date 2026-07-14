@@ -39,14 +39,14 @@ Migrations that touch snapshot refresh procedures, refresh helper procedures, sn
 Put this block before the first affected DDL statement:
 
 ```sql
-SET LOCAL lock_timeout = '20min';
+SET LOCAL lock_timeout = '30min';
 
 SELECT pg_advisory_xact_lock(hashtext('analytics_run_snapshot_refresh_batch_lock'));
 ```
 
 The advisory lock key must match the refresh procedure's session-level lock key. If a refresh is already running, the migration waits before attempting table/index/procedure DDL. After the migration has the transaction-scoped advisory lock, a scheduled refresh trigger cannot acquire its session-level lock and skips instead of overlapping the migration.
 
-The 20 minute `lock_timeout` applies separately to each lock acquisition attempt. It bounds the wait for the refresh advisory lock and any later PostgreSQL object locks, such as `ALTER TABLE`, `DROP INDEX`, and partition attach/detach locks. It is not a total migration runtime limit. If a lock wait exceeds the timeout, the Flyway migration fails and PostgreSQL rolls back the transaction. Add `statement_timeout` separately only when an individual statement also needs a total execution cap.
+The 30 minute `lock_timeout` applies separately to each lock acquisition attempt. It bounds the wait for the refresh advisory lock and any later PostgreSQL object locks, such as `ALTER TABLE`, `DROP INDEX`, and partition attach/detach locks. It is not a total migration runtime limit. If a lock wait exceeds the timeout, the Flyway migration fails and PostgreSQL rolls back the transaction. Add `statement_timeout` separately only when an individual statement also needs a total execution cap.
 
 ## Jenkins wiring
 

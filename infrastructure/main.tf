@@ -3,10 +3,12 @@ provider "azurerm" {
 }
 
 locals {
-  resourceGroup   = "${var.product}-${var.env}"
-  vaultName       = "${var.product}-${var.env}"
-  rdVaultName     = "rd-${var.env}"
-  rdResourceGroup = "rd-${var.env}"
+  resourceGroup    = "${var.product}-${var.env}"
+  vaultName        = "${var.product}-${var.env}"
+  rdVaultName      = "rd-${var.env}"
+  rdResourceGroup  = "rd-${var.env}"
+  s2sVaultName     = "s2s-${var.env}"
+  s2sResourceGroup = "rpe-service-auth-provider-${var.env}"
 }
 
 data "azurerm_key_vault" "wa_key_vault" {
@@ -17,6 +19,11 @@ data "azurerm_key_vault" "wa_key_vault" {
 data "azurerm_key_vault" "rd_key_vault" {
   name                = local.rdVaultName
   resource_group_name = local.rdResourceGroup
+}
+
+data "azurerm_key_vault" "s2s_key_vault" {
+  name                = local.s2sVaultName
+  resource_group_name = local.s2sResourceGroup
 }
 
 data "azurerm_key_vault_secret" "source_caseworker_ref_api_postgres_user" {
@@ -37,6 +44,11 @@ data "azurerm_key_vault_secret" "source_location_ref_api_postgres_user" {
 data "azurerm_key_vault_secret" "source_location_ref_api_postgres_pass" {
   name         = "location-ref-api-POSTGRES-PASS"
   key_vault_id = data.azurerm_key_vault.rd_key_vault.id
+}
+
+data "azurerm_key_vault_secret" "source_wa_reporting_frontend_s2s_secret" {
+  name         = "microservicekey-wa-reporting-frontend"
+  key_vault_id = data.azurerm_key_vault.s2s_key_vault.id
 }
 
 module "redis" {
@@ -108,5 +120,11 @@ resource "random_string" "wa_reporting_frontend_session_secret" {
 resource "azurerm_key_vault_secret" "session_secret" {
   name         = "wa-reporting-frontend-session-secret"
   value        = random_string.wa_reporting_frontend_session_secret.result
+  key_vault_id = data.azurerm_key_vault.wa_key_vault.id
+}
+
+resource "azurerm_key_vault_secret" "wa_reporting_frontend_s2s_secret" {
+  name         = "wa-reporting-frontend-s2s-secret"
+  value        = data.azurerm_key_vault_secret.source_wa_reporting_frontend_s2s_secret.value
   key_vault_id = data.azurerm_key_vault.wa_key_vault.id
 }

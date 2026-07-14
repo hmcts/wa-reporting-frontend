@@ -12,6 +12,14 @@
   position: relative;
 }
 
+.analytics-chart,
+.analytics-chart--small {
+  .modebar-btn {
+    min-height: 24px;
+    min-width: 24px;
+  }
+}
+
 .analytics-chart--small {
   min-height: 240px;
 }

@@ -3,10 +3,13 @@
 ## Authentication and RBAC
 - Authentication is handled by `express-openid-connect` when `auth.enabled` is true.
 - OIDC issuer: `services.idam.url.public + '/o'`.
-- The app validates the `id_token` and enforces the configured access role from `RBAC.access`.
+- The app validates the `id_token` and authorises access when the user has either the configured IDAM role from `RBAC.access` or an active Role Assignment Service assignment whose `roleName` is listed in `RBAC.roleAssignmentRoleNames`.
 - The checked-in default role in `config/default.json` is `wa-reports-viewer`.
+- The checked-in default role-assignment role name is `task-supervisor`.
 - With authentication enabled, unauthenticated HTML requests are redirected to login by `express-openid-connect` before the local role guard runs.
-- After the OIDC middleware has run, the local guard throws HTTP 403 when `req.oidc` is still unauthenticated or when the authenticated user does not hold the required role.
+- Role assignments are checked only during the OIDC login callback. The app calls `GET /am/role-assignments/actors/{uid}` with the logged-in user's IDAM access token and a `wa_reporting_frontend` S2S token, then stores only the derived authorization result in the OIDC session.
+- A role assignment grants access only when its `roleName` exactly matches one configured role name and the current login time is within its `beginTime`/`endTime` window. Null `beginTime` or `endTime` means no lower or upper bound.
+- After the OIDC middleware has run, the local guard throws HTTP 403 when `req.oidc` is still unauthenticated or when the authenticated user has neither the IDAM role nor the stored role-assignment authorization marker.
 - Local development can run with `AUTH_ENABLED=false`, which disables OIDC entirely.
 
 ```mermaid
@@ -14,10 +17,17 @@ sequenceDiagram
   participant User as User
   participant App as App
   participant IDAM as IDAM
+  participant RAS as Role Assignment Service
+  participant S2S as Service Auth Provider
   User->>App: Request dashboard
   App->>IDAM: OIDC auth (if enabled)
-  IDAM-->>App: ID token
-  App->>App: Validate role (RBAC.access)
+  IDAM-->>App: ID token and access token
+  App->>App: Check IDAM role (RBAC.access)
+  App->>S2S: Lease wa_reporting_frontend token if RAS fallback needed
+  S2S-->>App: S2S token
+  App->>RAS: GET assignments for IDAM uid if fallback needed
+  RAS-->>App: Live role assignments
+  App->>App: Store derived authorization result in OIDC session
   App-->>User: Redirect to login, HTML, or 403
 ```
 
