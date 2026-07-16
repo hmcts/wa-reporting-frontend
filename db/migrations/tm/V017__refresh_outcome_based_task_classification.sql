@@ -1,6 +1,38 @@
-SET LOCAL lock_timeout = '30min';
+SET LOCAL lock_timeout = '20min';
 
 SELECT pg_advisory_xact_lock(hashtext('analytics_run_snapshot_refresh_batch_lock'));
+
+CREATE TABLE IF NOT EXISTS analytics.court_venue_case_type_lookup (
+  epimms_id TEXT NOT NULL,
+  ccd_case_type TEXT NOT NULL,
+  service_code TEXT NOT NULL,
+  court_type_id TEXT NOT NULL,
+  site_name TEXT NOT NULL,
+  region_id TEXT,
+  PRIMARY KEY (epimms_id, ccd_case_type)
+);
+
+CREATE INDEX IF NOT EXISTS ix_court_venue_case_type_lookup_case_type
+  ON analytics.court_venue_case_type_lookup(ccd_case_type);
+
+CREATE TABLE IF NOT EXISTS analytics.court_venue_epimms_lookup (
+  epimms_id TEXT PRIMARY KEY,
+  site_name TEXT NOT NULL,
+  region_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS analytics.location_reference_sync_state (
+  singleton_id BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (singleton_id),
+  last_synced_at TIMESTAMPTZ NOT NULL,
+  case_type_lookup_rows INTEGER NOT NULL,
+  epimms_lookup_rows INTEGER NOT NULL
+);
+
+ALTER TABLE analytics.snapshot_open_task_rows
+  ADD COLUMN IF NOT EXISTS location_id TEXT;
+
+ALTER TABLE analytics.snapshot_completed_task_rows
+  ADD COLUMN IF NOT EXISTS location_id TEXT;
 
 CREATE OR REPLACE PROCEDURE analytics.create_snapshot_refresh_temp_tables()
 LANGUAGE plpgsql
@@ -295,6 +327,7 @@ BEGIN
     v_prev_hash_mem_multiplier,
     v_prev_enable_sort;
 
+  -- Bias aggregate fact builds toward in-memory hash aggregate.
   PERFORM set_config('work_mem', '1GB', TRUE);
   PERFORM set_config('hash_mem_multiplier', '4', TRUE);
   PERFORM set_config('enable_sort', 'off', TRUE);
@@ -576,6 +609,7 @@ BEGIN
   )
   USING p_snapshot_id;
 
+  -- Restore baseline refresh-session settings for subsequent statements.
   PERFORM set_config('enable_sort', v_prev_enable_sort, TRUE);
   PERFORM set_config('work_mem', v_prev_work_mem, TRUE);
   PERFORM set_config('hash_mem_multiplier', v_prev_hash_mem_multiplier, TRUE);
