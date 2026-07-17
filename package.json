@@ -156,7 +156,7 @@
     "webpack-node-externals": "^3.0.0"
   },
   "resolutions": {
-    "@hono/node-server": "npm:@hono/node-server@2.0.8"
+    "@hono/node-server": "npm:@hono/node-server@2.0.10"
   },
   "husky": {
     "hooks": {
