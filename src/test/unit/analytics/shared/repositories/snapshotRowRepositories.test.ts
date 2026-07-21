@@ -544,8 +544,10 @@ describe('rowRepositoriesHarness', () => {
     expect(query.sql).toContain("state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')");
     expect(query.sql).toContain('created_date IS NOT NULL');
     expect(query.sql).not.toContain("state NOT IN ('COMPLETED', 'TERMINATED')");
+    expect(query.sql).toContain('LIMIT');
     expect(query.values).toContain(snapshotId);
     expect(query.values).toContain('North');
+    expect(query.values).toContain(500);
   });
 
   test('returns zero when outstanding critical task count query returns no rows', async () => {
