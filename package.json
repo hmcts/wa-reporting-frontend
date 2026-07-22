@@ -156,7 +156,9 @@
     "webpack-node-externals": "^3.0.0"
   },
   "resolutions": {
-    "@hono/node-server": "npm:@hono/node-server@2.0.10"
+    "@hono/node-server": "npm:@hono/node-server@2.0.11",
+    "@opentelemetry/propagator-jaeger": "npm:2.9.0",
+    "fast-uri": "npm:3.1.4"
   },
   "husky": {
     "hooks": {
