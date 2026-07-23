@@ -18,6 +18,9 @@ const expectHelperIndexDefinition = (sql: string, helperIndexName: string, creat
 describe('analytics snapshot partition index SQL', () => {
   const currentStateSql = readRepositoryFile('db/current-state/tm-analytics-schema.sql');
   const migrationSql = readRepositoryFile('db/migrations/tm/V015__deduplicate_snapshot_partition_indexes.sql');
+  const criticalTasksIndexMigrationSql = readRepositoryFile(
+    'db/migrations/tm/V017__add_critical_task_filtered_due_date_index.sql'
+  );
 
   const parentCompatibleIndexDefinitions = [
     {
@@ -127,5 +130,22 @@ describe('analytics snapshot partition index SQL', () => {
     for (const { helperIndexName } of parentCompatibleIndexDefinitions) {
       expect(migrationSql).toContain(helperIndexName.replace('%s', '%'));
     }
+  });
+
+  test.each([
+    ['current-state schema', currentStateSql],
+    ['V017 migration', criticalTasksIndexMigrationSql],
+  ])('%s defines the filtered critical-task due-date index', (_label, sql) => {
+    expect(sql).toMatch(/ix_snapshot_open_task_rows_critical_slicers_due_date/);
+    expect(sql).toMatch(/jurisdiction_label, role_category_label, region, due_date/);
+    expect(sql).toMatch(/WHERE created_date IS NOT NULL/);
+    expect(sql).toMatch(/state IN \('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED'\)/);
+  });
+
+  test('coordinates V017 with snapshot refresh before creating the index', () => {
+    expect(criticalTasksIndexMigrationSql).toContain("SET LOCAL lock_timeout = '20min';");
+    expect(criticalTasksIndexMigrationSql).toContain(
+      "SELECT pg_advisory_xact_lock(hashtext('analytics_run_snapshot_refresh_batch_lock'));"
+    );
   });
 });

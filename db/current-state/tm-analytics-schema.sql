@@ -141,6 +141,11 @@ CREATE TABLE analytics.snapshot_open_task_rows (
   number_of_reassignments INTEGER NOT NULL DEFAULT 0
 ) PARTITION BY LIST (snapshot_id);
 
+CREATE INDEX IF NOT EXISTS ix_snapshot_open_task_rows_critical_slicers_due_date
+  ON ONLY analytics.snapshot_open_task_rows(jurisdiction_label, role_category_label, region, due_date)
+  WHERE created_date IS NOT NULL
+    AND state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED');
+
 CREATE TABLE analytics.snapshot_completed_task_rows (
   snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
   task_id TEXT NOT NULL,

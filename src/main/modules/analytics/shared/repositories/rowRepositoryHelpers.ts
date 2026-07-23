@@ -60,8 +60,11 @@ export function buildPaginationClauses(pagination?: PaginationOptions | null): {
   const page = normalisePage(pagination.page, maxPage);
   const offset = (page - 1) * pageSize;
   return {
-    limitClause: Prisma.sql`LIMIT ${pageSize}`,
-    offsetClause: Prisma.sql`OFFSET ${offset}`,
+    // Both values have been normalised to bounded integers above. Keeping them
+    // as SQL literals lets PostgreSQL cost the small LIMIT accurately when it
+    // reuses a generic prepared statement, preserving ordered-index scans.
+    limitClause: Prisma.raw(`LIMIT ${pageSize}`),
+    offsetClause: Prisma.raw(`OFFSET ${offset}`),
   };
 }
 
