@@ -76,6 +76,7 @@ Key behaviors:
 - Multi-select filters support search, select all, and dynamic summary text.
 - Scroll position is stored and restored when table sorting or pagination triggers full page reloads.
 - Global page initialization is owned by `index.ts`; analytics AJAX refreshes re-initialize only the replaced section scope in `src/main/assets/js/analytics/ajax.ts`.
+- Analytics table tab panels are measured for overflow after initial render and again when a GOV.UK tab is activated, so hidden data-table panels still gain the vertical scroll container when opened.
 
 ```mermaid
 sequenceDiagram
