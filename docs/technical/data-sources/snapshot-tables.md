@@ -47,6 +47,7 @@ Notes:
 - `/outstanding` critical tasks adds the strict open-state set and `created_date IS NOT NULL`.
 - Priority rank is calculated at query time from `major_priority`, `due_date`, and `CURRENT_DATE`.
 - Child partitions create a User Overview partial index for default non-Judicial assigned-table reads ordered by `created_date DESC`.
+- The parent partitioned partial index on `(jurisdiction_label, role_category_label, region, due_date)` covers Critical tasks requests with those three filters and the default due-date sort. It includes only the strict open-task rows used by that table.
 
 ### `analytics.snapshot_completed_task_rows`
 
