@@ -23,7 +23,6 @@ const { Logger } = require('./modules/logging');
 const { Helmet } = require('./modules/helmet');
 const { Nunjucks } = require('./modules/nunjucks');
 const { OidcMiddleware } = require('./modules/oidc');
-const { PropertiesVolume } = require('./modules/properties-volume');
 const { AppSession } = require('./modules/session');
 const healthRoutes = require('./routes/health').default;
 const infoRoutes = require('./routes/info').default;
@@ -43,7 +42,6 @@ const logger = Logger.getLogger('app');
 type RouteModule = { default?: (app: Express) => void };
 
 export const bootstrap = async (): Promise<void> => {
-  new PropertiesVolume().enableFor(app);
   const { bootstrapLocationReferenceSync } = require('./modules/analytics/shared/data/locationReferenceSync');
   await bootstrapLocationReferenceSync().catch((error: unknown) => {
     logger.error('Location reference sync failed during startup', error);

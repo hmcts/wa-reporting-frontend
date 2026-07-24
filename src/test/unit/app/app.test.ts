@@ -105,10 +105,6 @@ const buildAppModule = async (options: {
     OidcMiddleware: jest.fn().mockImplementation(() => ({ enableFor: oidcEnableFor })),
   }));
 
-  jest.doMock('../../../main/modules/properties-volume', () => ({
-    PropertiesVolume: jest.fn().mockImplementation(() => ({ enableFor })),
-  }));
-
   jest.doMock('../../../main/routes/health', () => ({
     __esModule: true,
     default: healthRoute,
