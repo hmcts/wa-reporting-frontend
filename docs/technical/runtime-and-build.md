@@ -61,6 +61,8 @@ Payload fields include:
 
 OpenTelemetry (Azure Monitor) exports traces and logs to Application Insights when a connection string is available from `APPLICATIONINSIGHTS_CONNECTION_STRING` or `secrets.wa.app-insights-connection-string`.
 
-In non-development environments, startup loads Properties Volume secrets into `config` before OpenTelemetry initialisation, so mounted Key Vault values are available during telemetry setup.
+Startup loads Properties Volume secrets into `config` before OpenTelemetry initialisation, so mounted Key Vault values are available during telemetry setup in non-development environments. OpenTelemetry then initialises before Winston, Express, or database modules are loaded so their automatic instrumentations can patch those dependencies.
 
 The service name is configured in code as `wa-reporting-frontend`.
+
+Azure Monitor's trace-rate limiter is disabled with `tracesPerSecond: 0`, allowing the configured `samplingRatio: 1` to retain all application traces.
