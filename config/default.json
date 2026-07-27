@@ -58,6 +58,7 @@
     "roleAssignmentRoleNames": "task-supervisor"
   },
   "session": {
+    "inactivityTimeoutMinutes": 2,
     "cookie": {
       "name": "wa-reporting-frontend-session"
     },

@@ -58,6 +58,7 @@ Script loading:
 - `src/main/views/analytics/layout.njk` includes `webpack/analytics-js.njk` so the analytics bundle is loaded only for analytics routes.
 
 Key behaviors:
+- Authenticated analytics pages show an inactivity warning before the rolling session expires. The dialog provides a live countdown, a continue action that renews the session through `/active`, and a sign-out link. When the inactivity deadline elapses, the browser navigates to `/logout` automatically.
 - Plotly charts are rendered from JSON configs in `data-chart-config` attributes.
 - Sections marked with `data-ajax-initial` are refreshed by an AJAX call after initial page load.
 - Initial `data-ajax-initial` section refreshes are queued with a concurrency limit of 2 in-flight requests.
