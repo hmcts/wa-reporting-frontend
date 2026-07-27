@@ -33,6 +33,26 @@ describe('Analytics overview route', () => {
       expect(response.text).toContain('data-total-row="true"');
     });
 
+    test('should preserve the selected task events date range in the shared filters form', async () => {
+      const response = await request(server).get('/?eventsFrom=2026-01-01&eventsTo=2026-01-31').expect(200);
+
+      expect(response.text).toContain('<input type="hidden" name="eventsFrom" value="01/01/2026">');
+      expect(response.text).toContain('<input type="hidden" name="eventsTo" value="31/01/2026">');
+      expect(response.text).toContain('name="eventsFrom"');
+      expect(response.text).toContain('name="eventsTo"');
+    });
+
+    test('should preserve selected shared filters in the task events date-range form', async () => {
+      const response = await request(server)
+        .get('/?service=Civil&workType=Hearing&eventsFrom=2026-06-09&eventsTo=2026-07-09')
+        .expect(200);
+
+      expect(response.text).toContain('<input type="hidden" name="service" value="Civil">');
+      expect(response.text).toContain('<input type="hidden" name="workType" value="Hearing">');
+      expect(response.text).toContain('value="09/06/2026"');
+      expect(response.text).toContain('value="09/07/2026"');
+    });
+
     test('should render the service performance partial for ajax requests', async () => {
       const response = await request(server)
         .get('/?ajaxSection=overview-service-performance')
