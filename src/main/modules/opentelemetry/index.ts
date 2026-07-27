@@ -72,6 +72,7 @@ export const initializeOpenTelemetry = (): OpenTelemetryHandle => {
   const options: AzureMonitorOpenTelemetryOptions = {
     azureMonitorExporterOptions: { connectionString },
     samplingRatio: 1,
+    tracesPerSecond: 0,
     instrumentationOptions: {
       http: { enabled: true },
       postgreSql: { enabled: true, requireParentSpan: true } as InstrumentationConfig,

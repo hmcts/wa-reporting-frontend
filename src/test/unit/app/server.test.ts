@@ -26,13 +26,19 @@ describe('server bootstrap', () => {
       return telemetryHandle;
     });
 
+    jest.doMock('../../../main/modules/properties-volume', () => ({
+      loadPropertiesVolume: jest.fn(() => moduleLoadOrder.push('properties')),
+    }));
     jest.doMock('../../../main/app', () => {
       moduleLoadOrder.push('app');
       return { app };
     });
-    jest.doMock('../../../main/modules/logging', () => ({
-      Logger: { getLogger: jest.fn(() => logger) },
-    }));
+    jest.doMock('../../../main/modules/logging', () => {
+      moduleLoadOrder.push('logging');
+      return {
+        Logger: { getLogger: jest.fn(() => logger) },
+      };
+    });
     jest.doMock('../../../main/modules/opentelemetry', () => ({
       initializeOpenTelemetry,
     }));
@@ -57,7 +63,7 @@ describe('server bootstrap', () => {
       require('../../../main/server');
     });
 
-    expect(moduleLoadOrder).toEqual(['app', 'telemetry']);
+    expect(moduleLoadOrder).toEqual(['properties', 'telemetry', 'logging', 'app']);
     expect(initializeOpenTelemetry).toHaveBeenCalledTimes(1);
     expect(listen).toHaveBeenCalledWith(4100, expect.any(Function));
     expect(app.locals.shutdown).toBe(false);
@@ -94,6 +100,9 @@ describe('server bootstrap', () => {
     const telemetryHandle = { enabled: false, shutdown: jest.fn().mockResolvedValue(undefined) };
     const initializeOpenTelemetry = jest.fn(() => telemetryHandle);
 
+    jest.doMock('../../../main/modules/properties-volume', () => ({
+      loadPropertiesVolume: jest.fn(),
+    }));
     jest.doMock('../../../main/app', () => ({ app }));
     jest.doMock('../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => logger) },
@@ -134,6 +143,9 @@ describe('server bootstrap', () => {
     const telemetryHandle = { enabled: true, shutdown: jest.fn().mockRejectedValue(telemetryError) };
     const initializeOpenTelemetry = jest.fn(() => telemetryHandle);
 
+    jest.doMock('../../../main/modules/properties-volume', () => ({
+      loadPropertiesVolume: jest.fn(),
+    }));
     jest.doMock('../../../main/app', () => ({ app }));
     jest.doMock('../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => logger) },

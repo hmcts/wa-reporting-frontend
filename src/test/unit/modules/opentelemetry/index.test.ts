@@ -169,6 +169,7 @@ describe('opentelemetry module', () => {
       expect.objectContaining({
         azureMonitorExporterOptions: { connectionString: 'InstrumentationKey=example' },
         samplingRatio: 1,
+        tracesPerSecond: 0,
         instrumentationOptions: expect.objectContaining({
           http: { enabled: true },
           postgreSql: { enabled: true, requireParentSpan: true },
