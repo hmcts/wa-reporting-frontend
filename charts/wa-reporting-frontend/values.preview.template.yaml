@@ -23,7 +23,7 @@ nodejs:
         - name: rd-location-ref-api-POSTGRES-PASS
           alias: lrd-db-password
   environment:
-    AUTH_ENABLED: false
+    AUTH_ENABLED: true
     REDIS_HOST: ${SERVICE_NAME}-hmcts-redis-master
 hmcts-redis:
   enabled: true
