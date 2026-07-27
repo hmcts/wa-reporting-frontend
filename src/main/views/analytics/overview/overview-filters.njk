@@ -1,1 +1,9 @@
+{% set extraFiltersHtml %}
+  {% if eventsFromValue %}
+    <input type="hidden" name="eventsFrom" value="{{ eventsFromValue }}">
+  {% endif %}
+  {% if eventsToValue %}
+    <input type="hidden" name="eventsTo" value="{{ eventsToValue }}">
+  {% endif %}
+{% endset %}
 {% include "analytics/partials/shared-filters.njk" %}
