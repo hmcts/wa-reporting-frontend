@@ -158,7 +158,8 @@
   "resolutions": {
     "@hono/node-server": "npm:@hono/node-server@2.0.11",
     "@opentelemetry/propagator-jaeger": "npm:2.9.0",
-    "fast-uri": "npm:3.1.4"
+    "fast-uri": "npm:3.1.4",
+    "brace-expansion": "^5.0.8"
   },
   "husky": {
     "hooks": {
