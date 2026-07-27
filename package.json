@@ -159,7 +159,9 @@
     "@hono/node-server": "npm:@hono/node-server@2.0.11",
     "@opentelemetry/propagator-jaeger": "npm:2.10.0",
     "fast-uri": "npm:3.1.4",
-    "brace-expansion": "^5.0.8"
+    "brace-expansion": "^5.0.8",
+    "find-my-way": "npm:9.7.0",
+    "valibot": "npm:1.4.2"
   },
   "husky": {
     "hooks": {
