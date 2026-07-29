@@ -246,6 +246,30 @@ describe('analytics tables', () => {
     }
   });
 
+  test('does not reapply scroll overflow when tab panel max height is not finite', () => {
+    const requestAnimationFrameSpy = jest.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
+      callback(0);
+      return 0;
+    });
+
+    try {
+      const panel = document.createElement('div');
+      panel.className = 'analytics-tab-panel analytics-tab-panel--scroll-y';
+      panel.style.setProperty('--analytics-tab-panel-max-height', 'auto');
+      Object.defineProperty(panel, 'scrollHeight', {
+        configurable: true,
+        get: () => 800,
+      });
+      document.body.appendChild(panel);
+
+      initAnalyticsTabPanelOverflow();
+
+      expect(panel.classList.contains('analytics-tab-panel--scroll-y')).toBe(false);
+    } finally {
+      requestAnimationFrameSpy.mockRestore();
+    }
+  });
+
   test('covers sorting guard clauses', async () => {
     const form = document.createElement('form');
     form.dataset.analyticsFilters = 'true';

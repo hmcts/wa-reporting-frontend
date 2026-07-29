@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 
 import { tmPrisma } from '../data/prisma';
 import { CriticalTasksSortBy } from '../outstandingSort';
+import { MAX_PAGINATION_RESULTS } from '../pagination';
 import { AnalyticsFilters } from '../types';
 import { AssignedSortBy, SortState } from '../userOverviewSort';
 
@@ -117,8 +118,12 @@ export class SnapshotOpenTaskRowsRepository {
     ]);
     const rows = await tmPrisma.$queryRaw<{ total: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS total
-      FROM ${Prisma.raw(TABLE_NAME)} rows
-      ${whereClause}
+      FROM (
+        SELECT 1
+        FROM ${Prisma.raw(TABLE_NAME)} rows
+        ${whereClause}
+        LIMIT ${MAX_PAGINATION_RESULTS}
+      ) capped_rows
     `);
     return rows[0]?.total ?? 0;
   }

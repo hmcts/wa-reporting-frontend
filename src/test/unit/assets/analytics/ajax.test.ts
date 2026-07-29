@@ -536,6 +536,136 @@ describe('analytics ajax', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
+  test('fetchSectionUpdate syncs overview date filters back into the shared filters form', async () => {
+    const sharedFiltersForm = document.createElement('form');
+    sharedFiltersForm.dataset.analyticsFilters = 'true';
+    sharedFiltersForm.action = '/';
+    sharedFiltersForm.method = 'POST';
+    const sharedEventsFrom = document.createElement('input');
+    sharedEventsFrom.type = 'hidden';
+    sharedEventsFrom.name = 'eventsFrom';
+    sharedEventsFrom.value = '2026-06-15';
+    sharedFiltersForm.appendChild(sharedEventsFrom);
+    const sharedEventsTo = document.createElement('input');
+    sharedEventsTo.type = 'hidden';
+    sharedEventsTo.name = 'eventsTo';
+    sharedEventsTo.value = '2026-07-15';
+    sharedFiltersForm.appendChild(sharedEventsTo);
+    document.body.appendChild(sharedFiltersForm);
+
+    const dateRangeForm = document.createElement('form');
+    dateRangeForm.dataset.analyticsFilters = 'true';
+    dateRangeForm.dataset.ajaxSection = 'overview-task-events';
+    dateRangeForm.action = '/';
+    dateRangeForm.method = 'POST';
+    const dateRangeFrom = document.createElement('input');
+    dateRangeFrom.name = 'eventsFrom';
+    dateRangeFrom.value = '2026-06-09';
+    dateRangeForm.appendChild(dateRangeFrom);
+    const dateRangeTo = document.createElement('input');
+    dateRangeTo.name = 'eventsTo';
+    dateRangeTo.value = '2026-07-09';
+    dateRangeForm.appendChild(dateRangeTo);
+    document.body.appendChild(dateRangeForm);
+
+    const taskEventsSection = document.createElement('div');
+    taskEventsSection.dataset.section = 'overview-task-events';
+    document.body.appendChild(taskEventsSection);
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      redirected: false,
+      status: 200,
+      text: async () => '<div>Updated overview task events</div>',
+    }) as unknown as typeof fetch;
+
+    await fetchSectionUpdate(dateRangeForm, 'overview-task-events', ajaxDeps);
+
+    expect(taskEventsSection.innerHTML).toContain('Updated overview task events');
+    expect(sharedEventsFrom.value).toBe('2026-06-09');
+    expect(sharedEventsTo.value).toBe('2026-07-09');
+  });
+
+  test('fetchSectionUpdate leaves overview date filters unchanged when no shared filters form exists', async () => {
+    const dateRangeForm = document.createElement('form');
+    dateRangeForm.dataset.analyticsFilters = 'true';
+    dateRangeForm.dataset.ajaxSection = 'overview-task-events';
+    dateRangeForm.action = '/';
+    dateRangeForm.method = 'POST';
+    const dateRangeFrom = document.createElement('input');
+    dateRangeFrom.name = 'eventsFrom';
+    dateRangeFrom.value = '2026-06-09';
+    dateRangeForm.appendChild(dateRangeFrom);
+    const dateRangeTo = document.createElement('input');
+    dateRangeTo.name = 'eventsTo';
+    dateRangeTo.value = '2026-07-09';
+    dateRangeForm.appendChild(dateRangeTo);
+    document.body.appendChild(dateRangeForm);
+
+    const taskEventsSection = document.createElement('div');
+    taskEventsSection.dataset.section = 'overview-task-events';
+    document.body.appendChild(taskEventsSection);
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      redirected: false,
+      status: 200,
+      text: async () => '<div>Updated overview task events</div>',
+    }) as unknown as typeof fetch;
+
+    await fetchSectionUpdate(dateRangeForm, 'overview-task-events', ajaxDeps);
+
+    expect(taskEventsSection.innerHTML).toContain('Updated overview task events');
+    expect(document.querySelector('[data-analytics-filters="true"]')).toBe(dateRangeForm);
+    expect(document.querySelector<HTMLInputElement>('input[name="eventsFrom"][type="hidden"]')).toBeNull();
+    expect(document.querySelector<HTMLInputElement>('input[name="eventsTo"][type="hidden"]')).toBeNull();
+  });
+
+  test('fetchSectionUpdate only syncs overview date filters that exist on the source form', async () => {
+    const sharedFiltersForm = document.createElement('form');
+    sharedFiltersForm.dataset.analyticsFilters = 'true';
+    sharedFiltersForm.action = '/';
+    sharedFiltersForm.method = 'POST';
+    const sharedEventsFrom = document.createElement('input');
+    sharedEventsFrom.type = 'hidden';
+    sharedEventsFrom.name = 'eventsFrom';
+    sharedEventsFrom.value = '2026-06-15';
+    sharedFiltersForm.appendChild(sharedEventsFrom);
+    const sharedEventsTo = document.createElement('input');
+    sharedEventsTo.type = 'hidden';
+    sharedEventsTo.name = 'eventsTo';
+    sharedEventsTo.value = '2026-07-15';
+    sharedFiltersForm.appendChild(sharedEventsTo);
+    document.body.appendChild(sharedFiltersForm);
+
+    const dateRangeForm = document.createElement('form');
+    dateRangeForm.dataset.ajaxSection = 'overview-task-events';
+    dateRangeForm.action = '/';
+    dateRangeForm.method = 'POST';
+    const dateRangeFrom = document.createElement('input');
+    dateRangeFrom.name = 'eventsFrom';
+    dateRangeFrom.value = '2026-06-09';
+    dateRangeForm.appendChild(dateRangeFrom);
+    document.body.appendChild(dateRangeForm);
+
+    const taskEventsSection = document.createElement('div');
+    taskEventsSection.dataset.section = 'overview-task-events';
+    document.body.appendChild(taskEventsSection);
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      redirected: false,
+      status: 200,
+      text: async () => '<div>Updated overview task events</div>',
+    }) as unknown as typeof fetch;
+
+    await fetchSectionUpdate(dateRangeForm, 'overview-task-events', ajaxDeps);
+
+    expect(taskEventsSection.innerHTML).toContain('Updated overview task events');
+    expect(sharedEventsFrom.value).toBe('2026-06-09');
+    expect(sharedEventsTo.value).toBe('2026-07-15');
+  });
+
   test('fetchSharedFiltersUpdate handles abort and non-abort failures', async () => {
     const form = document.createElement('form');
     form.dataset.analyticsFilters = 'true';

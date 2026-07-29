@@ -1,4 +1,4 @@
-import { getAnalyticsFiltersForm, storeScrollPosition } from './forms';
+import { getAnalyticsFiltersForm, setHiddenInput, storeScrollPosition } from './forms';
 import type { SectionRequestManager } from './requestManager';
 
 export type InitAll = (options?: { scope?: HTMLElement }) => void;
@@ -38,6 +38,7 @@ const SECTION_ERROR_SELECTOR = '[data-section-request-error="true"]';
 const SECTION_ERROR_MESSAGE = 'This section could not be updated. Try again.';
 const SECTION_RETRY_LABEL = 'Retry section';
 const sharedFiltersLastAppliedFingerprint = new WeakMap<HTMLFormElement, string>();
+const OVERVIEW_DATE_FILTER_FIELDS = ['eventsFrom', 'eventsTo'] as const;
 
 async function runBounded<T>(
   items: readonly T[],
@@ -259,6 +260,21 @@ async function runManagedSectionRequest({
   }
 }
 
+function syncOverviewDateFilters(sourceForm: HTMLFormElement): void {
+  const sharedFiltersForm = getAnalyticsFiltersForm();
+  if (!sharedFiltersForm || sharedFiltersForm === sourceForm) {
+    return;
+  }
+
+  OVERVIEW_DATE_FILTER_FIELDS.forEach(fieldName => {
+    const sourceInput = sourceForm.querySelector<HTMLInputElement>(`input[name="${fieldName}"]`);
+    if (!sourceInput) {
+      return;
+    }
+    setHiddenInput(sharedFiltersForm, fieldName, sourceInput.value);
+  });
+}
+
 export async function fetchSharedFiltersUpdate(
   form: HTMLFormElement,
   changedFilter: string,
@@ -321,6 +337,9 @@ export async function fetchSectionUpdate(form: HTMLFormElement, sectionId: strin
     request: signal => postAjaxForm(form, { ajaxSection: sectionId }, { signal }),
     applyHtml: html => {
       target.innerHTML = html;
+      if (sectionId === 'overview-task-events') {
+        syncOverviewDateFilters(form);
+      }
       deps.initAll({ scope: target });
       deps.initMojAll({ scope: target });
       deps.rebindSectionBehaviors();

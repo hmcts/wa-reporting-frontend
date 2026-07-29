@@ -39,6 +39,11 @@
       <input type="hidden" name="taskName" value="{{ value }}">
     {% endfor %}
   {% endif %}
+  {% if filters.workType %}
+    {% for value in filters.workType %}
+      <input type="hidden" name="workType" value="{{ value }}">
+    {% endfor %}
+  {% endif %}
   {% if filters.user %}
     {% for value in filters.user %}
       <input type="hidden" name="user" value="{{ value }}">

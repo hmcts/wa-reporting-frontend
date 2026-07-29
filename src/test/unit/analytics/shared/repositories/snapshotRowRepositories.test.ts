@@ -443,12 +443,14 @@ describe('rowRepositoriesHarness', () => {
 
     await rowRepositoriesHarness.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 999, pageSize: 50 });
     const firstQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
-    expect(firstQuery.values.slice(-2)).toEqual([50, 450]);
+    expect(normaliseSql(firstQuery.sql)).toContain('LIMIT 50 OFFSET 450');
+    expect(firstQuery.values).not.toEqual(expect.arrayContaining([50, 450]));
 
     (tmPrisma.$queryRaw as jest.Mock).mockClear();
     await rowRepositoriesHarness.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 2, pageSize: 9000 });
     const secondQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
-    expect(secondQuery.values.slice(-2)).toEqual([500, 0]);
+    expect(normaliseSql(secondQuery.sql)).toContain('LIMIT 500 OFFSET 0');
+    expect(secondQuery.values).not.toContain(500);
   });
 
   test('normalises pagination with non-finite and negative page sizes', async () => {
@@ -459,15 +461,15 @@ describe('rowRepositoriesHarness', () => {
       pageSize: Number.NaN,
     });
     const nonFinite = latestQuery();
-    expect(nonFinite.values.slice(-2)).toEqual([1, 6]);
+    expect(normaliseSql(nonFinite.sql)).toContain('LIMIT 1 OFFSET 6');
 
     await rowRepositoriesHarness.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 1, pageSize: -20 });
     const negative = latestQuery();
-    expect(negative.values.slice(-2)).toEqual([1, 0]);
+    expect(normaliseSql(negative.sql)).toContain('LIMIT 1 OFFSET 0');
 
     await rowRepositoriesHarness.fetchOutstandingCriticalTaskRows(snapshotId, {}, sort, { page: 2, pageSize: 2.9 });
     const decimal = latestQuery();
-    expect(decimal.values.slice(-2)).toEqual([2, 2]);
+    expect(normaliseSql(decimal.sql)).toContain('LIMIT 2 OFFSET 2');
   });
 
   test('uses query-time priority sorting and indexed within-due ordering', async () => {
@@ -544,8 +546,10 @@ describe('rowRepositoriesHarness', () => {
     expect(query.sql).toContain("state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED')");
     expect(query.sql).toContain('created_date IS NOT NULL');
     expect(query.sql).not.toContain("state NOT IN ('COMPLETED', 'TERMINATED')");
+    expect(query.sql).toContain('LIMIT');
     expect(query.values).toContain(snapshotId);
     expect(query.values).toContain('North');
+    expect(query.values).toContain(500);
   });
 
   test('returns zero when outstanding critical task count query returns no rows', async () => {
