@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS cft_task_db.reportable_task (
   created_date DATE,
   due_date DATE,
   completed_date DATE,
+  last_updated_date DATE,
   due_date_to_completed_diff_time INTERVAL,
   first_assigned_date DATE,
   major_priority INTEGER,
