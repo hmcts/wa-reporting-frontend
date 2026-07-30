@@ -37,19 +37,22 @@ describe('analytics location reference snapshot SQL', () => {
   test.each([
     ['current-state schema', currentStateSql],
     ['V019 migration', migrationSql],
-  ])('%s resolves region from case-type lookup then generic EPIMMS fallback before raw source region', (_label, sql) => {
-    const normalised = normaliseSql(sql);
+  ])(
+    '%s resolves region from case-type lookup then generic EPIMMS fallback before raw source region',
+    (_label, sql) => {
+      const normalised = normaliseSql(sql);
 
-    expect(normalised).toMatch(
-      /COALESCE\( case_type_location\.region_id, epimms_location\.region_id, NULLIF\(BTRIM\(source\.region\), ''\)\s*\) AS region/
-    );
-    expect(normalised).toContain(
-      "LEFT JOIN analytics.court_venue_case_type_lookup case_type_location ON case_type_location.epimms_id = NULLIF(BTRIM(source.location), '') AND case_type_location.ccd_case_type = source.case_type_id"
-    );
-    expect(normalised).toContain(
-      "LEFT JOIN analytics.court_venue_epimms_lookup epimms_location ON epimms_location.epimms_id = NULLIF(BTRIM(source.location), '')"
-    );
-  });
+      expect(normalised).toMatch(
+        /COALESCE\( case_type_location\.region_id, epimms_location\.region_id, NULLIF\(BTRIM\(source\.region\), ''\)\s*\) AS region/
+      );
+      expect(normalised).toContain(
+        "LEFT JOIN analytics.court_venue_case_type_lookup case_type_location ON case_type_location.epimms_id = NULLIF(BTRIM(source.location), '') AND case_type_location.ccd_case_type = source.case_type_id"
+      );
+      expect(normalised).toContain(
+        "LEFT JOIN analytics.court_venue_epimms_lookup epimms_location ON epimms_location.epimms_id = NULLIF(BTRIM(source.location), '')"
+      );
+    }
+  );
 
   test.each([
     ['current-state schema', currentStateSql],
