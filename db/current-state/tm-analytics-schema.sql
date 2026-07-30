@@ -1004,12 +1004,13 @@ BEGIN
     source.termination_reason,
     LOWER(COALESCE(source.termination_reason, '')) AS termination_reason_lower,
     source.termination_process_label,
-    source.outcome,
+    LOWER(COALESCE(source.outcome, '')) AS outcome_lower,
     source.work_type,
     source.is_within_sla,
     source.created_date,
     source.due_date,
     source.completed_date,
+    source.last_updated_date AS last_updated_date,
     source.first_assigned_date,
     source.major_priority,
     source.assignee,
@@ -1061,15 +1062,17 @@ BEGIN
     created_date,
     due_date,
     completed_date,
+    last_updated_date,
     handling_time_days,
     processing_time_days,
+    outcome_lower,
     CASE
       WHEN state = 'ASSIGNED' THEN 'Assigned'
       WHEN state IN ('UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED') THEN 'Unassigned'
       ELSE NULL
     END AS assignment_state,
     CASE
-      WHEN termination_reason_lower = 'completed' THEN 'completed'
+      WHEN outcome_lower = 'completed' THEN 'completed'
       WHEN state IN ('ASSIGNED', 'UNASSIGNED', 'PENDING AUTO ASSIGN', 'UNCONFIGURED') THEN 'open'
       ELSE 'other'
     END AS task_status,
@@ -1536,13 +1539,13 @@ BEGIN
       handling_time_days,
       is_within_sla,
       termination_process_label,
-      outcome,
+      outcome_lower,
       major_priority,
       assignee,
       number_of_reassignments,
       within_due_sort_value
     FROM tmp_snapshot_source
-    WHERE termination_reason_lower = 'completed'
+    WHERE outcome_lower = 'completed'
     $completed_rows_insert$,
     p_completed_rows_table
   )
@@ -1587,7 +1590,7 @@ BEGIN
       COUNT(*)::int AS days_beyond_count
     FROM tmp_snapshot_source
     WHERE completed_date IS NOT NULL
-      AND termination_reason_lower = 'completed'
+      AND outcome_lower = 'completed'
     GROUP BY
       assignee,
       jurisdiction_label,
@@ -1744,7 +1747,7 @@ BEGIN
       COUNT(processing_time_days)::bigint AS processing_time_days_count
     FROM tmp_snapshot_fact_source
     WHERE completed_date IS NOT NULL
-      AND termination_reason_lower = 'completed'
+      AND outcome_lower = 'completed'
     GROUP BY
       completed_date,
       jurisdiction_label,
@@ -1854,7 +1857,7 @@ BEGIN
       COUNT(*)::bigint AS task_count
     FROM tmp_snapshot_fact_source
     WHERE completed_date IS NOT NULL
-      AND termination_reason_lower = 'completed'
+      AND outcome_lower = 'completed'
     GROUP BY
       completed_date,
       jurisdiction_label,
@@ -1868,7 +1871,7 @@ BEGIN
 
     SELECT
       $1,
-      completed_date AS event_date,
+      last_updated_date AS event_date,
       'cancelled'::text AS event_type,
       jurisdiction_label,
       role_category_label,
@@ -1878,10 +1881,10 @@ BEGIN
       work_type,
       COUNT(*)::bigint AS task_count
     FROM tmp_snapshot_fact_source
-    WHERE completed_date IS NOT NULL
-      AND termination_reason_lower = 'deleted'
+    WHERE last_updated_date IS NOT NULL
+      AND outcome_lower = 'cancelled'
     GROUP BY
-      completed_date,
+      last_updated_date,
       jurisdiction_label,
       role_category_label,
       region,
