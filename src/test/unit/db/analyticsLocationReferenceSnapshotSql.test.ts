@@ -53,7 +53,7 @@ describe('analytics location reference snapshot SQL', () => {
 
   test.each([
     ['current-state schema', currentStateSql],
-    ['V016 migration', locationMigrationSql],
+    ['V019 migration', migrationSql],
   ])('%s persists raw location_id on row-level snapshot tables', (_label, sql) => {
     const normalised = normaliseSql(sql);
 
