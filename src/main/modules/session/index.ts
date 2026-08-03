@@ -9,6 +9,8 @@ import { getRedisClient } from '../redis';
 export class AppSession {
   private readonly sessionSecret: string = config.get('secrets.wa.wa-reporting-frontend-session-secret');
   private readonly cookieName: string = config.get('session.appCookie.name');
+  private readonly inactivityTimeoutMilliseconds: number =
+    config.get<number>('session.inactivityTimeoutMinutes') * 60 * 1000;
 
   public enableFor(app: Application): void {
     const store = this.createSessionStore(app);
@@ -24,6 +26,7 @@ export class AppSession {
         cookie: {
           httpOnly: true,
           sameSite: 'lax',
+          maxAge: this.inactivityTimeoutMilliseconds,
         },
       })
     );

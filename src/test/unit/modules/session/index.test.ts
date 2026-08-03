@@ -11,6 +11,7 @@ const expectSessionSecurityOptions = (sessionMiddleware: jest.Mock, store: unkno
     cookie: {
       httpOnly: true,
       sameSite: 'lax',
+      maxAge: 30 * 60 * 1000,
     },
   });
 };
@@ -25,6 +26,7 @@ describe('AppSession module', () => {
     const configValues: Record<string, unknown> = {
       'secrets.wa.wa-reporting-frontend-session-secret': 'secret',
       'session.appCookie.name': 'app-cookie',
+      'session.inactivityTimeoutMinutes': 30,
       'secrets.wa.wa-reporting-redis-host': 'redis-host',
       'secrets.wa.wa-reporting-redis-port': 6379,
       'secrets.wa.wa-reporting-redis-access-key': 'redis-key',
@@ -73,6 +75,7 @@ describe('AppSession module', () => {
     const configValues: Record<string, unknown> = {
       'secrets.wa.wa-reporting-frontend-session-secret': 'secret',
       'session.appCookie.name': 'app-cookie',
+      'session.inactivityTimeoutMinutes': 30,
       'secrets.wa.wa-reporting-redis-host': 'redis-host',
       'secrets.wa.wa-reporting-redis-port': 6379,
       'secrets.wa.wa-reporting-redis-access-key': '',
@@ -119,6 +122,7 @@ describe('AppSession module', () => {
     const configValues: Record<string, unknown> = {
       'secrets.wa.wa-reporting-frontend-session-secret': 'secret',
       'session.appCookie.name': 'app-cookie',
+      'session.inactivityTimeoutMinutes': 30,
       'secrets.wa.wa-reporting-redis-host': undefined,
       'secrets.wa.wa-reporting-redis-port': undefined,
       'secrets.wa.wa-reporting-redis-access-key': undefined,

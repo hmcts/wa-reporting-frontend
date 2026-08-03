@@ -55,6 +55,8 @@ const toSafeErrorDetails = (error: unknown): Record<string, number | string> => 
   return details;
 };
 
+const minutesToSeconds = (minutes: number): number => minutes * 60;
+
 export class OidcMiddleware {
   private readonly logger = Logger.getLogger('OidcMiddleware');
   private readonly clientId: string = config.get('services.idam.clientID');
@@ -68,6 +70,7 @@ export class OidcMiddleware {
     config.get('RBAC.roleAssignmentRoleNames')
   );
   private readonly sessionCookieName: string = config.get('session.cookie.name');
+  private readonly inactivityTimeoutSeconds: number = minutesToSeconds(config.get('session.inactivityTimeoutMinutes'));
   private readonly roleAssignmentClient: RoleAssignmentClient = new RoleAssignmentClient(
     config.get('services.roleAssignment.url'),
     new S2sTokenClient(config.get('services.s2s.url'), config.get('secrets.wa.wa-reporting-frontend-s2s-secret'))
@@ -90,7 +93,7 @@ export class OidcMiddleware {
         },
         session: {
           name: this.sessionCookieName,
-          rollingDuration: 60 * 60,
+          rollingDuration: this.inactivityTimeoutSeconds,
           cookie: {
             httpOnly: true,
           },
