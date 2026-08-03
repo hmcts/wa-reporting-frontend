@@ -156,7 +156,7 @@
     "webpack-node-externals": "^3.0.0"
   },
   "resolutions": {
-    "@hono/node-server": "npm:@hono/node-server@2.0.11",
+    "@hono/node-server": "npm:@hono/node-server@2.0.12",
     "@opentelemetry/propagator-jaeger": "npm:2.10.0",
     "fast-uri": "npm:3.1.4",
     "brace-expansion": "^5.0.8",
