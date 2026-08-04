@@ -62,7 +62,7 @@
     "express": "^5.2.1",
     "express-nunjucks": "^3.1.2",
     "express-openid-connect": "^3.2.0",
-    "express-rate-limit": "^8.6.0",
+    "express-rate-limit": "^8.6.1",
     "express-session": "^1.19.0",
     "glob": "^13.0.6",
     "govuk-frontend": "^6.4.0",
@@ -156,11 +156,12 @@
     "webpack-node-externals": "^3.0.0"
   },
   "resolutions": {
-    "@hono/node-server": "npm:@hono/node-server@2.0.12",
     "@opentelemetry/propagator-jaeger": "npm:2.10.0",
-    "fast-uri": "npm:3.1.4",
-    "brace-expansion": "^5.0.8",
+    "fast-uri": "npm:4.1.2",
+    "brace-expansion": "npm:5.0.9",
     "find-my-way": "npm:9.7.0",
+    "ip-address": "npm:10.4.0",
+    "undici": "npm:8.9.0",
     "valibot": "npm:1.4.2"
   },
   "husky": {
