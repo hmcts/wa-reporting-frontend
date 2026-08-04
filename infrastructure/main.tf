@@ -3,12 +3,13 @@ provider "azurerm" {
 }
 
 locals {
-  resourceGroup    = "${var.product}-${var.env}"
-  vaultName        = "${var.product}-${var.env}"
-  rdVaultName      = "rd-${var.env}"
-  rdResourceGroup  = "rd-${var.env}"
-  s2sVaultName     = "s2s-${var.env}"
-  s2sResourceGroup = "rpe-service-auth-provider-${var.env}"
+  resourceGroup              = "${var.product}-${var.env}"
+  vaultName                  = "${var.product}-${var.env}"
+  rdVaultName                = "rd-${var.env}"
+  rdResourceGroup            = "rd-${var.env}"
+  s2sVaultName               = "s2s-${var.env}"
+  s2sResourceGroup           = "rpe-service-auth-provider-${var.env}"
+  managed_redis_environments = ["aat", "demo", "perftest", "ithc"]
 }
 
 data "azurerm_key_vault" "wa_key_vault" {
@@ -24,6 +25,14 @@ data "azurerm_key_vault" "rd_key_vault" {
 data "azurerm_key_vault" "s2s_key_vault" {
   name                = local.s2sVaultName
   resource_group_name = local.s2sResourceGroup
+}
+
+data "azurerm_subnet" "redis_private_endpoint" {
+  for_each = toset(contains(local.managed_redis_environments, var.env) ? [var.env] : [])
+
+  name                 = "core-infra-subnet-2-${var.env}"
+  resource_group_name  = "core-infra-${var.env}"
+  virtual_network_name = "core-infra-vnet-${var.env}"
 }
 
 data "azurerm_key_vault_secret" "source_caseworker_ref_api_postgres_user" {
@@ -86,6 +95,51 @@ resource "azurerm_key_vault_secret" "redis_access_key" {
   name  = "wa-reporting-redis-access-key"
   value = module.redis.access_key
 
+  key_vault_id = data.azurerm_key_vault.wa_key_vault.id
+}
+
+module "managed_redis" {
+  for_each = toset(contains(local.managed_redis_environments, var.env) ? [var.env] : [])
+  source   = "git@github.com:hmcts/terraform-module-azure-managed-redis?ref=main"
+
+  product     = var.product
+  component   = var.component
+  env         = var.env
+  location    = var.location
+  common_tags = var.common_tags
+
+  sku_name = var.managed_redis_sku
+
+  public_network_access   = "Disabled"
+  create_private_endpoint = true
+  subnet_id               = data.azurerm_subnet.redis_private_endpoint[each.key].id
+  private_dns_zone_ids    = ["/subscriptions/${var.private_dns_subscription_id}/resourceGroups/core-infra-intsvc-rg/providers/Microsoft.Network/privateDnsZones/privatelink.redis.azure.net"]
+
+  access_keys_authentication_enabled = true
+  persistence_rdb_backup_frequency   = var.managed_redis_persistence_rdb_frequency
+}
+
+resource "azurerm_key_vault_secret" "managed_redis_host" {
+  for_each = module.managed_redis
+
+  name         = "azure-managed-redis-host"
+  value        = each.value.hostname
+  key_vault_id = data.azurerm_key_vault.wa_key_vault.id
+}
+
+resource "azurerm_key_vault_secret" "managed_redis_port" {
+  for_each = module.managed_redis
+
+  name         = "azure-managed-redis-port"
+  value        = tostring(each.value.port)
+  key_vault_id = data.azurerm_key_vault.wa_key_vault.id
+}
+
+resource "azurerm_key_vault_secret" "managed_redis_access_key" {
+  for_each = module.managed_redis
+
+  name         = "azure-managed-redis-access-key"
+  value        = each.value.primary_access_key
   key_vault_id = data.azurerm_key_vault.wa_key_vault.id
 }
 
