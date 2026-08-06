@@ -3868,16 +3868,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@opentelemetry/instrumentation-express@npm:^0.68.0":
-  version: 0.68.0
-  resolution: "@opentelemetry/instrumentation-express@npm:0.68.0"
+"@opentelemetry/instrumentation-express@npm:^0.69.0":
+  version: 0.69.0
+  resolution: "@opentelemetry/instrumentation-express@npm:0.69.0"
   dependencies:
-    "@opentelemetry/core": "npm:^2.0.0"
-    "@opentelemetry/instrumentation": "npm:^0.220.0"
+    "@opentelemetry/core": "npm:^2.9.0"
+    "@opentelemetry/instrumentation": "npm:^0.221.0"
     "@opentelemetry/semantic-conventions": "npm:^1.27.0"
   peerDependencies:
     "@opentelemetry/api": ^1.3.0
-  checksum: 10/09a96ee395d6c84320daa6c15f8bcaeef0a3f78fa22cd13276418530270517c6faf42e542f58b7e4c4d14989ab66eaedc19eb7b7ce1ae3d495c91a2aefc813ea
+  checksum: 10/3f270aa96392f05187db118ce6210f5d3c7bd68702f895a020c49b5a72830f7ef26abc762bf8ac9972bbea8df3890ed1c00f8e714d2a75cff68eff4eb94a0ad3
   languageName: node
   linkType: hard
 
@@ -6062,13 +6062,13 @@ __metadata:
   linkType: hard
 
 "@types/pg@npm:*, @types/pg@npm:^8.16.0, @types/pg@npm:^8.20.0":
-  version: 8.20.0
-  resolution: "@types/pg@npm:8.20.0"
+  version: 8.20.3
+  resolution: "@types/pg@npm:8.20.3"
   dependencies:
     "@types/node": "npm:*"
     pg-protocol: "npm:*"
     pg-types: "npm:^2.2.0"
-  checksum: 10/3fb5be6e02de5c1a519acfbcb73647864e0d118bd09d0dea9b02091992095094e1ba150454c1175fd0127a596947e7216e15ff9b6162cd7792b62effce6aa751
+  checksum: 10/c4a9ccf97b16335ad8a7d592dd29448c6a808cab4b26c9be82a50c638170d80b75bd57e8132e022ad7a8f79cb9e5ebfee1a5cacaac74aa9e941646a7469ba628
   languageName: node
   linkType: hard
 
@@ -7732,14 +7732,14 @@ __metadata:
   linkType: hard
 
 "axios@npm:^1.18.1":
-  version: 1.18.1
-  resolution: "axios@npm:1.18.1"
+  version: 1.19.0
+  resolution: "axios@npm:1.19.0"
   dependencies:
     follow-redirects: "npm:^1.16.0"
-    form-data: "npm:^4.0.5"
+    form-data: "npm:^4.0.6"
     https-proxy-agent: "npm:^5.0.1"
     proxy-from-env: "npm:^2.1.0"
-  checksum: 10/c4cdced3ee0a9bf7dcae189fbc74a124aa079d4f04dbd995e602d39c1419476e8d021f87ee39ac8d8398e5a55e6d0b986238b3645f0d9177ac80de87c2a73f18
+  checksum: 10/d27e263b003f2dc1e6d0e2ab062dbc7c2b15668c25723e1e2072f139505c1fbd1f8cffef77d5ec05bb8e3cefa6fc5325c6446e747669fd95d85519529fa0db0b
   languageName: node
   linkType: hard
 
@@ -9912,14 +9912,14 @@ __metadata:
   linkType: hard
 
 "express-rate-limit@npm:^8.6.1":
-  version: 8.6.1
-  resolution: "express-rate-limit@npm:8.6.1"
+  version: 8.6.2
+  resolution: "express-rate-limit@npm:8.6.2"
   dependencies:
     debug: "npm:^4.4.3"
     ip-address: "npm:^10.2.0"
   peerDependencies:
     express: ">= 4.11"
-  checksum: 10/55e40d693fcb9b7dc1adb48e0d83b3552e902982d80ec1812ba3b60deaffda8b0c12392253018b1c70772df4c0fd40c040dad85dc18349e1e025aa3c8fc70aa2
+  checksum: 10/cf9d2a286821a650890366ed14f3d582293175b6f540e3f64b5fd276201cacef6c1e218448dd54f4a1e860de48c395e3d8ddda4d4a032812266a19d8d947208a
   languageName: node
   linkType: hard
 
@@ -10285,7 +10285,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"form-data@npm:^4.0.0, form-data@npm:^4.0.5":
+"form-data@npm:^4.0.0, form-data@npm:^4.0.5, form-data@npm:^4.0.6":
   version: 4.0.6
   resolution: "form-data@npm:4.0.6"
   dependencies:
@@ -16524,7 +16524,7 @@ __metadata:
     "@ministryofjustice/frontend": "npm:^10.0.1"
     "@opentelemetry/api": "npm:^1.9.1"
     "@opentelemetry/instrumentation": "npm:^0.221.0"
-    "@opentelemetry/instrumentation-express": "npm:^0.68.0"
+    "@opentelemetry/instrumentation-express": "npm:^0.69.0"
     "@opentelemetry/instrumentation-winston": "npm:^0.65.0"
     "@playwright/test": "npm:^1.61.1"
     "@prisma/adapter-pg": "npm:^7.9.0"
@@ -16672,8 +16672,8 @@ __metadata:
   linkType: hard
 
 "webpack-cli@npm:^7.2.1":
-  version: 7.2.1
-  resolution: "webpack-cli@npm:7.2.1"
+  version: 7.2.2
+  resolution: "webpack-cli@npm:7.2.2"
   dependencies:
     "@discoveryjs/json-ext": "npm:^1.1.0"
     commander: "npm:^14.0.3"
@@ -16703,7 +16703,7 @@ __metadata:
       optional: true
   bin:
     webpack-cli: bin/cli.js
-  checksum: 10/0dd3e550549b5b5a693621f5f26b5621a0344bce195d977882aa97ad6c3262d056d637b9b140ae52608b72958d4b15c89458e1b73da087cef3bcec9bd7994711
+  checksum: 10/c010aabe502e2c1caa1fa7ea42ce4b107b96e47ed5b2b3761283ef1c9bd508b3f51e6cce7365833346a85ae0dd50419160c2be0001f37d83a950269073e738a7
   languageName: node
   linkType: hard
 
