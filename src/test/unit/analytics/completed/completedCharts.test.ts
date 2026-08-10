@@ -33,7 +33,7 @@ describe('completedCharts', () => {
     expect(config.layout.xaxis.fixedrange).toBe(false);
     expect(config.layout.yaxis.title.text).toBe('Tasks');
     expect(config.behaviors.autoFitYAxesOnXZoom).toEqual([
-      { axis: 'y', strategy: 'stacked-bar-and-line-max', paddingRatio: 0.05, minUpperBound: 1 },
+      { axis: 'y', strategy: 'stacked-bar-and-line-max', paddingRatio: 0, minUpperBound: 1 },
     ]);
   });
 
@@ -112,7 +112,7 @@ describe('completedCharts', () => {
     expect(config.layout.yaxis.fixedrange).toBe(true);
     expect(config.layout.yaxis.rangemode).toBe('tozero');
     expect(config.behaviors.autoFitYAxesOnXZoom).toEqual([
-      { axis: 'y', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 },
+      { axis: 'y', strategy: 'line-extents', paddingRatio: 0, minUpperBound: 1 },
     ]);
   });
 
@@ -176,6 +176,7 @@ describe('completedCharts', () => {
     expect(config.data[0].line.width).toBe(3);
     expect(config.data[1].line.width).toBe(2);
     expect(config.data[2].line.width).toBe(2);
+    expect(config.layout.margin.t).toBe(40);
     expect(config.layout.margin.b).toBe(60);
   });
 });

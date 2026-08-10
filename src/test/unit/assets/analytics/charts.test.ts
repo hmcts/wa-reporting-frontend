@@ -53,7 +53,7 @@ describe('analytics charts', () => {
       data: [{ y: ['A', 'B'] }],
       layout: { margin: { l: 10 } },
       behaviors: {
-        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 }],
+        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'line-extents', paddingRatio: 0, minUpperBound: 1 }],
       },
     });
     chartNode.dataset.scrollPan = 'true';
@@ -118,11 +118,11 @@ describe('analytics charts', () => {
 
     bindAutoFitYAxesOnXZoom(node, {
       data: [
-        { type: 'bar', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [1, 2, 10] },
-        { type: 'bar', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [0, 1, 5] },
+        { type: 'bar', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [1000, 2600, 10000] },
+        { type: 'bar', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [100, 600, 5000] },
       ],
       behaviors: {
-        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0.05, minUpperBound: 1 }],
+        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0, minUpperBound: 1 }],
       },
     });
 
@@ -130,7 +130,8 @@ describe('analytics charts', () => {
 
     expect(Plotly.relayout).toHaveBeenCalledWith(node, {
       'yaxis.autorange': false,
-      'yaxis.range': [0, 3.1500000000000004],
+      'yaxis.range': [0, 3500],
+      'yaxis.dtick': 500,
     });
   });
 
@@ -160,7 +161,7 @@ describe('analytics charts', () => {
         { type: 'scatter', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [2, 4, 10] },
       ],
       behaviors: {
-        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 }],
+        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'line-extents', paddingRatio: 0, minUpperBound: 1 }],
       },
     });
 
@@ -168,7 +169,8 @@ describe('analytics charts', () => {
 
     expect(Plotly.relayout).toHaveBeenLastCalledWith(node, {
       'yaxis.autorange': false,
-      'yaxis.range': [0, 4.2],
+      'yaxis.range': [0, 4.5],
+      'yaxis.dtick': 0.5,
     });
 
     (Plotly.relayout as jest.Mock).mockClear();
@@ -211,7 +213,8 @@ describe('analytics charts', () => {
 
     expect(Plotly.relayout).toHaveBeenCalledWith(node, {
       'yaxis.autorange': false,
-      'yaxis.range': [0, 6.6000000000000005],
+      'yaxis.range': [0, 7],
+      'yaxis.dtick': 1,
     });
   });
 
@@ -243,10 +246,14 @@ describe('analytics charts', () => {
         { type: 'bar', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [0, 1, 4] },
         { type: 'scatter', x: ['2024-01-01', '2024-01-02', '2024-01-03'], y: [2, 4, 20], yaxis: 'y2' },
       ],
+      layout: {
+        yaxis: { range: [0, 16], dtick: 2 },
+        yaxis2: { range: [0, 25], dtick: 5 },
+      },
       behaviors: {
         autoFitYAxesOnXZoom: [
-          { axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0.05, minUpperBound: 1 },
-          { axis: 'y2', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 },
+          { axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0, minUpperBound: 1 },
+          { axis: 'y2', strategy: 'line-extents', paddingRatio: 0, minUpperBound: 1 },
         ],
       },
     });
@@ -256,9 +263,11 @@ describe('analytics charts', () => {
 
     expect(Plotly.relayout).toHaveBeenLastCalledWith(node, {
       'yaxis.autorange': false,
-      'yaxis.range': [0, 3.1500000000000004],
+      'yaxis.range': [0, 3.5],
+      'yaxis.dtick': 0.5,
       'yaxis2.autorange': false,
-      'yaxis2.range': [0, 4.2],
+      'yaxis2.range': [0, 4.5],
+      'yaxis2.dtick': 0.5,
     });
 
     (Plotly.relayout as jest.Mock).mockClear();
@@ -272,10 +281,12 @@ describe('analytics charts', () => {
     await flushPromises();
 
     expect(Plotly.relayout).toHaveBeenCalledWith(node, {
-      'yaxis.autorange': true,
-      'yaxis.range': null,
-      'yaxis2.autorange': true,
-      'yaxis2.range': null,
+      'yaxis.autorange': false,
+      'yaxis.range': [0, 16],
+      'yaxis.dtick': 2,
+      'yaxis2.autorange': false,
+      'yaxis2.range': [0, 25],
+      'yaxis2.dtick': 5,
     });
   });
 
@@ -302,7 +313,7 @@ describe('analytics charts', () => {
     bindAutoFitYAxesOnXZoom(node, {
       data: [{ type: 'scatter', x: ['2024-01-01'], y: [1] }],
       behaviors: {
-        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 }],
+        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'line-extents', paddingRatio: 0, minUpperBound: 1 }],
       },
     });
 
@@ -358,6 +369,7 @@ describe('analytics charts', () => {
     expect(Plotly.relayout).toHaveBeenLastCalledWith(node, {
       'yaxis.autorange': false,
       'yaxis.range': [0, 7],
+      'yaxis.dtick': 1,
     });
   });
 
@@ -396,7 +408,8 @@ describe('analytics charts', () => {
 
     expect(Plotly.relayout).toHaveBeenLastCalledWith(node, {
       'yaxis.autorange': false,
-      'yaxis.range': [0, 3.1500000000000004],
+      'yaxis.range': [0, 3.5],
+      'yaxis.dtick': 0.5,
     });
   });
 
@@ -439,7 +452,7 @@ describe('analytics charts', () => {
     bindAutoFitYAxesOnXZoom(node, {
       data: [{ type: 'scatter', x: ['2024-01-01', '2024-01-02'], y: [1, 2] }],
       behaviors: {
-        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 }],
+        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'line-extents', paddingRatio: 0, minUpperBound: 1 }],
       },
     });
 
@@ -454,7 +467,7 @@ describe('analytics charts', () => {
     bindAutoFitYAxesOnXZoom(node, {
       data: [{ type: 'scatter', x: ['2024-01-01', '2024-01-02'], y: [1, 2] }],
       behaviors: {
-        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 }],
+        autoFitYAxesOnXZoom: [{ axis: 'y', strategy: 'line-extents', paddingRatio: 0, minUpperBound: 1 }],
       },
     });
 

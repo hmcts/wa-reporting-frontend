@@ -49,8 +49,8 @@ describe('userOverviewCharts', () => {
     expect(config.layout.yaxis2.fixedrange).toBe(true);
     expect(config.layout.yaxis2.rangemode).toBe('tozero');
     expect(config.behaviors.autoFitYAxesOnXZoom).toEqual([
-      { axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0.05, minUpperBound: 1 },
-      { axis: 'y2', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 },
+      { axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0, minUpperBound: 1 },
+      { axis: 'y2', strategy: 'line-extents', paddingRatio: 0, minUpperBound: 1 },
     ]);
   });
 

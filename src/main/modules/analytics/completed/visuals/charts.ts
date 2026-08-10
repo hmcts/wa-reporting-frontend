@@ -118,7 +118,7 @@ export function buildProcessingHandlingTimeChart(
       axisTitles: { x: 'Completed date', y: 'Days' },
       layoutOverrides: {
         xaxis: { automargin: true },
-        margin: { t: 20, b: 60 },
+        margin: { t: 40, b: 60 },
         yaxis: { automargin: true, fixedrange: true, rangemode: 'tozero' },
       },
     }
