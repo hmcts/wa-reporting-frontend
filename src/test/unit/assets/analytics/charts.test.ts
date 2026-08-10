@@ -218,7 +218,7 @@ describe('analytics charts', () => {
     });
   });
 
-  test('auto-fits dual-axis charts and restores autorange on reset', async () => {
+  test('auto-fits dual-axis charts and restores configured full-data ranges on reset', async () => {
     const node = document.createElement('div');
     const plotlyNode = node as unknown as {
       _fullLayout?: {

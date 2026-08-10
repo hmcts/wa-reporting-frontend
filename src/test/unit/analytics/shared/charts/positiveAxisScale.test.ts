@@ -20,19 +20,28 @@ describe('buildPositiveAxisScale', () => {
     }
   );
 
-  test('normalises invalid options and respects valid explicit options', () => {
+  test('falls back to default options when supplied options are not finite', () => {
     expect(buildPositiveAxisScale(3, { paddingRatio: Number.NaN, minUpperBound: Number.NaN })).toEqual({
       range: [0, 3.5],
       dtick: 0.5,
     });
+  });
+
+  test('respects an explicit minimum upper bound', () => {
     expect(buildPositiveAxisScale(5, { paddingRatio: 0, minUpperBound: 7 })).toEqual({
       range: [0, 7],
       dtick: 1,
     });
+  });
+
+  test('supports optional padding before rounding the upper bound', () => {
     expect(buildPositiveAxisScale(2.4, { paddingRatio: 0.05 })).toEqual({
       range: [0, 3],
       dtick: 0.5,
     });
+  });
+
+  test('normalises negative options', () => {
     expect(buildPositiveAxisScale(0, { paddingRatio: -1, minUpperBound: 0 })).toEqual({
       range: [0, 1],
       dtick: 0.2,

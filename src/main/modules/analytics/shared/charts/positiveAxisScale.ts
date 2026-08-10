@@ -1,11 +1,20 @@
 const TARGET_TICK_INTERVAL_COUNT = 6;
-const DEFAULT_PADDING_RATIO = 0;
-const DEFAULT_MINIMUM_UPPER_BOUND = 1;
+const ROUNDING_TOLERANCE = 1e-12;
 
 type PositiveAxisScaleOptions = {
   paddingRatio?: number;
   minUpperBound?: number;
 };
+
+export type PlotlyAutoFitAxisRule = PositiveAxisScaleOptions & {
+  axis: 'y' | 'y2';
+  strategy: 'stacked-bar-sum' | 'stacked-bar-and-line-max' | 'line-extents';
+};
+
+export const defaultPositiveAxisScaleOptions = {
+  paddingRatio: 0,
+  minUpperBound: 1,
+} as const satisfies Required<PositiveAxisScaleOptions>;
 
 export type PositiveAxisScale = {
   range: [number, number];
@@ -31,15 +40,18 @@ function buildNiceTickInterval(roughInterval: number): number {
 
 export function buildPositiveAxisScale(
   rawMaximum: number,
-  { paddingRatio = DEFAULT_PADDING_RATIO, minUpperBound = DEFAULT_MINIMUM_UPPER_BOUND }: PositiveAxisScaleOptions = {}
+  {
+    paddingRatio = defaultPositiveAxisScaleOptions.paddingRatio,
+    minUpperBound = defaultPositiveAxisScaleOptions.minUpperBound,
+  }: PositiveAxisScaleOptions = {}
 ): PositiveAxisScale {
   const maximum = normaliseFiniteNonNegative(rawMaximum, 0);
   const minimumUpperBound =
-    Number.isFinite(minUpperBound) && minUpperBound > 0 ? minUpperBound : DEFAULT_MINIMUM_UPPER_BOUND;
-  const padding = normaliseFiniteNonNegative(paddingRatio, DEFAULT_PADDING_RATIO);
+    Number.isFinite(minUpperBound) && minUpperBound > 0 ? minUpperBound : defaultPositiveAxisScaleOptions.minUpperBound;
+  const padding = normaliseFiniteNonNegative(paddingRatio, defaultPositiveAxisScaleOptions.paddingRatio);
   const targetUpperBound = Math.max(minimumUpperBound, maximum * (1 + padding));
   const tickInterval = buildNiceTickInterval(targetUpperBound / TARGET_TICK_INTERVAL_COUNT);
-  let intervalCount = Math.ceil(targetUpperBound / tickInterval - 1e-12);
+  let intervalCount = Math.ceil(targetUpperBound / tickInterval - ROUNDING_TOLERANCE);
   if (normalisePrecision(intervalCount * tickInterval) <= maximum) {
     intervalCount += 1;
   }

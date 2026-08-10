@@ -89,9 +89,9 @@ describe('completedCharts', () => {
             handlingStdDevDays: 0.5,
             handlingSumDays: 2,
             handlingCount: 2,
-            processingAverageDays: 2.5,
-            processingStdDevDays: 0.5,
-            processingSumDays: 5,
+            processingAverageDays: 2,
+            processingStdDevDays: 0.4,
+            processingSumDays: 4,
             processingCount: 2,
           },
         ],
@@ -99,9 +99,9 @@ describe('completedCharts', () => {
       )
     );
 
-    expect(config.data[0].y).toEqual([2.5]);
-    expect(config.data[1].y).toEqual([3]);
-    expect(config.data[2].y).toEqual([2]);
+    expect(config.data[0].y).toEqual([2]);
+    expect(config.data[1].y).toEqual([2.4]);
+    expect(config.data[2].y).toEqual([1.6]);
     expect(config.data[0].name).toBe('Average (days)');
     expect(config.data[1].name).toBe('Upper range (+1 std)');
     expect(config.data[2].name).toBe('Lower range (-1 std)');
@@ -111,6 +111,8 @@ describe('completedCharts', () => {
     expect(config.layout.yaxis.title.text).toBe('Days');
     expect(config.layout.yaxis.fixedrange).toBe(true);
     expect(config.layout.yaxis.rangemode).toBe('tozero');
+    expect(config.layout.yaxis.range).toEqual([0, 2.5]);
+    expect(config.layout.yaxis.dtick).toBe(0.5);
     expect(config.behaviors.autoFitYAxesOnXZoom).toEqual([
       { axis: 'y', strategy: 'line-extents', paddingRatio: 0, minUpperBound: 1 },
     ]);

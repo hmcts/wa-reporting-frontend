@@ -1,11 +1,8 @@
+import type { PlotlyAutoFitAxisRule } from '../../../modules/analytics/shared/charts/positiveAxisScale';
+
 export type PlotlyData = Record<string, unknown>;
 
-export type PlotlyAutoFitAxisRule = {
-  axis: 'y' | 'y2';
-  strategy: 'stacked-bar-sum' | 'stacked-bar-and-line-max' | 'line-extents';
-  paddingRatio?: number;
-  minUpperBound?: number;
-};
+export type { PlotlyAutoFitAxisRule } from '../../../modules/analytics/shared/charts/positiveAxisScale';
 
 export type PlotlyConfig = {
   data: PlotlyData[];

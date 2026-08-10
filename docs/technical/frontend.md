@@ -108,7 +108,7 @@ sequenceDiagram
 - Time-series auto-fit behavior:
   - `src/main/assets/js/analytics/charts.ts` listens for Plotly `plotly_relayout` events on charts that carry `behaviors.autoFitYAxesOnXZoom`.
   - Each rule names an axis (`y` or `y2`) and a strategy (`stacked-bar-sum`, `stacked-bar-and-line-max`, or `line-extents`).
-  - On initial render and x-axis zoom or pan, each y-axis maximum is rounded directly to the next labelled 1/2/5 interval above the highest visible value, avoiding an unnecessary extra interval for decimal metrics while retaining headroom for exact tick values.
+  - On initial render and x-axis zoom or pan, each y-axis uses a 1/2/5-based tick interval and rounds its upper bound to the next labelled tick above the highest visible value, avoiding an unnecessary extra interval for decimal metrics while retaining headroom for exact tick values.
   - On x-axis reset/autorange, the frontend restores the same rounded full-data y-axis range and labelled upper tick.
   - Time-series charts reserve enough top margin to keep the highest y-axis tick label visually separate from the Plotly modebar controls.
 - A custom scroll/pan UI is used for large category lists (open tasks by name and completed tasks by name).

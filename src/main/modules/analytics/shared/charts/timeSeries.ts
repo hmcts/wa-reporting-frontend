@@ -1,6 +1,9 @@
-import type { PlotlyAutoFitAxisRule } from '../../../../assets/js/analytics/types';
 import { buildChartConfig } from './plotly';
-import { buildPositiveAxisScale } from './positiveAxisScale';
+import {
+  type PlotlyAutoFitAxisRule,
+  buildPositiveAxisScale,
+  defaultPositiveAxisScaleOptions,
+} from './positiveAxisScale';
 
 type BarSeries = {
   name: string;
@@ -27,11 +30,6 @@ type TimeSeriesLayoutOverrides = {
   legendOrientation?: 'h' | 'v';
   axisTitles?: AxisTitles;
 };
-
-const defaultAutoFitAxisOptions = {
-  paddingRatio: 0,
-  minUpperBound: 1,
-} satisfies Pick<PlotlyAutoFitAxisRule, 'paddingRatio' | 'minUpperBound'>;
 
 const defaultDateXAxis = {
   type: 'date',
@@ -60,15 +58,25 @@ function buildTimeSeriesAxes(
   defaultYaxis: Record<string, unknown>
 ): {
   restLayout: Record<string, unknown>;
+  margin: Record<string, unknown>;
   xaxis: Record<string, unknown>;
   yaxis: Record<string, unknown>;
 } {
-  const { xaxis: rawXaxisOverrides, yaxis: rawYaxisOverrides, ...restLayout } = layoutOverrides;
+  const {
+    margin: rawMarginOverrides,
+    xaxis: rawXaxisOverrides,
+    yaxis: rawYaxisOverrides,
+    ...restLayout
+  } = layoutOverrides;
   const xaxisOverrides = withNormalisedAxisTitle(isRecord(rawXaxisOverrides) ? rawXaxisOverrides : {});
-  const yaxisOverrides = withNormalisedAxisTitle(rawYaxisOverrides as Record<string, unknown>);
+  const yaxisOverrides = withNormalisedAxisTitle(isRecord(rawYaxisOverrides) ? rawYaxisOverrides : {});
 
   return {
     restLayout,
+    margin: {
+      ...defaultTimeSeriesMargin,
+      ...(isRecord(rawMarginOverrides) ? rawMarginOverrides : {}),
+    },
     xaxis: {
       ...defaultDateXAxis,
       ...(axisTitles?.x ? { title: { text: axisTitles.x } } : {}),
@@ -89,7 +97,7 @@ function buildAutoFitAxisRule(
   return {
     axis,
     strategy,
-    ...defaultAutoFitAxisOptions,
+    ...defaultPositiveAxisScaleOptions,
   };
 }
 
@@ -129,7 +137,7 @@ function withPositiveAxisScale(
   return {
     ...layoutOverrides,
     [axis]: {
-      ...buildPositiveAxisScale(maximum, defaultAutoFitAxisOptions),
+      ...buildPositiveAxisScale(maximum),
       ...axisOverrides,
     },
   };
@@ -141,7 +149,7 @@ export function buildStackedBarTimeSeries(
   { layoutOverrides = {}, legendOrientation = 'h', axisTitles }: TimeSeriesLayoutOverrides = {}
 ): string {
   const scaledLayoutOverrides = withPositiveAxisScale(layoutOverrides, 'yaxis', getStackedSeriesMaximum(series));
-  const { restLayout, xaxis, yaxis } = buildTimeSeriesAxes(scaledLayoutOverrides, axisTitles, {
+  const { restLayout, margin, xaxis, yaxis } = buildTimeSeriesAxes(scaledLayoutOverrides, axisTitles, {
     automargin: true,
     fixedrange: true,
     rangemode: 'tozero',
@@ -157,7 +165,7 @@ export function buildStackedBarTimeSeries(
     })),
     layout: {
       barmode: 'stack',
-      margin: defaultTimeSeriesMargin,
+      margin,
       legend: { orientation: legendOrientation, traceorder: 'normal' },
       ...restLayout,
       xaxis,
@@ -182,7 +190,7 @@ export function buildStackedBarWithLineTimeSeries(
   if (line.axis === 'y2') {
     scaledLayoutOverrides = withPositiveAxisScale(scaledLayoutOverrides, 'yaxis2', lineMaximum);
   }
-  const { restLayout, xaxis, yaxis } = buildTimeSeriesAxes(scaledLayoutOverrides, axisTitles, {
+  const { restLayout, margin, xaxis, yaxis } = buildTimeSeriesAxes(scaledLayoutOverrides, axisTitles, {
     automargin: true,
     fixedrange: true,
     rangemode: 'tozero',
@@ -213,7 +221,7 @@ export function buildStackedBarWithLineTimeSeries(
     ],
     layout: {
       barmode: 'stack',
-      margin: defaultTimeSeriesMargin,
+      margin,
       legend: { orientation: legendOrientation, traceorder: 'normal' },
       ...restLayout,
       xaxis,
@@ -231,7 +239,7 @@ export function buildLineTimeSeries(
   { layoutOverrides = {}, axisTitles }: Pick<TimeSeriesLayoutOverrides, 'layoutOverrides' | 'axisTitles'> = {}
 ): string {
   const scaledLayoutOverrides = withPositiveAxisScale(layoutOverrides, 'yaxis', getSeriesMaximum(series));
-  const { restLayout, xaxis, yaxis } = buildTimeSeriesAxes(scaledLayoutOverrides, axisTitles, {});
+  const { restLayout, margin, xaxis, yaxis } = buildTimeSeriesAxes(scaledLayoutOverrides, axisTitles, {});
 
   return buildChartConfig({
     data: series.map(item => ({
@@ -243,7 +251,7 @@ export function buildLineTimeSeries(
       line: { color: item.color, width: item.width },
     })),
     layout: {
-      margin: defaultTimeSeriesMargin,
+      margin,
       ...restLayout,
       xaxis,
       yaxis,
