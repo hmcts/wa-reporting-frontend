@@ -34,6 +34,7 @@
     "test:smoke": "yarn playwright install && NODE_TLS_REJECT_UNAUTHORIZED=0 PLAYWRIGHT_HTML_OUTPUT=playwright-report/smoke PLAYWRIGHT_OUTPUT_DIR=test-results/smoke yarn playwright test --grep @smoke --project=chromium",
     "test:functional": "yarn playwright install && NODE_TLS_REJECT_UNAUTHORIZED=0 PLAYWRIGHT_HTML_OUTPUT=playwright-report/functional PLAYWRIGHT_OUTPUT_DIR=test-results/functional yarn playwright test --grep @functional --project=chromium --project=firefox --project=webkit",
     "test:ui": "yarn playwright test --ui",
+    "fortifyScan": "./test/java/gradlew -p test/java fortifyScan",
     "setup:edge": "PLAYWRIGHT_BROWSERS_PATH=0 yarn playwright install msedge",
     "cichecks": "yarn install && yarn build && yarn rebuild puppeteer && yarn lint && yarn test && yarn test:routes && yarn test:a11y",
     "env:aat": "node scripts/get-env.js aat",
