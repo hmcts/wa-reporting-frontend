@@ -9872,8 +9872,8 @@ __metadata:
   linkType: hard
 
 "express-openid-connect@npm:^3.2.0":
-  version: 3.2.1
-  resolution: "express-openid-connect@npm:3.2.1"
+  version: 3.4.0
+  resolution: "express-openid-connect@npm:3.4.0"
   dependencies:
     base64url: "npm:^3.0.1"
     clone: "npm:^2.1.2"
@@ -9888,7 +9888,7 @@ __metadata:
     util-promisify: "npm:3.0.0"
   peerDependencies:
     express: ">= 4.17.0"
-  checksum: 10/aba7e9f1cdca6fa33a1394bfe2b1ad0441dac9fbbebf4728cc7af5059cbc725d54c4bc33272ef2cb5c47e51ce09250dba9e811b71d1a0e802d3c73943bf3bd97
+  checksum: 10/822c2f7a02f5143ee620211e69c75c06be15130eeffa0831310a75ab7ae853569e62947707e71505b7f88834bf184cfe5ac6ea55cb9799ae4c1bee48b71c731e
   languageName: node
   linkType: hard
 
