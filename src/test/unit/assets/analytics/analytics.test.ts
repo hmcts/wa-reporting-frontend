@@ -1,5 +1,4 @@
 /* @jest-environment jsdom */
-import { initAll as initMojAll } from '@ministryofjustice/frontend';
 import { initAll } from 'govuk-frontend';
 
 import {
@@ -29,6 +28,7 @@ import {
   initMojTotalsRowPinning,
   initTableExports,
 } from '../../../../main/assets/js/analytics/tables';
+import { initMojAll } from '../../../../main/assets/js/moj';
 
 import { setupAnalyticsDom } from './analyticsTestUtils';
 
@@ -43,7 +43,7 @@ const requestManager = {
 };
 
 jest.mock('govuk-frontend', () => ({ initAll: jest.fn() }));
-jest.mock('@ministryofjustice/frontend', () => ({ initAll: jest.fn() }));
+jest.mock('../../../../main/assets/js/moj', () => ({ initMojAll: jest.fn() }));
 jest.mock('../../../../main/assets/js/analytics/ajax', () => ({
   fetchSharedFiltersUpdate: jest.fn(),
   fetchPaginatedSection: jest.fn(),
