@@ -47,7 +47,7 @@ describe('outstanding charts', () => {
     expect(parsed.layout.xaxis.title.text).toBe('Created date');
     expect(parsed.layout.yaxis.title.text).toBe('Tasks');
     expect(parsed.behaviors.autoFitYAxesOnXZoom).toEqual([
-      { axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0.05, minUpperBound: 1 },
+      { axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0, minUpperBound: 1 },
     ]);
   });
 
@@ -70,7 +70,7 @@ describe('outstanding charts', () => {
     expect(parsed.layout.xaxis.title.text).toBe('Assigned date');
     expect(parsed.layout.yaxis.title.text).toBe('Days');
     expect(parsed.behaviors.autoFitYAxesOnXZoom).toEqual([
-      { axis: 'y', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 },
+      { axis: 'y', strategy: 'line-extents', paddingRatio: 0, minUpperBound: 1 },
     ]);
   });
 
@@ -90,7 +90,7 @@ describe('outstanding charts', () => {
     expect(parsed.layout.xaxis.title.text).toBe('Due date');
     expect(parsed.layout.yaxis.title.text).toBe('Tasks');
     expect(parsed.behaviors.autoFitYAxesOnXZoom).toEqual([
-      { axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0.05, minUpperBound: 1 },
+      { axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0, minUpperBound: 1 },
     ]);
   });
 

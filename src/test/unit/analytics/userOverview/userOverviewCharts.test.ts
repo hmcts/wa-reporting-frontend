@@ -27,7 +27,7 @@ describe('userOverviewCharts', () => {
           tasks: 3,
           withinDue: 2,
           beyondDue: 1,
-          handlingTimeSum: 6,
+          handlingTimeSum: 4.8,
           handlingTimeCount: 2,
         },
       ])
@@ -37,7 +37,7 @@ describe('userOverviewCharts', () => {
     expect(config.data[1].name).toBe('Outside due date');
     expect(config.data[0].y).toEqual([2]);
     expect(config.data[1].y).toEqual([1]);
-    expect(config.data[2].y).toEqual([3]);
+    expect(config.data[2].y).toEqual([2.4]);
     expect(config.data[2].name).toBe('Average handling time (days)');
     expect(config.data[2].yaxis).toBe('y2');
     expect(config.layout.xaxis.title.text).toBe('Completed date');
@@ -48,9 +48,11 @@ describe('userOverviewCharts', () => {
     expect(config.layout.yaxis2.side).toBe('right');
     expect(config.layout.yaxis2.fixedrange).toBe(true);
     expect(config.layout.yaxis2.rangemode).toBe('tozero');
+    expect(config.layout.yaxis2.range).toEqual([0, 2.5]);
+    expect(config.layout.yaxis2.dtick).toBe(0.5);
     expect(config.behaviors.autoFitYAxesOnXZoom).toEqual([
-      { axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0.05, minUpperBound: 1 },
-      { axis: 'y2', strategy: 'line-extents', paddingRatio: 0.05, minUpperBound: 1 },
+      { axis: 'y', strategy: 'stacked-bar-sum', paddingRatio: 0, minUpperBound: 1 },
+      { axis: 'y2', strategy: 'line-extents', paddingRatio: 0, minUpperBound: 1 },
     ]);
   });
 

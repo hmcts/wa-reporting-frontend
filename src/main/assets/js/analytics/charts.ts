@@ -1,6 +1,7 @@
 import type { Config } from 'plotly.js';
 import Plotly from 'plotly.js-basic-dist-min';
 
+import { buildPositiveAxisScale } from '../../../modules/analytics/shared/charts/positiveAxisScale';
 import type { PlotlyAutoFitAxisRule, PlotlyConfig, PlotlyData } from './types';
 
 const baseLayout = {
@@ -42,6 +43,7 @@ type VisibleTracePoint = {
 type AxisRelayoutState = {
   autorange: boolean;
   range: [number, number] | null;
+  dtick: number | null;
 };
 
 type CategoryRangeMetrics = {
@@ -231,11 +233,33 @@ function computeVisibleAxisMaximum(
   }
 }
 
-function buildAutoFitRange(rawMaximum: number, rule: PlotlyAutoFitAxisRule): [number, number] {
-  const minimumUpperBound = rule.minUpperBound ?? 1;
-  const paddingRatio = rule.paddingRatio ?? 0.05;
-  const paddedMaximum = rawMaximum * (1 + paddingRatio);
-  return [0, Math.max(minimumUpperBound, paddedMaximum)];
+function buildAutoFitAxisState(rawMaximum: number, rule: PlotlyAutoFitAxisRule): AxisRelayoutState {
+  const scale = buildPositiveAxisScale(rawMaximum, rule);
+  return {
+    autorange: false,
+    range: scale.range,
+    dtick: scale.dtick,
+  };
+}
+
+function getConfiguredAxisState(config: PlotlyConfig, rule: PlotlyAutoFitAxisRule): AxisRelayoutState {
+  const axis = config.layout?.[axisLayoutKey(rule.axis)];
+  if (!isRecord(axis) || !Array.isArray(axis.range) || axis.range.length !== 2) {
+    return { autorange: true, range: null, dtick: null };
+  }
+
+  const lower = toFiniteNumber(axis.range[0]);
+  const upper = toFiniteNumber(axis.range[1]);
+  const dtick = toFiniteNumber(axis.dtick);
+  if (lower === null || upper === null) {
+    return { autorange: true, range: null, dtick: null };
+  }
+
+  return {
+    autorange: false,
+    range: [lower, upper],
+    dtick,
+  };
 }
 
 function shouldHandleXRelayout(eventData: unknown): boolean {
@@ -255,6 +279,7 @@ function buildAxisRelayoutUpdate(
     const axisState = createAxisState(rule);
     update[`${layoutKey}.autorange`] = axisState.autorange;
     update[`${layoutKey}.range`] = axisState.range;
+    update[`${layoutKey}.dtick`] = axisState.dtick;
     return update;
   }, {});
 }
@@ -294,10 +319,7 @@ export function bindAutoFitYAxesOnXZoom(node: HTMLElement, config: PlotlyConfig)
       applyAutoFitRelayout(
         node,
         state,
-        buildAxisRelayoutUpdate(rules, () => ({
-          autorange: true,
-          range: null,
-        }))
+        buildAxisRelayoutUpdate(rules, rule => getConfiguredAxisState(config, rule))
       );
       return;
     }
@@ -310,10 +332,9 @@ export function bindAutoFitYAxesOnXZoom(node: HTMLElement, config: PlotlyConfig)
     applyAutoFitRelayout(
       node,
       state,
-      buildAxisRelayoutUpdate(rules, rule => ({
-        autorange: false,
-        range: buildAutoFitRange(computeVisibleAxisMaximum(config.data, rule, visibleWindow), rule),
-      }))
+      buildAxisRelayoutUpdate(rules, rule =>
+        buildAutoFitAxisState(computeVisibleAxisMaximum(config.data, rule, visibleWindow), rule)
+      )
     );
   };
 

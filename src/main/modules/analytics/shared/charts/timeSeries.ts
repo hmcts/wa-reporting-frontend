@@ -1,5 +1,9 @@
-import type { PlotlyAutoFitAxisRule } from '../../../../assets/js/analytics/types';
 import { buildChartConfig } from './plotly';
+import {
+  type PlotlyAutoFitAxisRule,
+  buildPositiveAxisScale,
+  defaultPositiveAxisScaleOptions,
+} from './positiveAxisScale';
 
 type BarSeries = {
   name: string;
@@ -27,17 +31,14 @@ type TimeSeriesLayoutOverrides = {
   axisTitles?: AxisTitles;
 };
 
-const defaultAutoFitAxisOptions = {
-  paddingRatio: 0.05,
-  minUpperBound: 1,
-} satisfies Pick<PlotlyAutoFitAxisRule, 'paddingRatio' | 'minUpperBound'>;
-
 const defaultDateXAxis = {
   type: 'date',
   tickformat: '%-d %b %Y',
   hoverformat: '%-d %b %Y',
   automargin: true,
 };
+
+const defaultTimeSeriesMargin = { t: 40 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -57,15 +58,25 @@ function buildTimeSeriesAxes(
   defaultYaxis: Record<string, unknown>
 ): {
   restLayout: Record<string, unknown>;
+  margin: Record<string, unknown>;
   xaxis: Record<string, unknown>;
   yaxis: Record<string, unknown>;
 } {
-  const { xaxis: rawXaxisOverrides, yaxis: rawYaxisOverrides, ...restLayout } = layoutOverrides;
+  const {
+    margin: rawMarginOverrides,
+    xaxis: rawXaxisOverrides,
+    yaxis: rawYaxisOverrides,
+    ...restLayout
+  } = layoutOverrides;
   const xaxisOverrides = withNormalisedAxisTitle(isRecord(rawXaxisOverrides) ? rawXaxisOverrides : {});
   const yaxisOverrides = withNormalisedAxisTitle(isRecord(rawYaxisOverrides) ? rawYaxisOverrides : {});
 
   return {
     restLayout,
+    margin: {
+      ...defaultTimeSeriesMargin,
+      ...(isRecord(rawMarginOverrides) ? rawMarginOverrides : {}),
+    },
     xaxis: {
       ...defaultDateXAxis,
       ...(axisTitles?.x ? { title: { text: axisTitles.x } } : {}),
@@ -86,7 +97,49 @@ function buildAutoFitAxisRule(
   return {
     axis,
     strategy,
-    ...defaultAutoFitAxisOptions,
+    ...defaultPositiveAxisScaleOptions,
+  };
+}
+
+function getSeriesMaximum(series: { values: number[] }[]): number {
+  let maximum = 0;
+  series.forEach(item => {
+    item.values.forEach(value => {
+      if (Number.isFinite(value)) {
+        maximum = Math.max(maximum, value);
+      }
+    });
+  });
+  return maximum;
+}
+
+function getStackedSeriesMaximum(series: BarSeries[]): number {
+  const pointCount = series.reduce((maximum, item) => Math.max(maximum, item.values.length), 0);
+  let maximum = 0;
+
+  for (let index = 0; index < pointCount; index += 1) {
+    const total = series.reduce((sum, item) => {
+      const value = item.values[index];
+      return sum + (Number.isFinite(value) ? Math.max(0, value) : 0);
+    }, 0);
+    maximum = Math.max(maximum, total);
+  }
+
+  return maximum;
+}
+
+function withPositiveAxisScale(
+  layoutOverrides: Record<string, unknown>,
+  axis: 'yaxis' | 'yaxis2',
+  maximum: number
+): Record<string, unknown> {
+  const axisOverrides = isRecord(layoutOverrides[axis]) ? layoutOverrides[axis] : {};
+  return {
+    ...layoutOverrides,
+    [axis]: {
+      ...buildPositiveAxisScale(maximum),
+      ...axisOverrides,
+    },
   };
 }
 
@@ -95,7 +148,8 @@ export function buildStackedBarTimeSeries(
   series: BarSeries[],
   { layoutOverrides = {}, legendOrientation = 'h', axisTitles }: TimeSeriesLayoutOverrides = {}
 ): string {
-  const { restLayout, xaxis, yaxis } = buildTimeSeriesAxes(layoutOverrides, axisTitles, {
+  const scaledLayoutOverrides = withPositiveAxisScale(layoutOverrides, 'yaxis', getStackedSeriesMaximum(series));
+  const { restLayout, margin, xaxis, yaxis } = buildTimeSeriesAxes(scaledLayoutOverrides, axisTitles, {
     automargin: true,
     fixedrange: true,
     rangemode: 'tozero',
@@ -111,7 +165,7 @@ export function buildStackedBarTimeSeries(
     })),
     layout: {
       barmode: 'stack',
-      margin: { t: 20 },
+      margin,
       legend: { orientation: legendOrientation, traceorder: 'normal' },
       ...restLayout,
       xaxis,
@@ -129,7 +183,14 @@ export function buildStackedBarWithLineTimeSeries(
   line: LineSeries,
   { layoutOverrides = {}, legendOrientation = 'h', axisTitles }: TimeSeriesLayoutOverrides = {}
 ): string {
-  const { restLayout, xaxis, yaxis } = buildTimeSeriesAxes(layoutOverrides, axisTitles, {
+  const barMaximum = getStackedSeriesMaximum(bars);
+  const lineMaximum = getSeriesMaximum([line]);
+  const primaryAxisMaximum = line.axis === 'y2' ? barMaximum : Math.max(barMaximum, lineMaximum);
+  let scaledLayoutOverrides = withPositiveAxisScale(layoutOverrides, 'yaxis', primaryAxisMaximum);
+  if (line.axis === 'y2') {
+    scaledLayoutOverrides = withPositiveAxisScale(scaledLayoutOverrides, 'yaxis2', lineMaximum);
+  }
+  const { restLayout, margin, xaxis, yaxis } = buildTimeSeriesAxes(scaledLayoutOverrides, axisTitles, {
     automargin: true,
     fixedrange: true,
     rangemode: 'tozero',
@@ -160,7 +221,7 @@ export function buildStackedBarWithLineTimeSeries(
     ],
     layout: {
       barmode: 'stack',
-      margin: { t: 20 },
+      margin,
       legend: { orientation: legendOrientation, traceorder: 'normal' },
       ...restLayout,
       xaxis,
@@ -177,7 +238,8 @@ export function buildLineTimeSeries(
   series: LineSeries[],
   { layoutOverrides = {}, axisTitles }: Pick<TimeSeriesLayoutOverrides, 'layoutOverrides' | 'axisTitles'> = {}
 ): string {
-  const { restLayout, xaxis, yaxis } = buildTimeSeriesAxes(layoutOverrides, axisTitles, {});
+  const scaledLayoutOverrides = withPositiveAxisScale(layoutOverrides, 'yaxis', getSeriesMaximum(series));
+  const { restLayout, margin, xaxis, yaxis } = buildTimeSeriesAxes(scaledLayoutOverrides, axisTitles, {});
 
   return buildChartConfig({
     data: series.map(item => ({
@@ -189,10 +251,10 @@ export function buildLineTimeSeries(
       line: { color: item.color, width: item.width },
     })),
     layout: {
-      margin: { t: 20 },
+      margin,
       ...restLayout,
       xaxis,
-      ...(Object.keys(yaxis).length > 0 ? { yaxis } : {}),
+      yaxis,
     },
     behaviors: {
       autoFitYAxesOnXZoom: [buildAutoFitAxisRule('y', 'line-extents')],

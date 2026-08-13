@@ -37,7 +37,7 @@ flowchart TB
 - Title: "Open tasks".
 - Chart: stacked bar time series by created date (Assigned vs Unassigned).
 - Chart axes: x-axis `Created date`; y-axis `Tasks`.
-- When the visible x-axis date range is narrowed, the chart automatically re-fits the y-axis to the highest visible stacked total (`Assigned + Unassigned`) in that window.
+- The chart fits the y-axis to the highest visible stacked total (`Assigned + Unassigned`) and rounds up to the next labelled tick above it, including when the visible date range is narrowed or reset.
 - Table columns:
   - Created date
   - Open tasks
@@ -51,7 +51,7 @@ flowchart TB
 - Title: "Wait time".
 - Chart: line chart of average wait (days) by assigned date.
 - Chart axes: x-axis `Assigned date`; y-axis `Days`.
-- When the visible x-axis date range is narrowed, the chart automatically re-fits the y-axis to the highest visible wait-time value in that window.
+- The chart fits the y-axis to the highest visible wait-time value and rounds up to the next labelled tick above it, including when the visible date range is narrowed or reset.
 - Population: currently assigned open tasks only (`state = ASSIGNED`).
 - Table columns:
   - Assigned date
@@ -85,7 +85,7 @@ flowchart TB
 - Title: "Tasks due".
 - Chart: stacked bar time series (Open vs Completed by due date).
 - Chart axes: x-axis `Due date`; y-axis `Tasks`.
-- When the visible x-axis date range is narrowed, the chart automatically re-fits the y-axis to the highest visible stacked total (`Open + Completed`) in that window.
+- The chart fits the y-axis to the highest visible stacked total (`Open + Completed`) and rounds up to the next labelled tick above it, including when the visible date range is narrowed or reset.
 - Table columns:
   - Due date
   - Total due
@@ -97,7 +97,7 @@ flowchart TB
 - Title: "Open tasks priority".
 - Chart: stacked bar time series of open tasks due by priority.
 - Chart axes: x-axis `Due date`; y-axis `Tasks`.
-- When the visible x-axis date range is narrowed, the chart automatically re-fits the y-axis to the highest visible stacked total across the priority series in that window.
+- The chart fits the y-axis to the highest visible stacked total across the priority series and rounds up to the next labelled tick above it, including when the visible date range is narrowed or reset.
 - Table columns:
   - Due date
   - Total open
