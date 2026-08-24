@@ -156,7 +156,7 @@
     "webpack-node-externals": "^3.0.0"
   },
   "resolutions": {
-    "deepmerge-ts": "npm:8.0.1"
+    "deepmerge-ts": "npm:deepmerge-ts@8.0.2"
   },
   "husky": {
     "hooks": {
