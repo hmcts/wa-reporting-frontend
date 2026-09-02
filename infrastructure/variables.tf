@@ -26,11 +26,21 @@ variable "redis_family" {
 }
 
 variable "redis_sku_name" {
-  default     = "Basic"
-  description = "The SKU of Redis to use. Possible values are `Basic`, `Standard` and `Premium`."
+  default     = "Balanced_B0"
+  description = "The SKU of Redis to use. Possible options Balanced_B0 -> Balanced_B5"
 }
 
 variable "redis_capacity" {
+  default     = "1"
+  description = "The size of the Redis cache to deploy. Valid values are 1, 2, 3, 4, 5"
+}
+
+variable "managed_redis_sku_name" {
+  default     = "Basic"
+  description = "The SKU of Managed Redis to use. Possible values are `Basic`, `Standard` and `Premium`."
+}
+
+variable "managed_redis_capacity" {
   default     = "1"
   description = "The size of the Redis cache to deploy. Valid values are 1, 2, 3, 4, 5"
 }
