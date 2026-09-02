@@ -75,6 +75,13 @@ module "redis" {
 
   private_endpoint_enabled      = true
   public_network_access_enabled = false
+
+  # Preserve the deployed Basic-tier cache configuration during the Managed
+  # Redis migration. The upstream module defaults these values to 642, while
+  # the existing Basic C1 caches use 125. Premium retains its current 642.
+  maxmemory_reserved              = var.redis_sku_name == "Basic" ? "125" : "642"
+  maxfragmentationmemory_reserved = var.redis_sku_name == "Basic" ? "125" : "642"
+  maxmemory_delta                 = var.redis_sku_name == "Basic" ? "125" : "642"
 }
 
 resource "azurerm_key_vault_secret" "redis_host" {
