@@ -27,19 +27,19 @@ Completed row paths also carry `within_due_sort_value` for sorting.
 
 ## Completed-task determination
 
-Completed-task paths use case-insensitive `termination_reason = 'completed'`.
+Completed-task paths use case-insensitive `outcome = 'completed'`.
 
 Task `state` is not used to classify completion.
 
 ## Cancelled-event determination
 
-Overview cancelled task events use case-insensitive `termination_reason = 'deleted'`.
+Overview cancelled task events use case-insensitive `outcome = 'cancelled'`.
 
-The facts-backed metric stores those rows as cancelled events and does not apply an additional `state` predicate.
+The facts-backed metric stores those rows as cancelled events using `last_updated_date` as the event date and does not apply an additional `state` predicate.
 
 ## Open-task row contract
 
-`snapshot_open_task_rows` includes source rows where `state NOT IN ('COMPLETED', 'TERMINATED')`.
+`snapshot_open_task_rows` includes source rows where `state NOT IN ('COMPLETED', 'TERMINATED', 'CANCELLED')`.
 
 The Outstanding critical tasks query narrows that population to:
 
