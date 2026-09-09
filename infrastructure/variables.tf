@@ -34,3 +34,17 @@ variable "redis_capacity" {
   default     = "1"
   description = "The size of the Redis cache to deploy. Valid values are 1, 2, 3, 4, 5"
 }
+
+variable "managed_redis_sku_name" {
+  default     = "Balanced_B0"
+  description = "The SKU of Redis to use. Possible options Balanced_B0 -> Balanced_B5"
+}
+
+variable "managed_redis_capacity" {
+  default     = "1"
+  description = "The size of the Redis cache to deploy. Valid values are 1, 2, 3, 4, 5"
+}
+
+variable "private_dns_subscription_id" {
+  default = "1baf5470-1c3e-40d3-a6f7-74bfbce4b348"
+}
