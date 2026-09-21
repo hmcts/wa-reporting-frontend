@@ -9,7 +9,7 @@ locals {
   rdResourceGroup            = "rd-${var.env}"
   s2sVaultName               = "s2s-${var.env}"
   s2sResourceGroup           = "rpe-service-auth-provider-${var.env}"
-  managed_redis_environments = ["demo"]
+  managed_redis_environments = ["demo", "aat", "ithc", "perftest"]
 }
 
 data "azurerm_key_vault" "wa_key_vault" {
