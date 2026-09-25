@@ -159,7 +159,7 @@
   "resolutions": {
     "deepmerge-ts": "npm:deepmerge-ts@8.0.2",
     "joi": "npm:joi@18.2.9",
-    "js-yaml": "npm:5.4.1",
+    "js-yaml": "npm:js-yaml@5.4.2",
     "mysql2": "npm:3.24.4"
   },
   "husky": {
