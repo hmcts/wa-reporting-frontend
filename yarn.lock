@@ -10239,9 +10239,9 @@ __metadata:
   linkType: hard
 
 "govuk-frontend@npm:^6.4.0":
-  version: 6.5.0
-  resolution: "govuk-frontend@npm:6.5.0"
-  checksum: 10/6f1343c53dcc5ce48b21652a7bedf2f0bd40e6ed15f6777d4b549f1b76d093f1d79da5b23f18fbec13aed15f7d070dec8cf7db7a0539fd9f844d94855ece94b9
+  version: 6.5.1
+  resolution: "govuk-frontend@npm:6.5.1"
+  checksum: 10/e428a9886b020c3816939df77d2c0c575bb853f64d061e43f040f93f572f63ef300c87fb3bcfa76020ea0f01070f160f0b57d1664b402a3c964c40420f8f8510
   languageName: node
   linkType: hard
 
@@ -11724,9 +11724,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"joi@npm:18.2.8":
-  version: 18.2.8
-  resolution: "joi@npm:18.2.8"
+"joi@npm:joi@18.2.9":
+  version: 18.2.9
+  resolution: "joi@npm:18.2.9"
   dependencies:
     "@hapi/address": "npm:^5.1.1"
     "@hapi/formula": "npm:^3.0.2"
@@ -11735,7 +11735,7 @@ __metadata:
     "@hapi/tlds": "npm:^1.1.1"
     "@hapi/topo": "npm:^6.0.2"
     "@standard-schema/spec": "npm:^1.1.0"
-  checksum: 10/430a89ff14936854c99461eba9d10e65f59f9372331d15065ffadf7832d3627e6bf5ea46b246deee320122d23f6ec6a983fa64dbb1f948242d943fe4a9f0bf25
+  checksum: 10/321836e1bded18c23f5bd10c85715cda778849cddf9285704c39b8df290ad50f9d977f4ebf522cc741feba31aa65fe760dc84e9f218decc777ed15412a33bf77
   languageName: node
   linkType: hard
 
@@ -11781,14 +11781,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"js-yaml@npm:5.4.1":
-  version: 5.4.1
-  resolution: "js-yaml@npm:5.4.1"
+"js-yaml@npm:js-yaml@5.4.2":
+  version: 5.4.2
+  resolution: "js-yaml@npm:5.4.2"
   dependencies:
     argparse: "npm:^2.0.1"
   bin:
     js-yaml: bin/js-yaml.mjs
-  checksum: 10/6fff9ee00bd59aeb7e1484b4281f5e927b117cbfbf3ffa6c0fef0c58519317eb61527e93c4aa70f417709229bc1eeed63cba773913577a64405975a72fba7180
+  checksum: 10/f2461abd1d6268fb226733f0a0e0aa48004bb824116e3dfa75f1a1279001936343b672066dfecdb852ac3ca883452706c383a760aa90430cb68ba395aa2cbc84
   languageName: node
   linkType: hard
 
@@ -12085,8 +12085,8 @@ __metadata:
   linkType: hard
 
 "lint-staged@npm:^17.3.0":
-  version: 17.5.0
-  resolution: "lint-staged@npm:17.5.0"
+  version: 17.5.1
+  resolution: "lint-staged@npm:17.5.1"
   dependencies:
     picomatch: "npm:^4.0.7"
     string-argv: "npm:^0.3.2"
@@ -12097,7 +12097,7 @@ __metadata:
       optional: true
   bin:
     lint-staged: bin/lint-staged.js
-  checksum: 10/3ca6263488ae3e8e4915e5c6ee70bb3b54bbffcb7e84dd2fb05c02032563401e5bb41c3d216cdc43933c6d6ff3ed66319d22c5cb5c63727e00af966b95929516
+  checksum: 10/2e10b821214eafce576e8505d6b5cee3a83dd40d68b2d3705b0c69abe35a26e3ad3fcd9cc8379bab47c3e5b3cb8042923d8fbe42e7f72b28da54e6c7d4b4986a
   languageName: node
   linkType: hard
 
