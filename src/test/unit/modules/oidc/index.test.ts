@@ -72,7 +72,7 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
   const jwtDecode = jest.fn();
   const redisStore = jest.fn().mockImplementation(() => ({ store: 'redis' }));
   const redisClient = { connect: jest.fn(), on: jest.fn() };
-  const createClient = jest.fn(() => redisClient);
+  const createCluster = jest.fn(() => redisClient);
   const fileStore = jest.fn().mockImplementation(() => ({ store: 'file' }));
   const fileStoreFactory = jest.fn(() => fileStore);
   const roleAssignmentGetAssignmentsForActor = jest.fn();
@@ -95,7 +95,7 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
   }));
 
   jest.doMock('redis', () => ({
-    createClient,
+    createCluster,
   }));
 
   jest.doMock('../../../../main/modules/logging', () => ({
@@ -136,7 +136,7 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
     jwtDecode,
     redisStore,
     redisClient,
-    createClient,
+    createCluster,
     fileStore,
     fileStoreFactory,
     configValues,
@@ -160,7 +160,7 @@ describe('OidcMiddleware', () => {
   });
 
   it('configures auth middleware, role assignment clients, and uses redis when configured', () => {
-    const { OidcMiddleware, authOptions, createClient, redisClient, roleAssignmentClient, s2sTokenClient } =
+    const { OidcMiddleware, authOptions, createCluster, redisClient, roleAssignmentClient, s2sTokenClient } =
       buildOidc();
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
 
@@ -184,7 +184,7 @@ describe('OidcMiddleware', () => {
     expect(useMock).toHaveBeenNthCalledWith(1, 'auth-middleware');
     expect(typeof useMock.mock.calls[1][0]).toBe('function');
     expect(app.locals.redisClient).toBeDefined();
-    expect(createClient).toHaveBeenCalledWith({
+    const clientOptions = {
       password: 'redis-pass',
       socket: {
         host: 'redis-host',
@@ -193,6 +193,10 @@ describe('OidcMiddleware', () => {
         connectTimeout: 5000,
         reconnectStrategy: expect.any(Function),
       },
+    };
+    expect(createCluster).toHaveBeenCalledWith({
+      rootNodes: [clientOptions],
+      defaults: clientOptions,
     });
     expect(redisClient.connect).toHaveBeenCalled();
     expect(s2sTokenClient).toHaveBeenCalledWith('http://s2s', 's2s-secret');

@@ -15,8 +15,8 @@ describe('redis module', () => {
       get: jest.fn((key: string) => configValues[key]),
     }));
 
-    const createClient = jest.fn();
-    jest.doMock('redis', () => ({ createClient }));
+    const createCluster = jest.fn();
+    jest.doMock('redis', () => ({ createCluster }));
     jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
@@ -29,10 +29,10 @@ describe('redis module', () => {
       expect(client).toBeNull();
     });
 
-    expect(createClient).not.toHaveBeenCalled();
+    expect(createCluster).not.toHaveBeenCalled();
   });
 
-  it('creates and caches a redis client when host is configured', () => {
+  it('creates and caches a Redis Cluster client when host is configured', () => {
     const configValues: Record<string, unknown> = {
       'secrets.wa.wa-reporting-redis-host': 'redis-host',
       'secrets.wa.wa-reporting-redis-port': 6379,
@@ -42,12 +42,12 @@ describe('redis module', () => {
     const connect = jest.fn().mockResolvedValue(undefined);
     const on = jest.fn();
     const redisClient = { connect, on };
-    const createClient = jest.fn(() => redisClient);
+    const createCluster = jest.fn(() => redisClient);
 
     jest.doMock('config', () => ({
       get: jest.fn((key: string) => configValues[key]),
     }));
-    jest.doMock('redis', () => ({ createClient }));
+    jest.doMock('redis', () => ({ createCluster }));
     jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
@@ -61,7 +61,7 @@ describe('redis module', () => {
       expect(client).toBe(redisClient);
     });
 
-    expect(createClient).toHaveBeenCalledWith({
+    const clientOptions = {
       password: 'redis-key',
       socket: {
         host: 'redis-host',
@@ -70,6 +70,10 @@ describe('redis module', () => {
         connectTimeout: 5000,
         reconnectStrategy: expect.any(Function),
       },
+    };
+    expect(createCluster).toHaveBeenCalledWith({
+      rootNodes: [clientOptions],
+      defaults: clientOptions,
     });
     expect(connect).toHaveBeenCalled();
     expect(app.locals.redisClient).toBe(redisClient);
@@ -87,12 +91,12 @@ describe('redis module', () => {
     const connect = jest.fn().mockResolvedValue(undefined);
     const on = jest.fn();
     const redisClient = { connect, on };
-    const createClient = jest.fn(() => redisClient);
+    const createCluster = jest.fn(() => redisClient);
 
     jest.doMock('config', () => ({
       get: jest.fn((key: string) => configValues[key]),
     }));
-    jest.doMock('redis', () => ({ createClient }));
+    jest.doMock('redis', () => ({ createCluster }));
     jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
@@ -104,13 +108,17 @@ describe('redis module', () => {
       getRedisClient(app);
     });
 
-    expect(createClient).toHaveBeenCalledWith({
+    const clientOptions = {
       socket: {
         host: 'redis-host',
         port: 6379,
         connectTimeout: 5000,
         reconnectStrategy: expect.any(Function),
       },
+    };
+    expect(createCluster).toHaveBeenCalledWith({
+      rootNodes: [clientOptions],
+      defaults: clientOptions,
     });
   });
 
@@ -123,8 +131,8 @@ describe('redis module', () => {
       get: jest.fn((key: string) => configValues[key]),
     }));
 
-    const createClient = jest.fn();
-    jest.doMock('redis', () => ({ createClient }));
+    const createCluster = jest.fn();
+    jest.doMock('redis', () => ({ createCluster }));
     jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
@@ -138,6 +146,6 @@ describe('redis module', () => {
       expect(client).toBe(existingClient);
     });
 
-    expect(createClient).not.toHaveBeenCalled();
+    expect(createCluster).not.toHaveBeenCalled();
   });
 });
