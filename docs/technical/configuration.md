@@ -87,6 +87,7 @@ S2S one-time passwords are generated from the configured microservice secret as 
 | `secrets.wa.wa-reporting-redis-host` | Redis host | `REDIS_HOST` |
 | `secrets.wa.wa-reporting-redis-port` | Redis port | `REDIS_PORT` |
 | `secrets.wa.wa-reporting-redis-access-key` | Redis access key | `REDIS_KEY` |
+| `redis.clusterEnabled` | Uses a Redis Cluster client that follows `MOVED` redirects; enable for Azure Managed Redis | `REDIS_CLUSTER` |
 
 Preview deploys the `hmcts-redis` Helm dependency as standalone, unauthenticated Redis and sets `REDIS_HOST` to `${SERVICE_NAME}-hmcts-redis-master`.
 

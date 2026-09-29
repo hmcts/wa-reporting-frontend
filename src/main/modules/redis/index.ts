@@ -1,13 +1,13 @@
 import config from 'config';
 import { Application } from 'express';
-import { createClient } from 'redis';
-import type { RedisClientType } from 'redis';
+import { createClient, createCluster } from 'redis';
+import type { RedisClientType, RedisClusterType } from 'redis';
 
 const { Logger } = require('../logging');
 
 const logger = Logger.getLogger('redis');
 
-type RedisClient = RedisClientType;
+type RedisClient = RedisClientType | RedisClusterType;
 
 export function getRedisClient(app: Application): RedisClient | null {
   const redisHost: string | undefined = config.get('secrets.wa.wa-reporting-redis-host');
@@ -22,21 +22,29 @@ export function getRedisClient(app: Application): RedisClient | null {
 
   const redisPort: number | undefined = config.get('secrets.wa.wa-reporting-redis-port');
   const redisPass: string | undefined = config.get('secrets.wa.wa-reporting-redis-access-key');
+  const redisClusterEnabled: boolean = config.get('redis.clusterEnabled');
 
-  const client = createClient({
-    ...(redisPass ? { password: redisPass } : {}),
-    socket: {
-      host: redisHost,
-      port: redisPort,
-      ...(redisPass ? { tls: true } : {}),
-      connectTimeout: 5000,
-      reconnectStrategy: (retries: number) => {
-        const delayMs = Math.min(retries * 100, 3000);
-        logger.warn('redis.reconnect', { retries, delayMs });
-        return delayMs;
-      },
+  const socketOptions = {
+    host: redisHost,
+    port: redisPort,
+    connectTimeout: 5000,
+    reconnectStrategy: (retries: number) => {
+      const delayMs = Math.min(retries * 100, 3000);
+      logger.warn('redis.reconnect', { retries, delayMs });
+      return delayMs;
     },
-  });
+  };
+  const socket = redisPass ? { ...socketOptions, tls: true as const } : socketOptions;
+  const clientOptions = {
+    ...(redisPass ? { password: redisPass } : {}),
+    socket,
+  };
+  const client = redisClusterEnabled
+    ? createCluster({
+        rootNodes: [clientOptions],
+        defaults: clientOptions,
+      })
+    : createClient(clientOptions);
 
   client.on('connect', () => logger.info('redis.connect'));
   client.on('ready', () => logger.info('redis.ready'));
