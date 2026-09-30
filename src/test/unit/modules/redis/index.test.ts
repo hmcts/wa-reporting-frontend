@@ -46,6 +46,7 @@ describe('redis module', () => {
     const on = jest.fn();
     const redisClient = { connect, on };
     const createClient = jest.fn(() => redisClient);
+    const info = jest.fn();
 
     jest.doMock('config', () => ({
       get: jest.fn((key: string) => configValues[key]),
@@ -53,7 +54,7 @@ describe('redis module', () => {
     const createCluster = jest.fn();
     jest.doMock('redis', () => ({ createClient, createCluster }));
     jest.doMock('../../../../main/modules/logging', () => ({
-      Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
+      Logger: { getLogger: jest.fn(() => ({ info, warn: jest.fn(), error: jest.fn() })) },
     }));
 
     const app = { locals: {} } as unknown as Application;
@@ -80,6 +81,12 @@ describe('redis module', () => {
     expect(app.locals.appRedisClient).toBe(redisClient);
     expect(app.locals.redisConnectPromise).toBeDefined();
     expect(createCluster).not.toHaveBeenCalled();
+    expect(info).toHaveBeenCalledWith('redis.connection-mode', {
+      mode: 'old-standalone',
+      host: 'redis-host',
+      port: 6379,
+      tls: true,
+    });
   });
 
   it('does not set tls when redis key is missing', () => {
@@ -135,13 +142,14 @@ describe('redis module', () => {
     const redisClient = { connect, on };
     const createClient = jest.fn();
     const createCluster = jest.fn(() => redisClient);
+    const info = jest.fn();
 
     jest.doMock('config', () => ({
       get: jest.fn((key: string) => configValues[key]),
     }));
     jest.doMock('redis', () => ({ createClient, createCluster }));
     jest.doMock('../../../../main/modules/logging', () => ({
-      Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
+      Logger: { getLogger: jest.fn(() => ({ info, warn: jest.fn(), error: jest.fn() })) },
     }));
 
     const app = { locals: {} } as unknown as Application;
@@ -164,6 +172,12 @@ describe('redis module', () => {
     expect(createCluster).toHaveBeenCalledWith({ rootNodes: [clientOptions], defaults: clientOptions });
     expect(createClient).not.toHaveBeenCalled();
     expect(connect).toHaveBeenCalled();
+    expect(info).toHaveBeenCalledWith('redis.connection-mode', {
+      mode: 'new-cluster',
+      host: 'redis-host',
+      port: 8500,
+      tls: true,
+    });
   });
 
   it('reuses an existing redis client stored on app locals', () => {

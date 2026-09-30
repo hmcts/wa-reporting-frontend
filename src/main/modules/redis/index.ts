@@ -39,18 +39,36 @@ export function getRedisClient(app: Application): RedisClient | null {
     ...(redisPass ? { password: redisPass } : {}),
     socket,
   };
-  const client = redisClusterEnabled
-    ? createCluster({
-        rootNodes: [clientOptions],
-        defaults: clientOptions,
-      })
-    : createClient(clientOptions);
+  let client: RedisClient;
+
+  if (redisClusterEnabled) {
+    logger.info('redis.connection-mode', {
+      mode: 'new-cluster',
+      host: redisHost,
+      port: redisPort,
+      tls: Boolean(redisPass),
+    });
+    client = createCluster({
+      rootNodes: [clientOptions],
+      defaults: clientOptions,
+    });
+  } else {
+    logger.info('redis.connection-mode', {
+      mode: 'old-standalone',
+      host: redisHost,
+      port: redisPort,
+      tls: Boolean(redisPass),
+    });
+    client = createClient(clientOptions);
+  }
 
   client.on('connect', () => logger.info('redis.connect'));
   client.on('ready', () => logger.info('redis.ready'));
   client.on('reconnecting', () => logger.warn('redis.reconnecting'));
   client.on('end', () => logger.warn('redis.end'));
-  client.on('error', (error: Error) => logger.error('redis.error', error));
+  client.on('error', (error: Error & { code?: string }) =>
+    logger.error('redis.error', { name: error.name, message: error.message, code: error.code })
+  );
 
   const connectPromise = client.connect();
 
