@@ -66,6 +66,9 @@
       "name": "wa-reporting-frontend-app"
     }
   },
+  "redis": {
+    "clusterEnabled": false
+  },
   "database": {
     "tm": {
       "host": "localhost",
