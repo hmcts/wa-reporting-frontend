@@ -2505,13 +2505,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grpc/grpc-js@npm:^1.14.3":
-  version: 1.14.4
-  resolution: "@grpc/grpc-js@npm:1.14.4"
+"@grpc/grpc-js@npm:1.14.5":
+  version: 1.14.5
+  resolution: "@grpc/grpc-js@npm:1.14.5"
   dependencies:
     "@grpc/proto-loader": "npm:^0.8.0"
     "@js-sdsl/ordered-map": "npm:^4.4.2"
-  checksum: 10/f9cdbd81e7388dc784c57274fcf6f4f4484da8968dd0975b97a14708d3fb117ae4a7bc2848e1bd1cc8b8ed9ee7a80ff131bfe728c85260da90a4e0b170e31ca9
+  checksum: 10/3be7fe0105c94e83e8a18b895fd534290cf3a26712940e95e0149b869da775a59551dafd60fd6c17213d3032b83fbfa64c6c2c9a0f569f6ef5968607174b7d79
   languageName: node
   linkType: hard
 
@@ -7295,7 +7295,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^1.19.0":
+"axios@npm:1.20.0":
   version: 1.20.0
   resolution: "axios@npm:1.20.0"
   dependencies:
@@ -14346,10 +14346,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"serialize-javascript@npm:^7.0.3":
-  version: 7.1.1
-  resolution: "serialize-javascript@npm:7.1.1"
-  checksum: 10/fa20ff05b658803e8a1e4417df393e2b3afa33518682f5beecfc6a2082029fc9fd4e9aff1c16630af2fae4157dc701d15372e48d979f04a3c4f6f7a2c5bbeeae
+"serialize-javascript@npm:7.1.2":
+  version: 7.1.2
+  resolution: "serialize-javascript@npm:7.1.2"
+  checksum: 10/e5550ef83b945196f563d33b3c80767e2f27f8c3856b4d19e515f5fd881273d80b9f7fced9247c8ed7cafff5c4de244cf93ed45fd6dc572c4aec303cd47f8dfc
   languageName: node
   linkType: hard
 
@@ -15964,7 +15964,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": "npm:^8.67.0"
     "@typescript-eslint/parser": "npm:^8.67.0"
     "@typescript/native": "npm:typescript@^7.0.2"
-    axios: "npm:^1.19.0"
+    axios: "npm:1.20.0"
     axios-debug-log: "npm:^1.0.0"
     babel-jest: "npm:^30.4.1"
     babel-loader: "npm:^10.1.1"
