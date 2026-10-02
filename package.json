@@ -167,7 +167,7 @@
     "joi": "npm:joi@18.2.9",
     "js-yaml": "npm:js-yaml@5.4.2",
     "moment": "npm:2.31.0",
-    "mysql2": "npm:3.24.4",
+    "mysql2": "npm:mysql2@3.24.5",
     "qs": "npm:6.16.0",
     "serialize-javascript": "npm:7.1.2"
   },
