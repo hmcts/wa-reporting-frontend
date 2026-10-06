@@ -163,7 +163,7 @@
     "brace-expansion@npm:^5.0.8": "npm:5.0.12",
     "deepmerge-ts": "npm:deepmerge-ts@8.0.2",
     "fast-uri": "npm:3.1.8",
-    "ip-address": "npm:10.7.2",
+    "ip-address": "npm:ip-address@10.7.3",
     "joi": "npm:joi@18.2.9",
     "js-yaml": "npm:js-yaml@5.4.2",
     "moment": "npm:2.31.0",
