@@ -71,6 +71,7 @@ describe('redis module', () => {
         host: 'redis-host',
         port: 6379,
         tls: true,
+        servername: 'redis-host',
         connectTimeout: 5000,
         reconnectStrategy: expect.any(Function),
       },
@@ -126,7 +127,7 @@ describe('redis module', () => {
     const configValues: Record<string, unknown> = {
       'secrets.wa.wa-reporting-redis-host': 'redis-host',
       'secrets.wa.wa-reporting-redis-port': 8500,
-      'secrets.wa.wa-reporting-redis-access-key': 'redis-key',
+      'secrets.wa.wa-reporting-redis-access-key': '',
       'redis.clusterEnabled': true,
     };
 
@@ -152,11 +153,11 @@ describe('redis module', () => {
     });
 
     const clientOptions = {
-      password: 'redis-key',
       socket: {
         host: 'redis-host',
         port: 8500,
         tls: true,
+        servername: 'redis-host',
         connectTimeout: 5000,
         reconnectStrategy: expect.any(Function),
       },

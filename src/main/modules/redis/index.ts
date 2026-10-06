@@ -34,7 +34,14 @@ export function getRedisClient(app: Application): RedisClient | null {
       return delayMs;
     },
   };
-  const socket = redisPass ? { ...socketOptions, tls: true as const } : socketOptions;
+  const socket =
+    redisClusterEnabled || redisPass
+      ? {
+          ...socketOptions,
+          tls: true as const,
+          servername: redisHost,
+        }
+      : socketOptions;
   const clientOptions = {
     ...(redisPass ? { password: redisPass } : {}),
     socket,
