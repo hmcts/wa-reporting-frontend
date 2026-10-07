@@ -167,6 +167,56 @@ describe('redis module', () => {
     expect(connect).toHaveBeenCalled();
   });
 
+  it('logs Redis connection events and reconnect attempts', () => {
+    const configValues: Record<string, unknown> = {
+      'secrets.wa.wa-reporting-redis-host': 'redis-host',
+      'secrets.wa.wa-reporting-redis-port': 6379,
+      'secrets.wa.wa-reporting-redis-access-key': '',
+      'redis.clusterEnabled': false,
+    };
+    const handlers: Record<string, (...args: unknown[]) => void> = {};
+    const connect = jest.fn().mockResolvedValue(undefined);
+    const on = jest.fn((event: string, handler: (...args: unknown[]) => void) => {
+      handlers[event] = handler;
+    });
+    const redisClient = { connect, on };
+    let reconnectStrategy: (retries: number) => number;
+    const createClient = jest.fn((options: { socket: { reconnectStrategy: (retries: number) => number } }) => {
+      reconnectStrategy = options.socket.reconnectStrategy;
+      return redisClient;
+    });
+    const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+
+    jest.doMock('config', () => ({
+      get: jest.fn((key: string) => configValues[key]),
+    }));
+    jest.doMock('redis', () => ({ createClient, createCluster: jest.fn() }));
+    jest.doMock('../../../../main/modules/logging', () => ({
+      Logger: { getLogger: jest.fn(() => logger) },
+    }));
+
+    jest.isolateModules(() => {
+      const { getRedisClient } = require('../../../../main/modules/redis');
+      getRedisClient({ locals: {} } as unknown as Application);
+    });
+
+    expect(reconnectStrategy!(40)).toBe(3000);
+
+    const error = new Error('connection failed');
+    handlers.connect();
+    handlers.ready();
+    handlers.reconnecting();
+    handlers.end();
+    handlers.error(error);
+
+    expect(logger.info).toHaveBeenCalledWith('redis.connect');
+    expect(logger.info).toHaveBeenCalledWith('redis.ready');
+    expect(logger.warn).toHaveBeenCalledWith('redis.reconnect', { retries: 40, delayMs: 3000 });
+    expect(logger.warn).toHaveBeenCalledWith('redis.reconnecting');
+    expect(logger.warn).toHaveBeenCalledWith('redis.end');
+    expect(logger.error).toHaveBeenCalledWith('redis.error', error);
+  });
+
   it('reuses an existing redis client stored on app locals', () => {
     const configValues: Record<string, unknown> = {
       'secrets.wa.wa-reporting-redis-host': 'redis-host',
