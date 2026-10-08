@@ -5,12 +5,22 @@ properties([
 pipelineTriggers([cron('H 07 * * 1-5')])
 ])
 
-@Library("Infrastructure@2.4.9")
+@Library("Infrastructure@2.12.1")
 
 def type = "nodejs"
 def product = "wa"
 def component = "reporting"
 
-withNightlyPipeline(type, product, component) {
+def yarnBuilder = new uk.gov.hmcts.contino.YarnBuilder(this)
 
+withNightlyPipeline(type, product, component) {
+  afterSuccess('build') {
+    yarnBuilder.yarn('build')
+  }
+
+  enableFortifyScan()
+
+  afterSuccess('fortify-scan') {
+    steps.archiveArtifacts allowEmptyArchive: true, artifacts: '**/Fortify Scan/**/*'
+  }
 }
