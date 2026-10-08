@@ -49,13 +49,19 @@ Analytics-owned copies:
 - `analytics.court_venue_epimms_lookup`: keyed by `epimms_id` and populated only where the EPIMMS ID has exactly one distinct `site_name`.
 - `analytics.location_reference_sync_state`: records the last successful sync time and row counts.
 
-Refresh-time label resolution:
+Refresh-time location resolution:
 
 1. Use `analytics.court_venue_case_type_lookup.site_name` for `(reportable_task.location, reportable_task.case_type_id)`.
 2. Otherwise use `analytics.court_venue_epimms_lookup.site_name` when the EPIMMS ID is unambiguous.
 3. Otherwise keep the raw `reportable_task.location` value as the display value.
 
 There is no case-type-specific fallback. `WaCaseType` and every other unmapped case type follow the same generic fallback chain.
+
+Refresh-time region resolution:
+
+1. Use `analytics.court_venue_case_type_lookup.region_id` for `(reportable_task.location, reportable_task.case_type_id)`.
+2. Otherwise use `analytics.court_venue_epimms_lookup.region_id` when the EPIMMS ID is unambiguous.
+3. Otherwise keep the trimmed raw `reportable_task.region` value.
 
 ## Caching
 
