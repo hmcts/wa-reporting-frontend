@@ -16,7 +16,8 @@ describe('redis module', () => {
     }));
 
     const createClient = jest.fn();
-    jest.doMock('redis', () => ({ createClient }));
+    const createCluster = jest.fn();
+    jest.doMock('redis', () => ({ createClient, createCluster }));
     jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
@@ -30,6 +31,7 @@ describe('redis module', () => {
     });
 
     expect(createClient).not.toHaveBeenCalled();
+    expect(createCluster).not.toHaveBeenCalled();
   });
 
   it('creates and caches a redis client when host is configured', () => {
@@ -37,6 +39,7 @@ describe('redis module', () => {
       'secrets.wa.wa-reporting-redis-host': 'redis-host',
       'secrets.wa.wa-reporting-redis-port': 6379,
       'secrets.wa.wa-reporting-redis-access-key': 'redis-key',
+      'redis.clusterEnabled': false,
     };
 
     const connect = jest.fn().mockResolvedValue(undefined);
@@ -47,7 +50,8 @@ describe('redis module', () => {
     jest.doMock('config', () => ({
       get: jest.fn((key: string) => configValues[key]),
     }));
-    jest.doMock('redis', () => ({ createClient }));
+    const createCluster = jest.fn();
+    jest.doMock('redis', () => ({ createClient, createCluster }));
     jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
@@ -67,6 +71,7 @@ describe('redis module', () => {
         host: 'redis-host',
         port: 6379,
         tls: true,
+        servername: 'redis-host',
         connectTimeout: 5000,
         reconnectStrategy: expect.any(Function),
       },
@@ -75,6 +80,7 @@ describe('redis module', () => {
     expect(app.locals.redisClient).toBe(redisClient);
     expect(app.locals.appRedisClient).toBe(redisClient);
     expect(app.locals.redisConnectPromise).toBeDefined();
+    expect(createCluster).not.toHaveBeenCalled();
   });
 
   it('does not set tls when redis key is missing', () => {
@@ -82,6 +88,7 @@ describe('redis module', () => {
       'secrets.wa.wa-reporting-redis-host': 'redis-host',
       'secrets.wa.wa-reporting-redis-port': 6379,
       'secrets.wa.wa-reporting-redis-access-key': '',
+      'redis.clusterEnabled': false,
     };
 
     const connect = jest.fn().mockResolvedValue(undefined);
@@ -92,7 +99,8 @@ describe('redis module', () => {
     jest.doMock('config', () => ({
       get: jest.fn((key: string) => configValues[key]),
     }));
-    jest.doMock('redis', () => ({ createClient }));
+    const createCluster = jest.fn();
+    jest.doMock('redis', () => ({ createClient, createCluster }));
     jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
@@ -112,6 +120,101 @@ describe('redis module', () => {
         reconnectStrategy: expect.any(Function),
       },
     });
+    expect(createCluster).not.toHaveBeenCalled();
+  });
+
+  it('creates a cluster client when Redis Cluster is enabled', () => {
+    const configValues: Record<string, unknown> = {
+      'secrets.wa.wa-reporting-redis-host': 'redis-host',
+      'secrets.wa.wa-reporting-redis-port': 8500,
+      'secrets.wa.wa-reporting-redis-access-key': '',
+      'redis.clusterEnabled': true,
+    };
+
+    const connect = jest.fn().mockResolvedValue(undefined);
+    const on = jest.fn();
+    const redisClient = { connect, on };
+    const createClient = jest.fn();
+    const createCluster = jest.fn(() => redisClient);
+
+    jest.doMock('config', () => ({
+      get: jest.fn((key: string) => configValues[key]),
+    }));
+    jest.doMock('redis', () => ({ createClient, createCluster }));
+    jest.doMock('../../../../main/modules/logging', () => ({
+      Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
+    }));
+
+    const app = { locals: {} } as unknown as Application;
+
+    jest.isolateModules(() => {
+      const { getRedisClient } = require('../../../../main/modules/redis');
+      expect(getRedisClient(app)).toBe(redisClient);
+    });
+
+    const clientOptions = {
+      socket: {
+        host: 'redis-host',
+        port: 8500,
+        tls: true,
+        servername: 'redis-host',
+        connectTimeout: 5000,
+        reconnectStrategy: expect.any(Function),
+      },
+    };
+    expect(createCluster).toHaveBeenCalledWith({ rootNodes: [clientOptions], defaults: clientOptions });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(connect).toHaveBeenCalled();
+  });
+
+  it('logs Redis connection events and reconnect attempts', () => {
+    const configValues: Record<string, unknown> = {
+      'secrets.wa.wa-reporting-redis-host': 'redis-host',
+      'secrets.wa.wa-reporting-redis-port': 6379,
+      'secrets.wa.wa-reporting-redis-access-key': '',
+      'redis.clusterEnabled': false,
+    };
+    const handlers: Record<string, (...args: unknown[]) => void> = {};
+    const connect = jest.fn().mockResolvedValue(undefined);
+    const on = jest.fn((event: string, handler: (...args: unknown[]) => void) => {
+      handlers[event] = handler;
+    });
+    const redisClient = { connect, on };
+    let reconnectStrategy: (retries: number) => number;
+    const createClient = jest.fn((options: { socket: { reconnectStrategy: (retries: number) => number } }) => {
+      reconnectStrategy = options.socket.reconnectStrategy;
+      return redisClient;
+    });
+    const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+
+    jest.doMock('config', () => ({
+      get: jest.fn((key: string) => configValues[key]),
+    }));
+    jest.doMock('redis', () => ({ createClient, createCluster: jest.fn() }));
+    jest.doMock('../../../../main/modules/logging', () => ({
+      Logger: { getLogger: jest.fn(() => logger) },
+    }));
+
+    jest.isolateModules(() => {
+      const { getRedisClient } = require('../../../../main/modules/redis');
+      getRedisClient({ locals: {} } as unknown as Application);
+    });
+
+    expect(reconnectStrategy!(40)).toBe(3000);
+
+    const error = new Error('connection failed');
+    handlers.connect();
+    handlers.ready();
+    handlers.reconnecting();
+    handlers.end();
+    handlers.error(error);
+
+    expect(logger.info).toHaveBeenCalledWith('redis.connect');
+    expect(logger.info).toHaveBeenCalledWith('redis.ready');
+    expect(logger.warn).toHaveBeenCalledWith('redis.reconnect', { retries: 40, delayMs: 3000 });
+    expect(logger.warn).toHaveBeenCalledWith('redis.reconnecting');
+    expect(logger.warn).toHaveBeenCalledWith('redis.end');
+    expect(logger.error).toHaveBeenCalledWith('redis.error', error);
   });
 
   it('reuses an existing redis client stored on app locals', () => {
@@ -124,7 +227,8 @@ describe('redis module', () => {
     }));
 
     const createClient = jest.fn();
-    jest.doMock('redis', () => ({ createClient }));
+    const createCluster = jest.fn();
+    jest.doMock('redis', () => ({ createClient, createCluster }));
     jest.doMock('../../../../main/modules/logging', () => ({
       Logger: { getLogger: jest.fn(() => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() })) },
     }));
@@ -139,5 +243,6 @@ describe('redis module', () => {
     });
 
     expect(createClient).not.toHaveBeenCalled();
+    expect(createCluster).not.toHaveBeenCalled();
   });
 });
