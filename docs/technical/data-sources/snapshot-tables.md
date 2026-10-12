@@ -16,7 +16,7 @@ Used by:
 
 Population:
 
-- Includes source rows where `state NOT IN ('COMPLETED', 'TERMINATED')`
+- Includes source rows where `state NOT IN ('COMPLETED', 'TERMINATED', 'CANCELLED')`
 
 Required columns:
 
@@ -60,7 +60,7 @@ Used by:
 
 Population:
 
-- Includes source rows where `LOWER(termination_reason) = 'completed'`
+- Includes source rows where `LOWER(outcome) = 'completed'`
 
 Required columns:
 
@@ -110,7 +110,7 @@ Used by:
 
 Population:
 
-- Source rows where `LOWER(termination_reason) = 'completed'` and `completed_date IS NOT NULL`
+- Source rows where `LOWER(outcome) = 'completed'` and `completed_date IS NOT NULL`
 - Grouped by assignee, shared slicers, and `completed_date`
 
 Required columns:
@@ -281,7 +281,7 @@ Used by:
 
 Population:
 
-- Source rows where `completed_date IS NOT NULL` and `LOWER(termination_reason) = 'completed'`
+- Source rows where `completed_date IS NOT NULL` and `LOWER(outcome) = 'completed'`
 - Grouped by shared slicers plus `reference_date = completed_date`
 - Populated directly from `tmp_snapshot_fact_source`
 
@@ -422,8 +422,8 @@ Used by:
 Population:
 
 - Created rows where `created_date IS NOT NULL`
-- Completed rows where `completed_date IS NOT NULL` and `LOWER(termination_reason) = 'completed'`
-- Cancelled rows where `completed_date IS NOT NULL` and `LOWER(termination_reason) = 'deleted'`
+- Completed rows where `completed_date IS NOT NULL` and `LOWER(outcome) = 'completed'`
+- Cancelled rows where `last_updated_date IS NOT NULL` and `LOWER(outcome) = 'cancelled'`
 - Grouped by shared slicers plus `event_date` and `event_type`
 
 Required columns:
