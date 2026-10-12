@@ -77,6 +77,11 @@ export class Nunjucks {
     });
 
     nunjucksEnv.addGlobal('manageCaseBaseUrl', config.get('analytics.manageCaseBaseUrl'));
+    nunjucksEnv.addGlobal('authEnabled', config.get<boolean>('auth.enabled') ?? true);
+    nunjucksEnv.addGlobal(
+      'sessionInactivityTimeoutMinutes',
+      config.get<number>('session.inactivityTimeoutMinutes') ?? 30
+    );
     nunjucksEnv.addFilter('formatNumber', (value: unknown, options: Intl.NumberFormatOptions = {}) => {
       if (typeof value !== 'number') {
         return value ?? '';

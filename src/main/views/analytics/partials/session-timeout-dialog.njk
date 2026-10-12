@@ -1,0 +1,29 @@
+{% from "govuk/components/button/macro.njk" import govukButton %}
+
+<div
+  class="session-timeout-dialog"
+  data-session-timeout-minutes="{{ sessionInactivityTimeoutMinutes }}"
+  hidden
+  aria-hidden="true"
+>
+  <div class="session-timeout-dialog__overlay"></div>
+  <div
+    class="session-timeout-dialog__content govuk-width-container"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="session-timeout-dialog-title"
+    aria-describedby="session-timeout-dialog-description"
+  >
+    <h2 id="session-timeout-dialog-title" class="govuk-heading-l">You are about to be signed out</h2>
+    <p id="session-timeout-dialog-description" class="govuk-body">
+      You will be signed out in <span data-session-timeout-countdown aria-live="polite"></span> due to inactivity.
+    </p>
+    {{ govukButton({
+      text: "Continue using the service",
+      attributes: { "data-session-timeout-continue": "true" }
+    }) }}
+    <p class="govuk-body">
+      <a class="govuk-link" href="/logout">Sign out now</a>
+    </p>
+  </div>
+</div>

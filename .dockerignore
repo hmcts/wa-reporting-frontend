@@ -7,14 +7,23 @@
 !package.json
 !yarn.lock
 !version
-!.yarn/**
+!.yarn
+!.yarn/releases
+!.yarn/releases/**
+.yarn/cache
 !.yarnrc.yml
 !.pnp.cjs
 
 !tsconfig.json
+!scripts
 !scripts/**
+!webpack
 !webpack/**
+!src
+!src/main
 !src/main/**
+!config
 !config/**
+!prisma
 !prisma/**
 !webpack.config.js

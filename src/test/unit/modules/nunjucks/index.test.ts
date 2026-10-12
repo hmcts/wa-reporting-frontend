@@ -32,6 +32,12 @@ describe('Nunjucks module', () => {
         if (key === 'analytics.manageCaseBaseUrl') {
           return 'http://manage-case';
         }
+        if (key === 'auth.enabled') {
+          return true;
+        }
+        if (key === 'session.inactivityTimeoutMinutes') {
+          return 30;
+        }
         return undefined;
       }),
     }));
@@ -55,6 +61,8 @@ describe('Nunjucks module', () => {
       })
     );
     expect(env.addGlobal).toHaveBeenCalledWith('manageCaseBaseUrl', 'http://manage-case');
+    expect(env.addGlobal).toHaveBeenCalledWith('authEnabled', true);
+    expect(env.addGlobal).toHaveBeenCalledWith('sessionInactivityTimeoutMinutes', 30);
 
     const formatNumber = filters.formatNumber;
     expect(formatNumber('text')).toBe('text');

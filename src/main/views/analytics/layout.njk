@@ -53,6 +53,9 @@
 
 {% block content %}
   {% block analyticsContent %}{% endblock %}
+  {% if authEnabled %}
+    {% include "analytics/partials/session-timeout-dialog.njk" %}
+  {% endif %}
 {% endblock %}
 
 {% block pageScripts %}

@@ -12,6 +12,7 @@ const defaultValues: RouteTestConfigValues = {
   'compression.enabled': false,
   useCSRFProtection: true,
   'secrets.wa.wa-reporting-frontend-session-secret': 'wa-reporting-frontend-session-secret',
+  'session.inactivityTimeoutMinutes': 30,
   'session.cookie.name': 'wa-reporting-frontend-session',
   'session.appCookie.name': 'wa-reporting-frontend-app',
   'secrets.wa.wa-reporting-redis-host': '',

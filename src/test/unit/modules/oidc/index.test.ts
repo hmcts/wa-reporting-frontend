@@ -57,6 +57,7 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
     'RBAC.access': 'role-access',
     'RBAC.roleAssignmentRoleNames': 'task-supervisor',
     'session.cookie.name': 'session-cookie',
+    'session.inactivityTimeoutMinutes': 30,
     'secrets.wa.wa-reporting-redis-host': 'redis-host',
     'secrets.wa.wa-reporting-redis-port': 6379,
     'secrets.wa.wa-reporting-redis-access-key': 'redis-pass',
@@ -176,7 +177,7 @@ describe('OidcMiddleware', () => {
     expect(options.authorizationParams.scope).toBe('openid profile');
     expect(options.session.name).toBe('session-cookie');
     expect(options.session.store).toEqual({ store: 'redis' });
-    expect(options.session.rollingDuration).toBe(60 * 60);
+    expect(options.session.rollingDuration).toBe(30 * 60);
     expect(options.session.cookie.httpOnly).toBe(true);
     expect(options.session.rolling).toBe(true);
     expect(useMock).toHaveBeenCalledTimes(2);

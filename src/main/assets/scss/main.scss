@@ -7,6 +7,26 @@
   z-index: 5;
 }
 
+.session-timeout-dialog__overlay {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  background: rgba(11, 12, 12, 0.75);
+}
+
+.session-timeout-dialog__content {
+  position: fixed;
+  z-index: 101;
+  top: 50%;
+  left: 50%;
+  width: calc(100% - #{govuk-spacing(6)});
+  max-width: 600px;
+  padding: govuk-spacing(6);
+  transform: translate(-50%, -50%);
+  background: govuk-colour('white');
+  box-sizing: border-box;
+}
+
 .analytics-chart {
   min-height: 400px;
   position: relative;

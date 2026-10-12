@@ -75,6 +75,9 @@ database:
     schema: LRD_DB_SCHEMA
     options: LRD_DB_OPTIONS
 session:
+  inactivityTimeoutMinutes:
+    __name: SESSION_INACTIVITY_TIMEOUT_MINUTES
+    __format: number
   cookie:
     name: SESSION_COOKIE_NAME
   appCookie:

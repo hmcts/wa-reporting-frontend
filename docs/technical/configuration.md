@@ -81,6 +81,7 @@ S2S one-time passwords are generated from the configured microservice secret as 
 | Config key | Purpose | Environment variable or secret |
 | --- | --- | --- |
 | `secrets.wa.wa-reporting-frontend-session-secret` | Session signing secret | `SESSION_SECRET` |
+| `session.inactivityTimeoutMinutes` | Rolling application and OIDC session inactivity limit in minutes (default: 30) | `SESSION_INACTIVITY_TIMEOUT_MINUTES` |
 | `session.cookie.name` | OIDC session cookie name | `SESSION_COOKIE_NAME` |
 | `session.appCookie.name` | App session cookie name | `SESSION_APP_COOKIE_NAME` |
 | `secrets.wa.wa-reporting-redis-host` | Redis host | `REDIS_HOST` |

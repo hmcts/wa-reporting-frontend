@@ -36,16 +36,20 @@ Two session mechanisms are used:
 
 1) Application session (`AppSession`):
    - Cookie name: `session.appCookie.name`
-   - Current cookie attributes: `httpOnly: true`, `sameSite: 'lax'`
+   - Current cookie attributes: `httpOnly: true`, `sameSite: 'lax'`, and an expiry matching the inactivity limit
    - `secure` is not currently set by the session module
    - Store: Redis if configured, otherwise file store in `/tmp`
 
 2) OIDC session (`express-openid-connect`):
    - Cookie name: `session.cookie.name`
-   - Rolling session with 60-minute duration
+   - Rolling session with the configured inactivity limit (30 minutes by default); activity renews the limit and an idle session expires
    - Current cookie attributes: `httpOnly: true`
    - `sameSite` and `secure` are not currently set by the OIDC wrapper
    - Store: Redis if configured, otherwise file store in `/tmp`
+
+Both the application and OIDC sessions use `session.inactivityTimeoutMinutes` (30 by default). The application-session cookie expiry is set to the same limit so its storage lifetime follows the idle timeout.
+
+When OIDC is enabled, authenticated analytics pages also run a browser-side inactivity timer. It shows a GOV.UK-styled warning for the shorter of two minutes or half the configured timeout, renews both rolling sessions only when the user selects "Continue using the service", and redirects to `/logout` at the deadline. The `/active` endpoint is protected by the OIDC middleware and returns `204 No Content` only while the session remains valid.
 
 ## CSRF protection
 - Enabled by default via `useCSRFProtection`.
