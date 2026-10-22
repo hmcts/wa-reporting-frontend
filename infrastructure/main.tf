@@ -27,7 +27,6 @@ data "azurerm_key_vault" "s2s_key_vault" {
 }
 
 data "azurerm_subnet" "redis_private_endpoint" {
-  # Preserve existing environment-keyed Terraform addresses after rollout.
   for_each = toset([var.env])
 
   name                 = "core-infra-subnet-2-${var.env}"
@@ -99,7 +98,6 @@ resource "azurerm_key_vault_secret" "redis_access_key" {
 }
 
 module "managed_redis" {
-  # Preserve existing environment-keyed Terraform addresses after rollout.
   for_each = toset([var.env])
   source   = "git@github.com:hmcts/terraform-module-azure-managed-redis?ref=main"
 
