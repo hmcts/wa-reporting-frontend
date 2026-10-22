@@ -89,13 +89,7 @@ S2S one-time passwords are generated from the configured microservice secret as 
 | `secrets.wa.azure-managed-redis-access-key` | Redis access key | `REDIS_KEY` |
 | `redis.clusterEnabled` | Uses a Redis Cluster client that follows `MOVED` redirects; enable for Azure Managed Redis | `REDIS_CLUSTER` |
 
-Persistent environments (`demo`, `aat`, `ithc`, `perftest`, and `prod`) use Azure Managed Redis. The chart defaults to `REDIS_CLUSTER: true` and mounts `azure-managed-redis-host`, `azure-managed-redis-port`, and `azure-managed-redis-access-key` directly from the WA Key Vault, without aliases. Properties Volume exposes these under the matching `secrets.wa.azure-managed-redis-*` configuration keys. The Redis client and health checks consume these names; local and preview environment variables (`REDIS_HOST`, `REDIS_PORT`, and `REDIS_KEY`) map to the same keys.
-
-Deploy the application configuration rename together with the chart change. Environment-specific Flux secret lists replace the chart's list: remove or update any override that still aliases the new secrets to the previous names when releasing this version, so the application receives the new mount names. Preserve all non-Redis secrets when changing an override.
-
-Terraform enables Managed Redis for every supplied `var.env`. It retains `for_each = toset([var.env])` on the module and subnet lookup to preserve existing environment-keyed state addresses; the managed secret resources continue to inherit those keys. The production `Balanced_B3` SKU override remains in `infrastructure/prod.tfvars`; other environments retain the `Balanced_B0` default.
-
-Preview deploys the `hmcts-redis` Helm dependency as standalone, unauthenticated Redis. It sets `REDIS_CLUSTER: false` and `REDIS_HOST` to `${SERVICE_NAME}-hmcts-redis-master`.
+Deployed environments use unaliased `azure-managed-redis-*` Key Vault secrets with `REDIS_CLUSTER=true`. Local development and preview use standalone Redis (`REDIS_CLUSTER=false`); preview sets `REDIS_HOST` to `${SERVICE_NAME}-hmcts-redis-master`. Remove or update Flux aliases to the old secret names when deploying this change.
 
 ### Database
 
