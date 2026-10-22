@@ -3,12 +3,12 @@ provider "azurerm" {
 }
 
 locals {
-  resourceGroup    = "${var.product}-${var.env}"
-  vaultName        = "${var.product}-${var.env}"
-  rdVaultName      = "rd-${var.env}"
-  rdResourceGroup  = "rd-${var.env}"
-  s2sVaultName     = "s2s-${var.env}"
-  s2sResourceGroup = "rpe-service-auth-provider-${var.env}"
+  resourceGroup              = "${var.product}-${var.env}"
+  vaultName                  = "${var.product}-${var.env}"
+  rdVaultName                = "rd-${var.env}"
+  rdResourceGroup            = "rd-${var.env}"
+  s2sVaultName               = "s2s-${var.env}"
+  s2sResourceGroup           = "rpe-service-auth-provider-${var.env}"
 }
 
 data "azurerm_key_vault" "wa_key_vault" {
