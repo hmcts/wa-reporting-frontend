@@ -29,7 +29,7 @@ Use the `config` package with dot-notation keys that match `config/default.json`
 ```ts
 import config from 'config';
 
-const redisHost: string | undefined = config.get('secrets.wa.wa-reporting-redis-host');
+const redisHost: string | undefined = config.get('secrets.wa.azure-managed-redis-host');
 const ttlSeconds: number = config.get<number>('analytics.cacheTtlSeconds');
 
 if (config.has('secrets.wa.app-insights-connection-string')) {
@@ -84,12 +84,18 @@ S2S one-time passwords are generated from the configured microservice secret as 
 | `session.inactivityTimeoutMinutes` | Rolling application and OIDC session inactivity limit in minutes (default: 30) | `SESSION_INACTIVITY_TIMEOUT_MINUTES` |
 | `session.cookie.name` | OIDC session cookie name | `SESSION_COOKIE_NAME` |
 | `session.appCookie.name` | App session cookie name | `SESSION_APP_COOKIE_NAME` |
-| `secrets.wa.wa-reporting-redis-host` | Redis host | `REDIS_HOST` |
-| `secrets.wa.wa-reporting-redis-port` | Redis port | `REDIS_PORT` |
-| `secrets.wa.wa-reporting-redis-access-key` | Redis access key | `REDIS_KEY` |
+| `secrets.wa.azure-managed-redis-host` | Redis host | `REDIS_HOST` |
+| `secrets.wa.azure-managed-redis-port` | Redis port | `REDIS_PORT` |
+| `secrets.wa.azure-managed-redis-access-key` | Redis access key | `REDIS_KEY` |
 | `redis.clusterEnabled` | Uses a Redis Cluster client that follows `MOVED` redirects; enable for Azure Managed Redis | `REDIS_CLUSTER` |
 
-Preview deploys the `hmcts-redis` Helm dependency as standalone, unauthenticated Redis and sets `REDIS_HOST` to `${SERVICE_NAME}-hmcts-redis-master`.
+Persistent environments (`demo`, `aat`, `ithc`, `perftest`, and `prod`) use Azure Managed Redis. The chart defaults to `REDIS_CLUSTER: true` and mounts `azure-managed-redis-host`, `azure-managed-redis-port`, and `azure-managed-redis-access-key` directly from the WA Key Vault, without aliases. Properties Volume exposes these under the matching `secrets.wa.azure-managed-redis-*` configuration keys. The Redis client and health checks consume these names; local and preview environment variables (`REDIS_HOST`, `REDIS_PORT`, and `REDIS_KEY`) map to the same keys.
+
+Deploy the application configuration rename together with the chart change. Environment-specific Flux secret lists replace the chart's list: remove or update any override that still aliases the new secrets to the previous names when releasing this version, so the application receives the new mount names. Preserve all non-Redis secrets when changing an override.
+
+Terraform enables Managed Redis for every supplied `var.env`. It retains `for_each = toset([var.env])` on the module and subnet lookup to preserve existing environment-keyed state addresses; the managed secret resources continue to inherit those keys. The production `Balanced_B3` SKU override remains in `infrastructure/prod.tfvars`; other environments retain the `Balanced_B0` default.
+
+Preview deploys the `hmcts-redis` Helm dependency as standalone, unauthenticated Redis. It sets `REDIS_CLUSTER: false` and `REDIS_HOST` to `${SERVICE_NAME}-hmcts-redis-master`.
 
 ### Database
 
