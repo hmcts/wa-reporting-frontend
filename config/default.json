@@ -95,9 +95,9 @@
   "secrets": {
     "wa": {
       "app-insights-connection-string": false,
-      "wa-reporting-redis-host": "",
-      "wa-reporting-redis-port": 6379,
-      "wa-reporting-redis-access-key": "",
+      "azure-managed-redis-host": "",
+      "azure-managed-redis-port": 6379,
+      "azure-managed-redis-access-key": "",
       "wa-reporting-frontend-client-secret": "wa_reporting_frontend_secret",
       "wa-reporting-frontend-session-secret": "wa-reporting-frontend-session-secret",
       "wa-reporting-frontend-s2s-secret": "AAAAAAAAAAAAAAAA",

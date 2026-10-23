@@ -92,9 +92,9 @@ RBAC:
 secrets:
   wa:
     app-insights-connection-string: APPLICATIONINSIGHTS_CONNECTION_STRING
-    wa-reporting-redis-host: REDIS_HOST
-    wa-reporting-redis-port: REDIS_PORT
-    wa-reporting-redis-access-key: REDIS_KEY
+    azure-managed-redis-host: REDIS_HOST
+    azure-managed-redis-port: REDIS_PORT
+    azure-managed-redis-access-key: REDIS_KEY
     wa-reporting-frontend-client-secret: WA_REPORTING_FRONTEND_CLIENT_SECRET
     wa-reporting-frontend-session-secret: SESSION_SECRET
     wa-reporting-frontend-s2s-secret: WA_REPORTING_FRONTEND_S2S_SECRET
