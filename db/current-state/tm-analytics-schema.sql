@@ -989,7 +989,11 @@ BEGIN
     source.case_type_label,
     source.role_category_label,
     source.case_id,
-    source.region,
+    COALESCE(
+      case_type_location.region_id,
+      epimms_location.region_id,
+      NULLIF(BTRIM(source.region), '')
+    ) AS region,
     NULLIF(BTRIM(source.location), '') AS location_id,
     COALESCE(
       case_type_location.site_name,
