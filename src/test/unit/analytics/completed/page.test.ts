@@ -391,7 +391,7 @@ describe('buildCompletedPage', () => {
         number_of_reassignments: 2,
         location: 'Leeds',
         termination_process_label: null,
-        outcome: 'Completed',
+        outcome: 'completed',
       },
     ]);
     (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-audit' });

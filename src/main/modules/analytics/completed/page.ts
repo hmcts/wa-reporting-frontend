@@ -11,7 +11,7 @@ import {
 import { CompletedTaskAuditRow, snapshotCompletedTaskRowsRepository } from '../shared/repositories';
 import { caseWorkerProfileService, regionService } from '../shared/services';
 import { AnalyticsFilters, CompletedMetric, CompletedResponse, Task } from '../shared/types';
-import { formatAnalyticsDateDisplay } from '../shared/formatting';
+import { formatAnalyticsDateDisplay, formatSentenceCase } from '../shared/formatting';
 import {
   type AnalyticsSectionErrors,
   FILTERS_UNAVAILABLE_MESSAGE,
@@ -68,7 +68,7 @@ function mapTaskAuditRow(row: CompletedTaskAuditRow, caseWorkerNames: Record<str
     totalAssignments: (row.number_of_reassignments ?? 0) + 1,
     location: row.location ?? null,
     status: row.termination_process_label,
-    outcome: row.outcome,
+    outcome: formatSentenceCase(row.outcome),
   };
 }
 
