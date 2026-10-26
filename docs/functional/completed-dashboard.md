@@ -79,6 +79,7 @@ flowchart LR
   - Status (termination process label)
   - Outcome
 - Default table sort is Completed date descending.
+- Outcome values are displayed in sentence case while remaining normalised to lowercase in snapshot data.
 - Empty state:
   - If no case ID, prompt user to enter one.
   - If case ID provided but no results, show "No completed tasks match this case ID."
