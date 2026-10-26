@@ -82,6 +82,10 @@ session:
     name: SESSION_COOKIE_NAME
   appCookie:
     name: SESSION_APP_COOKIE_NAME
+redis:
+  clusterEnabled:
+    __name: REDIS_CLUSTER
+    __format: boolean
 RBAC:
   access: RBAC_ACCESS
   roleAssignmentRoleNames: RBAC_ROLE_ASSIGNMENT_ROLE_NAMES

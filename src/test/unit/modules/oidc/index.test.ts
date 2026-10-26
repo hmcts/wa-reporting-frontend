@@ -190,6 +190,7 @@ describe('OidcMiddleware', () => {
         host: 'redis-host',
         port: 6379,
         tls: true,
+        servername: 'redis-host',
         connectTimeout: 5000,
         reconnectStrategy: expect.any(Function),
       },
