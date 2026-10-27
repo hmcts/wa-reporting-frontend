@@ -25,7 +25,7 @@ export class SnapshotCompletedTaskRowsRepository {
     pagination?: PaginationOptions | null,
     queryOptions?: AnalyticsQueryOptions
   ): Promise<UserOverviewTaskRow[]> {
-    const conditions = buildCompletedRowConditions(filters);
+    const conditions = [Prisma.sql`outcome = 'completed'`, ...buildCompletedRowConditions(filters)];
     const whereClause = buildUserOverviewWhere(snapshotId, filters, conditions, queryOptions);
     const orderBy = buildCompletedOrderBy(sort);
 
@@ -39,7 +39,16 @@ export class SnapshotCompletedTaskRowsRepository {
     filters: AnalyticsFilters,
     caseId?: string
   ): Promise<CompletedTaskAuditRow[]> {
-    const conditions = [asOfSnapshotCondition(snapshotId), ...buildCompletedRowConditions(filters, caseId)];
+    const conditions = [asOfSnapshotCondition(snapshotId)];
+    if (filters.completedFrom) {
+      conditions.push(Prisma.sql`event_date >= ${filters.completedFrom}`);
+    }
+    if (filters.completedTo) {
+      conditions.push(Prisma.sql`event_date <= ${filters.completedTo}`);
+    }
+    if (caseId) {
+      conditions.push(Prisma.sql`case_id = ${caseId}`);
+    }
     const whereClause = buildAnalyticsWhere(filters, conditions);
 
     return tmPrisma.$queryRaw<CompletedTaskAuditRow[]>(Prisma.sql`
@@ -47,14 +56,14 @@ export class SnapshotCompletedTaskRowsRepository {
         case_id,
         task_name,
         assignee,
-        to_char(completed_date, 'YYYY-MM-DD') AS completed_date,
+        to_char(event_date, 'YYYY-MM-DD') AS completed_date,
         number_of_reassignments,
         location,
         termination_process_label,
         outcome
       FROM ${Prisma.raw(TABLE_NAME)} rows
       ${whereClause}
-      ORDER BY rows.completed_date DESC
+      ORDER BY rows.event_date DESC
     `);
   }
 }

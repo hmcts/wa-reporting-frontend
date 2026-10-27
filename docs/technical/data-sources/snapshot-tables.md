@@ -16,7 +16,7 @@ Used by:
 
 Population:
 
-- Includes source rows where `state NOT IN ('COMPLETED', 'TERMINATED')`
+- Includes source rows where `state NOT IN ('COMPLETED', 'TERMINATED', 'CANCELLED')`
 
 Required columns:
 
@@ -51,7 +51,7 @@ Notes:
 
 ### `analytics.snapshot_completed_task_rows`
 
-Thin row store for completed-task row views.
+Thin row store for completed-task row views and case-level task audit rows.
 
 Used by:
 
@@ -60,7 +60,9 @@ Used by:
 
 Population:
 
-- Includes source rows where `LOWER(termination_reason) = 'completed'`
+- Includes source rows where `LOWER(outcome) = 'completed'` for completed-task views.
+- Appends source rows where `LOWER(outcome) = 'cancelled'` after completed and user filter facets are built, so those pages remain completed-only.
+- Stores `event_date` as `completed_date` for completed rows and `last_updated_date` for cancelled rows.
 
 Required columns:
 
@@ -78,6 +80,7 @@ Required columns:
 - `first_assigned_date`
 - `due_date`
 - `completed_date`
+- `event_date`
 - `handling_time_days`
 - `is_within_sla`
 - `termination_process_label`
@@ -93,6 +96,7 @@ Notes:
 - `location` is the resolved display label materialised during snapshot refresh. Dashboard rollups, filters, sorting, and CSV exports use this display value.
 - Runtime analytics queries no longer append `NULLS LAST` to completed-table sorts.
 - Existing indexes continue to cover `completed_date`, `case_id`, and `within_due_sort_value` sorts used by User Overview.
+- Task audit reads use the child-partition index on `(case_id, event_date DESC)`.
 - Child partitions create User Overview-specific non-Judicial partial indexes for default completed-table sorts on `created_date`, `first_assigned_date`, `due_date`, `handling_time_days`, `assignee`, `task_name`, `location`, and total assignments.
 
 ## User Overview completed facts
@@ -110,7 +114,7 @@ Used by:
 
 Population:
 
-- Source rows where `LOWER(termination_reason) = 'completed'` and `completed_date IS NOT NULL`
+- Source rows where `LOWER(outcome) = 'completed'` and `completed_date IS NOT NULL`
 - Grouped by assignee, shared slicers, and `completed_date`
 
 Required columns:
@@ -281,7 +285,7 @@ Used by:
 
 Population:
 
-- Source rows where `completed_date IS NOT NULL` and `LOWER(termination_reason) = 'completed'`
+- Source rows where `completed_date IS NOT NULL` and `LOWER(outcome) = 'completed'`
 - Grouped by shared slicers plus `reference_date = completed_date`
 - Populated directly from `tmp_snapshot_fact_source`
 
@@ -422,8 +426,8 @@ Used by:
 Population:
 
 - Created rows where `created_date IS NOT NULL`
-- Completed rows where `completed_date IS NOT NULL` and `LOWER(termination_reason) = 'completed'`
-- Cancelled rows where `completed_date IS NOT NULL` and `LOWER(termination_reason) = 'deleted'`
+- Completed rows where `completed_date IS NOT NULL` and `LOWER(outcome) = 'completed'`
+- Cancelled rows where `last_updated_date IS NOT NULL` and `LOWER(outcome) = 'cancelled'`
 - Grouped by shared slicers plus `event_date` and `event_type`
 
 Required columns:

@@ -12,6 +12,13 @@ export function formatPercent(value: number, options: Intl.NumberFormatOptions =
   return `${formatNumber(value, options)}%`;
 }
 
+export function formatSentenceCase(value?: string | null): string | null {
+  if (!value) {
+    return value ?? null;
+  }
+  return `${value.charAt(0).toUpperCase()}${value.slice(1).toLowerCase()}`;
+}
+
 export function buildDateParts(date?: Date): { day: string; month: string; year: string } {
   if (!date) {
     return { day: '', month: '', year: '' };

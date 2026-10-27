@@ -52,7 +52,7 @@ Current refresh shape:
 - `analytics.run_snapshot_refresh_batch()` coordinates internal helpers for temp-table staging, detached partition creation, detached data population, core index creation, filter-fact materialisation, and filter-index creation.
 - Creates a narrow temp staging table with only the columns and derived values needed by the app.
 - Builds detached per-snapshot tables for every snapshot parent before publish.
-- Loads thin row tables first, then facts, then page-scoped facet tables.
+- Loads completed thin rows first, then facts and page-scoped facet tables, before appending cancelled task-audit rows to the completed row snapshot.
 - Populates page-scoped aggregate facts directly from `tmp_snapshot_fact_source` where possible.
 - Creates child indexes on detached aggregate partitions with definitions that match parent partitioned indexes, so publish can attach or reuse them without leaving duplicate per-snapshot index families.
 - Runs `ANALYZE` on every detached snapshot table before publish.
@@ -68,6 +68,8 @@ Refresh-time derived values materialised in staging:
 - `days_beyond_due`
 - `within_due_sort_value`
 - `termination_reason_lower`
+- `outcome_lower`
+- `last_updated_date`
 
 Refresh-time session settings:
 
