@@ -219,6 +219,7 @@ describe('rowRepositoriesHarness', () => {
       expect(query.sql).not.toContain("state IN ('COMPLETED', 'TERMINATED')");
       expect(query.sql).toContain('completed_date >=');
       expect(query.sql).toContain('completed_date <=');
+      expect(query.sql).toContain("outcome = 'completed'");
       expect(query.sql).toContain('snapshot_id =');
       expect(query.values).toContain(snapshotId);
       expect(query.values).toEqual(expect.arrayContaining([filters.completedFrom, filters.completedTo]));
@@ -648,9 +649,21 @@ describe('rowRepositoriesHarness', () => {
     const auditQuery = (tmPrisma.$queryRaw as jest.Mock).mock.calls[0][0];
 
     expect(auditQuery.sql).toContain('FROM analytics.snapshot_completed_task_rows rows');
-    expect(auditQuery.sql).toContain("to_char(completed_date, 'YYYY-MM-DD') AS completed_date");
+    expect(auditQuery.sql).toContain("to_char(event_date, 'YYYY-MM-DD') AS completed_date");
+    expect(auditQuery.sql).toContain('event_date >=');
+    expect(auditQuery.sql).toContain('event_date <=');
     expect(auditQuery.sql).toContain('outcome');
-    expect(auditQuery.sql).toContain('ORDER BY rows.completed_date DESC');
+    expect(auditQuery.sql).not.toContain("outcome = 'completed'");
+    expect(auditQuery.sql).toContain('ORDER BY rows.event_date DESC');
     expect(auditQuery.values).toContain('CASE-100');
+  });
+
+  test('omits optional Task audit conditions when filters are not provided', async () => {
+    await rowRepositoriesHarness.fetchCompletedTaskAuditRows(snapshotId, {});
+    const auditQuery = latestQuery();
+
+    expect(auditQuery.sql).not.toContain('event_date >=');
+    expect(auditQuery.sql).not.toContain('event_date <=');
+    expect(auditQuery.sql).not.toContain('case_id =');
   });
 });

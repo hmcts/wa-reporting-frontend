@@ -454,7 +454,7 @@ export function buildCompletedViewModel(params: {
     taskAuditRows,
     taskAuditCaseId,
     taskAuditEmptyState: taskAuditCaseId
-      ? 'No completed tasks match this case ID.'
+      ? 'No completed or cancelled tasks match this case ID.'
       : 'Enter a case ID to see task audit results.',
   };
 }

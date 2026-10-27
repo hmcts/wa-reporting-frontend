@@ -73,7 +73,7 @@ flowchart LR
   - Case ID (link to Manage Case)
   - Task name
   - Agent name
-  - Completed date
+  - Completed date (uses the last-updated date for cancelled tasks)
   - Total assignments
   - Location
   - Status (termination process label)
@@ -82,7 +82,7 @@ flowchart LR
 - Outcome values are displayed in sentence case while remaining normalised to lowercase in snapshot data.
 - Empty state:
   - If no case ID, prompt user to enter one.
-  - If case ID provided but no results, show "No completed tasks match this case ID."
+  - If case ID provided but no results, show "No completed or cancelled tasks match this case ID."
 
 ### 6) Completed by region/location
 - Tabbed tables:

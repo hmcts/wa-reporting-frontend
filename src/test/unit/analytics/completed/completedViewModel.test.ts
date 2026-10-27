@@ -394,7 +394,7 @@ describe('buildCompletedViewModel', () => {
 
     expect(viewModel.taskAuditCaseId).toBe('123');
     expect(viewModel.taskAuditRows[0].caseId).toBe('123');
-    expect(viewModel.taskAuditEmptyState).toBe('No completed tasks match this case ID.');
+    expect(viewModel.taskAuditEmptyState).toBe('No completed or cancelled tasks match this case ID.');
   });
 
   test('uses a prompt when case ID is not provided', () => {
