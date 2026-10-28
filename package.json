@@ -165,7 +165,7 @@
     "deepmerge-ts": "npm:deepmerge-ts@8.0.2",
     "fast-uri": "npm:fast-uri@3.1.9",
     "follow-redirects": "npm:1.16.1",
-    "ip-address": "npm:ip-address@10.7.4",
+    "ip-address": "npm:ip-address@10.7.5",
     "joi": "npm:joi@18.2.9",
     "js-yaml": "npm:js-yaml@5.4.3",
     "moment": "npm:2.31.0",
