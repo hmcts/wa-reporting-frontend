@@ -43,6 +43,7 @@
   },
   "dependencies": {
     "@azure/monitor-opentelemetry": "^1.19.0",
+    "@azure/msal-node": "^7.1.1",
     "@hmcts/info-provider": "^1.4.0",
     "@hmcts/nodejs-healthcheck": "^1.8.6",
     "@hmcts/properties-volume": "^1.4.1",
@@ -171,7 +172,9 @@
     "proxy-addr": "npm:2.0.8",
     "mysql2": "npm:mysql2@3.24.6",
     "qs": "npm:qs@6.16.1",
-    "serialize-javascript": "npm:7.1.2"
+    "serialize-javascript": "npm:7.1.2",
+    "undici": "npm:8.12.3",
+    "@azure/msal-node": "^7.1.1"
   },
   "husky": {
     "hooks": {
