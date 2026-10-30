@@ -29,7 +29,7 @@ Use the `config` package with dot-notation keys that match `config/default.json`
 ```ts
 import config from 'config';
 
-const redisHost: string | undefined = config.get('secrets.wa.wa-reporting-redis-host');
+const redisHost: string | undefined = config.get('secrets.wa.azure-managed-redis-host');
 const ttlSeconds: number = config.get<number>('analytics.cacheTtlSeconds');
 
 if (config.has('secrets.wa.app-insights-connection-string')) {
@@ -84,12 +84,12 @@ S2S one-time passwords are generated from the configured microservice secret as 
 | `session.inactivityTimeoutMinutes` | Rolling application and OIDC session inactivity limit in minutes (default: 30) | `SESSION_INACTIVITY_TIMEOUT_MINUTES` |
 | `session.cookie.name` | OIDC session cookie name | `SESSION_COOKIE_NAME` |
 | `session.appCookie.name` | App session cookie name | `SESSION_APP_COOKIE_NAME` |
-| `secrets.wa.wa-reporting-redis-host` | Redis host | `REDIS_HOST` |
-| `secrets.wa.wa-reporting-redis-port` | Redis port | `REDIS_PORT` |
-| `secrets.wa.wa-reporting-redis-access-key` | Redis access key | `REDIS_KEY` |
+| `secrets.wa.azure-managed-redis-host` | Redis host | `REDIS_HOST` |
+| `secrets.wa.azure-managed-redis-port` | Redis port | `REDIS_PORT` |
+| `secrets.wa.azure-managed-redis-access-key` | Redis access key | `REDIS_KEY` |
 | `redis.clusterEnabled` | Uses a Redis Cluster client that follows `MOVED` redirects; enable for Azure Managed Redis | `REDIS_CLUSTER` |
 
-Preview deploys the `hmcts-redis` Helm dependency as standalone, unauthenticated Redis and sets `REDIS_HOST` to `${SERVICE_NAME}-hmcts-redis-master`.
+Deployed environments use unaliased `azure-managed-redis-*` Key Vault secrets with `REDIS_CLUSTER=true`. Local development and preview use standalone Redis (`REDIS_CLUSTER=false`); preview sets `REDIS_HOST` to `${SERVICE_NAME}-hmcts-redis-master`. Remove or update Flux aliases to the old secret names when deploying this change.
 
 ### Database
 

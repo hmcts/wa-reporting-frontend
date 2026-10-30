@@ -27,9 +27,9 @@ describe('AppSession module', () => {
       'secrets.wa.wa-reporting-frontend-session-secret': 'secret',
       'session.appCookie.name': 'app-cookie',
       'session.inactivityTimeoutMinutes': 30,
-      'secrets.wa.wa-reporting-redis-host': 'redis-host',
-      'secrets.wa.wa-reporting-redis-port': 6379,
-      'secrets.wa.wa-reporting-redis-access-key': 'redis-key',
+      'secrets.wa.azure-managed-redis-host': 'redis-host',
+      'secrets.wa.azure-managed-redis-port': 6379,
+      'secrets.wa.azure-managed-redis-access-key': 'redis-key',
     };
 
     const sessionMiddleware = jest.fn(() => 'session-middleware');
@@ -77,9 +77,9 @@ describe('AppSession module', () => {
       'secrets.wa.wa-reporting-frontend-session-secret': 'secret',
       'session.appCookie.name': 'app-cookie',
       'session.inactivityTimeoutMinutes': 30,
-      'secrets.wa.wa-reporting-redis-host': 'redis-host',
-      'secrets.wa.wa-reporting-redis-port': 6379,
-      'secrets.wa.wa-reporting-redis-access-key': '',
+      'secrets.wa.azure-managed-redis-host': 'redis-host',
+      'secrets.wa.azure-managed-redis-port': 6379,
+      'secrets.wa.azure-managed-redis-access-key': '',
     };
 
     const sessionMiddleware = jest.fn(() => 'session-middleware');
@@ -124,9 +124,9 @@ describe('AppSession module', () => {
       'secrets.wa.wa-reporting-frontend-session-secret': 'secret',
       'session.appCookie.name': 'app-cookie',
       'session.inactivityTimeoutMinutes': 30,
-      'secrets.wa.wa-reporting-redis-host': undefined,
-      'secrets.wa.wa-reporting-redis-port': undefined,
-      'secrets.wa.wa-reporting-redis-access-key': undefined,
+      'secrets.wa.azure-managed-redis-host': undefined,
+      'secrets.wa.azure-managed-redis-port': undefined,
+      'secrets.wa.azure-managed-redis-access-key': undefined,
     };
 
     const sessionMiddleware = jest.fn(() => 'session-middleware');

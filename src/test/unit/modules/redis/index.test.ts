@@ -8,7 +8,7 @@ describe('redis module', () => {
 
   it('returns null when redis host is not configured', () => {
     const configValues: Record<string, unknown> = {
-      'secrets.wa.wa-reporting-redis-host': undefined,
+      'secrets.wa.azure-managed-redis-host': undefined,
     };
 
     jest.doMock('config', () => ({
@@ -36,9 +36,9 @@ describe('redis module', () => {
 
   it('creates and caches a redis client when host is configured', () => {
     const configValues: Record<string, unknown> = {
-      'secrets.wa.wa-reporting-redis-host': 'redis-host',
-      'secrets.wa.wa-reporting-redis-port': 6379,
-      'secrets.wa.wa-reporting-redis-access-key': 'redis-key',
+      'secrets.wa.azure-managed-redis-host': 'redis-host',
+      'secrets.wa.azure-managed-redis-port': 6379,
+      'secrets.wa.azure-managed-redis-access-key': 'redis-key',
       'redis.clusterEnabled': false,
     };
 
@@ -85,9 +85,9 @@ describe('redis module', () => {
 
   it('does not set tls when redis key is missing', () => {
     const configValues: Record<string, unknown> = {
-      'secrets.wa.wa-reporting-redis-host': 'redis-host',
-      'secrets.wa.wa-reporting-redis-port': 6379,
-      'secrets.wa.wa-reporting-redis-access-key': '',
+      'secrets.wa.azure-managed-redis-host': 'redis-host',
+      'secrets.wa.azure-managed-redis-port': 6379,
+      'secrets.wa.azure-managed-redis-access-key': '',
       'redis.clusterEnabled': false,
     };
 
@@ -125,9 +125,9 @@ describe('redis module', () => {
 
   it('creates a cluster client when Redis Cluster is enabled', () => {
     const configValues: Record<string, unknown> = {
-      'secrets.wa.wa-reporting-redis-host': 'redis-host',
-      'secrets.wa.wa-reporting-redis-port': 8500,
-      'secrets.wa.wa-reporting-redis-access-key': '',
+      'secrets.wa.azure-managed-redis-host': 'redis-host',
+      'secrets.wa.azure-managed-redis-port': 8500,
+      'secrets.wa.azure-managed-redis-access-key': '',
       'redis.clusterEnabled': true,
     };
 
@@ -169,9 +169,9 @@ describe('redis module', () => {
 
   it('logs Redis connection events and reconnect attempts', () => {
     const configValues: Record<string, unknown> = {
-      'secrets.wa.wa-reporting-redis-host': 'redis-host',
-      'secrets.wa.wa-reporting-redis-port': 6379,
-      'secrets.wa.wa-reporting-redis-access-key': '',
+      'secrets.wa.azure-managed-redis-host': 'redis-host',
+      'secrets.wa.azure-managed-redis-port': 6379,
+      'secrets.wa.azure-managed-redis-access-key': '',
       'redis.clusterEnabled': false,
     };
     const handlers: Record<string, (...args: unknown[]) => void> = {};
@@ -219,7 +219,7 @@ describe('redis module', () => {
 
   it('reuses an existing redis client stored on app locals', () => {
     const configValues: Record<string, unknown> = {
-      'secrets.wa.wa-reporting-redis-host': 'redis-host',
+      'secrets.wa.azure-managed-redis-host': 'redis-host',
     };
 
     jest.doMock('config', () => ({
