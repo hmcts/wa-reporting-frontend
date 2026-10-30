@@ -66,3 +66,10 @@ flowchart TB
   Prod -- "No" --> Done["Ready for review"]
   BuildProd --> Done
 ```
+
+## Dependency automerge
+
+Renovate automerges eligible updates only Monday to Friday, 09:00–16:00 in
+`Europe/London`, after the release satisfies a 30-day minimum age. Platform
+automerge is disabled so Renovate enforces this merge window. Repository merge
+requirements still apply.
