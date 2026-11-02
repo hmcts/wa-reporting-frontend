@@ -229,7 +229,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@azure/monitor-opentelemetry@npm:^1.20.1":
+"@azure/monitor-opentelemetry@npm:^1.19.0":
   version: 1.20.1
   resolution: "@azure/monitor-opentelemetry@npm:1.20.1"
   dependencies:
@@ -16351,7 +16351,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "wa-reporting-frontend@workspace:."
   dependencies:
-    "@azure/monitor-opentelemetry": "npm:^1.20.1"
+    "@azure/monitor-opentelemetry": "npm:^1.19.0"
     "@azure/msal-node": "npm:^7.1.1"
     "@babel/core": "npm:^8.0.1"
     "@babel/eslint-parser": "npm:^8.0.1"

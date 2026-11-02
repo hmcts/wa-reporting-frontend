@@ -42,7 +42,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@azure/monitor-opentelemetry": "^1.20.1",
+    "@azure/monitor-opentelemetry": "^1.19.0",
     "@azure/msal-node": "^7.1.1",
     "@hmcts/info-provider": "^1.4.0",
     "@hmcts/nodejs-healthcheck": "^1.8.6",
