@@ -8,7 +8,7 @@ const normaliseSql = (sql: string): string => sql.replace(/\s+/g, ' ').trim();
 
 describe('analytics location reference snapshot SQL', () => {
   const currentStateSql = readRepositoryFile('db/current-state/tm-analytics-schema.sql');
-  const migrationSql = readRepositoryFile('db/migrations/tm/V019__get_region_from_refdata.sql');
+  const migrationSql = readRepositoryFile('db/migrations/tm/V021__get_region_from_refdata.sql');
 
   test.each([
     ['current-state schema', currentStateSql],
