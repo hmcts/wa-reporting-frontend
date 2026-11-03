@@ -36,7 +36,7 @@ describe('analytics location reference snapshot SQL', () => {
 
   test.each([
     ['current-state schema', currentStateSql],
-    ['V019 migration', migrationSql],
+    ['V021 migration', migrationSql],
   ])(
     '%s resolves region from case-type lookup then generic EPIMMS fallback before raw source region',
     (_label, sql) => {
@@ -56,7 +56,7 @@ describe('analytics location reference snapshot SQL', () => {
 
   test.each([
     ['current-state schema', currentStateSql],
-    ['V019 migration', migrationSql],
+    ['V021 migration', migrationSql],
   ])('%s persists raw location_id on row-level snapshot tables', (_label, sql) => {
     const normalised = normaliseSql(sql);
 
