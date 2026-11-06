@@ -1,4 +1,7 @@
 {
+  "timezone": "Europe/London",
+  "platformAutomerge": false,
+  "minimumReleaseAge": "30 days",
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>hmcts/.github//renovate/automerge-all", "local>hmcts/.github:renovate-config"],
   "packageRules": [
@@ -6,6 +9,16 @@
       "matchPackageNames": ["copy-webpack-plugin"],
       "allowedVersions": "<=10",
       "description": "https://canary.discord.com/channels/226791405589233664/1019534554073157642 and https://github.com/webpack-contrib/copy-webpack-plugin/issues/643 doesn't work even though issue closed"
+    },
+    {
+      "description": "Exclude HMCTS dependencies from the release age gate",
+      "matchPackageNames": [
+        "com.github.hmcts*",
+        "uk.gov.hmcts*",
+        "hmctsprod.azurecr.io/**",
+        "hmctspublic.azurecr.io/**"
+      ],
+      "minimumReleaseAge": null
     }
   ]
 }
