@@ -69,9 +69,8 @@ flowchart TB
 
 ## Dependency automerge
 
-Renovate automerges eligible updates only Monday to Friday, 09:00–16:00 in
-`Europe/London`, after the release satisfies a 30-day minimum age. Dependencies matching
-`com.github.hmcts*`, `uk.gov.hmcts*`, `hmctsprod.azurecr.io/**`, or
-`hmctspublic.azurecr.io/**` are exempt from the minimum release age. Platform
-automerge is disabled so Renovate enforces this merge window. Repository merge
-requirements still apply.
+Renovate automerges eligible updates at any time, after the release satisfies a
+30-day minimum age. Dependencies matching `com.github.hmcts*`, `uk.gov.hmcts*`,
+`hmctsprod.azurecr.io/**`, or `hmctspublic.azurecr.io/**` are exempt from the
+minimum release age. Platform automerge is disabled, so Renovate performs the
+merge during a subsequent run. Repository merge requirements still apply.
