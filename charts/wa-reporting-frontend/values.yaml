@@ -11,9 +11,9 @@ nodejs:
     wa:
       secrets:
         - app-insights-connection-string
-        - wa-reporting-redis-host
-        - wa-reporting-redis-port
-        - wa-reporting-redis-access-key
+        - azure-managed-redis-host
+        - azure-managed-redis-port
+        - azure-managed-redis-access-key
         - wa-reporting-frontend-client-secret
         - wa-reporting-frontend-session-secret
         - wa-reporting-frontend-s2s-secret
@@ -31,7 +31,7 @@ nodejs:
           alias: lrd-db-password
   environment:
     ALLOW_CONFIG_MUTATIONS: true
-    REDIS_CLUSTER: false
+    REDIS_CLUSTER: true
     TM_DB_HOST: cft-task-postgres-db-flexible-replica-{{ .Values.global.environment }}.postgres.database.azure.com
     TM_DB_NAME: cft_task_db
     TM_DB_SCHEMA: analytics
