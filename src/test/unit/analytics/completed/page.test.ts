@@ -12,7 +12,7 @@ import {
 } from '../../../../main/modules/analytics/shared/pageUtils';
 import {
   snapshotCancelledTaskRowsRepository,
-  snapshotCompletedTaskRowsRepository
+  snapshotCompletedTaskRowsRepository,
 } from '../../../../main/modules/analytics/shared/repositories';
 import { caseWorkerProfileService, regionService } from '../../../../main/modules/analytics/shared/services';
 import { AnalyticsFilters } from '../../../../main/modules/analytics/shared/types';
