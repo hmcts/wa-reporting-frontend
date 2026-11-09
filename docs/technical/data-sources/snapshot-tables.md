@@ -95,6 +95,37 @@ Notes:
 - Existing indexes continue to cover `completed_date`, `case_id`, and `within_due_sort_value` sorts used by User Overview.
 - Child partitions create User Overview-specific non-Judicial partial indexes for default completed-table sorts on `created_date`, `first_assigned_date`, `due_date`, `handling_time_days`, `assignee`, `task_name`, `location`, and total assignments.
 
+### `analytics.snapshot_cancelled_task_rows`
+
+Thin row store for cancelled tasks shown in the `/completed` task audit.
+
+Population:
+
+- Includes source rows where `LOWER(outcome) = 'cancelled'`.
+- Stores `last_updated_date` as the cancellation date displayed by the task audit.
+
+Required columns:
+
+- `snapshot_id`
+- `task_id`
+- `case_id`
+- `task_name`
+- `jurisdiction_label`
+- `role_category_label`
+- `region`
+- `location_id`
+- `location`
+- `work_type`
+- `last_updated_date`
+- `termination_process_label`
+- `outcome`
+- `assignee`
+- `number_of_reassignments`
+
+Notes:
+
+- The completed task audit combines this table with `analytics.snapshot_completed_task_rows` and sorts the combined rows by their displayed date descending.
+
 ## User Overview completed facts
 
 ### `analytics.snapshot_user_completed_facts`

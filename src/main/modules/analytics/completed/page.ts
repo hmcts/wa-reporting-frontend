@@ -8,7 +8,11 @@ import {
   settledValueWithError,
   settledValueWithFallback,
 } from '../shared/pageUtils';
-import { CompletedTaskAuditRow, snapshotCompletedTaskRowsRepository } from '../shared/repositories';
+import {
+  CompletedTaskAuditRow,
+  snapshotCancelledTaskRowsRepository,
+  snapshotCompletedTaskRowsRepository,
+} from '../shared/repositories';
 import { caseWorkerProfileService, regionService } from '../shared/services';
 import { AnalyticsFilters, CompletedMetric, CompletedResponse, Task } from '../shared/types';
 import { formatAnalyticsDateDisplay, formatSentenceCase } from '../shared/formatting';
@@ -138,7 +142,14 @@ export async function buildCompletedPage(
       ? completedRegionLocationTableService.fetchCompletedRegionLocation(snapshotContext.snapshotId, filters, range)
       : Promise.resolve(fallbackRegionLocation),
     shouldFetchTaskAuditData
-      ? snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows(snapshotContext.snapshotId, filters, caseId!)
+      ? Promise.all([
+          snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows(snapshotContext.snapshotId, filters, caseId!),
+          snapshotCancelledTaskRowsRepository.fetchCancelledTaskAuditRows(snapshotContext.snapshotId, filters, caseId!),
+        ]).then(([completedRows, cancelledRows]) =>
+          [...completedRows, ...cancelledRows].sort((left, right) =>
+            (right.completed_date ?? '').localeCompare(left.completed_date ?? '')
+          )
+        )
       : Promise.resolve([]),
     shouldFetchTaskAuditData ? caseWorkerProfileService.fetchCaseWorkerProfileNames() : Promise.resolve({}),
     shouldFetchRegionLocation ? regionService.fetchRegionDescriptions() : Promise.resolve({}),

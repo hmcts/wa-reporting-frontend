@@ -25,6 +25,7 @@ The permission contract includes the 18 stable partitioned parents used by `anal
 
 - `snapshot_open_task_rows`
 - `snapshot_completed_task_rows`
+- `snapshot_cancelled_task_rows`
 - `snapshot_user_completed_facts`
 - `snapshot_user_completed_daily_totals`
 - `snapshot_user_completed_slicer_daily_facts`

@@ -65,6 +65,7 @@ const EXPECTED_DURABLE_TABLES = [
   'location_reference_sync_state',
   'snapshot_open_task_rows',
   'snapshot_completed_task_rows',
+  'snapshot_cancelled_task_rows',
   'snapshot_user_completed_facts',
   'snapshot_user_completed_daily_totals',
   'snapshot_user_completed_slicer_daily_facts',
@@ -249,7 +250,7 @@ describe('bootstrap-tm-schema-permissions script', () => {
       EXPECTED_DURABLE_TABLES,
       'analytics',
     ]);
-    expect(EXPECTED_DURABLE_TABLES).toHaveLength(23);
+    expect(EXPECTED_DURABLE_TABLES).toHaveLength(24);
     expect(EXPECTED_DURABLE_TABLES.some(tableName => /_p_\d+$/.test(tableName))).toBe(false);
     expect(queryMock).not.toHaveBeenCalledWith('BEGIN');
     expect(queryMock.mock.calls.some(([sql]) => String(sql).startsWith('GRANT '))).toBe(false);

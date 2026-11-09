@@ -20,6 +20,7 @@ Dashboard-facing coordinators such as `snapshotCompletedDashboardRepository.ts`,
 | `analytics.snapshot_completed_region_location_facts` | `src/main/modules/analytics/shared/repositories/snapshotCompletedRegionLocationFactsRepository.ts` |
 | `analytics.snapshot_open_task_rows` | `src/main/modules/analytics/shared/repositories/snapshotOpenTaskRowsRepository.ts` |
 | `analytics.snapshot_completed_task_rows` | `src/main/modules/analytics/shared/repositories/snapshotCompletedTaskRowsRepository.ts` |
+| `analytics.snapshot_cancelled_task_rows` | `src/main/modules/analytics/shared/repositories/snapshotCancelledTaskRowsRepository.ts` |
 | `analytics.snapshot_user_completed_facts` | `src/main/modules/analytics/shared/repositories/snapshotUserCompletedFactsRepository.ts` |
 | `analytics.snapshot_user_completed_daily_totals` | `src/main/modules/analytics/shared/repositories/snapshotUserCompletedDailyTotalsRepository.ts` |
 | `analytics.snapshot_user_completed_slicer_daily_facts` | `src/main/modules/analytics/shared/repositories/snapshotUserCompletedSlicerDailyFactsRepository.ts` |
