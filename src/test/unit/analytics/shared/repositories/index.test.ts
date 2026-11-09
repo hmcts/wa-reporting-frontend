@@ -2,6 +2,7 @@ import * as repositories from '../../../../../main/modules/analytics/shared/repo
 import { caseWorkerProfileRepository } from '../../../../../main/modules/analytics/shared/repositories/caseWorkerProfileRepository';
 import { regionRepository } from '../../../../../main/modules/analytics/shared/repositories/regionRepository';
 import { snapshotBatchesRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotBatchesRepository';
+import { snapshotCancelledTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCancelledTaskRowsRepository';
 import { snapshotCompletedDashboardRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedDashboardRepository';
 import { snapshotCompletedDashboardFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedDashboardFactsRepository';
 import { snapshotCompletedDailyMetricsFactsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedDailyMetricsFactsRepository';
@@ -22,6 +23,7 @@ describe('repositories index', () => {
     expect(repositories.caseWorkerProfileRepository).toBe(caseWorkerProfileRepository);
     expect(repositories.regionRepository).toBe(regionRepository);
     expect(repositories.snapshotBatchesRepository).toBe(snapshotBatchesRepository);
+    expect(repositories.snapshotCancelledTaskRowsRepository).toBe(snapshotCancelledTaskRowsRepository);
     expect(repositories.snapshotCompletedDashboardRepository).toBe(snapshotCompletedDashboardRepository);
     expect(repositories.snapshotCompletedDashboardFactsRepository).toBe(snapshotCompletedDashboardFactsRepository);
     expect(repositories.snapshotCompletedDailyMetricsFactsRepository).toBe(

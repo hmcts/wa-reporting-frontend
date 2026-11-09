@@ -12,6 +12,7 @@ import {
   buildUserOverviewCompletedFactsWhere,
   buildUserOverviewWhere,
 } from '../../../../../main/modules/analytics/shared/repositories/rowRepositoryHelpers';
+import { snapshotCancelledTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCancelledTaskRowsRepository';
 import { snapshotCompletedTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotCompletedTaskRowsRepository';
 import { snapshotOpenTaskRowsRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotOpenTaskRowsRepository';
 import { snapshotUserCompletedRepository } from '../../../../../main/modules/analytics/shared/repositories/snapshotUserCompletedRepository';
@@ -41,6 +42,9 @@ const rowRepositoriesHarness = {
     snapshotUserCompletedRepository.fetchUserOverviewCompletedByTaskNameRows.bind(snapshotUserCompletedRepository),
   fetchCompletedTaskAuditRows: snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows.bind(
     snapshotCompletedTaskRowsRepository
+  ),
+  fetchCancelledTaskAuditRows: snapshotCancelledTaskRowsRepository.fetchCancelledTaskAuditRows.bind(
+    snapshotCancelledTaskRowsRepository
   ),
   fetchOutstandingCriticalTaskRows:
     snapshotOpenTaskRowsRepository.fetchOutstandingCriticalTaskRows.bind(snapshotOpenTaskRowsRepository),
@@ -271,6 +275,33 @@ describe('rowRepositoriesHarness', () => {
     expect(query.sql).toContain('case_id =');
     expect(query.values).toContain('CASE-123');
     expect(tmPrisma.$queryRaw).toHaveBeenCalled();
+  });
+
+  test('filters cancelled task audits by last updated date and case ID', async () => {
+    await rowRepositoriesHarness.fetchCancelledTaskAuditRows(
+      snapshotId,
+      { completedFrom: new Date('2024-01-01'), completedTo: new Date('2024-01-31') },
+      'CASE-456'
+    );
+    const query = latestQuery();
+
+    expect(query.sql).toContain('FROM analytics.snapshot_cancelled_task_rows rows');
+    expect(query.sql).toContain("to_char(last_updated_date, 'YYYY-MM-DD') AS completed_date");
+    expect(query.sql).toContain('last_updated_date >=');
+    expect(query.sql).toContain('last_updated_date <=');
+    expect(query.sql).toContain('case_id =');
+    expect(query.sql).toContain('ORDER BY rows.last_updated_date DESC');
+    expect(query.values).toEqual(expect.arrayContaining([snapshotId, 'CASE-456']));
+  });
+
+  test('fetches cancelled task audits without optional date or case filters', async () => {
+    await rowRepositoriesHarness.fetchCancelledTaskAuditRows(snapshotId, {});
+    const query = latestQuery();
+
+    expect(query.sql).not.toContain('last_updated_date >=');
+    expect(query.sql).not.toContain('last_updated_date <=');
+    expect(query.sql).not.toContain('case_id =');
+    expect(query.values).toEqual([snapshotId]);
   });
 
   test('builds user overview where clauses for user-only filters', () => {

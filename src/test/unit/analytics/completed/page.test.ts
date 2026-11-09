@@ -10,7 +10,10 @@ import {
   fetchFacetedFilterStateWithFallback as fetchFilterOptionsWithFallback,
   fetchPublishedSnapshotContext,
 } from '../../../../main/modules/analytics/shared/pageUtils';
-import { snapshotCompletedTaskRowsRepository } from '../../../../main/modules/analytics/shared/repositories';
+import {
+  snapshotCancelledTaskRowsRepository,
+  snapshotCompletedTaskRowsRepository
+} from '../../../../main/modules/analytics/shared/repositories';
 import { caseWorkerProfileService, regionService } from '../../../../main/modules/analytics/shared/services';
 import { AnalyticsFilters } from '../../../../main/modules/analytics/shared/types';
 import {
@@ -67,6 +70,7 @@ jest.mock('../../../../main/modules/analytics/shared/services', () => ({
 }));
 
 jest.mock('../../../../main/modules/analytics/shared/repositories', () => ({
+  snapshotCancelledTaskRowsRepository: { fetchCancelledTaskAuditRows: jest.fn() },
   snapshotCompletedTaskRowsRepository: { fetchCompletedTaskAuditRows: jest.fn() },
 }));
 
@@ -128,6 +132,7 @@ describe('buildCompletedPage', () => {
     expect(completedByNameChartService.fetchCompletedByName).not.toHaveBeenCalled();
     expect(completedRegionLocationTableService.fetchCompletedRegionLocation).not.toHaveBeenCalled();
     expect(snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows).not.toHaveBeenCalled();
+    expect(snapshotCancelledTaskRowsRepository.fetchCancelledTaskAuditRows).not.toHaveBeenCalled();
     expect(regionService.fetchRegionDescriptions).not.toHaveBeenCalled();
     expect(caseWorkerProfileService.fetchCaseWorkerProfileNames).not.toHaveBeenCalled();
     expect(completedComplianceSummaryService.fetchCompletedSummary).toHaveBeenCalledWith(
@@ -201,6 +206,7 @@ describe('buildCompletedPage', () => {
     expect(completedByNameChartService.fetchCompletedByName).not.toHaveBeenCalled();
     expect(completedRegionLocationTableService.fetchCompletedRegionLocation).not.toHaveBeenCalled();
     expect(snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows).not.toHaveBeenCalled();
+    expect(snapshotCancelledTaskRowsRepository.fetchCancelledTaskAuditRows).not.toHaveBeenCalled();
     expect(fetchFilterOptionsWithFallback).toHaveBeenCalled();
     expect(buildCompletedViewModel).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -387,11 +393,23 @@ describe('buildCompletedPage', () => {
         case_id: 'CASE-123',
         task_name: null,
         assignee: 'user-1',
-        completed_date: null,
+        completed_date: '2024-05-01',
         number_of_reassignments: 2,
         location: 'Leeds',
         termination_process_label: null,
         outcome: 'completed',
+      },
+    ]);
+    (snapshotCancelledTaskRowsRepository.fetchCancelledTaskAuditRows as jest.Mock).mockResolvedValue([
+      {
+        case_id: 'CASE-123',
+        task_name: 'Cancelled task',
+        assignee: null,
+        completed_date: '2024-05-02',
+        number_of_reassignments: 0,
+        location: 'Leeds',
+        termination_process_label: 'Cancellation process',
+        outcome: 'cancelled',
       },
     ]);
     (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-audit' });
@@ -403,10 +421,21 @@ describe('buildCompletedPage', () => {
         taskAuditRows: [
           {
             caseId: 'CASE-123',
+            taskName: 'Cancelled task',
+            agentName: null,
+            completedDate: '2 May 2024',
+            completedDateRaw: '2024-05-02',
+            totalAssignments: 1,
+            location: 'Leeds',
+            status: 'Cancellation process',
+            outcome: 'Cancelled',
+          },
+          {
+            caseId: 'CASE-123',
             taskName: null,
             agentName: 'Agent One',
-            completedDate: '-',
-            completedDateRaw: '-',
+            completedDate: '1 May 2024',
+            completedDateRaw: '2024-05-01',
             totalAssignments: 3,
             location: 'Leeds',
             status: null,
@@ -449,6 +478,7 @@ describe('buildCompletedPage', () => {
         outcome: null,
       },
     ]);
+    (snapshotCancelledTaskRowsRepository.fetchCancelledTaskAuditRows as jest.Mock).mockResolvedValue([]);
     (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-empty-audit' });
 
     await buildCompletedPage({}, 'handlingTime', 'CASE-EMPTY', 'completed-task-audit');
@@ -548,6 +578,7 @@ describe('buildCompletedPage', () => {
     (completedByNameChartService.fetchCompletedByName as jest.Mock).mockRejectedValue(new Error('db'));
     (completedRegionLocationTableService.fetchCompletedRegionLocation as jest.Mock).mockRejectedValue(new Error('db'));
     (snapshotCompletedTaskRowsRepository.fetchCompletedTaskAuditRows as jest.Mock).mockRejectedValue(new Error('db'));
+    (snapshotCancelledTaskRowsRepository.fetchCancelledTaskAuditRows as jest.Mock).mockResolvedValue([]);
     (caseWorkerProfileService.fetchCaseWorkerProfileNames as jest.Mock).mockRejectedValue(new Error('db'));
     (regionService.fetchRegionDescriptions as jest.Mock).mockRejectedValue(new Error('db'));
     (buildCompletedViewModel as jest.Mock).mockReturnValue({ view: 'completed-errors' });

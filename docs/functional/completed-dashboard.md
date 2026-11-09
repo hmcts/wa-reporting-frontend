@@ -79,6 +79,7 @@ flowchart LR
   - Status (termination process label)
   - Outcome
 - Default table sort is Completed date descending.
+- The audit includes completed and cancelled tasks. Completed tasks use `completed_date`; cancelled tasks use `last_updated_date`.
 - Outcome values are displayed in sentence case while remaining normalised to lowercase in snapshot data.
 - Empty state:
   - If no case ID, prompt user to enter one.
@@ -96,5 +97,5 @@ flowchart LR
 - All tables include CSV export.
 - Filters apply to all sections; the metric selector only changes the timing chart/table.
 - Summary, timeline, and processing/handling default reads use the completed daily metrics snapshot rollup. Shared-filtered reads use the full completed dashboard facts table so filter semantics remain exact.
-- Completed-task determination is based on case-insensitive `termination_reason = completed`; task `state` is not used to classify completion.
+- Completed-task determination is based on case-insensitive `outcome = completed`; cancelled-task audit rows use case-insensitive `outcome = cancelled`. Task `state` is not used for either classification.
 - Dates are displayed as `D Mon YYYY` in the UI, while CSV export keeps ISO `YYYY-MM-DD` date values.

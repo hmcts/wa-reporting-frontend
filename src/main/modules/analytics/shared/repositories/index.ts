@@ -1,6 +1,7 @@
 export * from './caseWorkerProfileRepository';
 export * from './regionRepository';
 export * from './snapshotBatchesRepository';
+export * from './snapshotCancelledTaskRowsRepository';
 export * from './snapshotCompletedDashboardRepository';
 export * from './snapshotCompletedDashboardFactsRepository';
 export * from './snapshotCompletedDailyMetricsFactsRepository';

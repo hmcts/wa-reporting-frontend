@@ -37,6 +37,8 @@ DROP PROCEDURE IF EXISTS analytics.populate_snapshot_completed_region_location_r
 DROP PROCEDURE IF EXISTS analytics.create_snapshot_completed_region_location_indexes(BIGINT, TEXT);
 DROP PROCEDURE IF EXISTS analytics.populate_snapshot_task_event_service_daily_rollup_table(BIGINT, REGCLASS, REGCLASS);
 DROP PROCEDURE IF EXISTS analytics.create_snapshot_task_event_service_daily_indexes(BIGINT, TEXT);
+DROP PROCEDURE IF EXISTS analytics.populate_snapshot_cancelled_task_rows(BIGINT, REGCLASS);
+DROP PROCEDURE IF EXISTS analytics.create_snapshot_cancelled_task_rows_indexes(BIGINT, TEXT);
 DROP PROCEDURE IF EXISTS analytics.cleanup_snapshot_partitions(BIGINT);
 DROP PROCEDURE IF EXISTS analytics.cleanup_snapshot_retention();
 DROP PROCEDURE IF EXISTS analytics.refresh_snapshot_filter_facet_facts(BIGINT);
@@ -60,6 +62,7 @@ DROP TABLE IF EXISTS analytics.snapshot_completed_dashboard_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_user_completed_slicer_daily_facts CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_user_completed_daily_totals CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_user_completed_facts CASCADE;
+DROP TABLE IF EXISTS analytics.snapshot_cancelled_task_rows CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_completed_task_rows CASCADE;
 DROP TABLE IF EXISTS analytics.snapshot_open_task_rows CASCADE;
 
@@ -169,6 +172,24 @@ CREATE TABLE analytics.snapshot_completed_task_rows (
   assignee TEXT,
   number_of_reassignments INTEGER NOT NULL DEFAULT 0,
   within_due_sort_value SMALLINT
+) PARTITION BY LIST (snapshot_id);
+
+CREATE TABLE analytics.snapshot_cancelled_task_rows (
+  snapshot_id BIGINT NOT NULL REFERENCES analytics.snapshot_batches(snapshot_id) ON DELETE CASCADE,
+  task_id TEXT NOT NULL,
+  case_id TEXT,
+  task_name TEXT,
+  jurisdiction_label TEXT,
+  role_category_label TEXT,
+  region TEXT,
+  location_id TEXT,
+  location TEXT,
+  work_type TEXT,
+  last_updated_date DATE,
+  termination_process_label TEXT,
+  outcome TEXT,
+  assignee TEXT,
+  number_of_reassignments INTEGER NOT NULL DEFAULT 0
 ) PARTITION BY LIST (snapshot_id);
 
 CREATE TABLE analytics.snapshot_user_completed_facts (
@@ -578,6 +599,7 @@ AS $$
     ARRAY[
       'snapshot_open_task_rows',
       'snapshot_completed_task_rows',
+      'snapshot_cancelled_task_rows',
       'snapshot_user_completed_facts',
       'snapshot_user_completed_daily_totals',
       'snapshot_user_completed_slicer_daily_facts',
@@ -2335,6 +2357,77 @@ BEGIN
 END;
 $procedure$;
 
+CREATE OR REPLACE PROCEDURE analytics.populate_snapshot_cancelled_task_rows(
+  p_snapshot_id BIGINT,
+  p_cancelled_rows_table REGCLASS
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+  EXECUTE format(
+    $cancelled_rows_insert$
+    INSERT INTO %s (
+      snapshot_id,
+      task_id,
+      case_id,
+      task_name,
+      jurisdiction_label,
+      role_category_label,
+      region,
+      location_id,
+      location,
+      work_type,
+      last_updated_date,
+      termination_process_label,
+      outcome,
+      assignee,
+      number_of_reassignments
+    )
+    SELECT
+      $1,
+      task_id,
+      case_id,
+      task_name,
+      jurisdiction_label,
+      role_category_label,
+      region,
+      location_id,
+      location,
+      work_type,
+      last_updated_date,
+      termination_process_label,
+      outcome_lower,
+      assignee,
+      number_of_reassignments
+    FROM tmp_snapshot_source
+    WHERE outcome_lower = 'cancelled'
+    $cancelled_rows_insert$,
+    p_cancelled_rows_table
+  )
+  USING p_snapshot_id;
+END;
+$procedure$;
+
+CREATE OR REPLACE PROCEDURE analytics.create_snapshot_cancelled_task_rows_indexes(
+  p_snapshot_id BIGINT,
+  p_cancelled_rows_partition_name TEXT
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+  EXECUTE format(
+    'CREATE INDEX %I ON analytics.%I(jurisdiction_label, role_category_label, region, location, task_name, work_type)',
+    format('ix_scatr_p_%s_slicers', p_snapshot_id),
+    p_cancelled_rows_partition_name
+  );
+  EXECUTE format(
+    'CREATE INDEX %I ON analytics.%I(case_id, last_updated_date DESC)',
+    format('ix_scatr_p_%s_case_id_updated', p_snapshot_id),
+    p_cancelled_rows_partition_name
+  );
+END;
+$procedure$;
+
 CREATE OR REPLACE PROCEDURE analytics.run_snapshot_refresh_batch()
 LANGUAGE plpgsql
 AS $procedure$
@@ -2345,6 +2438,7 @@ DECLARE
   v_batch_error_message TEXT;
   v_open_rows_partition_name TEXT;
   v_completed_rows_partition_name TEXT;
+  v_cancelled_rows_partition_name TEXT;
   v_user_completed_facts_partition_name TEXT;
   v_user_completed_daily_totals_partition_name TEXT;
   v_user_completed_slicer_daily_facts_partition_name TEXT;
@@ -2403,6 +2497,7 @@ BEGIN
 
     v_open_rows_partition_name := format('snapshot_open_task_rows_p_%s', v_snapshot_id);
     v_completed_rows_partition_name := format('snapshot_completed_task_rows_p_%s', v_snapshot_id);
+    v_cancelled_rows_partition_name := format('snapshot_cancelled_task_rows_p_%s', v_snapshot_id);
     v_user_completed_facts_partition_name := format('snapshot_user_completed_facts_p_%s', v_snapshot_id);
     v_user_completed_daily_totals_partition_name := format(
       'snapshot_user_completed_daily_totals_p_%s',
@@ -2453,6 +2548,11 @@ BEGIN
       format('analytics.%I', v_wait_time_partition_name)::REGCLASS
     );
 
+    CALL analytics.populate_snapshot_cancelled_task_rows(
+      v_snapshot_id,
+      format('analytics.%I', v_cancelled_rows_partition_name)::REGCLASS
+    );
+
     CALL analytics.populate_snapshot_user_completed_rollup_tables(
       v_snapshot_id,
       format('analytics.%I', v_user_completed_facts_partition_name)::REGCLASS,
@@ -2489,6 +2589,11 @@ BEGIN
       v_open_due_daily_partition_name,
       v_task_event_daily_partition_name,
       v_wait_time_partition_name
+    );
+
+    CALL analytics.create_snapshot_cancelled_task_rows_indexes(
+      v_snapshot_id,
+      v_cancelled_rows_partition_name
     );
 
     CALL analytics.create_snapshot_user_completed_rollup_indexes(
