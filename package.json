@@ -173,7 +173,7 @@
     "source-map-js": "^1.2.2",
     "zod@npm:^4.1.12": "^4.6.7",
     "glob": "^14.0.3",
-    "minimatch": "11.0.2",
+    "minimatch": "11.0.8",
     "lighthouse": "^13.6.0"
   }
 }
