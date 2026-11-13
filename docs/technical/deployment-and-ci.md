@@ -66,3 +66,11 @@ flowchart TB
   Prod -- "No" --> Done["Ready for review"]
   BuildProd --> Done
 ```
+
+## Dependency automerge
+
+Renovate automerges eligible updates at any time, after the release satisfies a
+30-day minimum age. Dependencies matching `com.github.hmcts*`, `uk.gov.hmcts*`,
+`hmctsprod.azurecr.io/**`, or `hmctspublic.azurecr.io/**` are exempt from the
+minimum release age. Platform automerge is disabled, so Renovate performs the
+merge during a subsequent run. Repository merge requirements still apply.
