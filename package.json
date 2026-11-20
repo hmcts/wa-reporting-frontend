@@ -175,6 +175,7 @@
     "glob": "^14.0.3",
     "minimatch": "11.0.2",
     "lighthouse": "^13.6.0",
-    "@opentelemetry/instrumentation-http": "0.222.0"
+    "@opentelemetry/instrumentation-http": "0.222.0",
+    "effect": "3.22.1"
   }
 }
