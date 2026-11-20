@@ -58,9 +58,9 @@ const buildOidc = (overrides: Record<string, unknown> = {}) => {
     'RBAC.roleAssignmentRoleNames': 'task-supervisor',
     'session.cookie.name': 'session-cookie',
     'session.inactivityTimeoutMinutes': 30,
-    'secrets.wa.wa-reporting-redis-host': 'redis-host',
-    'secrets.wa.wa-reporting-redis-port': 6379,
-    'secrets.wa.wa-reporting-redis-access-key': 'redis-pass',
+    'secrets.wa.azure-managed-redis-host': 'redis-host',
+    'secrets.wa.azure-managed-redis-port': 6379,
+    'secrets.wa.azure-managed-redis-access-key': 'redis-pass',
     ...overrides,
   };
 
@@ -202,7 +202,7 @@ describe('OidcMiddleware', () => {
 
   it('falls back to file store when redis is not configured', () => {
     const { OidcMiddleware, authOptions, fileStore } = buildOidc({
-      'secrets.wa.wa-reporting-redis-host': undefined,
+      'secrets.wa.azure-managed-redis-host': undefined,
     });
     const app = { use: jest.fn(), locals: {} } as unknown as Application;
 

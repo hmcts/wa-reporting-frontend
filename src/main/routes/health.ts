@@ -35,7 +35,7 @@ function createRedisHealthCheck(app: Application) {
 }
 
 function hasRedisConfigured(app: Application): boolean {
-  return Boolean(app.locals?.redisClient || config.get<string>('secrets.wa.wa-reporting-redis-host'));
+  return Boolean(app.locals?.redisClient || config.get<string>('secrets.wa.azure-managed-redis-host'));
 }
 
 function createReadinessStateHealthCheck() {

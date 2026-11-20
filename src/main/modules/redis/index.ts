@@ -10,7 +10,7 @@ const logger = Logger.getLogger('redis');
 type RedisClient = RedisClientType | RedisClusterType;
 
 export function getRedisClient(app: Application): RedisClient | null {
-  const redisHost: string | undefined = config.get('secrets.wa.wa-reporting-redis-host');
+  const redisHost: string | undefined = config.get('secrets.wa.azure-managed-redis-host');
 
   if (!redisHost) {
     return null;
@@ -20,8 +20,8 @@ export function getRedisClient(app: Application): RedisClient | null {
     return app.locals.redisClient as RedisClient;
   }
 
-  const redisPort: number | undefined = config.get('secrets.wa.wa-reporting-redis-port');
-  const redisPass: string | undefined = config.get('secrets.wa.wa-reporting-redis-access-key');
+  const redisPort: number | undefined = config.get('secrets.wa.azure-managed-redis-port');
+  const redisPass: string | undefined = config.get('secrets.wa.azure-managed-redis-access-key');
   const redisClusterEnabled: boolean = config.get('redis.clusterEnabled');
 
   const socketOptions = {
