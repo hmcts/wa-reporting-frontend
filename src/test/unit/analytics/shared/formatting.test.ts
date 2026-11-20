@@ -5,6 +5,7 @@ import {
   formatDatePickerValue,
   formatNumber,
   formatPercent,
+  formatSentenceCase,
   formatUkDateTime,
 } from '../../../../main/modules/analytics/shared/formatting';
 
@@ -28,6 +29,22 @@ describe('formatPercent', () => {
   test('returns zero format for invalid numbers', () => {
     expect(formatPercent(0)).toBe('0%');
     expect(formatPercent(Number.NaN)).toBe('0%');
+  });
+});
+
+describe('formatSentenceCase', () => {
+  test.each([
+    ['completed', 'Completed'],
+    ['CANCELLED', 'Cancelled'],
+    ['partially completed', 'Partially completed'],
+  ])('formats %s in sentence case', (value, expected) => {
+    expect(formatSentenceCase(value)).toBe(expected);
+  });
+
+  test('preserves empty and missing values', () => {
+    expect(formatSentenceCase('')).toBe('');
+    expect(formatSentenceCase(null)).toBeNull();
+    expect(formatSentenceCase()).toBeNull();
   });
 });
 

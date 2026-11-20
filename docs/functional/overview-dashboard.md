@@ -40,8 +40,8 @@ Provide a high-level view of service performance, focusing on open and assigned 
   - Completed
   - Cancelled
 - `Created` counts task events where `created_date` exists within the selected event date range, regardless of current task state.
-- `Completed` counts task events classified as completed (case-insensitive `termination_reason = completed`) within the selected event date range.
-- `Cancelled` counts task events classified as cancelled from deleted tasks (case-insensitive `termination_reason = deleted`) within the selected event date range.
+- `Completed` counts task events classified as completed (case-insensitive `outcome = completed`) within the selected event date range.
+- `Cancelled` counts task events classified as cancelled (case-insensitive `outcome = cancelled`) using `last_updated_date` as the event date within the selected event date range.
 - Totals row included.
 
 ```mermaid
