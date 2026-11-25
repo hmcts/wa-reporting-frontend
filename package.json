@@ -176,6 +176,6 @@
     "minimatch": "11.0.9",
     "lighthouse": "^13.6.0",
     "@opentelemetry/instrumentation-http": "0.222.0",
-    "effect": "3.22.1"
+    "effect": "3.22.5"
   }
 }
