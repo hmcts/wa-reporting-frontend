@@ -54,7 +54,7 @@
     "@opentelemetry/instrumentation-winston": "^0.65.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
-    "axios": "1.21.0",
+    "axios": "1.21.1",
     "body-parser": "^2.3.0",
     "compression": "^1.8.1",
     "config": "^4.4.2",
@@ -173,7 +173,9 @@
     "source-map-js": "^1.2.2",
     "zod@npm:^4.1.12": "^4.6.7",
     "glob": "^14.0.3",
-    "minimatch": "11.0.2",
-    "lighthouse": "^13.6.0"
+    "minimatch": "11.0.9",
+    "lighthouse": "^13.6.0",
+    "@opentelemetry/instrumentation-http": "0.222.0",
+    "effect": "3.22.5"
   }
 }
