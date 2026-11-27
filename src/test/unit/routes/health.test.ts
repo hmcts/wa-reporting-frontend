@@ -3,7 +3,7 @@ import type { Application } from 'express';
 describe('routes/health', () => {
   const defaultConfigValues: Record<string, unknown> = {
     'services.idam.url.public': 'https://idam.test',
-    'secrets.wa.wa-reporting-redis-host': '',
+    'secrets.wa.azure-managed-redis-host': '',
   };
 
   beforeEach(() => {
@@ -103,7 +103,7 @@ describe('routes/health', () => {
   });
 
   it('reports Redis down when configured but no client is available yet', () => {
-    const { healthCheckConfig } = registerHealth({ 'secrets.wa.wa-reporting-redis-host': 'redis-host' });
+    const { healthCheckConfig } = registerHealth({ 'secrets.wa.azure-managed-redis-host': 'redis-host' });
 
     expect(healthCheckConfig.checks.redis()).toBe('down');
     expect(healthCheckConfig.readinessChecks.redis()).toBe('down');
@@ -112,7 +112,7 @@ describe('routes/health', () => {
   it('reports Redis down when ping rejects', async () => {
     const ping = jest.fn().mockRejectedValue(new Error('redis unavailable'));
     const { healthCheckConfig } = registerHealth(
-      { 'secrets.wa.wa-reporting-redis-host': 'redis-host' },
+      { 'secrets.wa.azure-managed-redis-host': 'redis-host' },
       { redisClient: { ping } }
     );
 

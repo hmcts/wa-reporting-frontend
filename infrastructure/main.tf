@@ -9,7 +9,6 @@ locals {
   rdResourceGroup            = "rd-${var.env}"
   s2sVaultName               = "s2s-${var.env}"
   s2sResourceGroup           = "rpe-service-auth-provider-${var.env}"
-  managed_redis_environments = ["demo", "aat", "ithc", "perftest", "prod"]
 }
 
 data "azurerm_key_vault" "wa_key_vault" {
@@ -28,7 +27,7 @@ data "azurerm_key_vault" "s2s_key_vault" {
 }
 
 data "azurerm_subnet" "redis_private_endpoint" {
-  for_each = toset(contains(local.managed_redis_environments, var.env) ? [var.env] : [])
+  for_each = toset([var.env])
 
   name                 = "core-infra-subnet-2-${var.env}"
   resource_group_name  = "core-infra-${var.env}"
@@ -99,7 +98,7 @@ resource "azurerm_key_vault_secret" "redis_access_key" {
 }
 
 module "managed_redis" {
-  for_each = toset(contains(local.managed_redis_environments, var.env) ? [var.env] : [])
+  for_each = toset([var.env])
   source   = "git@github.com:hmcts/terraform-module-azure-managed-redis?ref=main"
 
   product     = var.product
